@@ -405,6 +405,12 @@ If migrating from PeekabooCore's AI system:
 - Core providers: OpenAI, Anthropic, Grok, Ollama
 - Complete tool calling and streaming support
 
+## Documentation
+
+- **[Architecture Guide](docs/ARCHITECTURE.md)**: Detailed technical architecture and design decisions
+- **[Changelog](CHANGELOG.md)**: Version history and release notes
+- **[API Reference](https://steipete.github.io/Tachikoma/)**: Complete API documentation
+
 ## Contributing
 
 1. Fork the repository
