@@ -176,7 +176,7 @@ export X_AI_API_KEY="xai-..."
 export XAI_API_KEY="xai-..."
 
 # Ollama (optional, defaults to localhost:11434)
-export PEEKABOO_OLLAMA_BASE_URL="http://localhost:11434"
+export TACHIKOMA_OLLAMA_BASE_URL="http://localhost:11434"
 ```
 
 ### Provider Configuration
