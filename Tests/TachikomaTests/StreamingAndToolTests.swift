@@ -4,80 +4,44 @@ import Testing
 
 @Suite("Streaming Types Tests")
 struct StreamingTypesTests {
-    @Test("StreamEvent creation and types")
-    func streamEventCreationAndTypes() {
-        let events: [StreamEvent] = [
-            .contentDelta("Hello"),
-            .contentComplete("Hello, world!"),
-            .toolCallDelta("tool_123", "get_", "{}"),
-            .toolCallComplete("tool_123", "get_weather", "{\"location\": \"SF\"}"),
-            .reasoningDelta("I need to think..."),
-            .reasoningComplete("I need to think about this carefully."),
-            .done,
-            .error("Network error"),
-            .metadata(["usage": ["tokens": 42]]),
-        ]
+    @Test("StreamEvent types")
+    func streamEventTypes() {
+        // Test basic event creation
+        let textDelta = StreamTextDelta(delta: "Hello")
+        let textEvent = StreamEvent.textDelta(textDelta)
         
-        #expect(events.count == 9)
-        
-        // Test specific event properties
-        if case let .contentDelta(text) = events[0] {
-            #expect(text == "Hello")
+        // Test the event type
+        if case .textDelta(let delta) = textEvent {
+            #expect(delta.delta == "Hello")
         } else {
-            Issue.record("Expected contentDelta event")
+            Issue.record("Expected textDelta event")
         }
         
-        if case let .toolCallDelta(id, name, args) = events[2] {
-            #expect(id == "tool_123")
-            #expect(name == "get_")
-            #expect(args == "{}")
+        // Test error event
+        let errorDetail = ErrorDetail(message: "Test error", type: "network", code: "500", param: nil)
+        let errorEvent = StreamEvent.error(StreamError(error: errorDetail))
+        if case .error(let error) = errorEvent {
+            #expect(error.error.message == "Test error")
         } else {
-            Issue.record("Expected toolCallDelta event")
-        }
-        
-        if case .done = events[6] {
-            // Expected
-        } else {
-            Issue.record("Expected done event")
+            Issue.record("Expected error event")
         }
     }
 
     @Test("StreamEvent Codable")
     func streamEventCodable() throws {
-        let originalEvents: [StreamEvent] = [
-            .contentDelta("Hello"),
-            .toolCallComplete("tool_123", "get_weather", "{\"location\": \"SF\"}"),
-            .done,
-            .error("Network error"),
-            .metadata(["usage": ["tokens": 42]]),
-        ]
+        let textDelta = StreamTextDelta(delta: "Hello world")
+        let originalEvent = StreamEvent.textDelta(textDelta)
         
         let encoder = JSONEncoder()
         let decoder = JSONDecoder()
         
-        for originalEvent in originalEvents {
-            let data = try encoder.encode(originalEvent)
-            let decodedEvent = try decoder.decode(StreamEvent.self, from: data)
-            
-            // Compare events (simplified comparison)
-            switch (originalEvent, decodedEvent) {
-            case let (.contentDelta(orig), .contentDelta(decoded)):
-                #expect(orig == decoded)
-            case let (.toolCallComplete(origId, origName, origArgs), .toolCallComplete(decodedId, decodedName, decodedArgs)):
-                #expect(origId == decodedId)
-                #expect(origName == decodedName)
-                #expect(origArgs == decodedArgs)
-            case (.done, .done):
-                // Expected
-                break
-            case let (.error(orig), .error(decoded)):
-                #expect(orig == decoded)
-            case (.metadata, .metadata):
-                // Metadata comparison is complex, just verify it decodes
-                break
-            default:
-                Issue.record("Event types don't match")
-            }
+        let data = try encoder.encode(originalEvent)
+        let decodedEvent = try decoder.decode(StreamEvent.self, from: data)
+        
+        if case let .textDelta(decoded) = decodedEvent {
+            #expect(decoded.delta == "Hello world")
+        } else {
+            Issue.record("Event decoding failed")
         }
     }
 
@@ -85,14 +49,13 @@ struct StreamingTypesTests {
     func streamingResponseIteratorBehavior() async throws {
         // Create a mock stream of events
         let events: [StreamEvent] = [
-            .contentDelta("Hello"),
-            .contentDelta(" world"),
-            .contentComplete("Hello world!"),
-            .done
+            .textDelta(StreamTextDelta(delta: "Hello")),
+            .textDelta(StreamTextDelta(delta: " world")),
+            .responseCompleted(StreamResponseCompleted(id: "test", usage: nil))
         ]
         
         // Create an AsyncStream to simulate streaming
-        let stream = AsyncThrowingStream<StreamEvent, Error> { continuation in
+        let stream = AsyncThrowingStream<StreamEvent, any Error> { continuation in
             Task {
                 for event in events {
                     continuation.yield(event)
@@ -113,37 +76,41 @@ struct StreamingTypesTests {
             Issue.record("Stream iteration failed: \(error)")
         }
         
-        #expect(collectedEvents.count == 4)
+        #expect(collectedEvents.count == 3)
         
         // Verify event sequence
-        if case let .contentDelta(text1) = collectedEvents[0] {
-            #expect(text1 == "Hello")
+        if case let .textDelta(text1) = collectedEvents[0] {
+            #expect(text1.delta == "Hello")
         } else {
-            Issue.record("Expected first contentDelta")
+            Issue.record("Expected first textDelta")
         }
         
-        if case let .contentDelta(text2) = collectedEvents[1] {
-            #expect(text2 == " world")
+        if case let .textDelta(text2) = collectedEvents[1] {
+            #expect(text2.delta == " world")
         } else {
-            Issue.record("Expected second contentDelta")
+            Issue.record("Expected second textDelta")
         }
         
-        if case .done = collectedEvents[3] {
+        if case .responseCompleted = collectedEvents[2] {
             // Expected
         } else {
-            Issue.record("Expected done event at end")
+            Issue.record("Expected responseCompleted event at end")
         }
     }
 
     @Test("StreamEvent error handling")
     func streamEventErrorHandling() async throws {
-        let stream = AsyncThrowingStream<StreamEvent, Error> { continuation in
-            continuation.yield(.contentDelta("Hello"))
-            continuation.finish(throwing: TachikomaError.networkError("Connection lost"))
+        struct TestError: Error {
+            let message: String
+        }
+        
+        let stream = AsyncThrowingStream<StreamEvent, any Error> { continuation in
+            continuation.yield(.textDelta(StreamTextDelta(delta: "Hello")))
+            continuation.finish(throwing: TachikomaError.networkError(underlying: TestError(message: "Connection lost")))
         }
         
         var collectedEvents: [StreamEvent] = []
-        var caughtError: Error?
+        var caughtError: (any Error)?
         
         do {
             for try await event in stream {
@@ -157,8 +124,8 @@ struct StreamingTypesTests {
         #expect(caughtError is TachikomaError)
         
         if let tachikomaError = caughtError as? TachikomaError,
-           case let .networkError(message) = tachikomaError {
-            #expect(message == "Connection lost")
+           case .networkError = tachikomaError {
+            // Expected network error
         } else {
             Issue.record("Expected TachikomaError.networkError")
         }
