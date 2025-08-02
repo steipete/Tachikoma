@@ -26,6 +26,7 @@ let package = Package(
             dependencies: [
                 .product(name: "Logging", package: "swift-log"),
             ],
+            path: "Sources",
             swiftSettings: [
                 .enableExperimentalFeature("StrictConcurrency"),
                 .enableUpcomingFeature("BareSlashRegexLiterals"),

@@ -189,11 +189,29 @@ public struct FileContent: Codable, Sendable {
     public let id: String?
     public let url: String?
     public let name: String?
+    public let filename: String?
+    public let content: String?
+    public let mimeType: String?
 
-    public init(id: String? = nil, url: String? = nil, name: String? = nil) {
+    public init(
+        id: String? = nil,
+        url: String? = nil,
+        name: String? = nil,
+        filename: String? = nil,
+        content: String? = nil,
+        mimeType: String? = nil)
+    {
         self.id = id
         self.url = url
         self.name = name
+        self.filename = filename
+        self.content = content
+        self.mimeType = mimeType
+    }
+    
+    // Convenience constructor for test compatibility
+    public init(filename: String, content: String, mimeType: String) {
+        self.init(name: filename, filename: filename, content: content, mimeType: mimeType)
     }
 }
 

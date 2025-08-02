@@ -169,6 +169,72 @@ public struct ModelSettings: Codable, Sendable {
     public static var `default`: ModelSettings {
         ModelSettings(modelName: "claude-opus-4-20250514")
     }
+    
+    // MARK: - Convenience Constructors
+    
+    /// Create settings with just specified parameters, using Claude Opus 4 as default model
+    public init(
+        temperature: Double? = nil,
+        topP: Double? = nil,
+        maxTokens: Int? = nil,
+        frequencyPenalty: Double? = nil,
+        presencePenalty: Double? = nil,
+        stopSequences: [String]? = nil,
+        toolChoice: ToolChoice? = nil,
+        parallelToolCalls: Bool? = nil,
+        responseFormat: ResponseFormat? = nil,
+        seed: Int? = nil,
+        user: String? = nil,
+        additionalParameters: ModelParameters? = nil)
+    {
+        self.init(
+            modelName: "claude-opus-4-20250514",
+            temperature: temperature,
+            topP: topP,
+            maxTokens: maxTokens,
+            frequencyPenalty: frequencyPenalty,
+            presencePenalty: presencePenalty,
+            stopSequences: stopSequences,
+            toolChoice: toolChoice,
+            parallelToolCalls: parallelToolCalls,
+            responseFormat: responseFormat,
+            seed: seed,
+            user: user,
+            additionalParameters: additionalParameters
+        )
+    }
+    
+    /// Convenience constructors for specific API types and reasoning parameters
+    public init(
+        apiType: String,
+        modelName: String = "claude-opus-4-20250514")
+    {
+        let params = ModelParameters([
+            "apiType": ModelParameters.Value.string(apiType)
+        ])
+        self.init(modelName: modelName, additionalParameters: params)
+    }
+    
+    public init(
+        reasoningEffort: String,
+        reasoning: [String: String]? = nil,
+        temperature: Double? = nil,
+        modelName: String = "o3")
+    {
+        var params: [String: ModelParameters.Value] = [
+            "reasoningEffort": ModelParameters.Value.string(reasoningEffort)
+        ]
+        if let reasoning = reasoning {
+            let reasoningValue = reasoning.mapValues { ModelParameters.Value.string($0) }
+            params["reasoning"] = ModelParameters.Value.dictionary(reasoningValue)
+        }
+        let modelParams = ModelParameters(params)
+        self.init(
+            modelName: modelName,
+            temperature: temperature,
+            additionalParameters: modelParams
+        )
+    }
 
     // Custom coding for additionalParameters
     enum CodingKeys: String, CodingKey {
@@ -222,7 +288,7 @@ public struct ModelSettings: Codable, Sendable {
 // MARK: - Tool Choice
 
 /// Tool choice setting for models
-public enum ToolChoice: Codable, Sendable {
+public enum ToolChoice: Codable, Sendable, Equatable {
     case auto
     case none
     case required

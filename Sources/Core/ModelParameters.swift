@@ -156,6 +156,22 @@ public struct ModelParameters: Codable, Sendable {
         self.storage.isEmpty
     }
 
+    // MARK: - Mutating Methods
+    
+    /// Set a parameter value
+    public mutating func set(_ key: String, value: Any) {
+        if let converted = Self.convertToValue(value) {
+            var newStorage = self.storage
+            newStorage[key] = converted
+            self = ModelParameters(newStorage)
+        }
+    }
+    
+    /// Get a parameter value
+    public func get(_ key: String) -> Any? {
+        return self.storage[key]?.rawValue
+    }
+
     // MARK: - Builder Methods
 
     public func with(_ key: String, value: String) -> ModelParameters {
