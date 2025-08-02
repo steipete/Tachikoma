@@ -396,7 +396,7 @@ public actor ModelProvider {
         ]
 
         // Get base URL from environment or default
-        let baseURLString = ProcessInfo.processInfo.environment["TACHIKOMA_OLLAMA_BASE_URL"] ?? "http://localhost:11434"
+        let baseURLString = ProcessInfo.processInfo.environment["OLLAMA_BASE_URL"] ?? "http://localhost:11434"
         guard let baseURL = URL(string: baseURLString) else { return }
 
         for modelName in models {
@@ -635,7 +635,7 @@ extension ModelProvider {
         }
 
         // Configure Ollama (no API key needed)
-        let ollamaBaseURL = ProcessInfo.processInfo.environment["TACHIKOMA_OLLAMA_BASE_URL"] ?? "http://localhost:11434"
+        let ollamaBaseURL = ProcessInfo.processInfo.environment["OLLAMA_BASE_URL"] ?? "http://localhost:11434"
         if let baseURL = URL(string: ollamaBaseURL) {
             self.configureOllama(ProviderConfiguration.Ollama(baseURL: baseURL))
         }
