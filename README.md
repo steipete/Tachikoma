@@ -246,7 +246,7 @@ public enum StreamEvent {
 Comprehensive function calling with generic context support:
 
 ```swift
-public struct Tool<Context> {
+public struct AITool<Context> {
     public let execute: (ToolInput, Context) async throws -> ToolOutput
     public func toToolDefinition() -> ToolDefinition
 }
@@ -334,7 +334,7 @@ struct WeatherContext {
     let units: String
 }
 
-let weatherTool = Tool<WeatherContext> { input, context in
+let weatherTool = AITool<WeatherContext> { input, context in
     let location = input.parameters["location"] as? String ?? ""
     // Use context.apiKey and context.units for API call
     return ToolOutput(content: "Weather data for \(location)")

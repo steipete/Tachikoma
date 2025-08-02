@@ -2,9 +2,9 @@ import Foundation
 
 // MARK: - Tool Definition
 
-/// A tool that can be used by an agent to perform actions
+/// A tool that can be used by an AI model to perform actions
 
-public struct Tool<Context> {
+public struct AITool<Context> {
     /// Unique name of the tool
     public let name: String
 
@@ -536,9 +536,9 @@ public final class Box<T: Codable & Sendable>: Codable, Sendable {
 
 // MARK: - Tool Builder
 
-/// Builder pattern for creating tools
+/// Builder pattern for creating AI tools
 
-public struct ToolBuilder<Context> {
+public struct AIToolBuilder<Context> {
     private var name: String = ""
     private var description: String = ""
     private var parameters: ToolParameters = .init()
@@ -547,38 +547,38 @@ public struct ToolBuilder<Context> {
 
     public init() {}
 
-    public func withName(_ name: String) -> ToolBuilder<Context> {
+    public func withName(_ name: String) -> AIToolBuilder<Context> {
         var builder = self
         builder.name = name
         return builder
     }
 
-    public func withDescription(_ description: String) -> ToolBuilder<Context> {
+    public func withDescription(_ description: String) -> AIToolBuilder<Context> {
         var builder = self
         builder.description = description
         return builder
     }
 
-    public func withParameters(_ parameters: ToolParameters) -> ToolBuilder<Context> {
+    public func withParameters(_ parameters: ToolParameters) -> AIToolBuilder<Context> {
         var builder = self
         builder.parameters = parameters
         return builder
     }
 
-    public func withStrict(_ strict: Bool) -> ToolBuilder<Context> {
+    public func withStrict(_ strict: Bool) -> AIToolBuilder<Context> {
         var builder = self
         builder.strict = strict
         return builder
     }
 
     public func withExecution(_ execute: @escaping (ToolInput, Context) async throws -> ToolOutput)
-    -> ToolBuilder<Context> {
+    -> AIToolBuilder<Context> {
         var builder = self
         builder.execute = execute
         return builder
     }
 
-    public func build() throws -> Tool<Context> {
+    public func build() throws -> AITool<Context> {
         guard !self.name.isEmpty else {
             throw ToolError.invalidInput("Tool name is required")
         }
@@ -587,7 +587,7 @@ public struct ToolBuilder<Context> {
             throw ToolError.invalidInput("Tool execution function is required")
         }
 
-        return Tool(
+        return AITool(
             name: self.name,
             description: self.description,
             parameters: self.parameters,
