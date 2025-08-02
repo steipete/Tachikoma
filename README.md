@@ -3,6 +3,13 @@
   <h1>Tachikoma</h1>
 </div>
 
+[![Swift Package Manager](https://img.shields.io/badge/Swift_Package_Manager-compatible-orange?style=flat-square)](https://swift.org/package-manager/)
+[![Swift 6](https://img.shields.io/badge/Swift-6.0+-brightgreen.svg?style=flat-square)](https://swift.org/)
+[![Platforms](https://img.shields.io/badge/Platforms-macOS%2014.0+%20|%20iOS%2017.0+%20|%20watchOS%2010.0+%20|%20tvOS%2017.0+-blue.svg?style=flat-square)](https://swift.org/)
+[![License](https://img.shields.io/badge/License-MIT-lightgrey.svg?style=flat-square)](LICENSE)
+[![GitHub release](https://img.shields.io/github/release/steipete/Tachikoma.svg?style=flat-square)](https://github.com/steipete/Tachikoma/releases)
+[![CI](https://img.shields.io/github/actions/workflow/status/steipete/Tachikoma/ci.yml?branch=main&style=flat-square&label=CI)](https://github.com/steipete/Tachikoma/actions)
+
 A comprehensive Swift package for AI model integration, providing a unified interface for multiple AI providers including OpenAI, Anthropic, Grok (xAI), and Ollama.
 
 Named after the spider-tank AI from Ghost in the Shell, Tachikoma provides an intelligent, adaptable interface for AI services.

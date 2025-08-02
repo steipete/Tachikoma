@@ -3,7 +3,7 @@ import Foundation
 // MARK: - Model Provider
 
 /// Singleton provider for managing model instances in Tachikoma
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+
 public actor ModelProvider {
     /// Shared instance
     public static let shared = ModelProvider()
@@ -424,7 +424,7 @@ public actor ModelProvider {
 // MARK: - Model Provider Configuration
 
 /// Configuration for model providers
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+
 public enum ProviderConfiguration {
     /// OpenAI configuration
     public struct OpenAI: Sendable {
@@ -483,7 +483,7 @@ public enum ProviderConfiguration {
 
 // MARK: - Model Provider Extensions
 
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+
 extension ModelProvider {
     /// Configure OpenAI models with specific settings
     public func configureOpenAI(_ config: ProviderConfiguration.OpenAI) {

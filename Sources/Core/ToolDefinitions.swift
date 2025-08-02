@@ -3,7 +3,7 @@ import Foundation
 // MARK: - Tool Definition
 
 /// A tool that can be used by an agent to perform actions
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+
 public struct Tool<Context> {
     /// Unique name of the tool
     public let name: String
@@ -537,7 +537,7 @@ public final class Box<T: Codable & Sendable>: Codable, Sendable {
 // MARK: - Tool Builder
 
 /// Builder pattern for creating tools
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+
 public struct ToolBuilder<Context> {
     private var name: String = ""
     private var description: String = ""
