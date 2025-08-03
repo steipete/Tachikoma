@@ -1,3 +1,28 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk
+
+# macOS Extended Attributes and Metadata
+*.bridgesupport
+.metadata_never_index
+.ql_*
+.Trash-*
+
 # Xcode
 #
 # gitignore contributors: remember to update Global/Xcode.gitignore, Objective-C.gitignore & Swift.gitignore
@@ -5,10 +30,26 @@
 ## User settings
 xcuserdata/
 
+## Various Xcode settings
+*.pbxuser
+!default.pbxuser
+*.mode1v3
+!default.mode1v3
+*.mode2v3
+!default.mode2v3
+*.perspectivev3
+!default.perspectivev3
+*.xccheckout
+*.moved-aside
+*.xcuserstate
+*.xcscmblueprint
+
+## Build generated
+build/
+DerivedData/
+
 ## Obj-C/Swift specific
 *.hmap
-
-## App packaging
 *.ipa
 *.dSYM.zip
 *.dSYM
@@ -16,6 +57,12 @@ xcuserdata/
 ## Playgrounds
 timeline.xctimeline
 playground.xcworkspace
+
+## Xcode Patch
+*.xcodeproj/*
+!*.xcodeproj/project.pbxproj
+!*.xcodeproj/xcshareddata/
+!*.xcworkspace/contents.xcworkspacedata
 
 # Swift Package Manager
 #
@@ -30,6 +77,11 @@ playground.xcworkspace
 # .swiftpm
 
 .build/
+Packages/
+Package.pins
+**/Package.resolved
+**/.swiftpm/
+*.xcworkspace/xcshareddata/swiftpm/
 
 # CocoaPods
 #
@@ -60,3 +112,29 @@ fastlane/report.xml
 fastlane/Preview.html
 fastlane/screenshots/**/*.png
 fastlane/test_output
+
+# Temporary files
+*.tmp
+*.temp
+.cache/
+debug
+*.bak
+*.backup
+*~
+
+# OS generated files
+Thumbs.db
+ehthumbs.db
+desktop.ini
+
+# Editor backup files
+*.swp
+*.swo
+.#*
+#*#
+
+# IDEs and editors
+.idea/
+.vscode/
+*.sublime-workspace
+*.sublime-project
