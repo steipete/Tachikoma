@@ -19,7 +19,7 @@ import Foundation
 public func generateText(
     model: LanguageModel,
     messages: [ModelMessage],
-    tools: [Tool]? = nil,
+    tools: [SimpleTool]? = nil,
     settings: GenerationSettings = .default,
     maxSteps: Int = 1
 ) async throws -> GenerateTextResult {
@@ -144,7 +144,7 @@ public func generateText(
 public func streamText(
     model: LanguageModel,
     messages: [ModelMessage],
-    tools: [Tool]? = nil,
+    tools: [SimpleTool]? = nil,
     settings: GenerationSettings = .default,
     maxSteps: Int = 1
 ) async throws -> StreamTextResult {

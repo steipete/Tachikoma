@@ -8,6 +8,7 @@ import Combine
 /// Property wrapper that provides reactive AI model integration for SwiftUI
 @available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
 @propertyWrapper
+@MainActor
 public struct AI: DynamicProperty {
     @StateObject private var manager: AIManager
     
@@ -26,14 +27,16 @@ public struct AI: DynamicProperty {
         model: LanguageModel = .default,
         system: String? = nil,
         settings: GenerationSettings = .default,
-        tools: [Tool] = []
+        tools: [SimpleTool] = []
     ) {
-        self._manager = StateObject(wrappedValue: AIManager(
+        // Create AIManager on main actor since it's @MainActor
+        let aiManager = AIManager(
             model: model,
             system: system,
             settings: settings,
             tools: tools
-        ))
+        )
+        self._manager = StateObject(wrappedValue: aiManager)
     }
 }
 
@@ -52,7 +55,7 @@ public class AIManager: ObservableObject {
     public let model: LanguageModel
     public let system: String?
     public let settings: GenerationSettings
-    public let tools: [Tool]
+    public let tools: [SimpleTool]
     
     private var streamingTask: Task<Void, Never>?
     
@@ -60,7 +63,7 @@ public class AIManager: ObservableObject {
         model: LanguageModel = .default,
         system: String? = nil,
         settings: GenerationSettings = .default,
-        tools: [Tool] = []
+        tools: [SimpleTool] = []
     ) {
         self.model = model
         self.system = system
@@ -236,7 +239,7 @@ extension View {
     }
     
     /// Configure AI tools for child views
-    public func aiTools(_ tools: [Tool]) -> some View {
+    public func aiTools(_ tools: [SimpleTool]) -> some View {
         environment(\.aiTools, tools)
     }
 }
@@ -255,7 +258,7 @@ extension EnvironmentValues {
         set { self[AISettingsKey.self] = newValue }
     }
     
-    public var aiTools: [Tool] {
+    public var aiTools: [SimpleTool] {
         get { self[AIToolsKey.self] }
         set { self[AIToolsKey.self] = newValue }
     }
@@ -270,7 +273,7 @@ private struct AISettingsKey: EnvironmentKey {
 }
 
 private struct AIToolsKey: EnvironmentKey {
-    static let defaultValue: [Tool] = []
+    static let defaultValue: [SimpleTool] = []
 }
 
 // MARK: - Convenience Views
@@ -284,7 +287,7 @@ public struct ChatView: View {
         model: LanguageModel = .default,
         system: String? = nil,
         settings: GenerationSettings = .default,
-        tools: [Tool] = []
+        tools: [SimpleTool] = []
     ) {
         self._ai = AI(
             model: model,

@@ -6,7 +6,7 @@ import Foundation
 @available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
 public class ConversationBuilder {
     private var messages: [ModelMessage] = []
-    private var tools: [Tool] = []
+    private var tools: [SimpleTool] = []
     private var settings: GenerationSettings = .default
     private var maxSteps: Int = 1
     
@@ -53,13 +53,13 @@ public class ConversationBuilder {
     // MARK: - Tool Configuration
     
     @discardableResult
-    public func tool(_ tool: Tool) -> ConversationBuilder {
+    public func tool(_ tool: SimpleTool) -> ConversationBuilder {
         tools.append(tool)
         return self
     }
     
     @discardableResult
-    public func tools(_ newTools: [Tool]) -> ConversationBuilder {
+    public func tools(_ newTools: [SimpleTool]) -> ConversationBuilder {
         tools.append(contentsOf: newTools)
         return self
     }
@@ -250,7 +250,7 @@ public class ConversationBuilder {
         return messages
     }
     
-    public var builtTools: [Tool] {
+    public var builtTools: [SimpleTool] {
         return tools
     }
     
@@ -265,13 +265,13 @@ public class ConversationBuilder {
 @available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
 public struct ConversationContext: Sendable {
     public let messages: [ModelMessage]
-    public let tools: [Tool]
+    public let tools: [SimpleTool]
     public let settings: GenerationSettings
     public let maxSteps: Int
     
     public init(
         messages: [ModelMessage],
-        tools: [Tool] = [],
+        tools: [SimpleTool] = [],
         settings: GenerationSettings = .default,
         maxSteps: Int = 1
     ) {
@@ -341,7 +341,7 @@ public enum Tachikoma {
     public static func generateText(
         model: LanguageModel,
         messages: [ModelMessage],
-        tools: [Tool]? = nil,
+        tools: [SimpleTool]? = nil,
         settings: GenerationSettings = .default,
         maxSteps: Int = 1
     ) async throws -> GenerateTextResult {
@@ -357,7 +357,7 @@ public enum Tachikoma {
     public static func streamText(
         model: LanguageModel,
         messages: [ModelMessage],
-        tools: [Tool]? = nil,
+        tools: [SimpleTool]? = nil,
         settings: GenerationSettings = .default,
         maxSteps: Int = 1
     ) async throws -> StreamTextResult {

@@ -22,9 +22,31 @@ public final class Box<T>: Sendable, Codable where T: Codable & Sendable {
 
 // MARK: - Tool System
 
+// MARK: - Generic Tool System (Primary)
+
 /// A tool that AI models can call to perform actions
 @available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
-public struct Tool: Sendable {
+public struct Tool<Context>: Sendable {
+    public let name: String
+    public let description: String
+    public let execute: @Sendable (ToolInput, Context) async throws -> ToolOutput
+    
+    public init(
+        name: String,
+        description: String,
+        execute: @escaping @Sendable (ToolInput, Context) async throws -> ToolOutput
+    ) {
+        self.name = name
+        self.description = description
+        self.execute = execute
+    }
+}
+
+// MARK: - Non-Generic Tool for Core API
+
+/// Non-generic tool for simple use cases
+@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+public struct SimpleTool: Sendable {
     public let name: String
     public let description: String
     public let parameters: ToolParameters
@@ -333,7 +355,7 @@ public class ToolBuilder {
         return self
     }
     
-    public func build() throws -> Tool {
+    public func build() throws -> SimpleTool {
         guard let executeFunction = executeFunction else {
             throw TachikomaError.invalidConfiguration("Tool \(name) missing execute function")
         }
@@ -343,7 +365,7 @@ public class ToolBuilder {
             required: required
         )
         
-        return Tool(
+        return SimpleTool(
             name: name,
             description: description,
             parameters: parameters,
@@ -360,7 +382,7 @@ public func tool(
     name: String,
     description: String,
     _ configure: (ToolBuilder) throws -> ToolBuilder
-) throws -> Tool {
+) throws -> SimpleTool {
     let builder = ToolBuilder(name: name, description: description)
     return try configure(builder).build()
 }
@@ -372,7 +394,7 @@ public func tool(
 public struct CommonTools {
     
     /// Simple calculator tool
-    public static func calculator() throws -> Tool {
+    public static func calculator() throws -> SimpleTool {
         return try tool(name: "calculator", description: "Perform basic mathematical calculations") { builder in
             builder
                 .stringParameter("expression", description: "Mathematical expression to evaluate", required: true)
@@ -387,7 +409,7 @@ public struct CommonTools {
     }
     
     /// Get current date/time tool
-    public static func getCurrentDateTime() throws -> Tool {
+    public static func getCurrentDateTime() throws -> SimpleTool {
         return try tool(name: "getCurrentDateTime", description: "Get the current date and time") { builder in
             builder
                 .stringParameter("format", description: "Date format (iso8601, timestamp, readable)", required: false, enumValues: ["iso8601", "timestamp", "readable"])
@@ -458,4 +480,175 @@ private func evaluateExpression(_ expression: String) throws -> Double {
     }
     
     throw TachikomaError.invalidInput("Invalid expression: \(expression)")
+}
+
+// MARK: - ToolKit Protocol for TachikomaBuilders Compatibility
+
+/// Protocol for tool collections used by TachikomaBuilders
+@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+public protocol ToolKit: Sendable {
+    associatedtype Context = Self
+    var tools: [Tool<Context>] { get }
+}
+
+
+// MARK: - ToolInput/ToolOutput Compatibility Types
+
+/// Tool input type for TachikomaBuilders compatibility
+@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+public struct ToolInput: Sendable {
+    private let arguments: [String: ToolArgument]
+    
+    public init(_ arguments: [String: ToolArgument]) {
+        self.arguments = arguments
+    }
+    
+    public init(jsonString: String) throws {
+        guard let data = jsonString.data(using: .utf8) else {
+            throw ToolError.invalidInput("Invalid UTF-8 JSON string")
+        }
+        
+        let jsonObject = try JSONSerialization.jsonObject(with: data, options: [])
+        guard let dictionary = jsonObject as? [String: Any] else {
+            throw ToolError.invalidInput("JSON must be an object")
+        }
+        
+        var arguments: [String: ToolArgument] = [:]
+        for (key, value) in dictionary {
+            arguments[key] = try ToolArgument.from(any: value)
+        }
+        
+        self.arguments = arguments
+    }
+    
+    public func stringValue(_ key: String) throws -> String {
+        guard let value = arguments[key] else {
+            throw ToolError.invalidInput("Missing required parameter: \(key)")
+        }
+        switch value {
+        case .string(let str):
+            return str
+        default:
+            throw ToolError.invalidInput("Parameter \(key) is not a string")
+        }
+    }
+    
+    public func stringValue(_ key: String, default defaultValue: String) -> String {
+        return (try? stringValue(key)) ?? defaultValue
+    }
+    
+    public func intValue(_ key: String) throws -> Int {
+        guard let value = arguments[key] else {
+            throw ToolError.invalidInput("Missing required parameter: \(key)")
+        }
+        switch value {
+        case .int(let int):
+            return int
+        default:
+            throw ToolError.invalidInput("Parameter \(key) is not an integer")
+        }
+    }
+    
+    public func intValue(_ key: String, default defaultValue: Int) -> Int {
+        return (try? intValue(key)) ?? defaultValue
+    }
+    
+    public func doubleValue(_ key: String) throws -> Double {
+        guard let value = arguments[key] else {
+            throw ToolError.invalidInput("Missing required parameter: \(key)")
+        }
+        switch value {
+        case .double(let double):
+            return double
+        case .int(let int):
+            return Double(int)
+        default:
+            throw ToolError.invalidInput("Parameter \(key) is not a number")
+        }
+    }
+    
+    public func doubleValue(_ key: String, default defaultValue: Double) -> Double {
+        return (try? doubleValue(key)) ?? defaultValue
+    }
+    
+    public func boolValue(_ key: String) throws -> Bool {
+        guard let value = arguments[key] else {
+            throw ToolError.invalidInput("Missing required parameter: \(key)")
+        }
+        switch value {
+        case .bool(let bool):
+            return bool
+        default:
+            throw ToolError.invalidInput("Parameter \(key) is not a boolean")
+        }
+    }
+    
+    public func boolValue(_ key: String, default defaultValue: Bool) -> Bool {
+        return (try? boolValue(key)) ?? defaultValue
+    }
+    
+    public func stringValue(_ key: String, default defaultValue: String?) -> String? {
+        return (try? stringValue(key)) ?? defaultValue
+    }
+    
+    public func intValue(_ key: String, default defaultValue: Int?) -> Int? {
+        return (try? intValue(key)) ?? defaultValue
+    }
+}
+
+/// Tool output type for TachikomaBuilders compatibility
+@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+public enum ToolOutput: Sendable {
+    case string(String)
+    case int(Int)
+    case double(Double)
+    case bool(Bool)
+    case array([ToolOutput])
+    case object([String: ToolOutput])
+    case null
+}
+
+// MARK: - ToolError for TachikomaBuilders Compatibility
+
+/// Tool execution errors for TachikomaBuilders compatibility
+@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+public enum ToolError: Error, LocalizedError, Sendable {
+    case invalidInput(String)
+    case toolNotFound(String)
+    case executionFailed(String)
+    
+    public var errorDescription: String? {
+        switch self {
+        case .invalidInput(let message):
+            return "Invalid tool input: \(message)"
+        case .toolNotFound(let name):
+            return "Tool not found: \(name)"
+        case .executionFailed(let message):
+            return "Tool execution failed: \(message)"
+        }
+    }
+}
+
+// MARK: - Parameter Schema for TachikomaBuilders Compatibility
+
+/// Parameter schema type for TachikomaBuilders compatibility
+@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+public enum ParameterSchema: Sendable {
+    case object(properties: [String: ParameterProperty])
+    case string
+    case integer
+    case boolean
+    case array(items: ParameterProperty)
+}
+
+/// Parameter property type for TachikomaBuilders compatibility
+@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+public struct ParameterProperty: Sendable {
+    public let type: String
+    public let description: String?
+    
+    public init(type: String, description: String? = nil) {
+        self.type = type
+        self.description = description
+    }
 }

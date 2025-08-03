@@ -24,6 +24,9 @@ public struct ProviderFactory {
         case .groq(let groqModel):
             return try GroqProvider(model: groqModel)
             
+        case .grok(let grokModel):
+            return try GrokProvider(model: grokModel)
+            
         case .ollama(let ollamaModel):
             return try OllamaProvider(model: ollamaModel)
             
@@ -250,6 +253,47 @@ public final class GroqProvider: ModelProvider {
     
     public func streamText(request: ProviderRequest) async throws -> AsyncThrowingStream<TextStreamDelta, Error> {
         throw TachikomaError.unsupportedOperation("Groq streaming not yet implemented")
+    }
+}
+
+/// Provider for Grok (xAI) models
+@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+public final class GrokProvider: ModelProvider {
+    public let modelId: String
+    public let baseURL: String?
+    public let apiKey: String?
+    public let capabilities: ModelCapabilities
+    
+    private let model: LanguageModel.Grok
+    
+    public init(model: LanguageModel.Grok) throws {
+        self.model = model
+        self.modelId = model.modelId
+        self.baseURL = "https://api.x.ai/v1"
+        
+        // Support both X_AI_API_KEY and XAI_API_KEY environment variables
+        if let key = ProcessInfo.processInfo.environment["X_AI_API_KEY"] ?? 
+                     ProcessInfo.processInfo.environment["XAI_API_KEY"] {
+            self.apiKey = key
+        } else {
+            throw TachikomaError.authenticationFailed("X_AI_API_KEY or XAI_API_KEY not found")
+        }
+        
+        self.capabilities = ModelCapabilities(
+            supportsVision: model.supportsVision,
+            supportsTools: model.supportsTools,
+            supportsStreaming: true,
+            contextLength: model.contextLength,
+            maxOutputTokens: 4096
+        )
+    }
+    
+    public func generateText(request: ProviderRequest) async throws -> ProviderResponse {
+        throw TachikomaError.unsupportedOperation("Grok provider not yet implemented")
+    }
+    
+    public func streamText(request: ProviderRequest) async throws -> AsyncThrowingStream<TextStreamDelta, Error> {
+        throw TachikomaError.unsupportedOperation("Grok streaming not yet implemented")
     }
 }
 

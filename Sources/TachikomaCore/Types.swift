@@ -195,6 +195,32 @@ public enum ToolArgument: Sendable, Codable, Equatable {
             try container.encode(value)
         }
     }
+    
+    /// Create ToolArgument from any JSON-compatible value
+    public static func from(any value: Any) throws -> ToolArgument {
+        if value is NSNull {
+            return .null
+        } else if let bool = value as? Bool {
+            return .bool(bool)
+        } else if let int = value as? Int {
+            return .int(int)
+        } else if let double = value as? Double {
+            return .double(double)
+        } else if let string = value as? String {
+            return .string(string)
+        } else if let array = value as? [Any] {
+            let toolArgs = try array.map { try ToolArgument.from(any: $0) }
+            return .array(toolArgs)
+        } else if let dict = value as? [String: Any] {
+            var toolDict: [String: ToolArgument] = [:]
+            for (key, val) in dict {
+                toolDict[key] = try ToolArgument.from(any: val)
+            }
+            return .object(toolDict)
+        } else {
+            throw ToolError.invalidInput("Unsupported value type: \(type(of: value))")
+        }
+    }
 }
 
 // MARK: - Usage Statistics

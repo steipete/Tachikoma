@@ -249,22 +249,22 @@ public struct ModelSelector {
         case "openai":
             return Model.OpenAI.allCases.compactMap { 
                 if case .custom = $0 { return nil }
-                return $0.rawValue 
+                return $0.modelId 
             }
         case "anthropic", "claude":
             return Model.Anthropic.allCases.compactMap { 
                 if case .custom = $0 { return nil }
-                return $0.rawValue 
+                return $0.modelId 
             }
         case "grok", "xai":
             return Model.Grok.allCases.compactMap { 
                 if case .custom = $0 { return nil }
-                return $0.rawValue 
+                return $0.modelId 
             }
         case "ollama":
             return Model.Ollama.allCases.compactMap { 
                 if case .custom = $0 { return nil }
-                return $0.rawValue 
+                return $0.modelId 
             }
         default:
             return []
