@@ -1,5 +1,23 @@
 import Foundation
 
+// MARK: - Helper Types
+
+/// A coding key that can represent any string
+struct AnyCodingKey: CodingKey {
+    let stringValue: String
+    let intValue: Int?
+    
+    init?(stringValue: String) {
+        self.stringValue = stringValue
+        self.intValue = nil
+    }
+    
+    init?(intValue: Int) {
+        self.stringValue = String(intValue)
+        self.intValue = intValue
+    }
+}
+
 // MARK: - OpenAI API Types
 
 struct OpenAIChatRequest: Codable {
@@ -338,8 +356,38 @@ struct AnthropicInputSchema: Codable {
         try container.encode(type, forKey: .type)
         try container.encode(required, forKey: .required)
         
-        let data = try JSONSerialization.data(withJSONObject: properties)
-        try container.encode(data, forKey: .properties)
+        // Encode properties directly as JSON object, not as base64 data
+        var propertiesContainer = container.nestedContainer(keyedBy: AnyCodingKey.self, forKey: .properties)
+        try encodeAnyDictionary(properties, to: &propertiesContainer)
+    }
+    
+    private func encodeAnyDictionary(_ dict: [String: Any], to container: inout KeyedEncodingContainer<AnyCodingKey>) throws {
+        for (key, value) in dict {
+            let codingKey = AnyCodingKey(stringValue: key)!
+            
+            switch value {
+            case let stringValue as String:
+                try container.encode(stringValue, forKey: codingKey)
+            case let intValue as Int:
+                try container.encode(intValue, forKey: codingKey)
+            case let doubleValue as Double:
+                try container.encode(doubleValue, forKey: codingKey)
+            case let boolValue as Bool:
+                try container.encode(boolValue, forKey: codingKey)
+            case let arrayValue as [Any]:
+                // Encode arrays properly (this is complex, but for tool schemas we likely won't need complex arrays)
+                let jsonData = try JSONSerialization.data(withJSONObject: arrayValue)
+                let jsonString = String(data: jsonData, encoding: .utf8) ?? "[]"
+                try container.encode(jsonString, forKey: codingKey)
+            case let dictValue as [String: Any]:
+                // Encode nested objects properly as nested containers
+                var nestedContainer = container.nestedContainer(keyedBy: AnyCodingKey.self, forKey: codingKey)
+                try encodeAnyDictionary(dictValue, to: &nestedContainer)
+            default:
+                // Fallback: convert to string
+                try container.encode(String(describing: value), forKey: codingKey)
+            }
+        }
     }
 }
 
@@ -874,6 +922,12 @@ public final class AnthropicProvider: ModelProvider {
         let jsonData = try JSONEncoder().encode(anthropicRequest)
         urlRequest.httpBody = jsonData
         
+        // Debug: Print the JSON being sent to Anthropic
+        if let jsonString = String(data: jsonData, encoding: .utf8) {
+            print("DEBUG: Anthropic API Request JSON:")
+            print(jsonString)
+        }
+        
         let (data, response) = try await URLSession.shared.data(for: urlRequest)
         
         guard let httpResponse = response as? HTTPURLResponse else {
@@ -1058,13 +1112,50 @@ public final class AnthropicProvider: ModelProvider {
     
     private func convertAnthropicTools(_ tools: [SimpleTool]?) throws -> [AnthropicTool]? {
         return tools?.map { tool in
-            AnthropicTool(
+            // Convert ToolParameters to Anthropic format
+            var properties: [String: Any] = [:]
+            
+            for (paramName, paramProp) in tool.parameters.properties {
+                var propDict: [String: Any] = [:]
+                
+                // Map parameter type
+                switch paramProp.type {
+                case .string:
+                    propDict["type"] = "string"
+                case .integer:
+                    propDict["type"] = "integer"
+                case .number:
+                    propDict["type"] = "number"
+                case .boolean:
+                    propDict["type"] = "boolean"
+                case .array:
+                    propDict["type"] = "array"
+                case .object:
+                    propDict["type"] = "object"
+                case .null:
+                    propDict["type"] = "null"
+                }
+                
+                // Add description if available
+                if let description = paramProp.description {
+                    propDict["description"] = description
+                }
+                
+                // Add enum values if available
+                if let enumValues = paramProp.enumValues {
+                    propDict["enum"] = enumValues
+                }
+                
+                properties[paramName] = propDict
+            }
+            
+            return AnthropicTool(
                 name: tool.name,
                 description: tool.description,
                 inputSchema: AnthropicInputSchema(
                     type: "object",
-                    properties: [:], // Simplified for now
-                    required: []
+                    properties: properties,
+                    required: tool.parameters.required
                 )
             )
         }
