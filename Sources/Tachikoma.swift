@@ -13,19 +13,88 @@ import Foundation
 
 // MARK: - AIModelProvider
 
-/// Manages multiple AI model instances with explicit dependency injection
+/**
+ * The core model management class that provides dependency injection for AI models.
+ *
+ * `AIModelProvider` is the heart of Tachikoma's dependency injection architecture, replacing
+ * the previous singleton pattern. It manages a collection of AI model instances and provides
+ * type-safe access to them through a simple string-based identifier system.
+ *
+ * ## Key Features
+ * - **Thread-safe**: All operations are safe for concurrent access
+ * - **Immutable**: Model collections are immutable, changes return new instances
+ * - **Type-safe**: Full compile-time type checking for model interfaces
+ * - **Provider-agnostic**: Works with any AI provider (OpenAI, Anthropic, Ollama, etc.)
+ *
+ * ## Usage Example
+ * ```swift
+ * // Create models using the factory
+ * let openAIModel = AIModelFactory.openAI(apiKey: "sk-...", modelName: "gpt-4.1")
+ * let claudeModel = AIModelFactory.anthropic(apiKey: "sk-ant-...", modelName: "claude-opus-4")
+ *
+ * // Create provider with models
+ * let provider = AIModelProvider(models: [
+ *     "gpt-4.1": openAIModel,
+ *     "claude-opus-4": claudeModel
+ * ])
+ *
+ * // Use the models
+ * let model = try provider.getModel("gpt-4.1")
+ * let response = try await model.getResponse(request: request)
+ * ```
+ *
+ * ## Architecture Benefits
+ * - **Testability**: Easy to inject mock models for testing
+ * - **Configuration flexibility**: Multiple providers can coexist
+ * - **Explicit dependencies**: No hidden global state
+ * - **Memory efficiency**: Models are shared across usage contexts
+ *
+ * - Note: This class is thread-safe and all methods are synchronous for performance
+ * - Important: Always use `AIModelFactory` or `AIConfiguration.fromEnvironment()` to create model instances
+ * - Since: Tachikoma 3.0.0 (replaced singleton architecture)
+ */
 @available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
 public final class AIModelProvider: Sendable {
+    /// Internal storage of model instances, keyed by model identifier
     private let models: [String: any ModelInterface]
     
+    /**
+     * Initialize a new model provider with the specified models.
+     *
+     * - Parameter models: Dictionary mapping model identifiers to model instances.
+     *                    Use `AIModelFactory` methods to create the model instances.
+     *
+     * ## Example
+     * ```swift
+     * let provider = AIModelProvider(models: [
+     *     "gpt-4.1": AIModelFactory.openAI(apiKey: "sk-...", modelName: "gpt-4.1"),
+     *     "claude-opus-4": AIModelFactory.anthropic(apiKey: "sk-ant-...", modelName: "claude-opus-4")
+     * ])
+     * ```
+     */
     public init(models: [String: any ModelInterface] = [:]) {
         self.models = models
     }
     
-    /// Get a model instance for the specified model name
-    /// - Parameter modelName: The model identifier (e.g., "gpt-4.1", "claude-opus-4", "provider-id/model-name")
-    /// - Returns: A model instance conforming to ModelInterface
-    /// - Throws: TachikomaError if the model is not available or configuration is invalid
+    /**
+     * Retrieves a model instance by its identifier.
+     *
+     * This is the primary method for accessing configured AI models. The model identifier
+     * should match one that was provided during initialization or added via `withModel()`.
+     *
+     * - Parameter modelName: The model identifier (e.g., "gpt-4.1", "claude-opus-4", "llama3.3")
+     * - Returns: A model instance conforming to `ModelInterface`
+     * - Throws: `TachikomaError.modelNotFound` if the model identifier is not registered
+     *
+     * ## Example
+     * ```swift
+     * let provider = AIModelProvider(models: ["gpt-4.1": openAIModel])
+     * let model = try provider.getModel("gpt-4.1")
+     * let response = try await model.getResponse(request: request)
+     * ```
+     *
+     * - Important: This method is synchronous and thread-safe
+     */
     public func getModel(_ modelName: String) throws -> any ModelInterface {
         guard let model = models[modelName] else {
             throw TachikomaError.modelNotFound(modelName)
@@ -33,24 +102,73 @@ public final class AIModelProvider: Sendable {
         return model
     }
     
-    /// List all available models
-    /// - Returns: Array of available model identifiers
+    /**
+     * Returns a sorted list of all available model identifiers.
+     *
+     * Use this method to discover which models are available in the current provider
+     * instance. Useful for debugging, UI generation, or dynamic model selection.
+     *
+     * - Returns: Array of model identifiers sorted alphabetically
+     *
+     * ## Example
+     * ```swift
+     * let availableModels = provider.availableModels()
+     * print("Available models: \(availableModels.joined(separator: ", "))")
+     * // Output: "Available models: claude-opus-4, gpt-4.1, llama3.3"
+     * ```
+     */
     public func availableModels() -> [String] {
         return Array(models.keys).sorted()
     }
     
-    /// Add or update a model
-    /// - Parameters:
-    ///   - modelName: The model identifier
-    ///   - model: The model instance
+    /**
+     * Creates a new provider instance with an additional or updated model.
+     *
+     * Since `AIModelProvider` is immutable, this method returns a new instance with
+     * the specified model added or updated. The original provider is unchanged.
+     *
+     * - Parameters:
+     *   - modelName: The model identifier to add or update
+     *   - model: The model instance to associate with the identifier
+     * - Returns: A new `AIModelProvider` instance containing the additional model
+     *
+     * ## Example
+     * ```swift
+     * let baseProvider = AIModelProvider()
+     * let provider = baseProvider
+     *     .withModel("gpt-4.1", model: AIModelFactory.openAI(apiKey: "sk-...", modelName: "gpt-4.1"))
+     *     .withModel("claude-opus-4", model: AIModelFactory.anthropic(apiKey: "sk-ant-...", modelName: "claude-opus-4"))
+     * ```
+     *
+     * - Note: Returns a new instance, original provider is unchanged (immutable design)
+     */
     public func withModel(_ modelName: String, model: any ModelInterface) -> AIModelProvider {
         var newModels = self.models
         newModels[modelName] = model
         return AIModelProvider(models: newModels)
     }
     
-    /// Add multiple models
-    /// - Parameter models: Dictionary of model name to model instance
+    /**
+     * Creates a new provider instance with multiple additional or updated models.
+     *
+     * This is a convenience method for adding multiple models at once, equivalent to
+     * calling `withModel()` for each model individually but more efficient.
+     *
+     * - Parameter models: Dictionary mapping model identifiers to model instances
+     * - Returns: A new `AIModelProvider` instance containing all the additional models
+     *
+     * ## Example
+     * ```swift
+     * let newModels: [String: any ModelInterface] = [
+     *     "gpt-4.1": AIModelFactory.openAI(apiKey: "sk-...", modelName: "gpt-4.1"),
+     *     "claude-opus-4": AIModelFactory.anthropic(apiKey: "sk-ant-...", modelName: "claude-opus-4"),
+     *     "llama3.3": AIModelFactory.ollama(modelName: "llama3.3")
+     * ]
+     * let provider = baseProvider.withModels(newModels)
+     * ```
+     *
+     * - Note: If a model identifier already exists, it will be replaced with the new instance
+     */
     public func withModels(_ models: [String: any ModelInterface]) -> AIModelProvider {
         var newModels = self.models
         for (name, model) in models {
@@ -62,11 +180,64 @@ public final class AIModelProvider: Sendable {
 
 // MARK: - AIModelFactory
 
-/// Factory for creating commonly used model configurations
+/**
+ * Factory for creating AI model instances with sensible defaults.
+ *
+ * `AIModelFactory` provides convenient static methods for creating model instances from
+ * popular AI providers. Each method encapsulates the provider-specific configuration
+ * and uses sensible defaults for common use cases.
+ *
+ * ## Supported Providers
+ * - **OpenAI**: GPT-4.1, GPT-4o, o3/o4 reasoning models
+ * - **Anthropic**: Claude Opus 4, Claude Sonnet 4, and legacy Claude 3.x models  
+ * - **Grok (xAI)**: Grok-4, Grok-3, and Grok-2 models
+ * - **Ollama**: Local models including Llama 3.3, LLaVA, and others
+ *
+ * ## Usage Pattern
+ * ```swift
+ * // Create individual models
+ * let gptModel = AIModelFactory.openAI(apiKey: "sk-...", modelName: "gpt-4.1")
+ * let claudeModel = AIModelFactory.anthropic(apiKey: "sk-ant-...", modelName: "claude-opus-4")
+ * let ollamaModel = AIModelFactory.ollama(modelName: "llama3.3")
+ *
+ * // Use with AIModelProvider
+ * let provider = AIModelProvider(models: [
+ *     "gpt-4.1": gptModel,
+ *     "claude-opus-4": claudeModel,
+ *     "llama3.3": ollamaModel
+ * ])
+ * ```
+ *
+ * - Important: API keys should be stored securely and never hardcoded in production
+ * - Note: All methods return instances conforming to `ModelInterface`
+ * - Since: Tachikoma 3.0.0
+ */
 @available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
 public struct AIModelFactory {
     
-    /// Create an OpenAI model
+    /**
+     * Creates an OpenAI model instance.
+     *
+     * Supports all modern OpenAI models including GPT-4.1, GPT-4o, and o3/o4 reasoning models.
+     * Automatically handles API versioning and authentication.
+     *
+     * - Parameters:
+     *   - apiKey: OpenAI API key (format: "sk-...")
+     *   - modelName: Model identifier (e.g., "gpt-4.1", "gpt-4o", "o3", "o4-mini")
+     *   - baseURL: Custom API endpoint (defaults to OpenAI's official API)
+     *   - organizationId: Optional organization ID for API billing
+     * - Returns: Configured OpenAI model instance
+     *
+     * ## Example
+     * ```swift
+     * let model = AIModelFactory.openAI(
+     *     apiKey: "sk-proj-...",
+     *     modelName: "gpt-4.1"
+     * )
+     * ```
+     *
+     * - Note: Supports both Chat Completions and Responses APIs automatically
+     */
     public static func openAI(apiKey: String, modelName: String, baseURL: URL? = nil, organizationId: String? = nil) -> any ModelInterface {
         return OpenAIModel(
             apiKey: apiKey,
@@ -76,7 +247,28 @@ public struct AIModelFactory {
         )
     }
     
-    /// Create an Anthropic model
+    /**
+     * Creates an Anthropic Claude model instance.
+     *
+     * Supports all Claude models including the latest Claude Opus 4 and Sonnet 4 models,
+     * as well as legacy Claude 3.x series for backwards compatibility.
+     *
+     * - Parameters:
+     *   - apiKey: Anthropic API key (format: "sk-ant-...")
+     *   - modelName: Model identifier (e.g., "claude-opus-4-20250514", "claude-sonnet-4-20250514")
+     *   - baseURL: Custom API endpoint (defaults to Anthropic's official API)
+     * - Returns: Configured Anthropic model instance
+     *
+     * ## Example
+     * ```swift
+     * let model = AIModelFactory.anthropic(
+     *     apiKey: "sk-ant-api03-...",
+     *     modelName: "claude-opus-4-20250514"
+     * )
+     * ```
+     *
+     * - Note: Supports extended thinking modes (add "-thinking" suffix to model name)
+     */
     public static func anthropic(apiKey: String, modelName: String, baseURL: URL? = nil) -> any ModelInterface {
         return AnthropicModel(
             apiKey: apiKey,
@@ -85,7 +277,28 @@ public struct AIModelFactory {
         )
     }
     
-    /// Create a Grok model
+    /**
+     * Creates a Grok (xAI) model instance.
+     *
+     * Supports all Grok models from xAI including Grok-4, Grok-3, and Grok-2 variants.
+     * Uses OpenAI-compatible API format for easy integration.
+     *
+     * - Parameters:
+     *   - apiKey: xAI API key (format: "xai-...")
+     *   - modelName: Model identifier (e.g., "grok-4", "grok-3", "grok-2-vision-1212")
+     *   - baseURL: Custom API endpoint (defaults to xAI's official API)
+     * - Returns: Configured Grok model instance
+     *
+     * ## Example
+     * ```swift
+     * let model = AIModelFactory.grok(
+     *     apiKey: "xai-...",
+     *     modelName: "grok-4"
+     * )
+     * ```
+     *
+     * - Note: Grok-4 models have parameter restrictions (no frequency/presence penalty)
+     */
     public static func grok(apiKey: String, modelName: String, baseURL: URL? = nil) -> any ModelInterface {
         return GrokModel(
             apiKey: apiKey,
@@ -94,7 +307,32 @@ public struct AIModelFactory {
         )
     }
     
-    /// Create an Ollama model
+    /**
+     * Creates an Ollama model instance for local AI models.
+     *
+     * Ollama runs AI models locally without requiring API keys. Supports a wide range
+     * of open-source models including Llama, LLaVA, Mistral, and custom models.
+     *
+     * - Parameters:
+     *   - modelName: Model identifier (e.g., "llama3.3", "llava:latest", "mistral")
+     *   - baseURL: Ollama server endpoint (defaults to localhost:11434)
+     * - Returns: Configured Ollama model instance
+     *
+     * ## Example
+     * ```swift
+     * // Local Ollama server
+     * let model = AIModelFactory.ollama(modelName: "llama3.3")
+     *
+     * // Remote Ollama server
+     * let remoteModel = AIModelFactory.ollama(
+     *     modelName: "llama3.3",
+     *     baseURL: URL(string: "http://ollama-server:11434")!
+     * )
+     * ```
+     *
+     * - Important: Ensure the model is pulled locally before use (`ollama pull llama3.3`)
+     * - Note: No API key required, but Ollama daemon must be running
+     */
     public static func ollama(modelName: String, baseURL: URL? = nil) -> any ModelInterface {
         return OllamaModel(
             modelName: modelName,
@@ -105,11 +343,79 @@ public struct AIModelFactory {
 
 // MARK: - AIConfiguration
 
-/// Configuration helper for setting up AI providers from environment variables
+/**
+ * Configuration utility for automatic AI model setup from environment variables.
+ *
+ * `AIConfiguration` provides a convenient way to automatically configure all available
+ * AI models based on environment variables and credential files. This is the easiest
+ * way to get started with Tachikoma in most applications.
+ *
+ * ## Environment Variables
+ * The following environment variables are automatically detected:
+ * - `OPENAI_API_KEY`: OpenAI API key for GPT models
+ * - `ANTHROPIC_API_KEY`: Anthropic API key for Claude models  
+ * - `X_AI_API_KEY` or `XAI_API_KEY`: xAI API key for Grok models
+ * - `TACHIKOMA_OLLAMA_BASE_URL`: Custom Ollama server URL (optional)
+ *
+ * ## Credential Files
+ * API keys can also be stored in `~/.tachikoma/credentials` file:
+ * ```
+ * OPENAI_API_KEY=sk-proj-...
+ * ANTHROPIC_API_KEY=sk-ant-api03-...
+ * X_AI_API_KEY=xai-...
+ * ```
+ *
+ * ## Usage Example
+ * ```swift
+ * // Automatic configuration from environment
+ * let provider = try AIConfiguration.fromEnvironment()
+ * let availableModels = provider.availableModels()
+ * print("Configured models: \(availableModels)")
+ *
+ * // Use any available model
+ * let model = try provider.getModel("claude-opus-4-20250514")
+ * let response = try await model.getResponse(request: request)
+ * ```
+ *
+ * ## Model Auto-Registration
+ * When API keys are found, the following models are automatically registered:
+ * - **OpenAI**: gpt-4.1, gpt-4o, o3, o4-mini, and variants
+ * - **Anthropic**: claude-opus-4, claude-sonnet-4, claude-3.x series
+ * - **Grok**: grok-4, grok-3, grok-2 variants
+ * - **Ollama**: llama3.3, llava, mistral, and 15+ other models
+ *
+ * - Important: Only providers with valid API keys will be configured
+ * - Note: Ollama models are always included (no API key required)
+ * - Since: Tachikoma 3.0.0
+ */
 @available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
 public struct AIConfiguration {
     
-    /// Create an AIModelProvider from environment variables and standard model configurations
+    /**
+     * Creates an AIModelProvider with all available models from environment configuration.
+     *
+     * This method scans environment variables and credential files to automatically
+     * configure all available AI providers. Only providers with valid API keys will
+     * be included in the resulting provider.
+     *
+     * - Returns: Configured `AIModelProvider` with all available models
+     * - Throws: `TachikomaError` if configuration parsing fails (not for missing API keys)
+     *
+     * ## Example
+     * ```swift
+     * // Set environment variables
+     * setenv("OPENAI_API_KEY", "sk-proj-...", 1)
+     * setenv("ANTHROPIC_API_KEY", "sk-ant-api03-...", 1)
+     *
+     * // Auto-configure all available models
+     * let provider = try AIConfiguration.fromEnvironment()
+     * print("Available models: \(provider.availableModels())")
+     * // Output: ["claude-opus-4-20250514", "gpt-4.1", "llama3.3", ...]
+     * ```
+     *
+     * - Note: Missing API keys are silently ignored, not treated as errors
+     * - Important: This method is safe to call even with no credentials configured
+     */
     public static func fromEnvironment() throws -> AIModelProvider {
         var models: [String: any ModelInterface] = [:]
         
@@ -232,14 +538,44 @@ public struct AIConfiguration {
 
 // MARK: - Legacy Compatibility (DEPRECATED)
 
-/// Legacy Tachikoma singleton class - DEPRECATED
-/// Use AIModelProvider with dependency injection instead
+/**
+ * Legacy singleton interface for Tachikoma - DEPRECATED.
+ *
+ * This class provides backward compatibility with the previous singleton-based architecture.
+ * It is deprecated and will be removed in a future version. New code should use `AIModelProvider`
+ * with dependency injection instead.
+ *
+ * ## Migration Path
+ * Instead of using the singleton:
+ * ```swift
+ * // OLD (deprecated)
+ * let model = try await Tachikoma.shared.getModel("gpt-4.1")
+ *
+ * // NEW (recommended)
+ * let provider = try AIConfiguration.fromEnvironment()
+ * let model = try provider.getModel("gpt-4.1")
+ * ```
+ *
+ * ## Why Deprecated?
+ * - **Testing**: Singletons make unit testing difficult
+ * - **Configuration**: Hard to support multiple configurations
+ * - **Dependencies**: Hidden global state makes code harder to understand
+ * - **Threading**: Singleton access patterns can cause race conditions
+ *
+ * - Warning: This class will be removed in Tachikoma 4.0
+ * - Important: Use `AIModelProvider` for all new code
+ * - Since: Tachikoma 1.0.0 (deprecated in 3.0.0)
+ */
 @available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
 @available(*, deprecated, message: "Use AIModelProvider with dependency injection instead of Tachikoma.shared singleton")
 public final class Tachikoma: @unchecked Sendable {
+    /// Shared singleton instance (deprecated)
     public static let shared = Tachikoma()
     
+    /// Internal logger for debugging and diagnostics
     private let logger: Logger
+    
+    /// Internal model provider that powers the singleton interface
     private var modelProvider: AIModelProvider
     
     private init() {
