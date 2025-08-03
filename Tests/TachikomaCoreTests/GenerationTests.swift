@@ -78,23 +78,23 @@ struct GenerationTests {
         setenv("OPENAI_API_KEY", "test-key", 1)
         defer { unsetenv("OPENAI_API_KEY") }
         
-        let stream = stream(
+        let stream = try await stream(
             "Count to 5",
             using: .openai(.gpt4o),
             maxTokens: 50
         )
         
-        var tokens: [StreamToken] = []
+        var tokens: [TextStreamDelta] = []
         
         for try await token in stream {
             tokens.append(token)
-            if token.type == .complete {
+            if token.type == .done {
                 break
             }
         }
         
         #expect(!tokens.isEmpty)
-        #expect(tokens.last?.type == .complete)
+        #expect(tokens.last?.type == .done)
         
         // Verify we received some text deltas
         let textTokens = tokens.filter { $0.type == .textDelta }
@@ -106,7 +106,7 @@ struct GenerationTests {
         setenv("ANTHROPIC_API_KEY", "test-key", 1)
         defer { unsetenv("ANTHROPIC_API_KEY") }
         
-        let stream = stream(
+        let stream = try await stream(
             "Write a haiku",
             using: .anthropic(.sonnet4),
             system: "You are a poet"
@@ -118,7 +118,7 @@ struct GenerationTests {
         for try await token in stream {
             receivedTokens += 1
             
-            if token.type == .complete {
+            if token.type == .done {
                 completed = true
                 break
             }
@@ -160,7 +160,7 @@ struct GenerationTests {
             try await analyze(
                 image: .base64("test-image"),
                 prompt: "Describe this",
-                using: .openai(.gpt41)
+                using: .openai(.gpt4_1)
             )
         }
     }

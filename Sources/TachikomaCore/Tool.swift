@@ -556,17 +556,23 @@ public struct ToolInput: Sendable {
             throw ToolError.invalidInput("Invalid UTF-8 JSON string")
         }
         
-        let jsonObject = try JSONSerialization.jsonObject(with: data, options: [])
-        guard let dictionary = jsonObject as? [String: Any] else {
-            throw ToolError.invalidInput("JSON must be an object")
+        do {
+            let jsonObject = try JSONSerialization.jsonObject(with: data, options: [])
+            guard let dictionary = jsonObject as? [String: Any] else {
+                throw ToolError.invalidInput("JSON must be an object")
+            }
+            
+            var arguments: [String: ToolArgument] = [:]
+            for (key, value) in dictionary {
+                arguments[key] = try ToolArgument.from(any: value)
+            }
+            
+            self.arguments = arguments
+        } catch let error as ToolError {
+            throw error
+        } catch {
+            throw ToolError.invalidInput("Invalid JSON: \(error.localizedDescription)")
         }
-        
-        var arguments: [String: ToolArgument] = [:]
-        for (key, value) in dictionary {
-            arguments[key] = try ToolArgument.from(any: value)
-        }
-        
-        self.arguments = arguments
     }
     
     public func stringValue(_ key: String) throws -> String {

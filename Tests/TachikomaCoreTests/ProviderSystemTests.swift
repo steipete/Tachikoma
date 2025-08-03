@@ -66,11 +66,19 @@ struct ProviderSystemTests {
     func providerFactoryMissingAPIKey() async throws {
         // Ensure no API key is set
         unsetenv("OPENAI_API_KEY")
+        unsetenv("ANTHROPIC_API_KEY")
         
         let model = Model.openai(.gpt4o)
         
         #expect(throws: TachikomaError.self) {
             try ProviderFactory.createProvider(for: model)
+        }
+        
+        // Also test Anthropic
+        let anthropicModel = Model.anthropic(.opus4)
+        
+        #expect(throws: TachikomaError.self) {
+            try ProviderFactory.createProvider(for: anthropicModel)
         }
     }
     
@@ -80,12 +88,12 @@ struct ProviderSystemTests {
     func modelCapabilitiesVision() {
         #expect(Model.openai(.gpt4o).supportsVision == true)
         #expect(Model.openai(.gpt4oMini).supportsVision == true)
-        #expect(Model.openai(.gpt41).supportsVision == false)
+        #expect(Model.openai(.gpt4_1).supportsVision == false)
         
         #expect(Model.anthropic(.opus4).supportsVision == true)
         #expect(Model.anthropic(.sonnet4).supportsVision == true)
         
-        #expect(Model.grok(.grok2Vision).supportsVision == true)
+        #expect(Model.grok(.grok2Vision_1212).supportsVision == true)
         #expect(Model.grok(.grok4).supportsVision == false)
         
         #expect(Model.ollama(.llava).supportsVision == true)
@@ -95,7 +103,7 @@ struct ProviderSystemTests {
     @Test("Model Capabilities - Tool Support")
     func modelCapabilitiesTools() {
         #expect(Model.openai(.gpt4o).supportsTools == true)
-        #expect(Model.openai(.gpt41).supportsTools == true)
+        #expect(Model.openai(.gpt4_1).supportsTools == true)
         
         #expect(Model.anthropic(.opus4).supportsTools == true)
         #expect(Model.anthropic(.sonnet4).supportsTools == true)
@@ -118,36 +126,39 @@ struct ProviderSystemTests {
     
     @Test("Generation Request Basic Creation")
     func generationRequestBasic() {
-        let request = GenerationRequest(
-            prompt: "Hello world",
-            system: "You are helpful",
+        let request = ProviderRequest(
+            messages: [ModelMessage(role: .user, content: [.text("Hello world")])],
             tools: nil,
-            maxTokens: 100,
-            temperature: 0.7
+            settings: GenerationSettings(maxTokens: 100, temperature: 0.7)
         )
         
-        #expect(request.prompt == "Hello world")
-        #expect(request.system == "You are helpful")
+        #expect(request.messages.count == 1)
+        #expect(request.messages[0].role == .user)
         #expect(request.tools == nil)
-        #expect(request.maxTokens == 100)
-        #expect(request.temperature == 0.7)
-        #expect(request.images == nil)
+        #expect(request.settings.maxTokens == 100)
+        #expect(request.settings.temperature == 0.7)
+        #expect(request.outputFormat == nil)
     }
     
     @Test("Generation Request With Images")
     func generationRequestWithImages() {
-        let request = GenerationRequest(
-            prompt: "Describe this image",
-            images: [.base64("test-base64-data")]
+        let imageContent = ModelMessage.ContentPart.ImageContent(data: "test-base64-data")
+        let request = ProviderRequest(
+            messages: [ModelMessage(role: .user, content: [
+                .text("Describe this image"),
+                .image(imageContent)
+            ])],
+            tools: nil,
+            settings: .default
         )
         
-        #expect(request.prompt == "Describe this image")
-        #expect(request.images?.count == 1)
+        #expect(request.messages.count == 1)
+        #expect(request.messages[0].content.count == 2)
         
-        if case let .base64(data) = request.images?[0] {
-            #expect(data == "test-base64-data")
+        if case .image(let img) = request.messages[0].content[1] {
+            #expect(img.data == "test-base64-data")
         } else {
-            Issue.record("Expected base64 image input")
+            Issue.record("Expected image content")
         }
     }
     
@@ -155,19 +166,19 @@ struct ProviderSystemTests {
     
     @Test("Stream Token Types")
     func streamTokenTypes() {
-        let textToken = StreamToken(delta: "hello", type: .textDelta)
-        #expect(textToken.delta == "hello")
+        let textToken = TextStreamDelta(type: .textDelta, content: "hello")
+        #expect(textToken.content == "hello")
         #expect(textToken.type == .textDelta)
         
-        let completeToken = StreamToken(delta: nil, type: .complete)
-        #expect(completeToken.delta == nil)
-        #expect(completeToken.type == .complete)
+        let completeToken = TextStreamDelta(type: .done, content: nil)
+        #expect(completeToken.content == nil)
+        #expect(completeToken.type == .done)
         
-        let errorToken = StreamToken(delta: nil, type: .error)
+        let errorToken = TextStreamDelta(type: .error, content: nil)
         #expect(errorToken.type == .error)
         
-        let toolToken = StreamToken(delta: nil, type: .toolCall)
-        #expect(toolToken.type == .toolCall)
+        let toolToken = TextStreamDelta(type: .toolCallStart, content: nil)
+        #expect(toolToken.type == .toolCallStart)
     }
     
     // MARK: - Usage Statistics Tests

@@ -38,6 +38,23 @@ public func generateText(
         
         let response = try await provider.generateText(request: request)
         
+        // Track usage if we have a current session
+        if let usage = response.usage {
+            // For now, create a temporary session for tracking
+            // In a full implementation, this would use an existing session context
+            let sessionId = "generation-\(UUID().uuidString)"
+            _ = UsageTracker.shared.startSession(sessionId)
+            
+            let operationType: OperationType = tools?.isEmpty == false ? .toolCall : .textGeneration
+            UsageTracker.shared.recordUsage(
+                sessionId: sessionId,
+                model: model,
+                usage: usage,
+                operation: operationType
+            )
+            _ = UsageTracker.shared.endSession(sessionId)
+        }
+        
         // Update total usage
         if let usage = response.usage {
             totalUsage = Usage(
@@ -158,8 +175,53 @@ public func streamText(
     
     let stream = try await provider.streamText(request: request)
     
+    // Create a session for tracking streaming usage
+    let sessionId = "streaming-\(UUID().uuidString)"
+    _ = UsageTracker.shared.startSession(sessionId)
+    
+    // Wrap the stream to track usage when it completes
+    let trackedStream = AsyncThrowingStream<TextStreamDelta, Error> { continuation in
+        Task {
+            do {
+                var totalInputTokens = 0
+                var totalOutputTokens = 0
+                
+                for try await delta in stream {
+                    continuation.yield(delta)
+                    
+                    // Track tokens as they come in (approximate)
+                    if case .textDelta = delta.type, let content = delta.content {
+                        // Rough approximation: ~4 characters per token
+                        totalOutputTokens += max(1, content.count / 4)
+                    }
+                    
+                    if case .done = delta.type {
+                        // Record final usage (this is approximate for streaming)
+                        let usage = Usage(
+                            inputTokens: totalInputTokens,
+                            outputTokens: totalOutputTokens
+                        )
+                        
+                        UsageTracker.shared.recordUsage(
+                            sessionId: sessionId,
+                            model: model,
+                            usage: usage,
+                            operation: .textStreaming
+                        )
+                        _ = UsageTracker.shared.endSession(sessionId)
+                    }
+                }
+                
+                continuation.finish()
+            } catch {
+                _ = UsageTracker.shared.endSession(sessionId)
+                continuation.finish(throwing: error)
+            }
+        }
+    }
+    
     return StreamTextResult(
-        stream: stream,
+        stream: trackedStream,
         model: model,
         settings: settings
     )
@@ -264,8 +326,81 @@ public func analyze(
     prompt: String,
     using model: Model? = nil
 ) async throws -> String {
-    // For now, just simulate image analysis since we don't have actual provider implementations
-    throw TachikomaError.unsupportedOperation("Image analysis not yet implemented in test environment")
+    // Determine the model to use
+    let selectedModel: LanguageModel
+    if let model = model {
+        selectedModel = model
+    } else {
+        // Use a vision-capable model by default
+        selectedModel = .openai(.gpt4o)
+    }
+    
+    // Ensure the model supports vision
+    guard selectedModel.supportsVision else {
+        throw TachikomaError.unsupportedOperation("Model \(selectedModel.description) does not support vision")
+    }
+    
+    // Convert ImageInput to base64 string
+    let base64Data: String
+    let mimeType: String
+    
+    switch image {
+    case .base64(let data):
+        base64Data = data
+        mimeType = "image/png" // Default assumption
+    case .url(_):
+        throw TachikomaError.unsupportedOperation("URL-based images not yet supported")
+    case .filePath(let path):
+        let url = URL(fileURLWithPath: path)
+        let imageData = try Data(contentsOf: url)
+        base64Data = imageData.base64EncodedString()
+        
+        // Determine MIME type from file extension
+        let pathExtension = url.pathExtension.lowercased()
+        switch pathExtension {
+        case "png":
+            mimeType = "image/png"
+        case "jpg", "jpeg":
+            mimeType = "image/jpeg"
+        case "gif":
+            mimeType = "image/gif"
+        case "webp":
+            mimeType = "image/webp"
+        default:
+            mimeType = "image/png" // Default fallback
+        }
+    }
+    
+    // Create image content
+    let imageContent = ModelMessage.ContentPart.ImageContent(data: base64Data, mimeType: mimeType)
+    
+    // Create messages with both text and image
+    let messages = [
+        ModelMessage.user(text: prompt, images: [imageContent])
+    ]
+    
+    // Generate text using the multimodal capabilities
+    let result = try await generateText(
+        model: selectedModel,
+        messages: messages,
+        settings: .default
+    )
+    
+    // Additional tracking for image analysis (the generateText call above already tracks usage)
+    // This could be enhanced to track image-specific metrics
+    if let usage = result.usage {
+        let sessionId = "image-analysis-\(UUID().uuidString)"
+        _ = UsageTracker.shared.startSession(sessionId)
+        UsageTracker.shared.recordUsage(
+            sessionId: sessionId,
+            model: selectedModel,
+            usage: usage,
+            operation: .imageAnalysis
+        )
+        _ = UsageTracker.shared.endSession(sessionId)
+    }
+    
+    return result.text
 }
 
 /// Simple streaming from a prompt (convenience wrapper)

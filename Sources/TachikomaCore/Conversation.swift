@@ -40,6 +40,13 @@ public final class Conversation: @unchecked Sendable {
         lock.unlock()
     }
     
+    /// Clear all messages from the conversation
+    public func clear() {
+        lock.lock()
+        _messages.removeAll()
+        lock.unlock()
+    }
+    
     /// Continue the conversation with a model
     public func continueConversation(using model: Model? = nil, tools: (any ToolKit)? = nil) async throws -> String {
         // Convert conversation messages to model messages
