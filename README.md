@@ -1,6 +1,6 @@
 <p align="center">
   <img src="assets/logo.png" width="200" alt="Tachikoma Logo">
-# Tachikoma - Modern Swift AI SDK
+Tachikoma - Modern Swift AI SDK
 </p>
 
 A Swift-native AI SDK that makes AI integration as natural as any Swift function call.
