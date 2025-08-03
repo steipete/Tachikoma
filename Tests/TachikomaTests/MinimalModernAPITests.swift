@@ -106,11 +106,11 @@ struct MinimalModernAPITests {
     
     @Test("Tool error types")
     func toolErrorTypes() {
-        let error = ToolError.invalidInput("test")
-        #expect(error.errorDescription != nil)
+        let toolError = ToolError.invalidInput("test")
+        #expect(toolError.errorDescription != nil)
         
-        let modernError = ModernTachikomaError.modelNotFound("test")
-        #expect(modernError.errorDescription != nil)
+        let tachikomaError = TachikomaError.modelNotFound("test")
+        #expect(tachikomaError.errorDescription != nil)
     }
     
     // MARK: - Conversation Tests

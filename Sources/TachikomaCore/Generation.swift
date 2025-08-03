@@ -1,154 +1,392 @@
 import Foundation
 
-// MARK: - Global Generation Functions
+// MARK: - AI SDK Core Functions (Following Vercel AI SDK Patterns)
 
-/// Generate a text response from a prompt
-/// 
-/// This is the primary function for simple AI interactions. It provides a clean,
-/// Swift-native API for text generation without the complexity of manual request/response handling.
+/// Generate text using AI models following the Vercel AI SDK generateText pattern
+///
+/// This function provides a clean, type-safe API for text generation with support for
+/// tools, multi-step execution, and rich result types.
 ///
 /// - Parameters:
-///   - prompt: The input prompt for the AI model
-///   - model: The model to use (defaults to Claude Opus 4)
-///   - system: Optional system prompt for context
-///   - tools: Optional tools the model can use
-/// - Returns: The generated text response
+///   - model: The language model to use
+///   - messages: Array of conversation messages
+///   - tools: Optional tools the model can call
+///   - settings: Generation settings (temperature, maxTokens, etc.)
+///   - maxSteps: Maximum number of tool calling steps (default: 1)
+/// - Returns: Complete generation result with text, usage, and execution steps
 /// - Throws: TachikomaError for any failures
+@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+public func generateText(
+    model: LanguageModel,
+    messages: [ModelMessage],
+    tools: [Tool]? = nil,
+    settings: GenerationSettings = .default,
+    maxSteps: Int = 1
+) async throws -> GenerateTextResult {
+    let provider = try ProviderFactory.createProvider(for: model)
+    
+    var currentMessages = messages
+    var allSteps: [GenerationStep] = []
+    var totalUsage = Usage(inputTokens: 0, outputTokens: 0)
+    
+    for stepIndex in 0..<maxSteps {
+        let request = ProviderRequest(
+            messages: currentMessages,
+            tools: tools,
+            settings: settings
+        )
+        
+        let response = try await provider.generateText(request: request)
+        
+        // Update total usage
+        if let usage = response.usage {
+            totalUsage = Usage(
+                inputTokens: totalUsage.inputTokens + usage.inputTokens,
+                outputTokens: totalUsage.outputTokens + usage.outputTokens,
+                cost: usage.cost // Could combine costs here
+            )
+        }
+        
+        // Create step record
+        let step = GenerationStep(
+            stepIndex: stepIndex,
+            text: response.text,
+            toolCalls: response.toolCalls ?? [],
+            toolResults: [],
+            usage: response.usage,
+            finishReason: response.finishReason
+        )
+        
+        allSteps.append(step)
+        
+        // Add assistant message
+        var assistantContent: [ModelMessage.ContentPart] = [.text(response.text)]
+        
+        // Handle tool calls
+        if let toolCalls = response.toolCalls, !toolCalls.isEmpty {
+            // Add tool calls to assistant message
+            assistantContent.append(contentsOf: toolCalls.map { .toolCall($0) })
+            currentMessages.append(ModelMessage(role: .assistant, content: assistantContent))
+            
+            // Execute tools
+            var toolResults: [ToolResult] = []
+            for toolCall in toolCalls {
+                if let tool = tools?.first(where: { $0.name == toolCall.name }) {
+                    do {
+                        let result = try await tool.execute(ToolArguments(toolCall.arguments))
+                        let toolResult = ToolResult.success(toolCallId: toolCall.id, result: result)
+                        toolResults.append(toolResult)
+                        
+                        // Add tool result message
+                        currentMessages.append(ModelMessage(
+                            role: .tool,
+                            content: [.toolResult(toolResult)]
+                        ))
+                    } catch {
+                        let errorResult = ToolResult.error(toolCallId: toolCall.id, error: error.localizedDescription)
+                        toolResults.append(errorResult)
+                        
+                        currentMessages.append(ModelMessage(
+                            role: .tool,
+                            content: [.toolResult(errorResult)]
+                        ))
+                    }
+                }
+            }
+            
+            // Update step with tool results
+            allSteps[stepIndex] = GenerationStep(
+                stepIndex: stepIndex,
+                text: response.text,
+                toolCalls: toolCalls,
+                toolResults: toolResults,
+                usage: response.usage,
+                finishReason: response.finishReason
+            )
+            
+            // Continue to next step if not done
+            if response.finishReason != .toolCalls && response.finishReason != .stop {
+                break
+            }
+        } else {
+            // No tool calls, we're done
+            currentMessages.append(ModelMessage(role: .assistant, content: assistantContent))
+            break
+        }
+    }
+    
+    // Extract final text from last step
+    let finalText = allSteps.last?.text ?? ""
+    let finalFinishReason = allSteps.last?.finishReason ?? .other
+    
+    return GenerateTextResult(
+        text: finalText,
+        usage: totalUsage,
+        finishReason: finalFinishReason,
+        steps: allSteps,
+        messages: currentMessages
+    )
+}
+
+/// Stream text generation following the Vercel AI SDK streamText pattern
+///
+/// Provides real-time streaming of AI responses with support for tool calling
+/// and multi-step execution within the stream.
+///
+/// - Parameters:
+///   - model: The language model to use
+///   - messages: Array of conversation messages
+///   - tools: Optional tools the model can call
+///   - settings: Generation settings (temperature, maxTokens, etc.)
+///   - maxSteps: Maximum number of tool calling steps (default: 1)
+/// - Returns: StreamTextResult with async sequence and metadata
+@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+public func streamText(
+    model: LanguageModel,
+    messages: [ModelMessage],
+    tools: [Tool]? = nil,
+    settings: GenerationSettings = .default,
+    maxSteps: Int = 1
+) async throws -> StreamTextResult {
+    let provider = try ProviderFactory.createProvider(for: model)
+    
+    let request = ProviderRequest(
+        messages: messages,
+        tools: tools,
+        settings: settings
+    )
+    
+    let stream = try await provider.streamText(request: request)
+    
+    return StreamTextResult(
+        stream: stream,
+        model: model,
+        settings: settings
+    )
+}
+
+/// Generate structured objects using AI following the generateObject pattern
+///
+/// This function constrains the AI output to a specific schema, ensuring type-safe
+/// structured data generation.
+///
+/// - Parameters:
+///   - model: The language model to use
+///   - messages: Array of conversation messages
+///   - schema: The expected output schema (Codable type)
+///   - settings: Generation settings
+/// - Returns: GenerateObjectResult with parsed object
+@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+public func generateObject<T: Codable & Sendable>(
+    model: LanguageModel,
+    messages: [ModelMessage],
+    schema: T.Type,
+    settings: GenerationSettings = .default
+) async throws -> GenerateObjectResult<T> {
+    let provider = try ProviderFactory.createProvider(for: model)
+    
+    let request = ProviderRequest(
+        messages: messages,
+        tools: nil,
+        settings: settings,
+        outputFormat: .json
+    )
+    
+    let response = try await provider.generateText(request: request)
+    
+    // Parse the JSON response into the expected type
+    guard let jsonData = response.text.data(using: .utf8) else {
+        throw TachikomaError.invalidInput("Response text is not valid UTF-8")
+    }
+    
+    do {
+        let object = try JSONDecoder().decode(T.self, from: jsonData)
+        return GenerateObjectResult(
+            object: object,
+            usage: response.usage,
+            finishReason: response.finishReason ?? .other,
+            rawText: response.text
+        )
+    } catch {
+        throw TachikomaError.invalidInput("Failed to parse response as \(T.self): \(error.localizedDescription)")
+    }
+}
+
+// MARK: - Convenience Functions
+
+/// Simple text generation from a prompt (convenience wrapper)
 @available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
 public func generate(
     _ prompt: String,
-    using model: Model? = nil,
+    using model: LanguageModel = .default,
     system: String? = nil,
-    tools: (any ToolKit)? = nil
+    maxTokens: Int? = nil,
+    temperature: Double? = nil
 ) async throws -> String {
-    let selectedModel = model ?? .default
+    var messages: [ModelMessage] = []
     
-    // This is a placeholder implementation
-    // In the real implementation, this would:
-    // 1. Create a ModernModelRequest from the parameters
-    // 2. Get the appropriate provider (OpenAI, Anthropic, etc.)
-    // 3. Send the request and get the response
-    // 4. Extract and return the text content
+    if let system = system {
+        messages.append(.system(system))
+    }
     
-    let systemText = system.map { " (System: \($0))" } ?? ""
-    let toolsText = tools != nil ? " with tools" : ""
+    messages.append(.user(prompt))
     
-    return "Generated response for '\(prompt)' using \(selectedModel.description)\(systemText)\(toolsText)"
+    let settings = GenerationSettings(
+        maxTokens: maxTokens,
+        temperature: temperature
+    )
+    
+    let result = try await generateText(
+        model: model,
+        messages: messages,
+        settings: settings
+    )
+    
+    return result.text
 }
 
-/// Stream a text response from a prompt
-///
-/// Provides real-time streaming of the AI response as it's generated. Useful for
-/// interactive applications where you want to show progressive output.
-///
-/// - Parameters:
-///   - prompt: The input prompt for the AI model
-///   - model: The model to use (defaults to Claude Opus 4)
-///   - system: Optional system prompt for context
-///   - tools: Optional tools the model can use
-/// - Returns: An async throwing stream of response tokens
+/// Simple streaming from a prompt (convenience wrapper)
 @available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
 public func stream(
     _ prompt: String,
-    using model: Model? = nil,
+    using model: LanguageModel = .default,
     system: String? = nil,
-    tools: (any ToolKit)? = nil
-) -> AsyncThrowingStream<StreamToken, any Error> {
-    let selectedModel = model ?? .default
+    maxTokens: Int? = nil,
+    temperature: Double? = nil
+) async throws -> AsyncThrowingStream<TextStreamDelta, Error> {
+    var messages: [ModelMessage] = []
     
-    return AsyncThrowingStream { continuation in
-        Task {
-            // Placeholder implementation
-            let response = "Streaming response for '\(prompt)' using \(selectedModel.description)"
-            let words = response.split(separator: " ")
-            
-            for word in words {
-                continuation.yield(StreamToken(delta: String(word) + " ", type: .textDelta))
-                try await Task.sleep(nanoseconds: 100_000_000) // 100ms delay
-            }
-            
-            continuation.yield(StreamToken(delta: nil, type: .complete))
-            continuation.finish()
-        }
+    if let system = system {
+        messages.append(.system(system))
+    }
+    
+    messages.append(.user(prompt))
+    
+    let settings = GenerationSettings(
+        maxTokens: maxTokens,
+        temperature: temperature
+    )
+    
+    let result = try await streamText(
+        model: model,
+        messages: messages,
+        settings: settings
+    )
+    
+    return result.textStream
+}
+
+// MARK: - Result Types
+
+/// Result from generateText function
+@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+public struct GenerateTextResult: Sendable {
+    public let text: String
+    public let usage: Usage?
+    public let finishReason: FinishReason
+    public let steps: [GenerationStep]
+    public let messages: [ModelMessage]
+    
+    public init(
+        text: String,
+        usage: Usage?,
+        finishReason: FinishReason,
+        steps: [GenerationStep],
+        messages: [ModelMessage]
+    ) {
+        self.text = text
+        self.usage = usage
+        self.finishReason = finishReason
+        self.steps = steps
+        self.messages = messages
     }
 }
 
-/// Analyze an image with a text prompt
-///
-/// Specialized function for vision/multimodal models. Combines image analysis
-/// capabilities with text generation.
-///
-/// - Parameters:
-///   - image: The image to analyze (base64, URL, or file path)
-///   - prompt: The analysis prompt
-///   - model: The model to use (must support vision)
-/// - Returns: The analysis result as text
-/// - Throws: TachikomaError if the model doesn't support vision or other failures
+/// Result from streamText function
 @available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
-public func analyze(
-    image: ImageInput,
-    prompt: String,
-    using model: Model? = nil
-) async throws -> String {
-    let selectedModel = model ?? Model.gpt4
+public struct StreamTextResult: Sendable {
+    public let textStream: AsyncThrowingStream<TextStreamDelta, Error>
+    public let model: LanguageModel
+    public let settings: GenerationSettings
     
-    guard selectedModel.supportsVision else {
-        throw ModernTachikomaError.unsupportedOperation("Model \(selectedModel.description) does not support vision")
+    public init(
+        stream: AsyncThrowingStream<TextStreamDelta, Error>,
+        model: LanguageModel,
+        settings: GenerationSettings
+    ) {
+        self.textStream = stream
+        self.model = model
+        self.settings = settings
     }
-    
-    // Placeholder implementation
-    let imageDesc = switch image {
-    case .base64: "base64 image"
-    case .url(let url): "image from \(url)"
-    case .filePath(let path): "image file \(path)"
-    }
-    
-    return "Analysis of \(imageDesc): \(prompt) using \(selectedModel.description)"
 }
 
-// MARK: - Supporting Types
-
-/// Represents a streaming token from the AI model
+/// Result from generateObject function
 @available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
-public struct StreamToken: Sendable {
-    public let delta: String?
-    public let type: TokenType
+public struct GenerateObjectResult<T: Codable & Sendable>: Sendable {
+    public let object: T
+    public let usage: Usage?
+    public let finishReason: FinishReason
+    public let rawText: String
     
-    public enum TokenType: Sendable {
+    public init(object: T, usage: Usage?, finishReason: FinishReason, rawText: String) {
+        self.object = object
+        self.usage = usage
+        self.finishReason = finishReason
+        self.rawText = rawText
+    }
+}
+
+/// A single step in multi-step generation
+@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+public struct GenerationStep: Sendable {
+    public let stepIndex: Int
+    public let text: String
+    public let toolCalls: [ToolCall]
+    public let toolResults: [ToolResult]
+    public let usage: Usage?
+    public let finishReason: FinishReason?
+    
+    public init(
+        stepIndex: Int,
+        text: String,
+        toolCalls: [ToolCall],
+        toolResults: [ToolResult],
+        usage: Usage?,
+        finishReason: FinishReason?
+    ) {
+        self.stepIndex = stepIndex
+        self.text = text
+        self.toolCalls = toolCalls
+        self.toolResults = toolResults
+        self.usage = usage
+        self.finishReason = finishReason
+    }
+}
+
+/// A delta in streaming text generation
+@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+public struct TextStreamDelta: Sendable {
+    public let type: DeltaType
+    public let content: String?
+    public let toolCall: ToolCall?
+    public let toolResult: ToolResult?
+    
+    public enum DeltaType: Sendable {
         case textDelta
-        case complete
+        case toolCallStart
+        case toolCallDelta
+        case toolCallEnd
+        case toolResult
+        case stepStart
+        case stepEnd
+        case done
         case error
-        case toolCall
     }
     
-    public init(delta: String?, type: TokenType) {
-        self.delta = delta
+    public init(type: DeltaType, content: String? = nil, toolCall: ToolCall? = nil, toolResult: ToolResult? = nil) {
         self.type = type
+        self.content = content
+        self.toolCall = toolCall
+        self.toolResult = toolResult
     }
-}
-
-/// Image input for vision models
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
-public enum ImageInput: Sendable {
-    case base64(String)
-    case url(String)
-    case filePath(String)
-}
-
-// TachikomaError is defined in ModernTypes.swift
-
-// MARK: - Model Configuration
-
-/// Get model from environment configuration
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
-public func getEnvironmentModel() throws -> Model {
-    // Placeholder implementation - would parse PEEKABOO_AI_PROVIDERS
-    return .default
-}
-
-/// Set the default model for all operations
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
-public func setDefaultModel(_ model: Model) {
-    // This would update the global default
-    // For now, this is just a placeholder
 }
