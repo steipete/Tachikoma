@@ -1,5 +1,9 @@
 # Tachikoma - Modern Swift AI SDK
 
+<p align="center">
+  <img src="assets/logo.png" width="200" alt="Tachikoma Logo">
+</p>
+
 A Swift-native AI SDK that makes AI integration as natural as any Swift function call.
 
 [![Swift 6](https://img.shields.io/badge/Swift-6.0+-orange.svg)](https://swift.org)
