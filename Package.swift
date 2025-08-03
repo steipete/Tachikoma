@@ -29,7 +29,15 @@ let package = Package(
             path: "Sources",
             swiftSettings: [
                 .enableExperimentalFeature("StrictConcurrency"),
-                // Only enable upcoming features that aren't already default in Swift 6
+                .enableUpcomingFeature("BareSlashRegexLiterals"),
+                .enableUpcomingFeature("ConciseMagicFile"),
+                .enableUpcomingFeature("ForwardTrailingClosures"),
+                .enableUpcomingFeature("ImportObjcForwardDeclarations"),
+                .enableUpcomingFeature("DisableOutwardActorInference"),
+                .enableUpcomingFeature("ExistentialAny"),
+                .enableUpcomingFeature("DeprecateApplicationMain"),
+                .enableUpcomingFeature("GlobalConcurrency"),
+                .enableUpcomingFeature("IsolatedDefaultValues"),
                 .enableUpcomingFeature("InternalImportsByDefault"),
             ]
         ),
@@ -41,7 +49,15 @@ let package = Package(
             ],
             swiftSettings: [
                 .enableExperimentalFeature("StrictConcurrency"),
-                // Only enable upcoming features that aren't already default in Swift 6
+                .enableUpcomingFeature("BareSlashRegexLiterals"),
+                .enableUpcomingFeature("ConciseMagicFile"),
+                .enableUpcomingFeature("ForwardTrailingClosures"),
+                .enableUpcomingFeature("ImportObjcForwardDeclarations"),
+                .enableUpcomingFeature("DisableOutwardActorInference"),
+                .enableUpcomingFeature("ExistentialAny"),
+                .enableUpcomingFeature("DeprecateApplicationMain"),
+                .enableUpcomingFeature("GlobalConcurrency"),
+                .enableUpcomingFeature("IsolatedDefaultValues"),
                 .enableUpcomingFeature("InternalImportsByDefault"),
             ]
         ),

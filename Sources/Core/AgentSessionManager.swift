@@ -221,7 +221,7 @@ public actor AgentSessionManager {
 
         let sessionFiles = contents.filter { $0.pathExtension == "json" }
         
-        return try sessionFiles.compactMap { url in
+        return sessionFiles.compactMap { url in
             let sessionId = url.deletingPathExtension().lastPathComponent
             
             // Try to load from cache first

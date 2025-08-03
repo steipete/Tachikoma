@@ -12,7 +12,7 @@ public final class PeekabooAgent<Context>: @unchecked Sendable {
     public let instructions: String
 
     /// Tools available to the agent
-    public private(set) var tools: [AITool<Context>]
+    public private(set) var tools: [Tool<Context>]
 
     /// Model settings for the agent
     public var modelSettings: ModelSettings
@@ -27,7 +27,7 @@ public final class PeekabooAgent<Context>: @unchecked Sendable {
     public init(
         name: String,
         instructions: String,
-        tools: [AITool<Context>] = [],
+        tools: [Tool<Context>] = [],
         modelSettings: ModelSettings = .default,
         description: String? = nil,
         metadata: [String: Any]? = nil
@@ -44,14 +44,14 @@ public final class PeekabooAgent<Context>: @unchecked Sendable {
 
     /// Add a tool to the agent
     @discardableResult
-    public func addTool(_ tool: AITool<Context>) -> Self {
+    public func addTool(_ tool: Tool<Context>) -> Self {
         self.tools.append(tool)
         return self
     }
 
     /// Add multiple tools to the agent
     @discardableResult
-    public func addTools(_ tools: [AITool<Context>]) -> Self {
+    public func addTools(_ tools: [Tool<Context>]) -> Self {
         self.tools.append(contentsOf: tools)
         return self
     }
@@ -71,7 +71,7 @@ public final class PeekabooAgent<Context>: @unchecked Sendable {
     }
 
     /// Get a tool by name
-    public func tool(named name: String) -> AITool<Context>? {
+    public func tool(named name: String) -> Tool<Context>? {
         return tools.first { $0.name == name }
     }
 
@@ -149,7 +149,7 @@ private actor AgentRunnerImpl<Context> where Context: Sendable {
         let startTime = Date()
         
         // Create initial messages
-        var messages: [Message] = [
+        let messages: [Message] = [
             .system(content: agent.instructions),
             .user(content: .text(input))
         ]
@@ -191,7 +191,7 @@ private actor AgentRunnerImpl<Context> where Context: Sendable {
         let startTime = Date()
         
         // Create initial messages
-        var messages: [Message] = [
+        let messages: [Message] = [
             .system(content: agent.instructions),
             .user(content: .text(input))
         ]

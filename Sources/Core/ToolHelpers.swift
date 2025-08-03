@@ -9,8 +9,8 @@ public func createSimpleTool<Context>(
     description: String,
     parameters: ToolParameters? = nil,
     execute: @escaping (ToolInput, Context) async throws -> ToolOutput
-) -> AITool<Context> {
-    return AITool<Context>(
+) -> Tool<Context> {
+    return Tool<Context>(
         name: name,
         description: description,
         parameters: parameters ?? ToolParameters(),
@@ -26,8 +26,8 @@ public func createTool<Context>(
     parameters: ToolParameters,
     strict: Bool = true,
     execute: @escaping (ToolInput, Context) async throws -> ToolOutput
-) -> AITool<Context> {
-    return AITool<Context>(
+) -> Tool<Context> {
+    return Tool<Context>(
         name: name,
         description: description,
         parameters: parameters,
@@ -41,8 +41,8 @@ public func createTool<Context>(
 public func createToolFromDefinition<Context>(
     definition: ToolDefinition,
     execute: @escaping (ToolInput, Context) async throws -> ToolOutput
-) -> AITool<Context> {
-    return AITool<Context>(
+) -> Tool<Context> {
+    return Tool<Context>(
         name: definition.function.name,
         description: definition.function.description,
         parameters: definition.function.parameters,

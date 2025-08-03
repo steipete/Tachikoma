@@ -177,19 +177,25 @@ struct MessageTypeTests {
     func userMessageWithMultimodalContent() {
         let imageData = Data([0xFF, 0xD8, 0xFF])
         let message = Message.user(content: .multimodal([
-            MessageContentPart(type: "text", text: "What's in this image?"),
-            MessageContentPart(type: "image_url", imageUrl: ImageContent(base64: imageData.base64EncodedString()))
+            .text("What's in this image?"),
+            .imageUrl(ImageUrl(base64: imageData.base64EncodedString()))
         ]))
         
         if case let .user(_, content) = message {
             if case let .multimodal(parts) = content {
                 #expect(parts.count == 2)
                 
-                #expect(parts[0].type == "text")
-                #expect(parts[0].text == "What's in this image?")
+                if case let .text(text) = parts[0] {
+                    #expect(text == "What's in this image?")
+                } else {
+                    Issue.record("Expected text part at index 0")
+                }
                 
-                #expect(parts[1].type == "image_url")
-                #expect(parts[1].imageUrl != nil)
+                if case .imageUrl = parts[1] {
+                    // Expected image part
+                } else {
+                    Issue.record("Expected image part at index 1")
+                }
             } else {
                 Issue.record("Expected multimodal content")
             }
@@ -294,7 +300,7 @@ struct MessageTypeTests {
             .reasoning(content: "Reasoning")
         ]
         
-        let expectedTypes: [Message.MessageType] = [.system, .user, .assistant, .tool, .reasoning]
+        let expectedTypes: [MessageType] = [.system, .user, .assistant, .tool, .reasoning]
         
         for (message, expectedType) in zip(messages, expectedTypes) {
             #expect(message.type == expectedType)
@@ -320,8 +326,8 @@ struct MessageContentTests {
     @Test("Image content with base64")
     func imageContentWithBase64() {
         let imageData = Data([0xFF, 0xD8, 0xFF])
-        let imageContent = ImageContent(base64: imageData.base64EncodedString())
-        let content = MessageContent.image(imageContent)
+        let imageUrl = ImageUrl(base64: imageData.base64EncodedString())
+        let content = MessageContent.image(imageUrl)
         
         if case let .image(url) = content {
             #expect(url.base64 == imageData.base64EncodedString())
@@ -333,8 +339,8 @@ struct MessageContentTests {
 
     @Test("Image content with URL")
     func imageContentWithURL() {
-        let imageContent = ImageContent(url: "https://example.com/image.jpg")
-        let content = MessageContent.image(imageContent)
+        let imageUrl = ImageUrl(url: "https://example.com/image.jpg")
+        let content = MessageContent.image(imageUrl)
         
         if case let .image(url) = content {
             #expect(url.url == "https://example.com/image.jpg")
@@ -381,9 +387,9 @@ struct MessageContentTests {
     @Test("Multimodal content")
     func multimodalContent() {
         let parts: [MessageContentPart] = [
-            MessageContentPart(type: "text", text: "Describe this image:"),
-            MessageContentPart(type: "image_url", imageUrl: ImageContent(url: "https://example.com/image.jpg")),
-            MessageContentPart(type: "text", text: "What do you see?")
+            .text("Describe this image:"),
+            .imageUrl(ImageUrl(url: "https://example.com/image.jpg")),
+            .text("What do you see?")
         ]
         let content = MessageContent.multimodal(parts)
         
@@ -393,7 +399,7 @@ struct MessageContentTests {
             #expect(contentParts[0].type == "text")
             #expect(contentParts[0].text == "Describe this image:")
             
-            #expect(contentParts[1].type == "image_url")
+            #expect(contentParts[1].type == "image")
             #expect(contentParts[1].imageUrl != nil)
             
             #expect(contentParts[2].type == "text")
