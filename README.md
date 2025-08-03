@@ -10,9 +10,8 @@
   <a href="#testing"><img src="https://img.shields.io/badge/tests-passing-brightgreen?style=for-the-badge" alt="Tests"></a>
 </p>
 
-A Modern Swift AI SDK that makes AI integration feel natural.
----
-Named after the spider-tank AI from Ghost in the Shell, **Tachikoma** provides an intelligent, adaptable interface for AI services with a completely modern Swift-native API.
+  **A Modern Swift AI SDK that makes AI integration feel natural**
+  Named after the spider-tank AI from Ghost in the Shell, **Tachikoma** provides an intelligent, adaptable interface for AI services with a completely modern Swift-native API
 </div>
 
 ## Quick Start
