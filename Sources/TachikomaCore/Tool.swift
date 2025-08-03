@@ -491,6 +491,54 @@ public protocol ToolKit: Sendable {
     var tools: [Tool<Context>] { get }
 }
 
+/// Empty tool kit for testing
+@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+public struct EmptyToolKit: ToolKit {
+    public let tools: [Tool<EmptyToolKit>] = []
+    
+    public init() {}
+}
+
+/// Provider tool definition for compatibility
+@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+public struct ProviderTool: Sendable {
+    public let name: String
+    public let description: String
+    public let parameters: ToolParameters
+    
+    public init(name: String, description: String, parameters: ToolParameters) {
+        self.name = name
+        self.description = description  
+        self.parameters = parameters
+    }
+}
+
+/// Extension to convert ToolKit to provider tools
+@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+extension ToolKit {
+    /// Convert tools to provider tool format
+    public func toProviderTools() throws -> [ProviderTool] {
+        return tools.map { tool in
+            // Create basic parameters structure for the provider tool
+            let parameters = ToolParameters(
+                properties: [
+                    "input": ToolParameterProperty(
+                        type: .string,
+                        description: tool.description
+                    )
+                ],
+                required: ["input"]
+            )
+            
+            return ProviderTool(
+                name: tool.name,
+                description: tool.description,
+                parameters: parameters
+            )
+        }
+    }
+}
+
 
 // MARK: - ToolInput/ToolOutput Compatibility Types
 
@@ -594,6 +642,60 @@ public struct ToolInput: Sendable {
     public func intValue(_ key: String, default defaultValue: Int?) -> Int? {
         return (try? intValue(key)) ?? defaultValue
     }
+    
+    /// Get array of ToolArguments for the specified key
+    public func arrayValue(_ key: String) throws -> [ToolArgument] {
+        guard let value = arguments[key] else {
+            throw ToolError.invalidInput("Missing required parameter: \(key)")
+        }
+        switch value {
+        case .array(let array):
+            return array
+        default:
+            throw ToolError.invalidInput("Parameter \(key) is not an array")
+        }
+    }
+    
+    /// Get array of ToolArguments with default fallback
+    public func arrayValue(_ key: String, default defaultValue: [ToolArgument]) -> [ToolArgument] {
+        return (try? arrayValue(key)) ?? defaultValue
+    }
+    
+    /// Get array of strings for the specified key
+    public func stringArrayValue(_ key: String) throws -> [String] {
+        let array = try arrayValue(key)
+        return try array.map { item in
+            switch item {
+            case .string(let str):
+                return str
+            default:
+                throw ToolError.invalidInput("Parameter \(key) array contains non-string values")
+            }
+        }
+    }
+    
+    /// Get array of strings with default fallback
+    public func stringArrayValue(_ key: String, default defaultValue: [String]) -> [String] {
+        return (try? stringArrayValue(key)) ?? defaultValue
+    }
+    
+    /// Get array of integers for the specified key
+    public func intArrayValue(_ key: String) throws -> [Int] {
+        let array = try arrayValue(key)
+        return try array.map { item in
+            switch item {
+            case .int(let int):
+                return int
+            default:
+                throw ToolError.invalidInput("Parameter \(key) array contains non-integer values")
+            }
+        }
+    }
+    
+    /// Get array of integers with default fallback
+    public func intArrayValue(_ key: String, default defaultValue: [Int]) -> [Int] {
+        return (try? intArrayValue(key)) ?? defaultValue
+    }
 }
 
 /// Tool output type for TachikomaBuilders compatibility
@@ -606,6 +708,35 @@ public enum ToolOutput: Sendable {
     case array([ToolOutput])
     case object([String: ToolOutput])
     case null
+    
+    /// Create an error output
+    public static func error(message: String) -> ToolOutput {
+        .string("Error: \(message)")
+    }
+    
+    /// Convert to JSON string representation
+    public func toJSONString() throws -> String {
+        switch self {
+        case .string(let str):
+            return str
+        case .int(let int):
+            return String(int)
+        case .double(let double):
+            return String(double)
+        case .bool(let bool):
+            return String(bool)
+        case .null:
+            return "null"
+        case .array(let array):
+            let items = try array.map { try $0.toJSONString() }
+            return "[\(items.joined(separator: ", "))]"
+        case .object(let dict):
+            let pairs = try dict.map { key, value in
+                "\"\(key)\": \(try value.toJSONString())"
+            }
+            return "{\(pairs.joined(separator: ", "))}"
+        }
+    }
 }
 
 // MARK: - ToolError for TachikomaBuilders Compatibility

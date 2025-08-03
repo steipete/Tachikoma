@@ -6,10 +6,14 @@
 
 A Swift-native AI SDK that makes AI integration as natural as any Swift function call.
 
-[![Swift 6](https://img.shields.io/badge/Swift-6.0+-orange.svg)](https://swift.org)
-[![Platforms](https://img.shields.io/badge/platforms-macOS%20%7C%20iOS%20%7C%20watchOS%20%7C%20tvOS-lightgrey.svg)](https://github.com/steipete/Tachikoma)
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-passing-green.svg)](#testing)
+<p align="center">
+  <a href="https://swift.org"><img src="https://img.shields.io/badge/Swift-6.0+-FA7343?style=for-the-badge&logo=swift&logoColor=white" alt="Swift 6.0+"></a>
+  <a href="https://github.com/steipete/Tachikoma"><img src="https://img.shields.io/badge/platforms-macOS%20%7C%20iOS%20%7C%20watchOS%20%7C%20tvOS-blue?style=for-the-badge" alt="Platforms"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-green?style=for-the-badge" alt="MIT License"></a>
+  <a href="#testing"><img src="https://img.shields.io/badge/tests-passing-brightgreen?style=for-the-badge" alt="Tests"></a>
+</p>
+
+---
 
 Named after the spider-tank AI from Ghost in the Shell, **Tachikoma** provides an intelligent, adaptable interface for AI services with a completely modern Swift-native API.
 
@@ -41,9 +45,11 @@ let result = try await generate(
 )
 ```
 
+---
+
 ## Core Features
 
-### 🎯 **Type-Safe Model Selection**
+### **Type-Safe Model Selection**
 ```swift
 // Provider-specific enums with autocomplete
 .openai(.gpt4o, .gpt4_1, .o3, .custom("ft:gpt-4o:org:abc"))
@@ -56,7 +62,7 @@ let result = try await generate(
 .openaiCompatible(modelId: "gpt-4", baseURL: "https://api.azure.com")
 ```
 
-### 🚀 **Global Generation Functions**
+### **Global Generation Functions**
 ```swift
 // Core functions available everywhere
 generate(_ prompt: String, using: Model?, system: String?, tools: ToolKit?) async throws -> String
@@ -64,7 +70,7 @@ stream(_ prompt: String, using: Model?, ...) -> AsyncThrowingStream<StreamToken,
 analyze(image: ImageInput, prompt: String, using: Model?) async throws -> String
 ```
 
-### 💬 **Fluent Conversation Management**
+### **Fluent Conversation Management**
 ```swift
 let conversation = Conversation()
 conversation.addUserMessage("Explain Swift concurrency")
@@ -73,7 +79,7 @@ conversation.addUserMessage("Tell me more about actors")
 let response = try await conversation.continue(using: .claude)
 ```
 
-### 🛠️ **@ToolKit Result Builder**
+### **@ToolKit Result Builder**
 ```swift
 @ToolKit
 struct AutomationTools {
@@ -82,6 +88,8 @@ struct AutomationTools {
     func type(text: String) async throws -> Void { /* ... */ }
 }
 ```
+
+---
 
 ## Architecture
 
@@ -209,6 +217,8 @@ swift test
 swift build --product TachikomaCore
 ```
 
+---
+
 ## Examples
 
 See `Tests/TachikomaTests/MinimalModernAPITests.swift` for working examples of:
@@ -238,11 +248,15 @@ let response = try await generate("Hello", using: .openai(.gpt4o))
 - **[Migration Guide](docs/modern-api.md#migration-guide)** - Detailed migration examples
 - **[API Reference](Sources/Tachikoma/Tachikoma.swift)** - Full API documentation in code
 
+---
+
 ## Requirements
 
 - Swift 6.0+
 - macOS 14.0+ / iOS 17.0+ / watchOS 10.0+ / tvOS 17.0+
 - Strict concurrency compliance (`@Sendable` throughout)
+
+---
 
 ## Status
 
@@ -260,6 +274,8 @@ let response = try await generate("Hello", using: .openai(.gpt4o))
 - [ ] Example projects migration - *in progress*
 
 The modern API provides 60-80% reduction in boilerplate code while maintaining full type safety and Swift-native patterns.
+
+---
 
 ## License
 

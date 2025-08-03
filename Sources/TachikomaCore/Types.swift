@@ -267,6 +267,16 @@ public enum FinishReason: String, Sendable, Codable, CaseIterable {
     case other = "other"
 }
 
+// MARK: - Image Input
+
+/// Input type for image analysis
+@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+public enum ImageInput: Sendable {
+    case base64(String)
+    case url(String)
+    case filePath(String)
+}
+
 // MARK: - Generation Settings
 
 /// Settings for text generation

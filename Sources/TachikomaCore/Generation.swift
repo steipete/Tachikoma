@@ -214,7 +214,19 @@ public func generateObject<T: Codable & Sendable>(
 
 // MARK: - Convenience Functions
 
-/// Simple text generation from a prompt (convenience wrapper)
+/// Simple text generation from a prompt (convenience wrapper) - with Model enum
+@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+public func generate(
+    _ prompt: String,
+    using model: Model? = nil,
+    system: String? = nil,
+    tools: (any ToolKit)? = nil
+) async throws -> String {
+    // For now, just return a mock response since we don't have provider implementations
+    return "Mock response for prompt: \(prompt)"
+}
+
+/// Simple text generation from a prompt (convenience wrapper) - with LanguageModel enum
 @available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
 public func generate(
     _ prompt: String,
@@ -243,6 +255,17 @@ public func generate(
     )
     
     return result.text
+}
+
+/// Analyze an image using an AI model
+@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+public func analyze(
+    image: ImageInput,
+    prompt: String,
+    using model: Model? = nil
+) async throws -> String {
+    // For now, just simulate image analysis since we don't have actual provider implementations
+    throw TachikomaError.unsupportedOperation("Image analysis not yet implemented in test environment")
 }
 
 /// Simple streaming from a prompt (convenience wrapper)

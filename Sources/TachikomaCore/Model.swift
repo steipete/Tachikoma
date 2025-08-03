@@ -597,7 +597,7 @@ public enum LanguageModel: Sendable, CustomStringConvertible {
             return "OpenAI-Compatible"
         case .anthropicCompatible:
             return "Anthropic-Compatible"
-        case .custom(let provider):
+        case .custom(_):
             return "Custom"
         }
     }

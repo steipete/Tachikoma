@@ -73,3 +73,11 @@ struct MyTools {
 - Use `@Sendable` throughout for concurrency safety
 - Write self-documenting code with clear names
 - Minimal comments - let the types tell the story
+
+## Documentation Standards
+
+- **Professional README**: Avoid excessive emoji usage in README files - looks unprofessional
+- Use horizontal lines (`---`) to separate major sections
+- Style badges using `style=for-the-badge` for consistency
+- Center-align badges and logo for visual balance
+- Keep section headers clean and readable without emoji clutter
