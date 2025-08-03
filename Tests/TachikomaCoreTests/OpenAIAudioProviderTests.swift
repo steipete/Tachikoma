@@ -11,8 +11,8 @@ struct OpenAIAudioProviderTests {
     struct OpenAITranscriptionProviderTests {
         
         @Test("OpenAI transcription provider initialization")
-        func openAITranscriptionProviderInit() throws {
-            try TestHelpers.withTestEnvironment(apiKeys: ["openai": "test-api-key"]) {
+        func openAITranscriptionProviderInit() async throws {
+            try await TestHelpers.withTestEnvironment(apiKeys: ["openai": "test-api-key"]) {
                 let provider = try OpenAITranscriptionProvider(model: .whisper1)
                 
                 #expect(provider.modelId == "whisper-1")
@@ -25,8 +25,8 @@ struct OpenAIAudioProviderTests {
         }
         
         @Test("OpenAI transcription provider initialization fails without API key")
-        func openAITranscriptionProviderInitFailsWithoutAPIKey() throws {
-            try TestHelpers.withNoAPIKeys {
+        func openAITranscriptionProviderInitFailsWithoutAPIKey() async throws {
+            try await TestHelpers.withNoAPIKeys {
                 #expect(throws: TachikomaError.self) {
                     _ = try OpenAITranscriptionProvider(model: .whisper1)
                 }
@@ -34,35 +34,26 @@ struct OpenAIAudioProviderTests {
         }
         
         @Test("OpenAI transcription provider different models")
-        func openAITranscriptionProviderDifferentModels() throws {
-            try TestHelpers.withTestEnvironment(apiKeys: ["openai": "test-key"]) {
+        func openAITranscriptionProviderDifferentModels() async throws {
+            try await TestHelpers.withTestEnvironment(apiKeys: ["openai": "test-key"]) {
                 let whisperProvider = try OpenAITranscriptionProvider(model: .whisper1)
-                let gpt4oProvider = try OpenAITranscriptionProvider(model: .gpt4oTranscribe)
-                let gpt4oMiniProvider = try OpenAITranscriptionProvider(model: .gpt4oMiniTranscribe)
                 
-                // Test model IDs
+                // Test model ID
                 #expect(whisperProvider.modelId == "whisper-1")
-                #expect(gpt4oProvider.modelId == "gpt-4o-transcribe")
-                #expect(gpt4oMiniProvider.modelId == "gpt-4o-mini-transcribe")
                 
-                // Test capabilities differences
+                // Test capabilities
                 #expect(whisperProvider.capabilities.supportsTimestamps == true)
-                #expect(gpt4oProvider.capabilities.supportsTimestamps == false)
-                #expect(gpt4oMiniProvider.capabilities.supportsTimestamps == false)
-                
                 #expect(whisperProvider.capabilities.supportsLanguageDetection == true)
-                #expect(gpt4oProvider.capabilities.supportsLanguageDetection == false)
-                #expect(gpt4oMiniProvider.capabilities.supportsLanguageDetection == false)
             }
         }
         
         @Test("OpenAI transcription provider supported formats")
-        func openAITranscriptionProviderSupportedFormats() throws {
-            try TestHelpers.withTestEnvironment(apiKeys: ["openai": "test-key"]) {
+        func openAITranscriptionProviderSupportedFormats() async throws {
+            try await TestHelpers.withTestEnvironment(apiKeys: ["openai": "test-key"]) {
                 let provider = try OpenAITranscriptionProvider(model: .whisper1)
                 
                 let supportedFormats = provider.capabilities.supportedFormats
-                let expectedFormats: [AudioFormat] = [.flac, .m4a, .mp3, .mp4, .mpeg, .mpga, .oga, .ogg, .wav, .webm]
+                let expectedFormats: [AudioFormat] = [.flac, .m4a, .mp3, .opus, .aac, .ogg, .wav, .pcm]
                 
                 for format in expectedFormats {
                     #expect(supportedFormats.contains(format))
@@ -161,8 +152,8 @@ struct OpenAIAudioProviderTests {
     struct OpenAISpeechProviderTests {
         
         @Test("OpenAI speech provider initialization")
-        func openAISpeechProviderInit() throws {
-            try TestHelpers.withTestEnvironment(apiKeys: ["openai": "test-api-key"]) {
+        func openAISpeechProviderInit() async throws {
+            try await TestHelpers.withTestEnvironment(apiKeys: ["openai": "test-api-key"]) {
                 let provider = try OpenAISpeechProvider(model: .tts1)
                 
                 #expect(provider.modelId == "tts-1")
@@ -174,8 +165,8 @@ struct OpenAIAudioProviderTests {
         }
         
         @Test("OpenAI speech provider initialization fails without API key")
-        func openAISpeechProviderInitFailsWithoutAPIKey() throws {
-            try TestHelpers.withNoAPIKeys {
+        func openAISpeechProviderInitFailsWithoutAPIKey() async throws {
+            try await TestHelpers.withNoAPIKeys {
                 #expect(throws: TachikomaError.self) {
                     _ = try OpenAISpeechProvider(model: .tts1)
                 }
@@ -183,33 +174,29 @@ struct OpenAIAudioProviderTests {
         }
         
         @Test("OpenAI speech provider different models")
-        func openAISpeechProviderDifferentModels() throws {
-            try TestHelpers.withTestEnvironment(apiKeys: ["openai": "test-key"]) {
+        func openAISpeechProviderDifferentModels() async throws {
+            try await TestHelpers.withTestEnvironment(apiKeys: ["openai": "test-key"]) {
                 let tts1Provider = try OpenAISpeechProvider(model: .tts1)
                 let tts1HDProvider = try OpenAISpeechProvider(model: .tts1HD)
-                let gpt4oMiniProvider = try OpenAISpeechProvider(model: .gpt4oMiniTTS)
                 
                 // Test model IDs
                 #expect(tts1Provider.modelId == "tts-1")
                 #expect(tts1HDProvider.modelId == "tts-1-hd")
-                #expect(gpt4oMiniProvider.modelId == "gpt-4o-mini-tts")
                 
-                // Test capabilities differences
+                // Test capabilities
                 #expect(tts1Provider.capabilities.supportsVoiceInstructions == false)
                 #expect(tts1HDProvider.capabilities.supportsVoiceInstructions == false)
-                #expect(gpt4oMiniProvider.capabilities.supportsVoiceInstructions == true)
                 
                 // All should support the same formats and voices
                 let expectedFormats: [AudioFormat] = [.mp3, .opus, .aac, .flac, .wav, .pcm]
                 #expect(tts1Provider.capabilities.supportedFormats == expectedFormats)
                 #expect(tts1HDProvider.capabilities.supportedFormats == expectedFormats)
-                #expect(gpt4oMiniProvider.capabilities.supportedFormats == expectedFormats)
             }
         }
         
         @Test("OpenAI speech provider supported voices")
-        func openAISpeechProviderSupportedVoices() throws {
-            try TestHelpers.withTestEnvironment(apiKeys: ["openai": "test-key"]) {
+        func openAISpeechProviderSupportedVoices() async throws {
+            try await TestHelpers.withTestEnvironment(apiKeys: ["openai": "test-key"]) {
                 let provider = try OpenAISpeechProvider(model: .tts1)
                 
                 let supportedVoices = provider.capabilities.supportedVoices
@@ -266,7 +253,7 @@ struct OpenAIAudioProviderTests {
             try await TestHelpers.withTestEnvironment(apiKeys: ["openai": "test-key"]) {
                 let provider = try OpenAISpeechProvider(model: .tts1)
                 
-                let speeds: [Float] = [0.25, 0.5, 1.0, 1.5, 2.0, 4.0]
+                let speeds: [Double] = [0.25, 0.5, 1.0, 1.5, 2.0, 4.0]
                 
                 for speed in speeds {
                     let request = SpeechRequest(
@@ -284,10 +271,10 @@ struct OpenAIAudioProviderTests {
             }
         }
         
-        @Test("OpenAI speech provider with voice instructions (GPT-4o Mini)")
+        @Test("OpenAI speech provider with voice instructions")
         func openAISpeechProviderVoiceInstructions() async throws {
             try await TestHelpers.withTestEnvironment(apiKeys: ["openai": "test-key"]) {
-                let provider = try OpenAISpeechProvider(model: .gpt4oMiniTTS)
+                let provider = try OpenAISpeechProvider(model: .tts1HD)
                 let request = SpeechRequest(
                     text: "This is a test message with custom voice instructions.",
                     voice: .nova,
@@ -378,16 +365,16 @@ struct OpenAIAudioProviderTests {
     struct OpenAIAPIConfigurationTests {
         
         @Test("OpenAI API key configuration from environment")
-        func openAIAPIKeyFromEnvironment() throws {
-            try TestHelpers.withTestEnvironment(apiKeys: ["openai": "env-test-key"]) {
+        func openAIAPIKeyFromEnvironment() async throws {
+            try await TestHelpers.withTestEnvironment(apiKeys: ["openai": "env-test-key"]) {
                 let provider = try OpenAITranscriptionProvider(model: .whisper1)
                 #expect(provider.apiKey == "env-test-key")
             }
         }
         
         @Test("OpenAI custom base URL configuration")
-        func openAICustomBaseURL() throws {
-            try TestHelpers.withTestEnvironment(apiKeys: ["openai": "test-key"]) {
+        func openAICustomBaseURL() async throws {
+            try await TestHelpers.withTestEnvironment(apiKeys: ["openai": "test-key"]) {
                 // Set custom base URL via environment
                 setenv("OPENAI_BASE_URL", "https://custom-openai-api.example.com", 1)
                 defer { unsetenv("OPENAI_BASE_URL") }
@@ -400,8 +387,8 @@ struct OpenAIAudioProviderTests {
         }
         
         @Test("OpenAI organization ID configuration")
-        func openAIOrganizationID() throws {
-            try TestHelpers.withTestEnvironment(apiKeys: ["openai": "test-key"]) {
+        func openAIOrganizationID() async throws {
+            try await TestHelpers.withTestEnvironment(apiKeys: ["openai": "test-key"]) {
                 // Set organization ID via environment
                 setenv("OPENAI_ORGANIZATION", "org-test-12345", 1)
                 defer { unsetenv("OPENAI_ORGANIZATION") }

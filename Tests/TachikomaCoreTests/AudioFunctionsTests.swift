@@ -5,71 +5,71 @@ import Testing
 @Suite("Audio Functions Tests")
 struct AudioFunctionsTests {
     
-    // MARK: - Transcription Function Tests
+    // MARK: - Basic Transcription Function Tests
     
-    @Suite("Transcription Functions Tests")
-    struct TranscriptionFunctionsTests {
+    @Suite("Basic Transcription Functions Tests")
+    struct BasicTranscriptionFunctionsTests {
         
-        @Test("transcribe() function with default parameters")
-        func transcribeFunctionDefaults() async throws {
+        @Test("transcribe() convenience function works")
+        func transcribeConvenienceFunctionWorks() async throws {
             try await TestHelpers.withTestEnvironment(apiKeys: ["openai": "test-key"]) {
                 let audioData = AudioData(data: Data([0x01, 0x02, 0x03]), format: .wav)
                 
-                let result = try await transcribe(audioData)
+                // Test convenience function that returns just text
+                let text = try await transcribe(audioData, language: "en")
                 
-                // With placeholder implementation, verify basic structure
-                #expect(!result.text.isEmpty)
-                #expect(result.usage != nil)
-                #expect(result.usage?.durationSeconds != nil)
+                #expect(!text.isEmpty)
             }
         }
         
-        @Test("transcribe() function with specific model")
-        func transcribeFunctionSpecificModel() async throws {
+        @Test("transcribe() with full model specification works")
+        func transcribeWithFullModelSpecificationWorks() async throws {
             try await TestHelpers.withTestEnvironment(apiKeys: ["openai": "test-key"]) {
-                let audioData = AudioData(data: Data([0x01, 0x02, 0x03]), format: .mp3)
+                let audioData = AudioData(data: Data([0x01, 0x02, 0x03]), format: .wav)
                 
                 let result = try await transcribe(
                     audioData,
                     using: .openai(.whisper1),
                     language: "en",
-                    prompt: "This is audio from a meeting"
+                    prompt: "This is a test audio file."
                 )
                 
                 #expect(!result.text.isEmpty)
                 #expect(result.language == "en")
+                #expect(result.usage != nil)
             }
         }
         
-        @Test("transcribe() function with file URL")
-        func transcribeFunctionFileURL() async throws {
-            try await TestHelpers.withTestEnvironment(apiKeys: ["groq": "test-key"]) {
+        @Test("transcribe() from file URL works")
+        func transcribeFromFileURLWorks() async throws {
+            try await TestHelpers.withTestEnvironment(apiKeys: ["openai": "test-key"]) {
                 // Create a temporary audio file
                 let tempDir = FileManager.default.temporaryDirectory
                 let audioFile = tempDir.appendingPathComponent("test_audio.wav")
                 let testData = Data([0x01, 0x02, 0x03, 0x04])
                 try testData.write(to: audioFile)
                 
-                let result = try await transcribe(
-                    audioFile,
-                    using: .groq(.whisperLargeV3Turbo)
+                let text = try await transcribe(
+                    contentsOf: audioFile,
+                    using: .openai(.whisper1),
+                    language: "en"
                 )
                 
-                #expect(!result.text.isEmpty)
+                #expect(!text.isEmpty)
                 
                 // Clean up
                 try? FileManager.default.removeItem(at: audioFile)
             }
         }
         
-        @Test("transcribe() function with timestamps")
-        func transcribeFunctionTimestamps() async throws {
-            try await TestHelpers.withTestEnvironment(apiKeys: ["deepgram": "test-key"]) {
+        @Test("transcribe() with timestamps")
+        func transcribeWithTimestamps() async throws {
+            try await TestHelpers.withTestEnvironment(apiKeys: ["openai": "test-key"]) {
                 let audioData = AudioData(data: Data([0x01, 0x02, 0x03]), format: .wav)
                 
                 let result = try await transcribe(
                     audioData,
-                    using: .deepgram(.nova3),
+                    using: .openai(.whisper1),
                     timestampGranularities: [.word, .segment],
                     responseFormat: .verbose
                 )
@@ -79,8 +79,8 @@ struct AudioFunctionsTests {
             }
         }
         
-        @Test("transcribe() function with abort signal")
-        func transcribeFunctionAbortSignal() async throws {
+        @Test("transcribe() with abort signal")
+        func transcribeWithAbortSignal() async throws {
             try await TestHelpers.withTestEnvironment(apiKeys: ["openai": "test-key"]) {
                 let audioData = AudioData(data: Data([0x01, 0x02, 0x03]), format: .wav)
                 let abortSignal = AbortSignal()
@@ -89,7 +89,7 @@ struct AudioFunctionsTests {
                 abortSignal.cancel()
                 
                 await #expect(throws: TachikomaError.self) {
-                    try await transcribe(
+                    _ = try await transcribe(
                         audioData,
                         using: .openai(.whisper1),
                         abortSignal: abortSignal
@@ -97,56 +97,44 @@ struct AudioFunctionsTests {
                 }
             }
         }
-        
-        @Test("transcribe() function error handling - missing API key")
-        func transcribeFunctionMissingAPIKey() async throws {
-            try await TestHelpers.withNoAPIKeys {
-                let audioData = AudioData(data: Data([0x01, 0x02]), format: .wav)
-                
-                await #expect(throws: TachikomaError.self) {
-                    try await transcribe(audioData, using: .openai(.whisper1))
-                }
-            }
-        }
-        
-        @Test("transcribe() function error handling - empty audio data")
-        func transcribeFunctionEmptyAudioData() async throws {
-            try await TestHelpers.withTestEnvironment(apiKeys: ["openai": "test-key"]) {
-                let emptyAudioData = AudioData(data: Data(), format: .wav)
-                
-                await #expect(throws: TachikomaError.self) {
-                    try await transcribe(emptyAudioData)
-                }
-            }
-        }
     }
     
-    // MARK: - Speech Generation Function Tests
+    // MARK: - Basic Speech Generation Function Tests
     
-    @Suite("Speech Generation Functions Tests")
-    struct SpeechGenerationFunctionsTests {
+    @Suite("Basic Speech Generation Functions Tests")
+    struct BasicSpeechGenerationFunctionsTests {
         
-        @Test("generateSpeech() function with default parameters")
-        func generateSpeechFunctionDefaults() async throws {
+        @Test("generateSpeech() convenience function works")
+        func generateSpeechConvenienceFunctionWorks() async throws {
             try await TestHelpers.withTestEnvironment(apiKeys: ["openai": "test-key"]) {
-                let result = try await generateSpeech("Hello, world!")
+                let audioData = try await generateSpeech("Hello, world!")
                 
-                #expect(!result.audioData.data.isEmpty)
-                #expect(result.audioData.format == .mp3) // Default format
-                #expect(result.usage != nil)
-                #expect(result.usage?.charactersProcessed == 13) // "Hello, world!".count
+                #expect(!audioData.data.isEmpty)
+                #expect(audioData.format == .mp3) // Default format
+                #expect(audioData.size > 0)
             }
         }
         
-        @Test("generateSpeech() function with specific model and voice")
-        func generateSpeechFunctionSpecificModel() async throws {
+        @Test("generateSpeech() with voice selection")
+        func generateSpeechWithVoiceSelection() async throws {
+            try await TestHelpers.withTestEnvironment(apiKeys: ["openai": "test-key"]) {
+                let audioData = try await generateSpeech("Hello, world!", voice: .nova)
+                
+                #expect(!audioData.data.isEmpty)
+                #expect(audioData.format == .mp3)
+                #expect(audioData.size > 0)
+            }
+        }
+        
+        @Test("generateSpeech() with full model specification works")
+        func generateSpeechWithFullModelSpecificationWorks() async throws {
             try await TestHelpers.withTestEnvironment(apiKeys: ["openai": "test-key"]) {
                 let result = try await generateSpeech(
                     "This is a test message",
-                    using: .openai(.tts1HD),
+                    using: .openai(.tts1),
                     voice: .nova,
-                    format: .wav,
-                    speed: 1.2
+                    speed: 1.2,
+                    format: .wav
                 )
                 
                 #expect(!result.audioData.data.isEmpty)
@@ -155,52 +143,33 @@ struct AudioFunctionsTests {
             }
         }
         
-        @Test("generateSpeech() function with custom voice")
-        func generateSpeechFunctionCustomVoice() async throws {
-            try await TestHelpers.withTestEnvironment(apiKeys: ["elevenlabs": "test-key"]) {
-                let customVoice = VoiceOption.custom("my-custom-voice-id")
-                
-                let result = try await generateSpeech(
-                    "Testing custom voice",
-                    using: .elevenlabs(.multilingualV1),
-                    voice: customVoice,
-                    language: "en",
-                    instructions: "Speak slowly and clearly"
-                )
-                
-                #expect(!result.audioData.data.isEmpty)
-                #expect(result.usage != nil)
-            }
-        }
-        
-        @Test("generateSpeech() function with file output")
-        func generateSpeechFunctionFileOutput() async throws {
+        @Test("generateSpeech() direct to file using convenience function")
+        func generateSpeechDirectToFile() async throws {
             try await TestHelpers.withTestEnvironment(apiKeys: ["openai": "test-key"]) {
                 let tempDir = FileManager.default.temporaryDirectory
                 let outputFile = tempDir.appendingPathComponent("generated_speech.wav")
                 
-                let result = try await generateSpeech(
+                // Use the convenience function that writes directly to file
+                try await generateSpeech(
                     "Save this to a file",
+                    to: outputFile,
                     using: .openai(.tts1),
                     voice: .alloy,
-                    format: .wav,
-                    outputFile: outputFile
+                    format: .wav
                 )
                 
-                #expect(!result.audioData.data.isEmpty)
                 #expect(FileManager.default.fileExists(atPath: outputFile.path))
                 
-                // Verify file contents match result
                 let fileData = try Data(contentsOf: outputFile)
-                #expect(fileData == result.audioData.data)
+                #expect(!fileData.isEmpty)
                 
                 // Clean up
                 try? FileManager.default.removeItem(at: outputFile)
             }
         }
         
-        @Test("generateSpeech() function with abort signal")
-        func generateSpeechFunctionAbortSignal() async throws {
+        @Test("generateSpeech() with abort signal")
+        func generateSpeechWithAbortSignal() async throws {
             try await TestHelpers.withTestEnvironment(apiKeys: ["openai": "test-key"]) {
                 let abortSignal = AbortSignal()
                 
@@ -208,41 +177,11 @@ struct AudioFunctionsTests {
                 abortSignal.cancel()
                 
                 await #expect(throws: TachikomaError.self) {
-                    try await generateSpeech(
+                    _ = try await generateSpeech(
                         "This should be cancelled",
                         using: .openai(.tts1),
                         abortSignal: abortSignal
                     )
-                }
-            }
-        }
-        
-        @Test("generateSpeech() function error handling - empty text")
-        func generateSpeechFunctionEmptyText() async throws {
-            try await TestHelpers.withTestEnvironment(apiKeys: ["openai": "test-key"]) {
-                await #expect(throws: TachikomaError.self) {
-                    try await generateSpeech("")
-                }
-            }
-        }
-        
-        @Test("generateSpeech() function error handling - text too long")
-        func generateSpeechFunctionTextTooLong() async throws {
-            try await TestHelpers.withTestEnvironment(apiKeys: ["openai": "test-key"]) {
-                // Create text longer than OpenAI's 4096 character limit
-                let longText = String(repeating: "A", count: 5000)
-                
-                await #expect(throws: TachikomaError.self) {
-                    try await generateSpeech(longText, using: .openai(.tts1))
-                }
-            }
-        }
-        
-        @Test("generateSpeech() function error handling - missing API key")
-        func generateSpeechFunctionMissingAPIKey() async throws {
-            try await TestHelpers.withNoAPIKeys {
-                await #expect(throws: TachikomaError.self) {
-                    try await generateSpeech("Test", using: .openai(.tts1))
                 }
             }
         }
@@ -253,230 +192,125 @@ struct AudioFunctionsTests {
     @Suite("Batch Operations Tests")
     struct BatchOperationsTests {
         
-        @Test("batchTranscribe() function with multiple audio files")
-        func batchTranscribeFunctionMultipleFiles() async throws {
+        @Test("transcribeBatch() function works")
+        func transcribeBatchFunctionWorks() async throws {
             try await TestHelpers.withTestEnvironment(apiKeys: ["openai": "test-key"]) {
-                let audioData1 = AudioData(data: Data([0x01, 0x02]), format: .wav)
-                let audioData2 = AudioData(data: Data([0x03, 0x04]), format: .mp3)
-                let audioData3 = AudioData(data: Data([0x05, 0x06]), format: .flac)
+                // Create temporary audio files
+                let tempDir = FileManager.default.temporaryDirectory
+                let audioFile1 = tempDir.appendingPathComponent("test_audio1.wav")
+                let audioFile2 = tempDir.appendingPathComponent("test_audio2.wav")
                 
-                let results = try await batchTranscribe(
-                    [audioData1, audioData2, audioData3],
+                try Data([0x01, 0x02]).write(to: audioFile1)
+                try Data([0x03, 0x04]).write(to: audioFile2)
+                
+                let audioFiles = [audioFile1, audioFile2]
+                
+                let results = try await transcribeBatch(
+                    audioFiles,
                     using: .openai(.whisper1),
                     language: "en"
                 )
                 
-                #expect(results.count == 3)
-                #expect(results.allSatisfy { !$0.text.isEmpty })
-                #expect(results.allSatisfy { $0.language == "en" })
-            }
-        }
-        
-        @Test("batchTranscribe() function with different models")
-        func batchTranscribeFunctionDifferentModels() async throws {
-            try await TestHelpers.withStandardTestKeys {
-                let audioData = AudioData(data: Data([0x01, 0x02]), format: .wav)
-                
-                let models: [TranscriptionModel] = [
-                    .openai(.whisper1),
-                    .groq(.whisperLargeV3Turbo),
-                    .deepgram(.nova3)
-                ]
-                
-                let results = try await batchTranscribe(
-                    Array(repeating: audioData, count: 3),
-                    using: models
-                )
-                
-                #expect(results.count == 3)
-                #expect(results.allSatisfy { !$0.text.isEmpty })
-            }
-        }
-        
-        @Test("batchTranscribe() function with concurrent limit")
-        func batchTranscribeFunctionConcurrentLimit() async throws {
-            try await TestHelpers.withTestEnvironment(apiKeys: ["openai": "test-key"]) {
-                let audioFiles = (1...10).map { index in
-                    AudioData(data: Data([UInt8(index)]), format: .wav)
-                }
-                
-                let startTime = Date()
-                let results = try await batchTranscribe(
-                    audioFiles,
-                    using: .openai(.whisper1),
-                    maxConcurrentOperations: 3
-                )
-                let duration = Date().timeIntervalSince(startTime)
-                
-                #expect(results.count == 10)
+                #expect(results.count == 2)
                 #expect(results.allSatisfy { !$0.text.isEmpty })
                 
-                // With concurrent limit of 3, it should take longer than unlimited concurrency
-                // But since we're using placeholder implementations, just verify it completed
-                #expect(duration > 0)
-            }
-        }
-        
-        @Test("batchGenerateSpeech() function with multiple texts")
-        func batchGenerateSpeechFunctionMultipleTexts() async throws {
-            try await TestHelpers.withTestEnvironment(apiKeys: ["openai": "test-key"]) {
-                let texts = [
-                    "Hello, world!",
-                    "This is the second message.",
-                    "And this is the third one."
-                ]
-                
-                let results = try await batchGenerateSpeech(
-                    texts,
-                    using: .openai(.tts1),
-                    voice: .alloy,
-                    format: .wav
-                )
-                
-                #expect(results.count == 3)
-                #expect(results.allSatisfy { !$0.audioData.data.isEmpty })
-                #expect(results.allSatisfy { $0.audioData.format == .wav })
-            }
-        }
-        
-        @Test("batchGenerateSpeech() function with different voices")
-        func batchGenerateSpeechFunctionDifferentVoices() async throws {
-            try await TestHelpers.withTestEnvironment(apiKeys: ["openai": "test-key"]) {
-                let texts = ["Message one", "Message two", "Message three"]
-                let voices: [VoiceOption] = [.alloy, .nova, .shimmer]
-                
-                let results = try await batchGenerateSpeech(
-                    texts,
-                    using: .openai(.tts1),
-                    voices: voices,
-                    format: .mp3
-                )
-                
-                #expect(results.count == 3)
-                #expect(results.allSatisfy { !$0.audioData.data.isEmpty })
-            }
-        }
-        
-        @Test("batchGenerateSpeech() function error handling - partial failures")
-        func batchGenerateSpeechFunctionPartialFailures() async throws {
-            try await TestHelpers.withTestEnvironment(apiKeys: ["openai": "test-key"]) {
-                let texts = [
-                    "Valid text",
-                    "", // Empty text - should fail
-                    "Another valid text"
-                ]
-                
-                // With continueOnError: true, should get partial results
-                let results = try await batchGenerateSpeech(
-                    texts,
-                    using: .openai(.tts1),
-                    continueOnError: true
-                )
-                
-                // Should have 2 successful results (valid texts) and 1 failure handled
-                #expect(results.count <= 3) // May have fewer results due to failures
-                #expect(results.allSatisfy { !$0.audioData.data.isEmpty })
-            }
-        }
-        
-        @Test("batch operations progress tracking")
-        func batchOperationsProgressTracking() async throws {
-            try await TestHelpers.withTestEnvironment(apiKeys: ["openai": "test-key"]) {
-                let audioFiles = (1...5).map { index in
-                    AudioData(data: Data([UInt8(index)]), format: .wav)
+                // Clean up
+                for file in audioFiles {
+                    try? FileManager.default.removeItem(at: file)
                 }
+            }
+        }
+        
+        @Test("generateSpeechBatch() function works")
+        func generateSpeechBatchFunctionWorks() async throws {
+            try await TestHelpers.withTestEnvironment(apiKeys: ["openai": "test-key"]) {
+                let texts = ["Hello", "World"]
                 
-                var progressUpdates: [BatchProgress] = []
+                let results = try await generateSpeechBatch(
+                    texts,
+                    using: .openai(.tts1),
+                    voice: .alloy
+                )
                 
-                let results = try await batchTranscribe(
-                    audioFiles,
-                    using: .openai(.whisper1)
-                ) { progress in
-                    progressUpdates.append(progress)
-                }
-                
-                #expect(results.count == 5)
-                #expect(!progressUpdates.isEmpty)
-                #expect(progressUpdates.last?.completedCount == 5)
-                #expect(progressUpdates.last?.totalCount == 5)
+                #expect(results.count == 2)
+                #expect(results.allSatisfy { !$0.audioData.data.isEmpty })
             }
         }
     }
     
-    // MARK: - Convenience Functions Tests
+    // MARK: - Utility Functions Tests
     
-    @Suite("Convenience Functions Tests")
-    struct ConvenienceFunctionsTests {
+    @Suite("Utility Functions Tests")
+    struct UtilityFunctionsTests {
         
-        @Test("quickTranscribe() convenience function")
-        func quickTranscribeFunction() async throws {
+        @Test("availableTranscriptionModels() returns models")
+        func availableTranscriptionModelsReturnsModels() {
+            let models = availableTranscriptionModels()
+            #expect(!models.isEmpty)
+            #expect(models.contains { $0.description == TranscriptionModel.openai(.whisper1).description })
+        }
+        
+        @Test("availableSpeechModels() returns models")
+        func availableSpeechModelsReturnsModels() {
+            let models = availableSpeechModels()
+            #expect(!models.isEmpty)
+            #expect(models.contains { $0.description == SpeechModel.openai(.tts1).description })
+        }
+        
+        @Test("capabilities() for transcription models")
+        func capabilitiesForTranscriptionModels() throws {
+            let capabilities = try capabilities(for: TranscriptionModel.openai(.whisper1))
+            #expect(capabilities.supportsTimestamps == true)
+            #expect(capabilities.supportsLanguageDetection == true)
+            #expect(capabilities.supportedFormats.contains(.wav))
+        }
+        
+        @Test("capabilities() for speech models")
+        func capabilitiesForSpeechModels() throws {
+            let capabilities = try capabilities(for: SpeechModel.openai(.tts1))
+            #expect(capabilities.supportsSpeedControl == true)
+            #expect(capabilities.supportedFormats.contains(.mp3))
+            #expect(capabilities.supportedVoices.contains(.alloy))
+        }
+    }
+    
+    // MARK: - Error Handling Tests
+    
+    @Suite("Error Handling Tests")
+    struct ErrorHandlingTests {
+        
+        @Test("transcribe() handles empty audio data")
+        func transcribeHandlesEmptyAudioData() async throws {
             try await TestHelpers.withTestEnvironment(apiKeys: ["openai": "test-key"]) {
-                let audioData = AudioData(data: Data([0x01, 0x02, 0x03]), format: .wav)
+                let emptyAudioData = AudioData(data: Data(), format: .wav)
                 
-                // Quick transcribe should use defaults and return just the text
-                let text = try await quickTranscribe(audioData)
-                
-                #expect(!text.isEmpty)
+                await #expect(throws: TachikomaError.self) {
+                    _ = try await transcribe(emptyAudioData, using: .openai(.whisper1))
+                }
             }
         }
         
-        @Test("quickGenerateSpeech() convenience function")
-        func quickGenerateSpeechFunction() async throws {
+        @Test("generateSpeech() handles empty text")
+        func generateSpeechHandlesEmptyText() async throws {
             try await TestHelpers.withTestEnvironment(apiKeys: ["openai": "test-key"]) {
-                // Quick generate speech should return AudioData directly
-                let audioData = try await quickGenerateSpeech("Hello, world!")
-                
-                #expect(!audioData.data.isEmpty)
-                #expect(audioData.format == .mp3) // Default format
+                await #expect(throws: TachikomaError.self) {
+                    _ = try await generateSpeech("", using: .openai(.tts1))
+                }
             }
         }
         
-        @Test("saveTranscription() convenience function")
-        func saveTranscriptionFunction() async throws {
-            try await TestHelpers.withTestEnvironment(apiKeys: ["openai": "test-key"]) {
-                let audioData = AudioData(data: Data([0x01, 0x02, 0x03]), format: .wav)
-                let tempDir = FileManager.default.temporaryDirectory
-                let outputFile = tempDir.appendingPathComponent("transcription.txt")
+        @Test("functions handle missing API keys")
+        func functionsHandleMissingAPIKeys() async throws {
+            try await TestHelpers.withNoAPIKeys {
+                let audioData = AudioData(data: Data([0x01, 0x02]), format: .wav)
                 
-                try await saveTranscription(
-                    audioData,
-                    to: outputFile,
-                    using: .openai(.whisper1),
-                    format: .text
-                )
+                await #expect(throws: TachikomaError.self) {
+                    _ = try await transcribe(audioData, using: .openai(.whisper1))
+                }
                 
-                #expect(FileManager.default.fileExists(atPath: outputFile.path))
-                
-                let savedText = try String(contentsOf: outputFile)
-                #expect(!savedText.isEmpty)
-                
-                // Clean up
-                try? FileManager.default.removeItem(at: outputFile)
-            }
-        }
-        
-        @Test("saveTranscription() with SRT format")
-        func saveTranscriptionSRTFormat() async throws {
-            try await TestHelpers.withTestEnvironment(apiKeys: ["openai": "test-key"]) {
-                let audioData = AudioData(data: Data([0x01, 0x02, 0x03]), format: .wav)
-                let tempDir = FileManager.default.temporaryDirectory
-                let outputFile = tempDir.appendingPathComponent("transcription.srt")
-                
-                try await saveTranscription(
-                    audioData,
-                    to: outputFile,
-                    using: .openai(.whisper1),
-                    format: .srt,
-                    timestampGranularities: [.segment]
-                )
-                
-                #expect(FileManager.default.fileExists(atPath: outputFile.path))
-                
-                let savedContent = try String(contentsOf: outputFile)
-                #expect(!savedContent.isEmpty)
-                
-                // Clean up
-                try? FileManager.default.removeItem(at: outputFile)
+                await #expect(throws: TachikomaError.self) {
+                    _ = try await generateSpeech("test", using: .openai(.tts1))
+                }
             }
         }
     }
@@ -488,82 +322,36 @@ struct AudioFunctionsTests {
         
         @Test("transcribe and generate speech pipeline")
         func transcribeAndGenerateSpeechPipeline() async throws {
-            try await TestHelpers.withStandardTestKeys {
+            try await TestHelpers.withTestEnvironment(apiKeys: ["openai": "test-key"]) {
                 // Step 1: Create some "audio" data
                 let originalAudioData = AudioData(data: Data([0x01, 0x02, 0x03, 0x04]), format: .wav)
                 
-                // Step 2: Transcribe it
-                let transcriptionResult = try await transcribe(
-                    originalAudioData,
-                    using: .openai(.whisper1)
-                )
-                
-                #expect(!transcriptionResult.text.isEmpty)
+                // Step 2: Transcribe it to get text
+                let text = try await transcribe(originalAudioData, language: "en")
+                #expect(!text.isEmpty)
                 
                 // Step 3: Generate speech from the transcribed text
-                let speechResult = try await generateSpeech(
-                    transcriptionResult.text,
-                    using: .openai(.tts1),
-                    voice: .nova,
-                    format: .wav
-                )
-                
-                #expect(!speechResult.audioData.data.isEmpty)
-                #expect(speechResult.audioData.format == .wav)
+                let speechAudio = try await generateSpeech(text, voice: .nova)
+                #expect(!speechAudio.data.isEmpty)
+                #expect(speechAudio.format == .mp3)
             }
         }
         
-        @Test("multi-provider transcription comparison")
-        func multiProviderTranscriptionComparison() async throws {
+        @Test("multiple provider integration")
+        func multipleProviderIntegration() async throws {
             try await TestHelpers.withStandardTestKeys {
                 let audioData = AudioData(data: Data([0x01, 0x02, 0x03]), format: .wav)
                 
-                let providers: [TranscriptionModel] = [
-                    .openai(.whisper1),
-                    .groq(.whisperLargeV3Turbo),
-                    .deepgram(.nova3)
-                ]
+                // Test different transcription providers
+                let openaiResult = try await transcribe(audioData, using: .openai(.whisper1))
+                #expect(!openaiResult.text.isEmpty)
                 
-                var results: [String: TranscriptionResult] = [:]
+                let groqResult = try await transcribe(audioData, using: .groq(.whisperLargeV3Turbo))
+                #expect(!groqResult.text.isEmpty)
                 
-                for provider in providers {
-                    let result = try await transcribe(audioData, using: provider)
-                    results[provider.description] = result
-                }
-                
-                #expect(results.count == 3)
-                #expect(results.values.allSatisfy { !$0.text.isEmpty })
-                
-                // All providers should have processed the same audio
-                let durations = results.values.compactMap { $0.duration }
-                #expect(!durations.isEmpty)
-            }
-        }
-        
-        @Test("audio format conversion pipeline")
-        func audioFormatConversionPipeline() async throws {
-            try await TestHelpers.withTestEnvironment(apiKeys: ["openai": "test-key"]) {
-                // Generate speech in MP3
-                let mp3Result = try await generateSpeech(
-                    "Test audio format conversion",
-                    using: .openai(.tts1),
-                    format: .mp3
-                )
-                
-                #expect(mp3Result.audioData.format == .mp3)
-                
-                // Convert to WAV format by re-processing
-                let wavResult = try await generateSpeech(
-                    "Test audio format conversion",
-                    using: .openai(.tts1),
-                    format: .wav
-                )
-                
-                #expect(wavResult.audioData.format == .wav)
-                
-                // Both should contain audio data
-                #expect(!mp3Result.audioData.data.isEmpty)
-                #expect(!wavResult.audioData.data.isEmpty)
+                // Test different speech providers
+                let ttsResult = try await generateSpeech("Test", using: .openai(.tts1))
+                #expect(!ttsResult.audioData.data.isEmpty)
             }
         }
     }

@@ -117,7 +117,6 @@ struct AutomationTools {
 - **TachikomaCore** - Core generation functions, model system, conversation management
 - **TachikomaBuilders** - Result builders, @ToolKit system, example tool implementations  
 - **TachikomaCLI** - Command-line utilities and smart model parsing
-- **TachikomaUI** - SwiftUI integration with @AI property wrapper *(in development)*
 
 ### Core Components
 
@@ -226,19 +225,27 @@ See `Tests/TachikomaTests/MinimalModernAPITests.swift` for working examples of:
 - ToolKit implementations (WeatherToolKit, MathToolKit)
 - Error handling patterns
 
-## Migration from Legacy API
+## Migration from Legacy API ✅ Complete
 
-**Old (Complex)**:
+**Legacy APIs have been fully deprecated and removed.** All code now uses the modern type-safe interface.
+
+**Before (Complex)**:
 ```swift
 let model = try await Tachikoma.shared.getModel("gpt-4")
 let request = ModelRequest(messages: [.user(content: .text("Hello"))], settings: .default)
 let response = try await model.getResponse(request: request)
 ```
 
-**New (Simple)**:
+**After (Simple)**:
 ```swift
 let response = try await generate("Hello", using: .openai(.gpt4o))
 ```
+
+The migration provides significant improvements:
+- **60-80% less boilerplate code**
+- **Compile-time type safety** with provider-specific model enums
+- **Natural Swift async/await patterns**
+- **Zero legacy dependencies** - all code uses modern APIs
 
 ## Documentation
 
@@ -258,20 +265,22 @@ let response = try await generate("Hello", using: .openai(.gpt4o))
 
 ## Status
 
-✅ **Production Ready** - Core API complete with comprehensive test coverage
+✅ **Production Ready** - Complete modern API with comprehensive test coverage
 
 - [x] Modular architecture (TachikomaCore, TachikomaBuilders, TachikomaCLI) 
-- [x] Type-safe Model enum with all major AI providers
+- [x] Type-safe Model enum with all major AI providers (OpenAI, Anthropic, Grok, Ollama)
 - [x] Global generation functions (generate, stream, analyze)
 - [x] Conversation management with fluent interface
 - [x] @ToolKit result builder system with working examples
-- [x] Swift 6.0 compliance with Sendable conformance
-- [x] Comprehensive test suite (11 tests passing)
-- [x] Legacy compatibility bridge (Legacy* types)
-- [ ] SwiftUI integration (@AI property wrapper) - *needs rework*
-- [ ] Example projects migration - *in progress*
+- [x] Swift 6.0 compliance with strict concurrency and Sendable conformance
+- [x] Comprehensive test suite with real API integration tests
+- [x] Complete integration with Peekaboo v3.0 automation framework
+- [x] Legacy compatibility bridge fully deprecated and removed
+- [x] SwiftUI integration components integrated into Peekaboo Mac app
 
 The modern API provides 60-80% reduction in boilerplate code while maintaining full type safety and Swift-native patterns.
+
+**Migration Complete**: All legacy APIs have been successfully migrated to the modern type-safe interface. The Tachikoma SDK is now fully integrated with PeekabooCore services.
 
 ---
 

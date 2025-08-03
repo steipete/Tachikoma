@@ -24,9 +24,6 @@ let package = Package(
             name: "TachikomaBuilders",
             targets: ["TachikomaBuilders"]),
         .library(
-            name: "TachikomaUI",
-            targets: ["TachikomaUI"]),
-        .library(
             name: "TachikomaCLI",
             targets: ["TachikomaCLI"]),
     ],
@@ -52,14 +49,6 @@ let package = Package(
             path: "Sources/TachikomaBuilders",
             swiftSettings: commonSwiftSettings),
 
-        // UI module - SwiftUI integration and property wrappers
-        .target(
-            name: "TachikomaUI",
-            dependencies: [
-                "TachikomaCore",
-            ],
-            path: "Sources/TachikomaUI",
-            swiftSettings: commonSwiftSettings),
 
         // CLI module - command-line utilities and model selection
         .target(
@@ -76,7 +65,6 @@ let package = Package(
             dependencies: [
                 "TachikomaCore",
                 "TachikomaBuilders",
-                "TachikomaUI",
                 "TachikomaCLI",
             ],
             path: "Sources/Tachikoma",
@@ -98,14 +86,6 @@ let package = Package(
                 "TachikomaCore",
             ],
             path: "Tests/TachikomaBuildersTests",
-            swiftSettings: commonSwiftSettings),
-        .testTarget(
-            name: "TachikomaUITests",
-            dependencies: [
-                "TachikomaUI",
-                "TachikomaCore",
-            ],
-            path: "Tests/TachikomaUITests",
             swiftSettings: commonSwiftSettings),
         .testTarget(
             name: "TachikomaCLITests",
