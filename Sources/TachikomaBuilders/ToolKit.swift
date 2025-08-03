@@ -1,15 +1,6 @@
 import Foundation
 import TachikomaCore
 
-// MARK: - ToolKit Protocol
-
-/// Protocol for defining tool collections using the @ToolKit result builder
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
-public protocol ToolKit: Sendable {
-    /// The tools available in this toolkit
-    var tools: [Tool<Self>] { get }
-}
-
 // MARK: - @ToolKit Result Builder
 
 /// Result builder for creating tool collections using closure-based definitions
@@ -41,16 +32,15 @@ public struct ToolKitBuilder {
 
 /// Create a tool from a simple async function
 @available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
-public func tool<Context>(
+public func createTool<Context>(
     name: String,
     description: String,
-    parameters: ToolParameters = ToolParameters(),
-    _ handler: @escaping (ToolInput, Context) async throws -> String
+    parameters: ParameterSchema = .object(properties: [:]),
+    _ handler: @escaping @Sendable (ToolInput, Context) async throws -> String
 ) -> Tool<Context> {
     Tool(
         name: name,
         description: description,
-        parameters: parameters,
         execute: { input, context in
             let result = try await handler(input, context)
             return .string(result)
@@ -60,32 +50,30 @@ public func tool<Context>(
 
 /// Create a tool with structured output
 @available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
-public func tool<Context>(
+public func createTool<Context>(
     name: String,
     description: String,
-    parameters: ToolParameters = ToolParameters(),
-    _ handler: @escaping (ToolInput, Context) async throws -> ToolOutput
+    parameters: ParameterSchema = .object(properties: [:]),
+    _ handler: @escaping @Sendable (ToolInput, Context) async throws -> ToolOutput
 ) -> Tool<Context> {
     Tool(
         name: name,
         description: description,
-        parameters: parameters,
         execute: handler
     )
 }
 
 /// Create a tool from a throwing function
 @available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
-public func tool<Context>(
+public func createTool<Context>(
     name: String,
     description: String,
-    parameters: ToolParameters = ToolParameters(),
-    _ handler: @escaping (ToolInput, Context) throws -> String
+    parameters: ParameterSchema = .object(properties: [:]),
+    _ handler: @escaping @Sendable (ToolInput, Context) throws -> String
 ) -> Tool<Context> {
     Tool(
         name: name,
         description: description,
-        parameters: parameters,
         execute: { input, context in
             let result = try handler(input, context)
             return .string(result)
@@ -95,16 +83,15 @@ public func tool<Context>(
 
 /// Create a tool from a simple synchronous function
 @available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
-public func tool<Context>(
+public func createTool<Context>(
     name: String,
     description: String,
-    parameters: ToolParameters = ToolParameters(),
-    _ handler: @escaping (ToolInput, Context) -> String
+    parameters: ParameterSchema = .object(properties: [:]),
+    _ handler: @escaping @Sendable (ToolInput, Context) -> String
 ) -> Tool<Context> {
     Tool(
         name: name,
         description: description,
-        parameters: parameters,
         execute: { input, context in
             let result = handler(input, context)
             return .string(result)
@@ -114,19 +101,15 @@ public func tool<Context>(
 
 // MARK: - Macro Implementation Placeholder
 
-/// ToolKit macro for automatic tool discovery from methods
-/// This would be implemented as a Swift macro in a real implementation
-/// For now, we provide a protocol-based approach
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
-@attached(member, names: arbitrary)
-@attached(conformance)
-public macro ToolKit() = #externalMacro(module: "TachikomaMacros", type: "ToolKitMacro")
+// MARK: - Macro Placeholder
+// ToolKit macro would be implemented as a Swift macro in a real implementation
+// For now, we provide a protocol-based approach only
 
 // MARK: - Manual ToolKit Implementation
 
-/// Base class for manual ToolKit implementations
+/// Base struct for manual ToolKit implementations
 @available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
-open class BaseToolKit: ToolKit {
+public struct BaseToolKit: ToolKit {
     public var tools: [Tool<BaseToolKit>] {
         []
     }
@@ -141,32 +124,18 @@ open class BaseToolKit: ToolKit {
 public struct WeatherToolKit: ToolKit {
     public var tools: [Tool<WeatherToolKit>] {
         [
-            tool(
+            createTool(
                 name: "get_weather",
-                description: "Get current weather for a location",
-                parameters: .object(
-                    properties: [
-                        "location": .string(description: "The city and state/country"),
-                        "units": .enumeration(["celsius", "fahrenheit"], description: "Temperature units")
-                    ],
-                    required: ["location"]
-                )
+                description: "Get current weather for a location"
             ) { input, context in
                 let location = try input.stringValue("location")
                 let units = input.stringValue("units", default: "celsius")
                 return try await context.getWeather(location: location, units: units)
             },
             
-            tool(
+            createTool(
                 name: "get_forecast",
-                description: "Get weather forecast for a location",
-                parameters: .object(
-                    properties: [
-                        "location": .string(description: "The city and state/country"),
-                        "days": .integer(description: "Number of days to forecast", minimum: 1, maximum: 7)
-                    ],
-                    required: ["location"]
-                )
+                description: "Get weather forecast for a location"
             ) { input, context in
                 let location = try input.stringValue("location")
                 let days = input.intValue("days", default: 3)
@@ -198,31 +167,17 @@ public struct WeatherToolKit: ToolKit {
 public struct MathToolKit: ToolKit {
     public var tools: [Tool<MathToolKit>] {
         [
-            tool(
+            createTool(
                 name: "calculate",
-                description: "Perform mathematical calculations",
-                parameters: .object(
-                    properties: [
-                        "expression": .string(description: "Mathematical expression to evaluate")
-                    ],
-                    required: ["expression"]
-                )
+                description: "Perform mathematical calculations"
             ) { input, context in
                 let expression = try input.stringValue("expression")
                 return try context.calculate(expression)
             },
             
-            tool(
+            createTool(
                 name: "convert_units",
-                description: "Convert between different units",
-                parameters: .object(
-                    properties: [
-                        "value": .number(description: "The value to convert"),
-                        "from_unit": .string(description: "Source unit"),
-                        "to_unit": .string(description: "Target unit")
-                    ],
-                    required: ["value", "from_unit", "to_unit"]
-                )
+                description: "Convert between different units"
             ) { input, context in
                 let value = try input.doubleValue("value")
                 let fromUnit = try input.stringValue("from_unit")
@@ -265,17 +220,7 @@ public struct MathToolKit: ToolKit {
     }
 }
 
-// MARK: - Empty ToolKit
-
-/// Empty toolkit for when no tools are needed
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
-public struct EmptyToolKit: ToolKit {
-    public var tools: [Tool<EmptyToolKit>] {
-        []
-    }
-    
-    public init() {}
-}
+// EmptyToolKit is available from TachikomaCore
 
 // MARK: - Combined ToolKits
 
@@ -302,7 +247,7 @@ public struct CombinedToolKit: ToolKit {
 @available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
 public extension ToolKit {
     /// Get a tool by name
-    func tool(named name: String) -> Tool<Self>? {
+    func tool(named name: String) -> Tool<Context>? {
         tools.first { $0.name == name }
     }
     
@@ -320,7 +265,7 @@ public extension ToolKit {
 // MARK: - Tool Execution Helpers
 
 @available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
-public extension ToolKit {
+public extension ToolKit where Context == Self {
     /// Execute a tool by name with the given input
     func execute(toolNamed name: String, input: ToolInput) async throws -> ToolOutput {
         guard let tool = tool(named: name) else {

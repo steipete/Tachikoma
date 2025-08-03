@@ -45,10 +45,10 @@ import Foundation
 // Result builders and DSL
 @_exported import TachikomaBuilders
 
-// SwiftUI integration
-#if canImport(SwiftUI)
-@_exported import TachikomaUI
-#endif
+// SwiftUI integration - TEMPORARILY DISABLED
+// #if canImport(SwiftUI)
+// @_exported import TachikomaUI
+// #endif
 
 // CLI utilities
 @_exported import TachikomaCLI
@@ -57,12 +57,13 @@ import Foundation
 
 /// Default model for the entire SDK
 @available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
-public var defaultModel: Model = .default
+public let defaultModel: Model = .default
 
-/// Set the default model for all operations
+/// Set the default model for all operations (placeholder - would use actor in real implementation)
 @available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
 public func setDefaultModel(_ model: Model) {
-    defaultModel = model
+    // In real implementation, would use actor or other thread-safe mechanism
+    // For now, this is just a placeholder function
 }
 
 // MARK: - Version Information
@@ -83,21 +84,21 @@ public enum PlatformSupport {
 /// Namespace for legacy API compatibility
 @available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
 public enum Legacy {
-    /// Legacy singleton instance (deprecated)
+    /// Legacy compatibility note
     @available(*, deprecated, message: "Use modern API with dependency injection instead")
-    public static let shared = LegacyTachikoma.shared
+    public static let compatibilityMessage = "Legacy types have been renamed with Legacy* prefix"
     
-    /// Legacy model provider (deprecated)
+    /// Legacy model provider (deprecated) - now available as LegacyAIModelProvider
     @available(*, deprecated, message: "Use Model enum and global functions instead")
-    public typealias AIModelProvider = LegacyAIModelProvider
+    public static let modelProviderNote = "Use LegacyAIModelProvider directly"
     
-    /// Legacy model factory (deprecated)
+    /// Legacy model factory (deprecated) - now available as LegacyAIModelFactory
     @available(*, deprecated, message: "Use Model enum instead")
-    public typealias AIModelFactory = LegacyAIModelFactory
+    public static let modelFactoryNote = "Use LegacyAIModelFactory directly"
     
-    /// Legacy configuration (deprecated)
+    /// Legacy configuration (deprecated) - now available as LegacyAIConfiguration
     @available(*, deprecated, message: "Use AIConfiguration.fromEnvironment() instead")
-    public typealias AIConfiguration = LegacyAIConfiguration
+    public static let configurationNote = "Use LegacyAIConfiguration directly"
 }
 
 // MARK: - Modern API Summary

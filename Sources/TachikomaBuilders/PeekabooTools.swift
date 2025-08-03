@@ -32,19 +32,9 @@ public struct PeekabooTools: ToolKit {
     // MARK: - Tool Definitions
     
     private var screenshotTool: Tool<PeekabooTools> {
-        tool(
+        createTool(
             name: "screenshot",
-            description: "Take a screenshot of the screen or a specific application window",
-            parameters: .object(
-                properties: [
-                    "app": .string(description: "Optional application name to capture (e.g., 'Safari', 'TextEdit')"),
-                    "path": .string(description: "Optional file path to save the screenshot"),
-                    "format": .enumeration(["png", "jpg", "data"], description: "Image format (default: png)"),
-                    "window_title": .string(description: "Optional specific window title to capture"),
-                    "window_index": .integer(description: "Optional window index for multi-window apps"),
-                    "capture_focus": .enumeration(["auto", "background", "foreground"], description: "Focus behavior during capture")
-                ]
-            )
+            description: "Take a screenshot of the screen or a specific application window"
         ) { input, context in
             let app = input.stringValue("app", default: nil)
             let path = input.stringValue("path", default: nil) 
@@ -65,19 +55,9 @@ public struct PeekabooTools: ToolKit {
     }
     
     private var clickTool: Tool<PeekabooTools> {
-        tool(
+        createTool(
             name: "click",
-            description: "Click on a UI element by description, coordinates, or element ID",
-            parameters: .object(
-                properties: [
-                    "element": .string(description: "Description of element to click (e.g., 'Submit button', 'Save As menu item')"),
-                    "coords": .string(description: "Optional coordinates in format 'x,y' (e.g., '100,200')"),
-                    "double": .boolean(description: "Whether to double-click instead of single click"),
-                    "right": .boolean(description: "Whether to right-click instead of left-click"),
-                    "wait_for": .integer(description: "Maximum milliseconds to wait for element to become actionable")
-                ],
-                required: ["element"]
-            )
+            description: "Click on a UI element by description, coordinates, or element ID"
         ) { input, context in
             let element = try input.stringValue("element")
             let coords = input.stringValue("coords", default: nil)
@@ -90,25 +70,15 @@ public struct PeekabooTools: ToolKit {
                 coords: coords,
                 double: double,
                 right: right,
-                waitFor: waitFor
+                waitFor: waitFor ?? 5000
             )
         }
     }
     
     private var typeTool: Tool<PeekabooTools> {
-        tool(
+        createTool(
             name: "type",
-            description: "Type text into the currently focused input field or a specific element",
-            parameters: .object(
-                properties: [
-                    "text": .string(description: "Text to type"),
-                    "element": .string(description: "Optional element to type into"),
-                    "clear": .boolean(description: "Whether to clear the field before typing"),
-                    "press_return": .boolean(description: "Whether to press Enter after typing"),
-                    "delay": .integer(description: "Delay between keystrokes in milliseconds")
-                ],
-                required: ["text"]
-            )
+            description: "Type text into the currently focused input field or a specific element"
         ) { input, context in
             let text = try input.stringValue("text")
             let element = input.stringValue("element", default: nil)
@@ -121,22 +91,15 @@ public struct PeekabooTools: ToolKit {
                 element: element,
                 clear: clear,
                 pressReturn: pressReturn,
-                delay: delay
+                delay: delay ?? 5
             )
         }
     }
     
     private var getWindowsTool: Tool<PeekabooTools> {
-        tool(
+        createTool(
             name: "get_windows",
-            description: "List windows for a specific application or all applications",
-            parameters: .object(
-                properties: [
-                    "app": .string(description: "Optional application name to list windows for"),
-                    "include_details": .boolean(description: "Whether to include detailed window information"),
-                    "only_visible": .boolean(description: "Whether to only include visible windows")
-                ]
-            )
+            description: "List windows for a specific application or all applications"
         ) { input, context in
             let app = input.stringValue("app", default: nil)
             let includeDetails = input.boolValue("include_details", default: false)
@@ -151,17 +114,9 @@ public struct PeekabooTools: ToolKit {
     }
     
     private var shellTool: Tool<PeekabooTools> {
-        tool(
+        createTool(
             name: "shell",
-            description: "Execute a shell command and return the output",
-            parameters: .object(
-                properties: [
-                    "command": .string(description: "Shell command to execute"),
-                    "timeout": .integer(description: "Timeout in seconds (default: 30)"),
-                    "working_directory": .string(description: "Optional working directory for the command")
-                ],
-                required: ["command"]
-            )
+            description: "Execute a shell command and return the output"
         ) { input, context in
             let command = try input.stringValue("command")
             let timeout = input.intValue("timeout", default: 30)
@@ -169,24 +124,16 @@ public struct PeekabooTools: ToolKit {
             
             return try await context.executeShellCommand(
                 command: command,
-                timeout: timeout,
+                timeout: timeout ?? 30,
                 workingDirectory: workingDirectory
             )
         }
     }
     
     private var menuClickTool: Tool<PeekabooTools> {
-        tool(
+        createTool(
             name: "menu_click",
-            description: "Click on a menu item in the application menu bar",
-            parameters: .object(
-                properties: [
-                    "app": .string(description: "Application name (e.g., 'Safari', 'TextEdit')"),
-                    "path": .string(description: "Menu path with '>' separator (e.g., 'File > Save As...')"),
-                    "item": .string(description: "Simple menu item name for non-nested items")
-                ],
-                required: ["app"]
-            )
+            description: "Click on a menu item in the application menu bar"
         ) { input, context in
             let app = try input.stringValue("app")
             let path = input.stringValue("path", default: nil)
@@ -201,20 +148,9 @@ public struct PeekabooTools: ToolKit {
     }
     
     private var dialogInputTool: Tool<PeekabooTools> {
-        tool(
+        createTool(
             name: "dialog_input",
-            description: "Interact with system dialogs, alerts, and file choosers",
-            parameters: .object(
-                properties: [
-                    "action": .enumeration(["click", "input", "file", "dismiss"], description: "Action to perform"),
-                    "button": .string(description: "Button text to click (e.g., 'Save', 'Cancel', 'OK')"),
-                    "text": .string(description: "Text to input in dialog fields"),
-                    "field": .string(description: "Field name or placeholder text"),
-                    "path": .string(description: "File path for file selection dialogs"),
-                    "force": .boolean(description: "Force dismiss dialog if normal methods fail")
-                ],
-                required: ["action"]
-            )
+            description: "Interact with system dialogs, alerts, and file choosers"
         ) { input, context in
             let action = try input.stringValue("action")
             let button = input.stringValue("button", default: nil)
@@ -235,18 +171,9 @@ public struct PeekabooTools: ToolKit {
     }
     
     private var focusWindowTool: Tool<PeekabooTools> {
-        tool(
+        createTool(
             name: "focus_window",
-            description: "Bring a specific application window to the foreground",
-            parameters: .object(
-                properties: [
-                    "app": .string(description: "Application name"),
-                    "window_title": .string(description: "Optional specific window title"),
-                    "window_index": .integer(description: "Optional window index for multi-window apps"),
-                    "bring_to_current_space": .boolean(description: "Whether to bring window to current desktop space")
-                ],
-                required: ["app"]
-            )
+            description: "Bring a specific application window to the foreground"
         ) { input, context in
             let app = try input.stringValue("app")
             let windowTitle = input.stringValue("window_title", default: nil)
@@ -263,19 +190,9 @@ public struct PeekabooTools: ToolKit {
     }
     
     private var scrollTool: Tool<PeekabooTools> {
-        tool(
+        createTool(
             name: "scroll",
-            description: "Scroll in a specific direction within a window or element",
-            parameters: .object(
-                properties: [
-                    "direction": .enumeration(["up", "down", "left", "right"], description: "Scroll direction"),
-                    "amount": .integer(description: "Number of scroll ticks/lines (default: 3)"),
-                    "element": .string(description: "Optional element to scroll within"),
-                    "smooth": .boolean(description: "Whether to use smooth scrolling"),
-                    "delay": .integer(description: "Delay between scroll ticks in milliseconds")
-                ],
-                required: ["direction"]
-            )
+            description: "Scroll in a specific direction within a window or element"
         ) { input, context in
             let direction = try input.stringValue("direction")
             let amount = input.intValue("amount", default: 3)
@@ -285,49 +202,33 @@ public struct PeekabooTools: ToolKit {
             
             return try await context.scroll(
                 direction: direction,
-                amount: amount,
+                amount: amount ?? 3,
                 element: element,
                 smooth: smooth,
-                delay: delay
+                delay: delay ?? 2
             )
         }
     }
     
     private var hotkeyTool: Tool<PeekabooTools> {
-        tool(
+        createTool(
             name: "hotkey",
-            description: "Press keyboard shortcuts and key combinations",
-            parameters: .object(
-                properties: [
-                    "keys": .string(description: "Comma-separated keys (e.g., 'cmd,c' for copy, 'cmd,shift,t' for new tab)"),
-                    "hold_duration": .integer(description: "Duration to hold keys in milliseconds")
-                ],
-                required: ["keys"]
-            )
+            description: "Press keyboard shortcuts and key combinations"
         ) { input, context in
             let keys = try input.stringValue("keys")
             let holdDuration = input.intValue("hold_duration", default: 50)
             
             return try await context.pressHotkey(
                 keys: keys,
-                holdDuration: holdDuration
+                holdDuration: holdDuration ?? 50
             )
         }
     }
     
     private var swipeTool: Tool<PeekabooTools> {
-        tool(
+        createTool(
             name: "swipe",
-            description: "Perform swipe/drag gestures between two points",
-            parameters: .object(
-                properties: [
-                    "from": .string(description: "Starting coordinates in format 'x,y'"),
-                    "to": .string(description: "Ending coordinates in format 'x,y'"),
-                    "duration": .integer(description: "Duration of swipe in milliseconds"),
-                    "steps": .integer(description: "Number of intermediate steps for smooth movement")
-                ],
-                required: ["from", "to"]
-            )
+            description: "Perform swipe/drag gestures between two points"
         ) { input, context in
             let from = try input.stringValue("from")
             let to = try input.stringValue("to")
@@ -337,22 +238,16 @@ public struct PeekabooTools: ToolKit {
             return try await context.performSwipe(
                 from: from,
                 to: to,
-                duration: duration,
-                steps: steps
+                duration: duration ?? 500,
+                steps: steps ?? 10
             )
         }
     }
     
     private var sleepTool: Tool<PeekabooTools> {
-        tool(
+        createTool(
             name: "sleep",
-            description: "Pause execution for a specified duration",
-            parameters: .object(
-                properties: [
-                    "duration": .integer(description: "Sleep duration in milliseconds")
-                ],
-                required: ["duration"]
-            )
+            description: "Pause execution for a specified duration"
         ) { input, context in
             let duration = try input.intValue("duration")
             return try await context.sleep(duration: duration)
@@ -360,19 +255,9 @@ public struct PeekabooTools: ToolKit {
     }
     
     private var appControlTool: Tool<PeekabooTools> {
-        tool(
+        createTool(
             name: "app_control",
-            description: "Launch, quit, focus, hide, or manage applications",
-            parameters: .object(
-                properties: [
-                    "action": .enumeration(["launch", "quit", "focus", "hide", "unhide", "relaunch"], description: "Action to perform"),
-                    "app": .string(description: "Application name or bundle ID"),
-                    "force": .boolean(description: "Force quit if normal quit fails"),
-                    "wait": .integer(description: "Wait time in seconds for relaunch"),
-                    "wait_until_ready": .boolean(description: "Wait for app to be ready after launch")
-                ],
-                required: ["action", "app"]
-            )
+            description: "Launch, quit, focus, hide, or manage applications"
         ) { input, context in
             let action = try input.stringValue("action")
             let app = try input.stringValue("app")
@@ -384,29 +269,16 @@ public struct PeekabooTools: ToolKit {
                 action: action,
                 app: app,
                 force: force,
-                wait: wait,
+                wait: wait ?? 2,
                 waitUntilReady: waitUntilReady
             )
         }
     }
     
     private var windowManagementTool: Tool<PeekabooTools> {
-        tool(
+        createTool(
             name: "window_management",
-            description: "Close, minimize, maximize, move, or resize windows",
-            parameters: .object(
-                properties: [
-                    "action": .enumeration(["close", "minimize", "maximize", "move", "resize"], description: "Window action"),
-                    "app": .string(description: "Application name"),
-                    "window_title": .string(description: "Optional window title"),
-                    "window_index": .integer(description: "Optional window index"),
-                    "x": .integer(description: "X coordinate for move action"),
-                    "y": .integer(description: "Y coordinate for move action"),
-                    "width": .integer(description: "Width for resize action"),
-                    "height": .integer(description: "Height for resize action")
-                ],
-                required: ["action", "app"]
-            )
+            description: "Close, minimize, maximize, move, or resize windows"
         ) { input, context in
             let action = try input.stringValue("action")
             let app = try input.stringValue("app")
@@ -429,17 +301,9 @@ public struct PeekabooTools: ToolKit {
     }
     
     private var dockTool: Tool<PeekabooTools> {
-        tool(
+        createTool(
             name: "dock",
-            description: "Interact with the macOS Dock",
-            parameters: .object(
-                properties: [
-                    "action": .enumeration(["launch", "right_click", "hide", "show", "list"], description: "Dock action"),
-                    "app": .string(description: "Application name for launch/right-click"),
-                    "select": .string(description: "Menu item to select after right-click")
-                ],
-                required: ["action"]
-            )
+            description: "Interact with the macOS Dock"
         ) { input, context in
             let action = try input.stringValue("action")
             let app = input.stringValue("app", default: nil)
@@ -454,18 +318,9 @@ public struct PeekabooTools: ToolKit {
     }
     
     private var spaceTool: Tool<PeekabooTools> {
-        tool(
+        createTool(
             name: "space",
-            description: "Manage macOS Spaces (virtual desktops)",
-            parameters: .object(
-                properties: [
-                    "action": .enumeration(["list", "switch", "move_window"], description: "Space action"),
-                    "space_number": .integer(description: "Space number to switch to or move window to"),
-                    "app": .string(description: "Application name for move_window action"),
-                    "follow": .boolean(description: "Whether to follow window when moving")
-                ],
-                required: ["action"]
-            )
+            description: "Manage macOS Spaces (virtual desktops)"
         ) { input, context in
             let action = try input.stringValue("action")
             let spaceNumber = input.intValue("space_number", default: nil)

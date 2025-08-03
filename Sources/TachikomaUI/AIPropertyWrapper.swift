@@ -341,7 +341,8 @@ public struct AIChatView<T: ToolKit>: View {
                 ScrollViewReader { proxy in
                     ScrollView {
                         LazyVStack(alignment: .leading, spacing: 12) {
-                            ForEach(Array(assistant.messages.enumerated()), id: \.offset) { index, message in
+                            ForEach(assistant.conversation.messages.indices, id: \.self) { index in
+                                let message = assistant.conversation.messages[index]
                                 MessageBubble(message: message)
                                     .id(index)
                             }
@@ -352,8 +353,8 @@ public struct AIChatView<T: ToolKit>: View {
                         }
                         .padding()
                     }
-                    .onChange(of: assistant.messages.count) { _ in
-                        if let lastIndex = assistant.messages.indices.last {
+                    .onChange(of: assistant.conversation.messages.count) { _ in
+                        if let lastIndex = assistant.conversation.messages.indices.last {
                             proxy.scrollTo(lastIndex, anchor: .bottom)
                         }
                     }
@@ -523,12 +524,12 @@ public struct TypingIndicator: View {
 
 // MARK: - Preview Helpers
 
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
 #if DEBUG
+@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
 struct AIChatView_Previews: PreviewProvider {
     static var previews: some View {
         AIChatView<EmptyToolKit>(
-            model: .claude,
+            model: Model.claude,
             systemPrompt: "You are a helpful assistant."
         )
     }

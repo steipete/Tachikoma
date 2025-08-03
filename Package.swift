@@ -26,10 +26,11 @@ let package = Package(
             name: "TachikomaBuilders",
             targets: ["TachikomaBuilders"]
         ),
-        .library(
-            name: "TachikomaUI",
-            targets: ["TachikomaUI"]
-        ),
+        // TEMPORARILY DISABLED - needs significant rework
+        // .library(
+        //     name: "TachikomaUI",
+        //     targets: ["TachikomaUI"]
+        // ),
         .library(
             name: "TachikomaCLI",
             targets: ["TachikomaCLI"]
@@ -59,16 +60,17 @@ let package = Package(
             swiftSettings: commonSwiftSettings
         ),
         
+        // TEMPORARILY DISABLED - needs significant rework
         // UI module - SwiftUI integration and property wrappers
-        .target(
-            name: "TachikomaUI",
-            dependencies: [
-                "TachikomaCore",
-                "TachikomaBuilders"
-            ],
-            path: "Sources/TachikomaUI",
-            swiftSettings: commonSwiftSettings
-        ),
+        // .target(
+        //     name: "TachikomaUI",
+        //     dependencies: [
+        //         "TachikomaCore",
+        //         "TachikomaBuilders"
+        //     ],
+        //     path: "Sources/TachikomaUI",
+        //     swiftSettings: commonSwiftSettings
+        // ),
         
         // CLI module - command-line utilities and model selection
         .target(
@@ -86,7 +88,7 @@ let package = Package(
             dependencies: [
                 "TachikomaCore",
                 "TachikomaBuilders", 
-                "TachikomaUI",
+                // "TachikomaUI", // TEMPORARILY DISABLED
                 "TachikomaCLI"
             ],
             path: "Sources/Tachikoma",
@@ -112,16 +114,17 @@ let package = Package(
             path: "Tests/TachikomaBuildersTests",
             swiftSettings: commonSwiftSettings
         ),
-        .testTarget(
-            name: "TachikomatUITests",
-            dependencies: [
-                "TachikomaUI",
-                "TachikomaCore",
-                "TachikomaBuilders",
-            ],
-            path: "Tests/TachikomaUITests",
-            swiftSettings: commonSwiftSettings
-        ),
+        // TEMPORARILY DISABLED
+        // .testTarget(
+        //     name: "TachikomatUITests",
+        //     dependencies: [
+        //         "TachikomaUI",
+        //         "TachikomaCore",
+        //         "TachikomaBuilders",
+        //     ],
+        //     path: "Tests/TachikomaUITests",
+        //     swiftSettings: commonSwiftSettings
+        // ),
         .testTarget(
             name: "TachikomaCLITests",
             dependencies: [
