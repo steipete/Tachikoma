@@ -1,10 +1,7 @@
-Tachikoma - Modern Swift AI SDK
-
-<p align="center">
+<div align="center">
   <img src="assets/logo.png" width="200" alt="Tachikoma Logo">
-</p>
-
-A Swift-native AI SDK that makes AI integration as natural as any Swift function call.
+  
+  # Tachikoma - Modern Swift AI SDK
 
 <p align="center">
   <a href="https://swift.org"><img src="https://img.shields.io/badge/Swift-6.0+-FA7343?style=for-the-badge&logo=swift&logoColor=white" alt="Swift 6.0+"></a>
@@ -13,9 +10,10 @@ A Swift-native AI SDK that makes AI integration as natural as any Swift function
   <a href="#testing"><img src="https://img.shields.io/badge/tests-passing-brightgreen?style=for-the-badge" alt="Tests"></a>
 </p>
 
+A Swift-native AI SDK that makes AI integration as natural as any Swift function call.
 ---
-
 Named after the spider-tank AI from Ghost in the Shell, **Tachikoma** provides an intelligent, adaptable interface for AI services with a completely modern Swift-native API.
+</div>
 
 ## Quick Start
 
