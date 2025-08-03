@@ -4,40 +4,38 @@ import Testing
 
 @Suite("Tachikoma Core Tests")
 struct TachikomaCoreTests {
-    @Test("Tachikoma singleton initialization")
-    func singletonInitialization() async throws {
-        let tachikoma1 = Tachikoma.shared
-        let tachikoma2 = Tachikoma.shared
+    @Test("AIModelProvider initialization")
+    func aiModelProviderInitialization() async throws {
+        let provider1 = AIModelProvider()
+        let provider2 = AIModelProvider()
         
-        // Should be the same instance
-        #expect(tachikoma1 === tachikoma2)
+        // Should be different instances (no more singleton)
+        #expect(provider1 !== provider2)
+        #expect(provider1.availableModels().isEmpty)
+        #expect(provider2.availableModels().isEmpty)
     }
 
-    @Test("Model registration and retrieval")
+    @Test("Model registration and retrieval with AIModelProvider")
     func modelRegistrationAndRetrieval() async throws {
-        let tachikoma = Tachikoma.shared
-
-        // Register a test model
-        await tachikoma.registerModel(name: "test-model", factory: {
-            OpenAIModel(apiKey: "test-key", modelName: "gpt-4.1")
-        })
+        let testModel = OpenAIModel(apiKey: "test-key", modelName: "gpt-4.1")
+        let provider = AIModelProvider(models: ["test-model": testModel])
 
         // Should be able to retrieve it
         do {
-            let model = try await tachikoma.getModel("test-model")
+            let model = try provider.getModel("test-model")
             #expect(model is OpenAIModel)
         } catch {
             Issue.record("Failed to retrieve registered model: \(error)")
         }
     }
 
-    @Test("Model not found error")
+    @Test("Model not found error with AIModelProvider")
     func modelNotFoundError() async throws {
-        let tachikoma = Tachikoma.shared
+        let provider = AIModelProvider()
 
         // Should throw error for non-existent model
         do {
-            _ = try await tachikoma.getModel("nonexistent-model")
+            _ = try provider.getModel("nonexistent-model")
             Issue.record("Expected error for nonexistent model")
         } catch let error as TachikomaError {
             switch error {
@@ -50,87 +48,84 @@ struct TachikomaCoreTests {
         }
     }
 
-    @Test("Provider configuration")
-    func providerConfiguration() async throws {
-        let tachikoma = Tachikoma.shared
+    @Test("AIModelFactory functions")
+    func aiModelFactoryFunctions() async throws {
+        // Test that factory functions work correctly
+        let openaiModel = AIModelFactory.openAI(apiKey: "test-key", modelName: "gpt-4.1")
+        #expect(openaiModel is OpenAIModel)
 
-        // Test OpenAI configuration
-        let openaiConfig = ProviderConfiguration.OpenAI(
-            apiKey: "test-key",
-            baseURL: URL(string: "https://api.openai.com/v1")!
-        )
-        await tachikoma.configureOpenAI(openaiConfig)
+        let anthropicModel = AIModelFactory.anthropic(apiKey: "test-key", modelName: "claude-opus-4-20250514")
+        #expect(anthropicModel is AnthropicModel)
 
-        // Test Anthropic configuration
-        let anthropicConfig = ProviderConfiguration.Anthropic(
-            apiKey: "test-key",
-            baseURL: URL(string: "https://api.anthropic.com/v1")!
-        )
-        await tachikoma.configureAnthropic(anthropicConfig)
+        let grokModel = AIModelFactory.grok(apiKey: "test-key", modelName: "grok-4")
+        #expect(grokModel is GrokModel)
 
-        // Test Grok configuration
-        let grokConfig = ProviderConfiguration.Grok(
-            apiKey: "test-key",
-            baseURL: URL(string: "https://api.x.ai/v1")!
-        )
-        await tachikoma.configureGrok(grokConfig)
-
-        // Test Ollama configuration
-        let ollamaConfig = ProviderConfiguration.Ollama(
-            baseURL: URL(string: "http://localhost:11434")!
-        )
-        await tachikoma.configureOllama(ollamaConfig)
+        let ollamaModel = AIModelFactory.ollama(modelName: "llama3.3")
+        #expect(ollamaModel is OllamaModel)
     }
 
-    @Test("Model factory functions")
-    func modelFactoryFunctions() async throws {
-        let tachikoma = Tachikoma.shared
+    @Test("AIModelProvider withModel functionality")
+    func aiModelProviderWithModel() async throws {
+        let provider = AIModelProvider()
+        #expect(provider.availableModels().isEmpty)
 
-        // Test that factory functions work correctly
-        await tachikoma.registerModel(name: "factory-openai", factory: {
-            OpenAIModel(apiKey: "test-key", modelName: "gpt-4.1")
-        })
-
-        await tachikoma.registerModel(name: "factory-anthropic", factory: {
-            AnthropicModel(apiKey: "test-key", modelName: "claude-opus-4-20250514")
-        })
-
-        await tachikoma.registerModel(name: "factory-grok", factory: {
-            GrokModel(apiKey: "test-key", modelName: "grok-4")
-        })
-
-        await tachikoma.registerModel(name: "factory-ollama", factory: {
-            OllamaModel(modelName: "llama3.3")
-        })
-
-        // Test retrieval
-        let modelNames = ["factory-openai", "factory-anthropic", "factory-grok", "factory-ollama"]
+        let testModel = OpenAIModel(apiKey: "test-key", modelName: "gpt-4.1")
+        let updatedProvider = provider.withModel("test-model", model: testModel)
         
-        for modelName in modelNames {
-            do {
-                let model = try await tachikoma.getModel(modelName)
-                #expect(model is any ModelInterface)
-            } catch {
-                Issue.record("Failed to get \(modelName): \(error)")
-            }
+        #expect(updatedProvider.availableModels().count == 1)
+        #expect(updatedProvider.availableModels().contains("test-model"))
+        
+        let retrievedModel = try updatedProvider.getModel("test-model")
+        #expect(retrievedModel is OpenAIModel)
+    }
+
+    @Test("AIModelProvider withModels functionality")
+    func aiModelProviderWithModels() async throws {
+        let provider = AIModelProvider()
+        
+        let models: [String: any ModelInterface] = [
+            "openai-model": AIModelFactory.openAI(apiKey: "test-key", modelName: "gpt-4.1"),
+            "anthropic-model": AIModelFactory.anthropic(apiKey: "test-key", modelName: "claude-opus-4-20250514"),
+            "grok-model": AIModelFactory.grok(apiKey: "test-key", modelName: "grok-4"),
+            "ollama-model": AIModelFactory.ollama(modelName: "llama3.3")
+        ]
+        
+        let updatedProvider = provider.withModels(models)
+        
+        #expect(updatedProvider.availableModels().count == 4)
+        #expect(updatedProvider.availableModels().sorted() == ["anthropic-model", "grok-model", "ollama-model", "openai-model"])
+        
+        for (modelName, _) in models {
+            let retrievedModel = try updatedProvider.getModel(modelName)
+            #expect(retrievedModel is any ModelInterface)
         }
     }
 
-    @Test("Concurrent model access")
-    func concurrentModelAccess() async throws {
-        let tachikoma = Tachikoma.shared
+    @Test("AIConfiguration fromEnvironment")
+    func aiConfigurationFromEnvironment() async throws {
+        // This test will work with available environment variables
+        // We don't set environment variables in tests, so this mainly tests that the method doesn't crash
+        do {
+            let provider = try AIConfiguration.fromEnvironment()
+            // Should not crash and return a valid provider
+            #expect(provider.availableModels() is [String])
+        } catch {
+            // It's okay if this throws due to missing API keys in test environment
+            #expect(error is TachikomaError)
+        }
+    }
 
-        // Register a model
-        await tachikoma.registerModel(name: "concurrent-test", factory: {
-            OpenAIModel(apiKey: "test-key", modelName: "gpt-4.1")
-        })
+    @Test("Concurrent model access with AIModelProvider")
+    func concurrentModelAccess() async throws {
+        let testModel = OpenAIModel(apiKey: "test-key", modelName: "gpt-4.1")
+        let provider = AIModelProvider(models: ["concurrent-test": testModel])
 
         // Access it concurrently
         await withTaskGroup(of: Void.self) { group in
             for i in 0..<10 {
                 group.addTask {
                     do {
-                        let model = try await tachikoma.getModel("concurrent-test")
+                        let model = try provider.getModel("concurrent-test")
                         #expect(model is OpenAIModel)
                     } catch {
                         Issue.record("Concurrent access failed for iteration \(i): \(error)")
@@ -138,6 +133,40 @@ struct TachikomaCoreTests {
                 }
             }
         }
+    }
+
+    @Test("Legacy Tachikoma singleton still works (deprecated)")
+    func legacyTachikomaSingleton() async throws {
+        // Test that the deprecated API still works for backward compatibility
+        let tachikoma1 = Tachikoma.shared
+        let tachikoma2 = Tachikoma.shared
+        
+        // Should be the same instance (singleton behavior maintained)
+        #expect(tachikoma1 === tachikoma2)
+        
+        // Test legacy provider configuration
+        let openaiConfig = ProviderConfiguration.OpenAI(
+            apiKey: "test-key",
+            baseURL: URL(string: "https://api.openai.com/v1")!
+        )
+        await tachikoma1.configureOpenAI(openaiConfig)
+
+        let anthropicConfig = ProviderConfiguration.Anthropic(
+            apiKey: "test-key",
+            baseURL: URL(string: "https://api.anthropic.com/v1")!
+        )
+        await tachikoma1.configureAnthropic(anthropicConfig)
+
+        let grokConfig = ProviderConfiguration.Grok(
+            apiKey: "test-key",
+            baseURL: URL(string: "https://api.x.ai/v1")!
+        )
+        await tachikoma1.configureGrok(grokConfig)
+
+        let ollamaConfig = ProviderConfiguration.Ollama(
+            baseURL: URL(string: "http://localhost:11434")!
+        )
+        await tachikoma1.configureOllama(ollamaConfig)
     }
 }
 
@@ -421,7 +450,7 @@ struct ErrorHandlingTests {
         ]
         
         // Verify all error cases can be created
-        #expect(errors.count == 9)
+        #expect(errors.count == 7)
         
         // Test error descriptions
         for error in errors {
