@@ -5,8 +5,8 @@ import Foundation
 /// Unified message enum that provides type-safe message handling
 public enum LegacyMessage: Codable, Sendable {
     case system(id: String? = nil, content: String)
-    case user(id: String? = nil, content: LegacyLegacyMessageContent)
-    case assistant(id: String? = nil, content: [LegacyLegacyAssistantContent], status: LegacyLegacyMessageStatus = .completed)
+    case user(id: String? = nil, content: LegacyMessageContent)
+    case assistant(id: String? = nil, content: [LegacyAssistantContent], status: LegacyMessageStatus = .completed)
     case tool(id: String? = nil, toolCallId: String, content: String)
     case reasoning(id: String? = nil, content: String)
 

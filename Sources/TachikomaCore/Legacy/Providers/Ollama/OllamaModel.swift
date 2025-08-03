@@ -2,7 +2,7 @@ import Foundation
 
 /// Ollama model implementation conforming to ModelInterface
 @available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
-public final class OllamaModel: ModelInterface, Sendable {
+public final class OllamaModel: LegacyModelInterface, Sendable {
     private let modelName: String
     private let baseURL: URL
     private let session: URLSession
@@ -31,7 +31,7 @@ public final class OllamaModel: ModelInterface, Sendable {
         "local-ollama"
     }
 
-    public func getResponse(request: ModelRequest) async throws -> ModelResponse {
+    public func getResponse(request: LegacyModelRequest) async throws -> LegacyModelResponse {
         let ollamaRequest = try convertToOllamaRequest(request, stream: false)
         let urlRequest = try createURLRequest(endpoint: "api/chat", body: ollamaRequest)
 
@@ -49,7 +49,7 @@ public final class OllamaModel: ModelInterface, Sendable {
         return try convertFromOllamaResponse(ollamaResponse)
     }
 
-    public func getStreamedResponse(request: ModelRequest) async throws -> AsyncThrowingStream<StreamEvent, any Error> {
+    public func getStreamedResponse(request: LegacyModelRequest) async throws -> AsyncThrowingStream<StreamEvent, any Error> {
         let ollamaRequest = try convertToOllamaRequest(request, stream: true)
         let urlRequest = try createURLRequest(endpoint: "api/chat", body: ollamaRequest)
 
@@ -122,7 +122,7 @@ public final class OllamaModel: ModelInterface, Sendable {
         return request
     }
 
-    private func convertToOllamaRequest(_ request: ModelRequest, stream: Bool) throws -> OllamaChatRequest {
+    private func convertToOllamaRequest(_ request: LegacyModelRequest, stream: Bool) throws -> OllamaChatRequest {
         // Convert messages
         let messages = try request.messages.compactMap { message -> OllamaMessage? in
             switch message {
@@ -170,7 +170,7 @@ public final class OllamaModel: ModelInterface, Sendable {
         )
     }
 
-    private func convertUserMessage(_ content: MessageContent) throws -> OllamaMessage {
+    private func convertUserMessage(_ content: LegacyMessageContent) throws -> OllamaMessage {
         switch content {
         case let .text(text):
             return OllamaMessage(role: "user", content: text, images: nil)
@@ -222,7 +222,7 @@ public final class OllamaModel: ModelInterface, Sendable {
         }
     }
 
-    private func convertAssistantMessage(_ content: [AssistantContent]) -> OllamaMessage {
+    private func convertAssistantMessage(_ content: [LegacyAssistantContent]) -> OllamaMessage {
         var text = ""
 
         for item in content {
@@ -240,7 +240,7 @@ public final class OllamaModel: ModelInterface, Sendable {
         return OllamaMessage(role: "assistant", content: text, images: nil)
     }
 
-    private func convertToolParameters(_ params: ToolParameters) -> [String: Any] {
+    private func convertToolParameters(_ params: LegacyToolParameters) -> [String: Any] {
         var properties: [String: Any] = [:]
 
         for (key, schema) in params.properties {
@@ -254,7 +254,7 @@ public final class OllamaModel: ModelInterface, Sendable {
         ]
     }
 
-    private func convertParameterSchema(_ schema: ParameterSchema) -> [String: Any] {
+    private func convertParameterSchema(_ schema: LegacyParameterSchema) -> [String: Any] {
         var result: [String: Any] = [
             "type": schema.type.rawValue,
         ]
@@ -270,8 +270,8 @@ public final class OllamaModel: ModelInterface, Sendable {
         return result
     }
 
-    private func convertFromOllamaResponse(_ response: OllamaChatResponse) throws -> ModelResponse {
-        let content: [AssistantContent] = [.outputText(response.message.content)]
+    private func convertFromOllamaResponse(_ response: OllamaChatResponse) throws -> LegacyModelResponse {
+        let content: [LegacyAssistantContent] = [.outputText(response.message.content)]
 
         // Ollama doesn't provide detailed usage info in the same format
         let usage = Usage(
@@ -282,7 +282,7 @@ public final class OllamaModel: ModelInterface, Sendable {
             completionTokensDetails: nil
         )
 
-        return ModelResponse(
+        return LegacyModelResponse(
             id: UUID().uuidString, // Ollama doesn't provide response IDs
             model: response.model,
             content: content,

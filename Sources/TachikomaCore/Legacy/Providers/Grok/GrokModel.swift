@@ -2,7 +2,7 @@ import Foundation
 
 /// Grok model implementation using OpenAI-compatible Chat Completions API
 @available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
-public final class GrokModel: ModelInterface, Sendable {
+public final class GrokModel: LegacyModelInterface, Sendable {
     private let apiKey: String
     private let modelName: String
     private let baseURL: URL
@@ -38,7 +38,7 @@ public final class GrokModel: ModelInterface, Sendable {
         return "\(start)...\(end)"
     }
 
-    public func getResponse(request: ModelRequest) async throws -> ModelResponse {
+    public func getResponse(request: LegacyModelRequest) async throws -> LegacyModelResponse {
         let grokRequest = try convertToGrokRequest(request, stream: false)
         let urlRequest = try createURLRequest(endpoint: "chat/completions", body: grokRequest)
 
@@ -56,7 +56,7 @@ public final class GrokModel: ModelInterface, Sendable {
         return try convertFromGrokResponse(chatResponse)
     }
 
-    public func getStreamedResponse(request: ModelRequest) async throws -> AsyncThrowingStream<StreamEvent, any Error> {
+    public func getStreamedResponse(request: LegacyModelRequest) async throws -> AsyncThrowingStream<StreamEvent, any Error> {
         let grokRequest = try convertToGrokRequest(request, stream: true)
         let urlRequest = try createURLRequest(endpoint: "chat/completions", body: grokRequest)
 
@@ -145,7 +145,7 @@ public final class GrokModel: ModelInterface, Sendable {
         return request
     }
 
-    private func convertToGrokRequest(_ request: ModelRequest, stream: Bool) throws -> GrokChatCompletionRequest {
+    private func convertToGrokRequest(_ request: LegacyModelRequest, stream: Bool) throws -> GrokChatCompletionRequest {
         // Convert messages to OpenAI-compatible format
         let messages = try request.messages.map { message -> GrokMessage in
             switch message {
@@ -210,7 +210,7 @@ public final class GrokModel: ModelInterface, Sendable {
         )
     }
 
-    private func convertUserMessageContent(_ content: MessageContent) throws -> GrokMessage {
+    private func convertUserMessageContent(_ content: LegacyMessageContent) throws -> GrokMessage {
         switch content {
         case let .text(text):
             return GrokMessage(role: "user", content: .string(text), toolCalls: nil, toolCallId: nil)
@@ -290,7 +290,7 @@ public final class GrokModel: ModelInterface, Sendable {
         }
     }
 
-    private func convertAssistantMessageContent(_ contentArray: [AssistantContent]) throws -> GrokMessage {
+    private func convertAssistantMessageContent(_ contentArray: [LegacyAssistantContent]) throws -> GrokMessage {
         var textContent = ""
         var toolCalls: [GrokToolCall] = []
 
@@ -327,7 +327,7 @@ public final class GrokModel: ModelInterface, Sendable {
         return GrokMessage(role: "assistant", content: .string(textContent), toolCalls: nil, toolCallId: nil)
     }
 
-    private func convertToolParameters(_ params: ToolParameters) -> GrokTool.Parameters {
+    private func convertToolParameters(_ params: LegacyToolParameters) -> GrokTool.Parameters {
         let (type, properties, required) = params.toGrokParameters()
         return GrokTool.Parameters(
             type: type,
@@ -354,12 +354,12 @@ public final class GrokModel: ModelInterface, Sendable {
         }
     }
 
-    private func convertFromGrokResponse(_ response: GrokChatCompletionResponse) throws -> ModelResponse {
+    private func convertFromGrokResponse(_ response: GrokChatCompletionResponse) throws -> LegacyModelResponse {
         guard let choice = response.choices.first else {
             throw TachikomaError.apiError(message: "No choices in response")
         }
 
-        var content: [AssistantContent] = []
+        var content: [LegacyAssistantContent] = []
 
         // Add text content if present
         if let textContent = choice.message.content {
@@ -390,7 +390,7 @@ public final class GrokModel: ModelInterface, Sendable {
             )
         }
 
-        return ModelResponse(
+        return LegacyModelResponse(
             id: response.id,
             model: response.model,
             content: content,

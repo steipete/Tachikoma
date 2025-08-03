@@ -62,7 +62,7 @@ public struct AgentSession: Sendable, Codable {
     public let modelName: String
 
     /// Complete conversation history
-    public let messages: [Message]
+    public let messages: [LegacyMessage]
 
     /// Session metadata
     public let metadata: SessionMetadata
@@ -76,7 +76,7 @@ public struct AgentSession: Sendable, Codable {
     public init(
         id: String,
         modelName: String,
-        messages: [Message],
+        messages: [LegacyMessage],
         metadata: SessionMetadata,
         createdAt: Date,
         updatedAt: Date
@@ -256,7 +256,7 @@ public final class AgentSessionManager: @unchecked Sendable {
         Date().timeIntervalSince(lastAccessed) > Self.maxSessionAge
     }
 
-    private func generateSessionSummary(from messages: [Message]) -> String? {
+    private func generateSessionSummary(from messages: [LegacyMessage]) -> String? {
         // Find the first user message to use as summary
         for message in messages {
             if case let .user(_, content) = message {

@@ -2,7 +2,7 @@ import Foundation
 
 /// Anthropic model implementation conforming to ModelInterface
 @available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
-public final class AnthropicModel: ModelInterface, Sendable {
+public final class AnthropicModel: LegacyModelInterface, Sendable {
     private let apiKey: String
     private let baseURL: URL
     private let session: URLSession
@@ -67,7 +67,7 @@ public final class AnthropicModel: ModelInterface, Sendable {
         return "\(start)...\(end)"
     }
 
-    public func getResponse(request: ModelRequest) async throws -> ModelResponse {
+    public func getResponse(request: LegacyModelRequest) async throws -> LegacyModelResponse {
         let anthropicRequest = try convertToAnthropicRequest(request, stream: false)
         let urlRequest = try createURLRequest(endpoint: "messages", body: anthropicRequest)
 
@@ -89,7 +89,7 @@ public final class AnthropicModel: ModelInterface, Sendable {
         }
     }
 
-    public func getStreamedResponse(request: ModelRequest) async throws -> AsyncThrowingStream<StreamEvent, any Error> {
+    public func getStreamedResponse(request: LegacyModelRequest) async throws -> AsyncThrowingStream<StreamEvent, any Error> {
         let anthropicRequest = try convertToAnthropicRequest(request, stream: true)
         let urlRequest = try createURLRequest(endpoint: "messages", body: anthropicRequest)
 
@@ -301,7 +301,7 @@ public final class AnthropicModel: ModelInterface, Sendable {
         return request
     }
 
-    private func convertToAnthropicRequest(_ request: ModelRequest, stream: Bool) throws -> AnthropicRequest {
+    private func convertToAnthropicRequest(_ request: LegacyModelRequest, stream: Bool) throws -> AnthropicRequest {
         var anthropicMessages: [AnthropicMessage] = []
         var systemPrompt: String? = nil
 
@@ -387,7 +387,7 @@ public final class AnthropicModel: ModelInterface, Sendable {
         )
     }
 
-    private func convertUserMessage(_ content: MessageContent) throws -> AnthropicMessage {
+    private func convertUserMessage(_ content: LegacyMessageContent) throws -> AnthropicMessage {
         switch content {
         case let .text(text):
             return AnthropicMessage(role: .user, content: .string(text))
@@ -441,8 +441,8 @@ public final class AnthropicModel: ModelInterface, Sendable {
     }
 
     private func convertAssistantMessage(
-        _ content: [AssistantContent],
-        status _: MessageStatus
+        _ content: [LegacyAssistantContent],
+        status _: LegacyMessageStatus
     ) throws -> AnthropicMessage {
         var blocks: [AnthropicContentBlock] = []
 
@@ -476,7 +476,7 @@ public final class AnthropicModel: ModelInterface, Sendable {
         return AnthropicMessage(role: .assistant, content: .array(blocks))
     }
 
-    private func convertToolParameters(_ params: ToolParameters) -> AnthropicJSONSchema {
+    private func convertToolParameters(_ params: LegacyToolParameters) -> AnthropicJSONSchema {
         var properties: [String: AnthropicPropertySchema] = [:]
 
         for (key, schema) in params.properties {
@@ -490,7 +490,7 @@ public final class AnthropicModel: ModelInterface, Sendable {
         )
     }
 
-    private func convertParameterSchema(_ schema: ParameterSchema) -> AnthropicPropertySchema {
+    private func convertParameterSchema(_ schema: LegacyParameterSchema) -> AnthropicPropertySchema {
         // Handle nested items for arrays
         let items: AnthropicPropertySchema? = if schema.type == .array, let schemaItems = schema.items {
             convertParameterSchema(schemaItems.value)
@@ -535,8 +535,8 @@ public final class AnthropicModel: ModelInterface, Sendable {
         }
     }
 
-    private func convertFromAnthropicResponse(_ response: AnthropicResponse) throws -> ModelResponse {
-        var content: [AssistantContent] = []
+    private func convertFromAnthropicResponse(_ response: AnthropicResponse) throws -> LegacyModelResponse {
+        var content: [LegacyAssistantContent] = []
 
         // Convert content blocks
         for block in response.content {
@@ -584,7 +584,7 @@ public final class AnthropicModel: ModelInterface, Sendable {
             completionTokensDetails: nil
         )
 
-        return ModelResponse(
+        return LegacyModelResponse(
             id: response.id,
             model: response.model,
             content: content,

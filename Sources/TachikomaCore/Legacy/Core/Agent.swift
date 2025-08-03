@@ -71,7 +71,7 @@ public final class PeekabooAgent<Context>: @unchecked Sendable {
         let toolDefinitions = tools.map { $0.toToolDefinition() }
 
         // Create the request
-        let request = ModelRequest(
+        let request = LegacyModelRequest(
             messages: [
                 .system(content: instructions),
                 .user(content: .text(input)),
@@ -101,7 +101,7 @@ public final class PeekabooAgent<Context>: @unchecked Sendable {
                     ))
 
                     do {
-                        let toolInput = try ToolInput(jsonString: toolCall.function.arguments)
+                        let toolInput = try LegacyToolInput(jsonString: toolCall.function.arguments)
                         let result = try await tool.execute(toolInput, context)
 
                         await eventDelegate?.agentDidEmitEvent(.toolCallCompleted(

@@ -7,7 +7,7 @@ public struct AgentExecutionResult: Sendable {
     public let content: String
 
     /// Complete conversation messages including tool calls and responses
-    public let messages: [Message]
+    public let messages: [LegacyMessage]
 
     /// Session identifier for tracking conversation state
     public let sessionId: String?
@@ -23,7 +23,7 @@ public struct AgentExecutionResult: Sendable {
 
     public init(
         content: String,
-        messages: [Message] = [],
+        messages: [LegacyMessage] = [],
         sessionId: String? = nil,
         usage: Usage? = nil,
         toolCalls: [ToolCallItem] = [],

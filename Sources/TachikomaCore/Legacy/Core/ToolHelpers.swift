@@ -5,13 +5,13 @@ import Foundation
 public func createTool<Context>(
     name: String,
     description: String,
-    parameters: ToolParameters? = nil,
-    execute: @escaping (ToolInput, Context) async throws -> ToolOutput
-) -> Tool<Context> {
-    return Tool<Context>(
+    parameters: LegacyToolParameters? = nil,
+    execute: @escaping (LegacyToolInput, Context) async throws -> LegacyToolOutput
+) -> LegacyTool<Context> {
+    return LegacyTool<Context>(
         name: name,
         description: description,
-        parameters: parameters ?? ToolParameters.object(properties: [:], required: []),
+        parameters: parameters ?? LegacyToolParameters.object(properties: [:], required: []),
         execute: execute
     )
 }
@@ -21,14 +21,14 @@ public func createTool<Context>(
 public func createSimpleTool<Context>(
     name: String,
     description: String,
-    parameters: [String: ParameterSchema] = [:],
+    parameters: [String: LegacyParameterSchema] = [:],
     required: [String] = [],
-    execute: @escaping (ToolInput, Context) async throws -> ToolOutput
-) -> Tool<Context> {
+    execute: @escaping (LegacyToolInput, Context) async throws -> LegacyToolOutput
+) -> LegacyTool<Context> {
     return createTool(
         name: name,
         description: description,
-        parameters: ToolParameters.object(properties: parameters, required: required),
+        parameters: LegacyToolParameters.object(properties: parameters, required: required),
         execute: execute
     )
 }
@@ -39,8 +39,8 @@ public func stringParam(
     description: String,
     enumValues _: [String]? = nil,
     pattern: String? = nil
-) -> ParameterSchema {
-    ParameterSchema.string(description: description, pattern: pattern)
+) -> LegacyParameterSchema {
+    LegacyParameterSchema.string(description: description, pattern: pattern)
 }
 
 /// Create a number parameter schema
@@ -49,8 +49,8 @@ public func numberParam(
     description: String,
     minimum: Double? = nil,
     maximum: Double? = nil
-) -> ParameterSchema {
-    ParameterSchema.number(description: description, minimum: minimum, maximum: maximum)
+) -> LegacyParameterSchema {
+    LegacyParameterSchema.number(description: description, minimum: minimum, maximum: maximum)
 }
 
 /// Create an integer parameter schema
@@ -59,33 +59,33 @@ public func integerParam(
     description: String,
     minimum: Int? = nil,
     maximum: Int? = nil
-) -> ParameterSchema {
-    ParameterSchema.integer(description: description, minimum: minimum?.double, maximum: maximum?.double)
+) -> LegacyParameterSchema {
+    LegacyParameterSchema.integer(description: description, minimum: minimum?.double, maximum: maximum?.double)
 }
 
 /// Create a boolean parameter schema
 @available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
-public func boolParam(description: String) -> ParameterSchema {
-    ParameterSchema.boolean(description: description)
+public func boolParam(description: String) -> LegacyParameterSchema {
+    LegacyParameterSchema.boolean(description: description)
 }
 
 /// Create an array parameter schema
 @available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
 public func arrayParam(
     description: String,
-    items: ParameterSchema
-) -> ParameterSchema {
-    ParameterSchema.array(of: items, description: description)
+    items: LegacyParameterSchema
+) -> LegacyParameterSchema {
+    LegacyParameterSchema.array(of: items, description: description)
 }
 
 /// Create an object parameter schema
 @available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
 public func objectParam(
     description: String,
-    properties: [String: ParameterSchema],
+    properties: [String: LegacyParameterSchema],
     required _: [String] = []
-) -> ParameterSchema {
-    ParameterSchema.object(properties: properties, description: description)
+) -> LegacyParameterSchema {
+    LegacyParameterSchema.object(properties: properties, description: description)
 }
 
 // MARK: - Type Extensions

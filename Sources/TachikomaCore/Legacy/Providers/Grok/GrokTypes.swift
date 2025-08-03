@@ -316,8 +316,8 @@ struct GrokPropertySchema: Codable, Sendable {
         self.required = required
     }
 
-    /// Create from a ParameterSchema
-    init(from schema: ParameterSchema) {
+    /// Create from a LegacyParameterSchema
+    init(from schema: LegacyParameterSchema) {
         type = schema.type.rawValue
         description = schema.description
         self.enum = schema.enumValues
@@ -332,8 +332,8 @@ struct GrokPropertySchema: Codable, Sendable {
 
 // MARK: - Extensions
 
-/// Helper to convert ToolParameters to Grok-compatible structure
-extension ToolParameters {
+/// Helper to convert LegacyToolParameters to Grok-compatible structure
+extension LegacyToolParameters {
     func toGrokParameters() -> (type: String, properties: [String: GrokPropertySchema], required: [String]) {
         var grokProperties: [String: GrokPropertySchema] = [:]
 

@@ -12,7 +12,7 @@ public struct LegacyTool<Context> {
     public let description: String
 
     /// Parameters the tool accepts
-    public let parameters: LegacyLegacyToolParameters
+    public let parameters: LegacyToolParameters
 
     /// Whether to use strict parameter validation
     public let strict: Bool
@@ -70,13 +70,13 @@ public enum LegacyToolType: String, Codable, Sendable {
 public struct LegacyFunctionDefinition: Codable, Sendable {
     public let name: String
     public let description: String
-    public let parameters: LegacyLegacyToolParameters
+    public let parameters: LegacyToolParameters
     public let strict: Bool?
 
     public init(
         name: String,
         description: String,
-        parameters: LegacyLegacyToolParameters,
+        parameters: LegacyToolParameters,
         strict: Bool? = nil
     ) {
         self.name = name
@@ -89,7 +89,7 @@ public struct LegacyFunctionDefinition: Codable, Sendable {
 // MARK: - Tool Parameters
 
 /// Parameters schema for a tool
-public struct LegacyLegacyToolParameters: Codable, Sendable {
+public struct LegacyToolParameters: Codable, Sendable {
     public let type: String
     public let properties: [String: LegacyParameterSchema]
     public let required: [String]
@@ -748,7 +748,7 @@ public final class Box<T: Codable & Sendable>: Codable, Sendable {
 
 /// Builder pattern for creating tools
 @available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
-public struct LegacyLegacyToolBuilder<Context> {
+public struct LegacyToolBuilder<Context> {
     private var name: String = ""
     private var description: String = ""
     private var parameters: LegacyToolParameters = .init()

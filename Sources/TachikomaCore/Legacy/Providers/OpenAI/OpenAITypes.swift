@@ -100,11 +100,11 @@ public struct OpenAIResponsesRequest: Codable, Sendable {
 @available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
 public struct OpenAIMessage: Codable, Sendable {
     public let role: String
-    public let content: MessageContent?
+    public let content: LegacyMessageContent?
     public let toolCalls: [OpenAIToolCall]?
     public let toolCallId: String?
 
-    public enum MessageContent: Codable, Sendable {
+    public enum LegacyMessageContent: Codable, Sendable {
         case string(String)
         case array([OpenAIMessageContentPart])
 
@@ -115,7 +115,7 @@ public struct OpenAIMessage: Codable, Sendable {
             } else if let arrayValue = try? container.decode([OpenAIMessageContentPart].self) {
                 self = .array(arrayValue)
             } else {
-                throw DecodingError.dataCorruptedError(in: container, debugDescription: "Unable to decode message content")
+                throw DecodingError.dataCorruptedError(in: container, debugDescription: "Unable to decode legacy message content")
             }
         }
 
@@ -136,7 +136,7 @@ public struct OpenAIMessage: Codable, Sendable {
         case toolCallId = "tool_call_id"
     }
 
-    public init(role: String, content: MessageContent? = nil, toolCalls: [OpenAIToolCall]? = nil, toolCallId: String? = nil) {
+    public init(role: String, content: LegacyMessageContent? = nil, toolCalls: [OpenAIToolCall]? = nil, toolCallId: String? = nil) {
         self.role = role
         self.content = content
         self.toolCalls = toolCalls

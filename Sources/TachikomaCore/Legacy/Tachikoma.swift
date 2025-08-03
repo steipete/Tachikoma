@@ -56,7 +56,7 @@ import Foundation
 @available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
 public final class AIModelProvider: Sendable {
     /// Internal storage of model instances, keyed by model identifier
-    private let models: [String: any ModelInterface]
+    private let models: [String: any LegacyModelInterface]
     
     /**
      * Initialize a new model provider with the specified models.
@@ -72,7 +72,7 @@ public final class AIModelProvider: Sendable {
      * ])
      * ```
      */
-    public init(models: [String: any ModelInterface] = [:]) {
+    public init(models: [String: any LegacyModelInterface] = [:]) {
         self.models = models
     }
     
@@ -95,7 +95,7 @@ public final class AIModelProvider: Sendable {
      *
      * - Important: This method is synchronous and thread-safe
      */
-    public func getModel(_ modelName: String) throws -> any ModelInterface {
+    public func getModel(_ modelName: String) throws -> any LegacyModelInterface {
         guard let model = models[modelName] else {
             throw TachikomaError.modelNotFound(modelName)
         }
@@ -142,7 +142,7 @@ public final class AIModelProvider: Sendable {
      *
      * - Note: Returns a new instance, original provider is unchanged (immutable design)
      */
-    public func withModel(_ modelName: String, model: any ModelInterface) -> AIModelProvider {
+    public func withModel(_ modelName: String, model: any LegacyModelInterface) -> AIModelProvider {
         var newModels = self.models
         newModels[modelName] = model
         return AIModelProvider(models: newModels)
@@ -169,7 +169,7 @@ public final class AIModelProvider: Sendable {
      *
      * - Note: If a model identifier already exists, it will be replaced with the new instance
      */
-    public func withModels(_ models: [String: any ModelInterface]) -> AIModelProvider {
+    public func withModels(_ models: [String: any LegacyModelInterface]) -> AIModelProvider {
         var newModels = self.models
         for (name, model) in models {
             newModels[name] = model
@@ -209,7 +209,7 @@ public final class AIModelProvider: Sendable {
  * ```
  *
  * - Important: API keys should be stored securely and never hardcoded in production
- * - Note: All methods return instances conforming to `ModelInterface`
+ * - Note: All methods return instances conforming to `LegacyModelInterface`
  * - Since: Tachikoma 3.0.0
  */
 @available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
@@ -238,7 +238,7 @@ public struct AIModelFactory {
      *
      * - Note: Supports both Chat Completions and Responses APIs automatically
      */
-    public static func openAI(apiKey: String, modelName: String, baseURL: URL? = nil, organizationId: String? = nil) -> any ModelInterface {
+    public static func openAI(apiKey: String, modelName: String, baseURL: URL? = nil, organizationId: String? = nil) -> any LegacyModelInterface {
         return OpenAIModel(
             apiKey: apiKey,
             baseURL: baseURL ?? URL(string: "https://api.openai.com/v1")!,
@@ -269,7 +269,7 @@ public struct AIModelFactory {
      *
      * - Note: Supports extended thinking modes (add "-thinking" suffix to model name)
      */
-    public static func anthropic(apiKey: String, modelName: String, baseURL: URL? = nil) -> any ModelInterface {
+    public static func anthropic(apiKey: String, modelName: String, baseURL: URL? = nil) -> any LegacyModelInterface {
         return AnthropicModel(
             apiKey: apiKey,
             baseURL: baseURL ?? URL(string: "https://api.anthropic.com/v1")!,
@@ -299,7 +299,7 @@ public struct AIModelFactory {
      *
      * - Note: Grok-4 models have parameter restrictions (no frequency/presence penalty)
      */
-    public static func grok(apiKey: String, modelName: String, baseURL: URL? = nil) -> any ModelInterface {
+    public static func grok(apiKey: String, modelName: String, baseURL: URL? = nil) -> any LegacyModelInterface {
         return GrokModel(
             apiKey: apiKey,
             modelName: modelName,
@@ -333,7 +333,7 @@ public struct AIModelFactory {
      * - Important: Ensure the model is pulled locally before use (`ollama pull llama3.3`)
      * - Note: No API key required, but Ollama daemon must be running
      */
-    public static func ollama(modelName: String, baseURL: URL? = nil) -> any ModelInterface {
+    public static func ollama(modelName: String, baseURL: URL? = nil) -> any LegacyModelInterface {
         return OllamaModel(
             modelName: modelName,
             baseURL: baseURL ?? URL(string: "http://localhost:11434")!
@@ -417,7 +417,7 @@ public struct AIConfiguration {
      * - Important: This method is safe to call even with no credentials configured
      */
     public static func fromEnvironment() throws -> AIModelProvider {
-        var models: [String: any ModelInterface] = [:]
+        var models: [String: any LegacyModelInterface] = [:]
         
         // OpenAI models
         if let apiKey = getOpenAIAPIKey() {
@@ -590,9 +590,9 @@ public final class Tachikoma: @unchecked Sendable {
     
     /// Get a model instance for the specified model name
     /// - Parameter modelName: The model identifier (e.g., "gpt-4.1", "claude-opus-4", "provider-id/model-name")
-    /// - Returns: A model instance conforming to ModelInterface
+    /// - Returns: A model instance conforming to LegacyModelInterface
     /// - Throws: TachikomaError if the model is not available or configuration is invalid
-    public func getModel(_ modelName: String) async throws -> any ModelInterface {
+    public func getModel(_ modelName: String) async throws -> any LegacyModelInterface {
         return try modelProvider.getModel(modelName)
     }
     
@@ -600,7 +600,7 @@ public final class Tachikoma: @unchecked Sendable {
     /// - Parameter configuration: OpenAI configuration
     public func configureOpenAI(_ configuration: ProviderConfiguration.OpenAI) async {
         // Update the model provider with new OpenAI models
-        var models: [String: any ModelInterface] = [:]
+        var models: [String: any LegacyModelInterface] = [:]
         let openAIModels = ["gpt-4o", "gpt-4o-mini", "gpt-4.1", "gpt-4.1-mini", "o3", "o3-mini", "o3-pro", "o4-mini"]
         
         for modelName in openAIModels {
@@ -618,7 +618,7 @@ public final class Tachikoma: @unchecked Sendable {
     /// Configure Anthropic provider with specific settings
     /// - Parameter configuration: Anthropic configuration
     public func configureAnthropic(_ configuration: ProviderConfiguration.Anthropic) async {
-        var models: [String: any ModelInterface] = [:]
+        var models: [String: any LegacyModelInterface] = [:]
         let anthropicModels = [
             "claude-opus-4-20250514", "claude-opus-4-20250514-thinking",
             "claude-sonnet-4-20250514", "claude-sonnet-4-20250514-thinking",
@@ -640,7 +640,7 @@ public final class Tachikoma: @unchecked Sendable {
     /// Configure Ollama provider with specific settings
     /// - Parameter configuration: Ollama configuration
     public func configureOllama(_ configuration: ProviderConfiguration.Ollama) async {
-        var models: [String: any ModelInterface] = [:]
+        var models: [String: any LegacyModelInterface] = [:]
         let ollamaModels = [
             "llama3.3", "llama3.3:latest", "llama3.2", "llama3.2:latest",
             "llava:latest", "llava", "bakllava:latest", "bakllava"
@@ -656,7 +656,7 @@ public final class Tachikoma: @unchecked Sendable {
     /// Configure Grok provider with specific settings
     /// - Parameter configuration: Grok configuration
     public func configureGrok(_ configuration: ProviderConfiguration.Grok) async {
-        var models: [String: any ModelInterface] = [:]
+        var models: [String: any LegacyModelInterface] = [:]
         let grokModels = [
             "grok-4", "grok-4-0709", "grok-4-latest",
             "grok-3", "grok-3-mini", "grok-2-1212", "grok-2-vision-1212"
@@ -696,7 +696,7 @@ public final class Tachikoma: @unchecked Sendable {
     ///   - factory: Factory closure that creates the model instance
     public func registerModel(
         name modelName: String,
-        factory: @escaping @Sendable () throws -> any ModelInterface
+        factory: @escaping @Sendable () throws -> any LegacyModelInterface
     ) async {
         do {
             let model = try factory()

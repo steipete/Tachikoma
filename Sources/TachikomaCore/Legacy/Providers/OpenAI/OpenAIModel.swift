@@ -43,7 +43,7 @@ public final class OpenAIModel: LegacyModelInterface, Sendable {
         return "\(start)...\(end)"
     }
 
-    public func getResponse(request: ModelRequest) async throws -> ModelResponse {
+    public func getResponse(request: LegacyModelRequest) async throws -> LegacyModelResponse {
         let openAIRequest = try convertToOpenAIRequest(request, stream: false)
         let endpoint = getEndpointForModel(request.settings.modelName)
         let urlRequest = try createURLRequest(endpoint: endpoint, body: openAIRequest)
@@ -66,7 +66,7 @@ public final class OpenAIModel: LegacyModelInterface, Sendable {
         }
     }
 
-    public func getStreamedResponse(request: ModelRequest) async throws -> AsyncThrowingStream<StreamEvent, any Error> {
+    public func getStreamedResponse(request: LegacyModelRequest) async throws -> AsyncThrowingStream<StreamEvent, any Error> {
         let openAIRequest = try convertToOpenAIRequest(request, stream: true)
         let endpoint = getEndpointForModel(request.settings.modelName)
         let urlRequest = try createURLRequest(endpoint: endpoint, body: openAIRequest)
@@ -164,7 +164,7 @@ public final class OpenAIModel: LegacyModelInterface, Sendable {
         return request
     }
 
-    private func convertToOpenAIRequest(_ request: ModelRequest, stream: Bool) throws -> any Encodable {
+    private func convertToOpenAIRequest(_ request: LegacyModelRequest, stream: Bool) throws -> any Encodable {
         let modelName = customModelName ?? request.settings.modelName
 
         if modelName.hasPrefix("o3") || modelName.hasPrefix("o4") {
@@ -174,7 +174,7 @@ public final class OpenAIModel: LegacyModelInterface, Sendable {
         }
     }
 
-    private func convertToChatRequest(_ request: ModelRequest, stream: Bool) throws -> OpenAIChatRequest {
+    private func convertToChatRequest(_ request: LegacyModelRequest, stream: Bool) throws -> OpenAIChatRequest {
         let messages = try request.messages.map { message -> OpenAIMessage in
             switch message {
             case let .system(_, content):
@@ -213,7 +213,7 @@ public final class OpenAIModel: LegacyModelInterface, Sendable {
         )
     }
 
-    private func convertToResponsesRequest(_ request: ModelRequest, stream: Bool) throws -> OpenAIResponsesRequest {
+    private func convertToResponsesRequest(_ request: LegacyModelRequest, stream: Bool) throws -> OpenAIResponsesRequest {
         let messages = try request.messages.compactMap { message -> OpenAIMessage? in
             switch message {
             case let .system(_, content):
@@ -262,16 +262,16 @@ public final class OpenAIModel: LegacyModelInterface, Sendable {
         case let .text(text):
             return OpenAIMessage(role: "user", content: .string(text))
         case let .image(imageContent):
-            var parts: [OpenAILegacyMessageContentPart] = []
+            var parts: [OpenAIMessageContentPart] = []
 
             if let url = imageContent.url {
-                parts.append(OpenAILegacyMessageContentPart(
+                parts.append(OpenAIMessageContentPart(
                     type: "image_url",
                     text: nil,
                     imageUrl: OpenAIImageUrl(url: url, detail: imageContent.detail?.rawValue)
                 ))
             } else if let base64 = imageContent.base64 {
-                parts.append(OpenAILegacyMessageContentPart(
+                parts.append(OpenAIMessageContentPart(
                     type: "image_url",
                     text: nil,
                     imageUrl: OpenAIImageUrl(url: "data:image/jpeg;base64,\(base64)", detail: imageContent.detail?.rawValue)
@@ -280,18 +280,18 @@ public final class OpenAIModel: LegacyModelInterface, Sendable {
 
             return OpenAIMessage(role: "user", content: .array(parts))
         case let .multimodal(parts):
-            let contentParts = parts.compactMap { part -> OpenAILegacyMessageContentPart? in
+            let contentParts = parts.compactMap { part -> OpenAIMessageContentPart? in
                 if let text = part.text {
-                    return OpenAILegacyMessageContentPart(type: "text", text: text, imageUrl: nil)
+                    return OpenAIMessageContentPart(type: "text", text: text, imageUrl: nil)
                 } else if let image = part.imageUrl {
                     if let url = image.url {
-                        return OpenAILegacyMessageContentPart(
+                        return OpenAIMessageContentPart(
                             type: "image_url",
                             text: nil,
                             imageUrl: OpenAIImageUrl(url: url, detail: image.detail?.rawValue)
                         )
                     } else if let base64 = image.base64 {
-                        return OpenAILegacyMessageContentPart(
+                        return OpenAIMessageContentPart(
                             type: "image_url",
                             text: nil,
                             imageUrl: OpenAIImageUrl(url: "data:image/jpeg;base64,\(base64)", detail: image.detail?.rawValue)
@@ -415,7 +415,7 @@ public final class OpenAIModel: LegacyModelInterface, Sendable {
         }
     }
 
-    private func convertFromOpenAIResponse(_ response: OpenAIResponse) throws -> ModelResponse {
+    private func convertFromOpenAIResponse(_ response: OpenAIResponse) throws -> LegacyModelResponse {
         guard let choice = response.choices.first else {
             throw TachikomaError.apiError(message: "No choices in OpenAI response")
         }
@@ -458,7 +458,7 @@ public final class OpenAIModel: LegacyModelInterface, Sendable {
             )
         }
 
-        return ModelResponse(
+        return LegacyModelResponse(
             id: response.id,
             model: response.model,
             content: content,
