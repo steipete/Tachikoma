@@ -4,7 +4,7 @@ import Foundation
 
 /// A tool that can be used by an agent to perform actions
 @available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
-public struct Tool<Context> {
+public struct LegacyTool<Context> {
     /// Unique name of the tool
     public let name: String
 
@@ -12,20 +12,20 @@ public struct Tool<Context> {
     public let description: String
 
     /// Parameters the tool accepts
-    public let parameters: ToolParameters
+    public let parameters: LegacyLegacyToolParameters
 
     /// Whether to use strict parameter validation
     public let strict: Bool
 
     /// The function to execute when the tool is called
-    public let execute: (ToolInput, Context) async throws -> ToolOutput
+    public let execute: (LegacyToolInput, Context) async throws -> LegacyToolOutput
 
     public init(
         name: String,
         description: String,
-        parameters: ToolParameters,
+        parameters: LegacyToolParameters,
         strict: Bool = true,
-        execute: @escaping (ToolInput, Context) async throws -> ToolOutput
+        execute: @escaping (LegacyToolInput, Context) async throws -> LegacyToolOutput
     ) {
         self.name = name
         self.description = description
@@ -35,10 +35,10 @@ public struct Tool<Context> {
     }
 
     /// Convert to a tool definition for the model
-    public func toToolDefinition() -> ToolDefinition {
-        ToolDefinition(
+    public func toToolDefinition() -> LegacyToolDefinition {
+        LegacyToolDefinition(
             type: .function,
-            function: FunctionDefinition(
+            function: LegacyFunctionDefinition(
                 name: name,
                 description: description,
                 parameters: parameters,
@@ -51,32 +51,32 @@ public struct Tool<Context> {
 // MARK: - Tool Definition Types
 
 /// Definition of a tool that can be sent to a model
-public struct ToolDefinition: Codable, Sendable {
-    public let type: ToolType
-    public let function: FunctionDefinition
+public struct LegacyToolDefinition: Codable, Sendable {
+    public let type: LegacyToolType
+    public let function: LegacyFunctionDefinition
 
-    public init(type: ToolType = .function, function: FunctionDefinition) {
+    public init(type: LegacyToolType = .function, function: LegacyFunctionDefinition) {
         self.type = type
         self.function = function
     }
 }
 
 /// Type of tool
-public enum ToolType: String, Codable, Sendable {
+public enum LegacyToolType: String, Codable, Sendable {
     case function
 }
 
 /// Function definition for a tool
-public struct FunctionDefinition: Codable, Sendable {
+public struct LegacyFunctionDefinition: Codable, Sendable {
     public let name: String
     public let description: String
-    public let parameters: ToolParameters
+    public let parameters: LegacyLegacyToolParameters
     public let strict: Bool?
 
     public init(
         name: String,
         description: String,
-        parameters: ToolParameters,
+        parameters: LegacyLegacyToolParameters,
         strict: Bool? = nil
     ) {
         self.name = name
@@ -89,15 +89,15 @@ public struct FunctionDefinition: Codable, Sendable {
 // MARK: - Tool Parameters
 
 /// Parameters schema for a tool
-public struct ToolParameters: Codable, Sendable {
+public struct LegacyLegacyToolParameters: Codable, Sendable {
     public let type: String
-    public let properties: [String: ParameterSchema]
+    public let properties: [String: LegacyParameterSchema]
     public let required: [String]
     public let additionalProperties: Bool
 
     public init(
         type: String = "object",
-        properties: [String: ParameterSchema] = [:],
+        properties: [String: LegacyParameterSchema] = [:],
         required: [String] = [],
         additionalProperties: Bool = false
     ) {
@@ -109,10 +109,10 @@ public struct ToolParameters: Codable, Sendable {
 
     /// Create parameters from a dictionary of property definitions
     public static func object(
-        properties: [String: ParameterSchema],
+        properties: [String: LegacyParameterSchema],
         required: [String] = []
-    ) -> ToolParameters {
-        ToolParameters(
+    ) -> LegacyToolParameters {
+        LegacyToolParameters(
             type: "object",
             properties: properties,
             required: required,
@@ -122,22 +122,22 @@ public struct ToolParameters: Codable, Sendable {
 }
 
 /// Schema for a single parameter
-public struct ParameterSchema: Codable, Sendable {
-    public let type: ParameterType
+public struct LegacyParameterSchema: Codable, Sendable {
+    public let type: LegacyParameterType
     public let description: String?
     public let enumValues: [String]?
-    public let items: Box<ParameterSchema>?
-    public let properties: [String: ParameterSchema]?
+    public let items: Box<LegacyParameterSchema>?
+    public let properties: [String: LegacyParameterSchema]?
     public let minimum: Double?
     public let maximum: Double?
     public let pattern: String?
 
     public init(
-        type: ParameterType,
+        type: LegacyParameterType,
         description: String? = nil,
         enumValues: [String]? = nil,
-        items: ParameterSchema? = nil,
-        properties: [String: ParameterSchema]? = nil,
+        items: LegacyParameterSchema? = nil,
+        properties: [String: LegacyParameterSchema]? = nil,
         minimum: Double? = nil,
         maximum: Double? = nil,
         pattern: String? = nil
@@ -153,40 +153,40 @@ public struct ParameterSchema: Codable, Sendable {
     }
 
     // Convenience initializers
-    public static func string(description: String? = nil, pattern: String? = nil) -> ParameterSchema {
-        ParameterSchema(type: .string, description: description, pattern: pattern)
+    public static func string(description: String? = nil, pattern: String? = nil) -> LegacyParameterSchema {
+        LegacyParameterSchema(type: .string, description: description, pattern: pattern)
     }
 
     public static func number(
         description: String? = nil,
         minimum: Double? = nil,
         maximum: Double? = nil
-    ) -> ParameterSchema {
-        ParameterSchema(type: .number, description: description, minimum: minimum, maximum: maximum)
+    ) -> LegacyParameterSchema {
+        LegacyParameterSchema(type: .number, description: description, minimum: minimum, maximum: maximum)
     }
 
     public static func integer(
         description: String? = nil,
         minimum: Double? = nil,
         maximum: Double? = nil
-    ) -> ParameterSchema {
-        ParameterSchema(type: .integer, description: description, minimum: minimum, maximum: maximum)
+    ) -> LegacyParameterSchema {
+        LegacyParameterSchema(type: .integer, description: description, minimum: minimum, maximum: maximum)
     }
 
-    public static func boolean(description: String? = nil) -> ParameterSchema {
-        ParameterSchema(type: .boolean, description: description)
+    public static func boolean(description: String? = nil) -> LegacyParameterSchema {
+        LegacyParameterSchema(type: .boolean, description: description)
     }
 
-    public static func array(of items: ParameterSchema, description: String? = nil) -> ParameterSchema {
-        ParameterSchema(type: .array, description: description, items: items)
+    public static func array(of items: LegacyParameterSchema, description: String? = nil) -> LegacyParameterSchema {
+        LegacyParameterSchema(type: .array, description: description, items: items)
     }
 
-    public static func object(properties: [String: ParameterSchema], description: String? = nil) -> ParameterSchema {
-        ParameterSchema(type: .object, description: description, properties: properties)
+    public static func object(properties: [String: LegacyParameterSchema], description: String? = nil) -> LegacyParameterSchema {
+        LegacyParameterSchema(type: .object, description: description, properties: properties)
     }
 
-    public static func enumeration(_ values: [String], description: String? = nil) -> ParameterSchema {
-        ParameterSchema(type: .string, description: description, enumValues: values)
+    public static func enumeration(_ values: [String], description: String? = nil) -> LegacyParameterSchema {
+        LegacyParameterSchema(type: .string, description: description, enumValues: values)
     }
 
     // Custom coding keys
@@ -199,7 +199,7 @@ public struct ParameterSchema: Codable, Sendable {
 }
 
 /// Parameter types
-public enum ParameterType: String, Codable, Sendable {
+public enum LegacyParameterType: String, Codable, Sendable {
     case string
     case number
     case integer
@@ -212,7 +212,7 @@ public enum ParameterType: String, Codable, Sendable {
 // MARK: - Tool Input/Output
 
 /// Input provided to a tool
-public enum ToolInput {
+public enum LegacyToolInput {
     case string(String)
     case dictionary([String: Any])
     case array([Any])
@@ -227,7 +227,7 @@ public enum ToolInput {
         }
 
         guard let data = jsonString.data(using: .utf8) else {
-            throw ToolError.invalidInput("Invalid JSON string")
+            throw LegacyToolError.invalidInput("Invalid JSON string")
         }
 
         let parsed = try JSONSerialization.jsonObject(with: data)
@@ -281,9 +281,9 @@ public enum ToolInput {
     }
 }
 
-// MARK: - ToolInput Convenience Methods
+// MARK: - LegacyToolInput Convenience Methods
 
-public extension ToolInput {
+public extension LegacyToolInput {
     /// Dictionary access for parameter extraction
     var arguments: [String: Any] {
         switch self {
@@ -301,14 +301,14 @@ public extension ToolInput {
     /// Extract string value with key
     func stringValue(_ key: String) throws -> String {
         guard let value = arguments[key] else {
-            throw ToolError.invalidInput("Missing required parameter: \(key)")
+            throw LegacyToolError.invalidInput("Missing required parameter: \(key)")
         }
 
         if let stringValue = value as? String {
             return stringValue
         }
 
-        throw ToolError.invalidInput("Parameter '\(key)' must be a string")
+        throw LegacyToolError.invalidInput("Parameter '\(key)' must be a string")
     }
 
     /// Extract optional string value with key and default
@@ -323,7 +323,7 @@ public extension ToolInput {
     /// Extract integer value with key
     func intValue(_ key: String) throws -> Int {
         guard let value = arguments[key] else {
-            throw ToolError.invalidInput("Missing required parameter: \(key)")
+            throw LegacyToolError.invalidInput("Missing required parameter: \(key)")
         }
 
         if let intValue = value as? Int {
@@ -338,7 +338,7 @@ public extension ToolInput {
             return intValue
         }
 
-        throw ToolError.invalidInput("Parameter '\(key)' must be an integer")
+        throw LegacyToolError.invalidInput("Parameter '\(key)' must be an integer")
     }
 
     /// Extract optional integer value with key and default
@@ -365,7 +365,7 @@ public extension ToolInput {
     /// Extract boolean value with key
     func boolValue(_ key: String) throws -> Bool {
         guard let value = arguments[key] else {
-            throw ToolError.invalidInput("Missing required parameter: \(key)")
+            throw LegacyToolError.invalidInput("Missing required parameter: \(key)")
         }
 
         if let boolValue = value as? Bool {
@@ -380,7 +380,7 @@ public extension ToolInput {
             return intValue != 0
         }
 
-        throw ToolError.invalidInput("Parameter '\(key)' must be a boolean")
+        throw LegacyToolError.invalidInput("Parameter '\(key)' must be a boolean")
     }
 
     /// Extract optional boolean value with key and default
@@ -407,7 +407,7 @@ public extension ToolInput {
     /// Extract double value with key
     func doubleValue(_ key: String) throws -> Double {
         guard let value = arguments[key] else {
-            throw ToolError.invalidInput("Missing required parameter: \(key)")
+            throw LegacyToolError.invalidInput("Missing required parameter: \(key)")
         }
 
         if let doubleValue = value as? Double {
@@ -422,7 +422,7 @@ public extension ToolInput {
             return doubleValue
         }
 
-        throw ToolError.invalidInput("Parameter '\(key)' must be a number")
+        throw LegacyToolError.invalidInput("Parameter '\(key)' must be a number")
     }
 
     /// Extract optional double value with key and default
@@ -489,12 +489,12 @@ public extension ToolInput {
     }
 }
 /// Strongly-typed output from a tool
-public enum ToolOutput: Codable, Sendable {
+public enum LegacyToolOutput: Codable, Sendable {
     case string(String)
     case number(Double)
     case boolean(Bool)
-    case object([String: ToolOutput])
-    case array([ToolOutput])
+    case object([String: LegacyToolOutput])
+    case array([LegacyToolOutput])
     case null
     case error(message: String, code: String? = nil)
 
@@ -523,10 +523,10 @@ public enum ToolOutput: Codable, Sendable {
             let value = try container.decode(Bool.self, forKey: .value)
             self = .boolean(value)
         case .object:
-            let value = try container.decode([String: ToolOutput].self, forKey: .value)
+            let value = try container.decode([String: LegacyToolOutput].self, forKey: .value)
             self = .object(value)
         case .array:
-            let value = try container.decode([ToolOutput].self, forKey: .value)
+            let value = try container.decode([LegacyToolOutput].self, forKey: .value)
             self = .array(value)
         case .null:
             self = .null
@@ -574,13 +574,13 @@ public enum ToolOutput: Codable, Sendable {
             return str // Return string directly for text output
         case let .error(message, code):
             // Special handling for errors to match expected format
-            var errorDict: [String: ToolOutput] = ["error": .string(message)]
+            var errorDict: [String: LegacyToolOutput] = ["error": .string(message)]
             if let code {
                 errorDict["error_code"] = .string(code)
             }
-            let data = try JSONEncoder().encode(ToolOutput.object(errorDict))
+            let data = try JSONEncoder().encode(LegacyToolOutput.object(errorDict))
             guard let string = String(data: data, encoding: .utf8) else {
-                throw ToolError.serializationFailed
+                throw LegacyToolError.serializationFailed
             }
             return string
         default:
@@ -589,7 +589,7 @@ public enum ToolOutput: Codable, Sendable {
             encoder.outputFormatting = .prettyPrinted
             let data = try encoder.encode(self)
             guard let string = String(data: data, encoding: .utf8) else {
-                throw ToolError.serializationFailed
+                throw LegacyToolError.serializationFailed
             }
             return string
         }
@@ -640,15 +640,15 @@ public enum ToolOutput: Codable, Sendable {
 
 // MARK: - Builder Methods
 
-public extension ToolOutput {
+public extension LegacyToolOutput {
     /// Create a dictionary/object output using a builder pattern
-    static func dictionary(_ builder: () -> [String: ToolOutput]) -> ToolOutput {
+    static func dictionary(_ builder: () -> [String: LegacyToolOutput]) -> LegacyToolOutput {
         .object(builder())
     }
 
     /// Create a dictionary/object output from key-value pairs
-    static func dictionary(_ pairs: (String, ToolOutput)...) -> ToolOutput {
-        var dict: [String: ToolOutput] = [:]
+    static func dictionary(_ pairs: (String, LegacyToolOutput)...) -> LegacyToolOutput {
+        var dict: [String: LegacyToolOutput] = [:]
         for (key, value) in pairs {
             dict[key] = value
         }
@@ -656,8 +656,8 @@ public extension ToolOutput {
     }
 
     /// Create from a Swift dictionary with automatic type conversion
-    static func from(_ dict: [String: Any]) -> ToolOutput {
-        var result: [String: ToolOutput] = [:]
+    static func from(_ dict: [String: Any]) -> LegacyToolOutput {
+        var result: [String: LegacyToolOutput] = [:]
         for (key, value) in dict {
             result[key] = from(value)
         }
@@ -665,7 +665,7 @@ public extension ToolOutput {
     }
 
     /// Create from any Swift value with automatic type conversion
-    static func from(_ value: Any) -> ToolOutput {
+    static func from(_ value: Any) -> LegacyToolOutput {
         switch value {
         case let str as String:
             .string(str)
@@ -688,8 +688,8 @@ public extension ToolOutput {
     }
 
     /// Convenience method for success results
-    static func success(_ message: String, metadata: (String, ToolOutput)...) -> ToolOutput {
-        var dict: [String: ToolOutput] = ["result": .string(message)]
+    static func success(_ message: String, metadata: (String, LegacyToolOutput)...) -> LegacyToolOutput {
+        var dict: [String: LegacyToolOutput] = ["result": .string(message)]
         for (key, value) in metadata {
             dict[key] = value
         }
@@ -700,7 +700,7 @@ public extension ToolOutput {
 // MARK: - Tool Errors
 
 /// Errors that can occur during tool execution
-public enum ToolError: Error, LocalizedError, Sendable {
+public enum LegacyToolError: Error, LocalizedError, Sendable {
     case invalidInput(String)
     case executionFailed(String)
     case serializationFailed
@@ -748,57 +748,57 @@ public final class Box<T: Codable & Sendable>: Codable, Sendable {
 
 /// Builder pattern for creating tools
 @available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
-public struct ToolBuilder<Context> {
+public struct LegacyLegacyToolBuilder<Context> {
     private var name: String = ""
     private var description: String = ""
-    private var parameters: ToolParameters = .init()
+    private var parameters: LegacyToolParameters = .init()
     private var strict: Bool = true
-    private var execute: ((ToolInput, Context) async throws -> ToolOutput)?
+    private var execute: ((LegacyToolInput, Context) async throws -> LegacyToolOutput)?
 
     public init() {}
 
-    public func withName(_ name: String) -> ToolBuilder<Context> {
+    public func withName(_ name: String) -> LegacyToolBuilder<Context> {
         var builder = self
         builder.name = name
         return builder
     }
 
-    public func withDescription(_ description: String) -> ToolBuilder<Context> {
+    public func withDescription(_ description: String) -> LegacyToolBuilder<Context> {
         var builder = self
         builder.description = description
         return builder
     }
 
-    public func withParameters(_ parameters: ToolParameters) -> ToolBuilder<Context> {
+    public func withParameters(_ parameters: LegacyToolParameters) -> LegacyToolBuilder<Context> {
         var builder = self
         builder.parameters = parameters
         return builder
     }
 
-    public func withStrict(_ strict: Bool) -> ToolBuilder<Context> {
+    public func withStrict(_ strict: Bool) -> LegacyToolBuilder<Context> {
         var builder = self
         builder.strict = strict
         return builder
     }
 
-    public func withExecution(_ execute: @escaping (ToolInput, Context) async throws -> ToolOutput)
-        -> ToolBuilder<Context>
+    public func withExecution(_ execute: @escaping (LegacyToolInput, Context) async throws -> LegacyToolOutput)
+        -> LegacyToolBuilder<Context>
     {
         var builder = self
         builder.execute = execute
         return builder
     }
 
-    public func build() throws -> Tool<Context> {
+    public func build() throws -> LegacyTool<Context> {
         guard !name.isEmpty else {
-            throw ToolError.invalidInput("Tool name is required")
+            throw LegacyToolError.invalidInput("Tool name is required")
         }
 
         guard let execute else {
-            throw ToolError.invalidInput("Tool execution function is required")
+            throw LegacyToolError.invalidInput("Tool execution function is required")
         }
 
-        return Tool(
+        return LegacyTool(
             name: name,
             description: description,
             parameters: parameters,
@@ -810,26 +810,26 @@ public struct ToolBuilder<Context> {
 
 // MARK: - Type Aliases
 
-// MARK: - ToolInput Helpers
+// MARK: - LegacyToolInput Helpers
 
-/// Static helper functions for accessing ToolInput values
+/// Static helper functions for accessing LegacyToolInput values
 @available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
-public enum ToolInputHelpers {
+public enum LegacyToolInputHelpers {
     /// Get required string value for a key (throws if missing)
-    public static func getString(_ input: ToolInput, key: String) throws -> String {
+    public static func getString(_ input: LegacyToolInput, key: String) throws -> String {
         guard let value: String = input.value(for: key) else {
-            throw ToolError.invalidInput("Missing required parameter: \(key)")
+            throw LegacyToolError.invalidInput("Missing required parameter: \(key)")
         }
         return value
     }
 
     /// Get string value for a key, with optional default
-    public static func getString(_ input: ToolInput, key: String, default defaultValue: String? = nil) -> String? {
+    public static func getString(_ input: LegacyToolInput, key: String, default defaultValue: String? = nil) -> String? {
         return input.value(for: key) ?? defaultValue
     }
 
     /// Get integer value for a key, with optional default
-    public static func getInt(_ input: ToolInput, key: String, default defaultValue: Int? = nil) -> Int? {
+    public static func getInt(_ input: LegacyToolInput, key: String, default defaultValue: Int? = nil) -> Int? {
         if let value: Int = input.value(for: key) {
             return value
         }
@@ -840,12 +840,12 @@ public enum ToolInputHelpers {
     }
 
     /// Get boolean value for a key, with optional default
-    public static func getBool(_ input: ToolInput, key: String, default defaultValue: Bool = false) -> Bool {
+    public static func getBool(_ input: LegacyToolInput, key: String, default defaultValue: Bool = false) -> Bool {
         return input.value(for: key) ?? defaultValue
     }
 
     /// Get double value for a key, with optional default
-    public static func getDouble(_ input: ToolInput, key: String, default defaultValue: Double? = nil) -> Double? {
+    public static func getDouble(_ input: LegacyToolInput, key: String, default defaultValue: Double? = nil) -> Double? {
         if let value: Double = input.value(for: key) {
             return value
         }

@@ -4,16 +4,16 @@ import Foundation
 
 /// Protocol defining the interface for AI model providers
 @available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
-public protocol ModelInterface: Sendable {
+public protocol LegacyModelInterface: Sendable {
     /// Get a non-streaming response from the model
     /// - Parameter request: The model request containing messages, tools, and settings
     /// - Returns: The model response
-    func getResponse(request: ModelRequest) async throws -> ModelResponse
+    func getResponse(request: LegacyModelRequest) async throws -> LegacyModelResponse
 
     /// Get a streaming response from the model
     /// - Parameter request: The model request containing messages, tools, and settings
     /// - Returns: An async stream of events
-    func getStreamedResponse(request: ModelRequest) async throws -> AsyncThrowingStream<StreamEvent, any Error>
+    func getStreamedResponse(request: LegacyModelRequest) async throws -> AsyncThrowingStream<StreamEvent, any Error>
 
     /// Get a masked version of the API key for debugging
     /// Returns the first 6 and last 2 characters of the API key
@@ -24,23 +24,23 @@ public protocol ModelInterface: Sendable {
 // MARK: - Model Request & Response Types
 
 /// Request to send to a model
-public struct ModelRequest: Codable, Sendable {
+public struct LegacyModelRequest: Codable, Sendable {
     /// The messages to send to the model
-    public let messages: [Message]
+    public let messages: [LegacyMessage]
 
     /// Available tools for the model to use
-    public let tools: [ToolDefinition]?
+    public let tools: [LegacyToolDefinition]?
 
     /// Model-specific settings
-    public let settings: ModelSettings
+    public let settings: LegacyModelSettings
 
     /// System instructions (some models support this separately from messages)
     public let systemInstructions: String?
 
     public init(
-        messages: [Message],
-        tools: [ToolDefinition]? = nil,
-        settings: ModelSettings,
+        messages: [LegacyMessage],
+        tools: [LegacyToolDefinition]? = nil,
+        settings: LegacyModelSettings,
         systemInstructions: String? = nil
     ) {
         self.messages = messages
@@ -51,7 +51,7 @@ public struct ModelRequest: Codable, Sendable {
 }
 
 /// Response from a model
-public struct ModelResponse: Codable, Sendable {
+public struct LegacyModelResponse: Codable, Sendable {
     /// Unique identifier for the response
     public let id: String
 
@@ -59,7 +59,7 @@ public struct ModelResponse: Codable, Sendable {
     public let model: String?
 
     /// Content returned by the model
-    public let content: [AssistantContent]
+    public let content: [LegacyAssistantContent]
 
     /// Token usage statistics
     public let usage: Usage?
@@ -76,7 +76,7 @@ public struct ModelResponse: Codable, Sendable {
     public init(
         id: String,
         model: String? = nil,
-        content: [AssistantContent],
+        content: [LegacyAssistantContent],
         usage: Usage? = nil,
         flagged: Bool = false,
         flaggedCategories: [String]? = nil,
@@ -95,7 +95,7 @@ public struct ModelResponse: Codable, Sendable {
 // MARK: - Model Settings
 
 /// Settings for model behavior
-public struct ModelSettings: Codable, Sendable {
+public struct LegacyModelSettings: Codable, Sendable {
     /// The model name/identifier
     public let modelName: String
 
@@ -166,8 +166,8 @@ public struct ModelSettings: Codable, Sendable {
     }
 
     /// Default settings for Claude Opus 4
-    public static var `default`: ModelSettings {
-        ModelSettings(modelName: "claude-opus-4-20250514")
+    public static var `default`: LegacyModelSettings {
+        LegacyModelSettings(modelName: "claude-opus-4-20250514")
     }
 
     // MARK: - Convenience Constructors
@@ -414,8 +414,8 @@ public struct JSONSchema: Codable, Sendable {
 public protocol ModelProviderProtocol {
     /// Get a model by name
     /// - Parameter modelName: The name of the model to retrieve
-    /// - Returns: A model instance conforming to ModelInterface
-    func getModel(modelName: String) throws -> any ModelInterface
+    /// - Returns: A model instance conforming to LegacyModelInterface
+    func getModel(modelName: String) throws -> any LegacyModelInterface
 }
 
 // MARK: - Model Errors

@@ -3,17 +3,17 @@ import Foundation
 // MARK: - Unified Message Type
 
 /// Unified message enum that provides type-safe message handling
-public enum Message: Codable, Sendable {
+public enum LegacyMessage: Codable, Sendable {
     case system(id: String? = nil, content: String)
-    case user(id: String? = nil, content: MessageContent)
-    case assistant(id: String? = nil, content: [AssistantContent], status: MessageStatus = .completed)
+    case user(id: String? = nil, content: LegacyLegacyMessageContent)
+    case assistant(id: String? = nil, content: [LegacyLegacyAssistantContent], status: LegacyLegacyMessageStatus = .completed)
     case tool(id: String? = nil, toolCallId: String, content: String)
     case reasoning(id: String? = nil, content: String)
 
     // MARK: - Properties
 
     /// Get the message type
-    public var type: MessageType {
+    public var type: LegacyMessageType {
         switch self {
         case .system: .system
         case .user: .user
@@ -38,13 +38,13 @@ public enum Message: Codable, Sendable {
         case type, id, content, status, toolCallId
     }
 
-    public enum MessageType: String, Codable {
+    public enum LegacyMessageType: String, Codable {
         case system, user, assistant, tool, reasoning
     }
 
     public init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        let type = try container.decode(MessageType.self, forKey: .type)
+        let type = try container.decode(LegacyMessageType.self, forKey: .type)
         let id = try container.decodeIfPresent(String.self, forKey: .id)
 
         switch type {
@@ -53,12 +53,12 @@ public enum Message: Codable, Sendable {
             self = .system(id: id, content: content)
 
         case .user:
-            let content = try container.decode(MessageContent.self, forKey: .content)
+            let content = try container.decode(LegacyMessageContent.self, forKey: .content)
             self = .user(id: id, content: content)
 
         case .assistant:
-            let content = try container.decode([AssistantContent].self, forKey: .content)
-            let status = try container.decodeIfPresent(MessageStatus.self, forKey: .status) ?? .completed
+            let content = try container.decode([LegacyAssistantContent].self, forKey: .content)
+            let status = try container.decodeIfPresent(LegacyMessageStatus.self, forKey: .status) ?? .completed
             self = .assistant(id: id, content: content, status: status)
 
         case .tool:
@@ -105,12 +105,12 @@ public enum Message: Codable, Sendable {
 // MARK: - Content Types
 
 /// User message content variants
-public enum MessageContent: Codable, Sendable {
+public enum LegacyMessageContent: Codable, Sendable {
     case text(String)
-    case image(ImageContent)
+    case image(LegacyImageContent)
     case file(FileContent)
     case audio(AudioContent)
-    case multimodal([MessageContentPart])
+    case multimodal([LegacyMessageContentPart])
 
     // Custom coding for enum
     enum CodingKeys: String, CodingKey {
@@ -130,7 +130,7 @@ public enum MessageContent: Codable, Sendable {
             let value = try container.decode(String.self, forKey: .value)
             self = .text(value)
         case .image:
-            let value = try container.decode(ImageContent.self, forKey: .value)
+            let value = try container.decode(LegacyImageContent.self, forKey: .value)
             self = .image(value)
         case .file:
             let value = try container.decode(FileContent.self, forKey: .value)
@@ -139,7 +139,7 @@ public enum MessageContent: Codable, Sendable {
             let value = try container.decode(AudioContent.self, forKey: .value)
             self = .audio(value)
         case .multimodal:
-            let value = try container.decode([MessageContentPart].self, forKey: .value)
+            let value = try container.decode([LegacyMessageContentPart].self, forKey: .value)
             self = .multimodal(value)
         }
     }
@@ -168,7 +168,7 @@ public enum MessageContent: Codable, Sendable {
 }
 
 /// Image content for messages
-public struct ImageContent: Codable, Sendable {
+public struct LegacyImageContent: Codable, Sendable {
     public let url: String?
     public let base64: String?
     public let detail: ImageDetail?
@@ -239,12 +239,12 @@ public struct AudioContent: Codable, Sendable {
 }
 
 /// Multimodal content part
-public struct MessageContentPart: Codable, Sendable {
+public struct LegacyMessageContentPart: Codable, Sendable {
     public let type: String
     public let text: String?
-    public let imageUrl: ImageContent?
+    public let imageUrl: LegacyImageContent?
 
-    public init(type: String, text: String? = nil, imageUrl: ImageContent? = nil) {
+    public init(type: String, text: String? = nil, imageUrl: LegacyImageContent? = nil) {
         self.type = type
         self.text = text
         self.imageUrl = imageUrl
@@ -252,7 +252,7 @@ public struct MessageContentPart: Codable, Sendable {
 }
 
 /// Assistant response content variants
-public enum AssistantContent: Codable, Sendable {
+public enum LegacyAssistantContent: Codable, Sendable {
     case outputText(String)
     case refusal(String)
     case toolCall(ToolCallItem)
@@ -343,7 +343,7 @@ public enum ToolCallStatus: String, Codable, Sendable {
 }
 
 /// Message processing status
-public enum MessageStatus: String, Codable, Sendable {
+public enum LegacyMessageStatus: String, Codable, Sendable {
     case inProgress = "in_progress"
     case completed
     case incomplete
@@ -351,7 +351,7 @@ public enum MessageStatus: String, Codable, Sendable {
 
 // MARK: - Helper Extensions
 
-public extension AssistantContent {
+public extension LegacyAssistantContent {
     /// Extract text content if available
     var textContent: String? {
         switch self {

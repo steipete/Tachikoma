@@ -1,8 +1,8 @@
 import Foundation
 
-/// OpenAI model implementation conforming to ModelInterface
+/// OpenAI model implementation conforming to LegacyModelInterface
 @available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
-public final class OpenAIModel: ModelInterface, Sendable {
+public final class OpenAIModel: LegacyModelInterface, Sendable {
     private let apiKey: String
     private let baseURL: URL
     private let session: URLSession
@@ -34,7 +34,7 @@ public final class OpenAIModel: ModelInterface, Sendable {
         }
     }
 
-    // MARK: - ModelInterface Implementation
+    // MARK: - LegacyModelInterface Implementation
 
     public var maskedApiKey: String {
         guard apiKey.count > 8 else { return "***" }
@@ -196,7 +196,7 @@ public final class OpenAIModel: ModelInterface, Sendable {
                 function: OpenAIFunction(
                     name: tool.function.name,
                     description: tool.function.description,
-                    parameters: convertToolParameters(tool.function.parameters)
+                    parameters: convertLegacyToolParameters(tool.function.parameters)
                 )
             )
         }
@@ -234,7 +234,7 @@ public final class OpenAIModel: ModelInterface, Sendable {
                 type: "function",
                 name: tool.function.name,
                 description: tool.function.description,
-                parameters: convertToolParameters(tool.function.parameters)
+                parameters: convertLegacyToolParameters(tool.function.parameters)
             )
         }
 
@@ -257,21 +257,21 @@ public final class OpenAIModel: ModelInterface, Sendable {
         )
     }
 
-    private func convertUserMessage(_ content: MessageContent) throws -> OpenAIMessage {
+    private func convertUserMessage(_ content: LegacyMessageContent) throws -> OpenAIMessage {
         switch content {
         case let .text(text):
             return OpenAIMessage(role: "user", content: .string(text))
         case let .image(imageContent):
-            var parts: [OpenAIMessageContentPart] = []
+            var parts: [OpenAILegacyMessageContentPart] = []
 
             if let url = imageContent.url {
-                parts.append(OpenAIMessageContentPart(
+                parts.append(OpenAILegacyMessageContentPart(
                     type: "image_url",
                     text: nil,
                     imageUrl: OpenAIImageUrl(url: url, detail: imageContent.detail?.rawValue)
                 ))
             } else if let base64 = imageContent.base64 {
-                parts.append(OpenAIMessageContentPart(
+                parts.append(OpenAILegacyMessageContentPart(
                     type: "image_url",
                     text: nil,
                     imageUrl: OpenAIImageUrl(url: "data:image/jpeg;base64,\(base64)", detail: imageContent.detail?.rawValue)
@@ -280,18 +280,18 @@ public final class OpenAIModel: ModelInterface, Sendable {
 
             return OpenAIMessage(role: "user", content: .array(parts))
         case let .multimodal(parts):
-            let contentParts = parts.compactMap { part -> OpenAIMessageContentPart? in
+            let contentParts = parts.compactMap { part -> OpenAILegacyMessageContentPart? in
                 if let text = part.text {
-                    return OpenAIMessageContentPart(type: "text", text: text, imageUrl: nil)
+                    return OpenAILegacyMessageContentPart(type: "text", text: text, imageUrl: nil)
                 } else if let image = part.imageUrl {
                     if let url = image.url {
-                        return OpenAIMessageContentPart(
+                        return OpenAILegacyMessageContentPart(
                             type: "image_url",
                             text: nil,
                             imageUrl: OpenAIImageUrl(url: url, detail: image.detail?.rawValue)
                         )
                     } else if let base64 = image.base64 {
-                        return OpenAIMessageContentPart(
+                        return OpenAILegacyMessageContentPart(
                             type: "image_url",
                             text: nil,
                             imageUrl: OpenAIImageUrl(url: "data:image/jpeg;base64,\(base64)", detail: image.detail?.rawValue)
@@ -318,7 +318,7 @@ public final class OpenAIModel: ModelInterface, Sendable {
         }
     }
 
-    private func convertAssistantMessage(_ content: [AssistantContent]) throws -> OpenAIMessage {
+    private func convertAssistantMessage(_ content: [LegacyAssistantContent]) throws -> OpenAIMessage {
         var textContent = ""
         var toolCalls: [OpenAIToolCall] = []
 
@@ -349,11 +349,11 @@ public final class OpenAIModel: ModelInterface, Sendable {
         }
     }
 
-    private func convertToolParameters(_ params: ToolParameters) -> [String: Any] {
+    private func convertLegacyToolParameters(_ params: LegacyToolParameters) -> [String: Any] {
         var properties: [String: Any] = [:]
 
         for (key, schema) in params.properties {
-            properties[key] = convertParameterSchema(schema)
+            properties[key] = convertLegacyParameterSchema(schema)
         }
 
         return [
@@ -364,7 +364,7 @@ public final class OpenAIModel: ModelInterface, Sendable {
         ]
     }
 
-    private func convertParameterSchema(_ schema: ParameterSchema) -> [String: Any] {
+    private func convertLegacyParameterSchema(_ schema: LegacyParameterSchema) -> [String: Any] {
         var result: [String: Any] = [
             "type": schema.type.rawValue,
         ]
@@ -390,11 +390,11 @@ public final class OpenAIModel: ModelInterface, Sendable {
         }
 
         if let items = schema.items {
-            result["items"] = convertParameterSchema(items.value)
+            result["items"] = convertLegacyParameterSchema(items.value)
         }
 
         if let properties = schema.properties {
-            result["properties"] = properties.mapValues { convertParameterSchema($0) }
+            result["properties"] = properties.mapValues { convertLegacyParameterSchema($0) }
         }
 
         return result
@@ -420,7 +420,7 @@ public final class OpenAIModel: ModelInterface, Sendable {
             throw TachikomaError.apiError(message: "No choices in OpenAI response")
         }
 
-        var content: [AssistantContent] = []
+        var content: [LegacyAssistantContent] = []
 
         if let messageContent = choice.message.content {
             switch messageContent {

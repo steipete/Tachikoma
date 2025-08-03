@@ -20,28 +20,10 @@ public var modernAPIAvailable: Bool {
     true
 }
 
-// MARK: - Temporary type aliases for compatibility
+// MARK: - Modern API Re-exports
 
-// These will be replaced with proper implementations as we continue the refactor
-public typealias Message = LegacyMessage
-public typealias MessageContent = LegacyMessageContent
-public typealias AssistantContent = LegacyAssistantContent
-public typealias ImageContent = LegacyImageContent
-public typealias ModelRequest = LegacyModelRequest
-public typealias ModelResponse = LegacyModelResponse
-public typealias ModelSettings = LegacyModelSettings
-public typealias ModelInterface = LegacyModelInterface
-public typealias ToolDefinition = LegacyToolDefinition
-public typealias Tool = LegacyTool
-public typealias ToolInput = LegacyToolInput
-public typealias ToolOutput = LegacyToolOutput
-public typealias ToolParameters = LegacyToolParameters
-public typealias ToolError = LegacyToolError
-public typealias StreamEvent = LegacyStreamEvent
-public typealias TachikomaError = LegacyTachikomaError
-public typealias AIConfiguration = LegacyAIConfiguration
-public typealias AIModelProvider = LegacyAIModelProvider
-public typealias AIModelFactory = LegacyAIModelFactory
+// Re-export the modern types from ModernTypes.swift
+// These provide the public API for the new TachikomaCore module
 
 // We'll implement these from scratch
 // public typealias Model = NewModel

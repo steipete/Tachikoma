@@ -10,10 +10,10 @@ public final class PeekabooAgent<Context>: @unchecked Sendable {
     public let instructions: String
 
     /// Available tools for the agent
-    public private(set) var tools: [Tool<Context>]
+    public private(set) var tools: [LegacyTool<Context>]
 
     /// Model settings for generation
-    public var modelSettings: ModelSettings
+    public var modelSettings: LegacyModelSettings
 
     /// The context instance passed to tool executions
     private let context: Context
@@ -21,8 +21,8 @@ public final class PeekabooAgent<Context>: @unchecked Sendable {
     public init(
         name: String,
         instructions: String,
-        tools: [Tool<Context>] = [],
-        modelSettings: ModelSettings,
+        tools: [LegacyTool<Context>] = [],
+        modelSettings: LegacyModelSettings,
         context: Context
     ) {
         self.name = name
@@ -34,22 +34,22 @@ public final class PeekabooAgent<Context>: @unchecked Sendable {
 
     /// Convenience initializer with model interface
     public init(
-        model _: any ModelInterface,
+        model _: any LegacyModelInterface,
         sessionId _: String,
         name: String,
         instructions: String,
-        tools: [Tool<Context>] = [],
+        tools: [LegacyTool<Context>] = [],
         context: Context
     ) {
         self.name = name
         self.instructions = instructions
         self.tools = tools
-        modelSettings = ModelSettings() // Default settings
+        modelSettings = LegacyModelSettings() // Default settings
         self.context = context
     }
 
     /// Add a tool to the agent
-    public func addTool(_ tool: Tool<Context>) {
+    public func addTool(_ tool: LegacyTool<Context>) {
         tools.append(tool)
     }
 
@@ -61,7 +61,7 @@ public final class PeekabooAgent<Context>: @unchecked Sendable {
     /// Execute a task using the agent
     public func executeTask(
         _ input: String,
-        model: any ModelInterface,
+        model: any LegacyModelInterface,
         eventDelegate: (any AgentEventDelegate)? = nil
     ) async throws -> AgentExecutionResult {
         let startTime = Date()
@@ -152,7 +152,7 @@ public struct AgentRunner {
     public static func runStreaming<Context>(
         agent: PeekabooAgent<Context>,
         input: String,
-        model: any ModelInterface,
+        model: any LegacyModelInterface,
         eventDelegate: (any AgentEventDelegate)? = nil
     ) async throws -> AgentExecutionResult {
         return try await agent.executeTask(input, model: model, eventDelegate: eventDelegate)
@@ -162,7 +162,7 @@ public struct AgentRunner {
     public static func run<Context>(
         agent: PeekabooAgent<Context>,
         input: String,
-        model: any ModelInterface
+        model: any LegacyModelInterface
     ) async throws -> AgentExecutionResult {
         return try await agent.executeTask(input, model: model, eventDelegate: nil)
     }
