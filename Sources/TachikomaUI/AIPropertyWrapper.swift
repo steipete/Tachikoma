@@ -1,7 +1,7 @@
+import Combine
 import Foundation
 import SwiftUI
 import TachikomaCore
-import Combine
 
 // MARK: - @AI Property Wrapper for SwiftUI
 
@@ -11,31 +11,29 @@ import Combine
 @MainActor
 public struct AI: DynamicProperty {
     @StateObject private var manager: AIManager
-    
+
     public var wrappedValue: AIManager {
-        manager
+        self.manager
     }
-    
+
     public var projectedValue: Binding<AIManager> {
         Binding(
-            get: { manager },
-            set: { _ in }
-        )
+            get: { self.manager },
+            set: { _ in })
     }
-    
+
     public init(
         model: LanguageModel = .default,
         system: String? = nil,
         settings: GenerationSettings = .default,
-        tools: [SimpleTool] = []
-    ) {
+        tools: [SimpleTool] = [])
+    {
         // Create AIManager on main actor since it's @MainActor
         let aiManager = AIManager(
             model: model,
             system: system,
             settings: settings,
-            tools: tools
-        )
+            tools: tools)
         self._manager = StateObject(wrappedValue: aiManager)
     }
 }
@@ -51,95 +49,93 @@ public class AIManager: ObservableObject {
     @Published public var error: TachikomaError?
     @Published public var lastResult: GenerateTextResult?
     @Published public var streamingText: String = ""
-    
+
     public let model: LanguageModel
     public let system: String?
     public let settings: GenerationSettings
     public let tools: [SimpleTool]
-    
+
     private var streamingTask: Task<Void, Never>?
-    
+
     public init(
         model: LanguageModel = .default,
         system: String? = nil,
         settings: GenerationSettings = .default,
-        tools: [SimpleTool] = []
-    ) {
+        tools: [SimpleTool] = [])
+    {
         self.model = model
         self.system = system
         self.settings = settings
         self.tools = tools
-        
-        if let system = system {
+
+        if let system {
             self.messages = [.system(system)]
         }
     }
-    
+
     // MARK: - Conversation Management
-    
+
     public func send(_ message: String) async {
-        guard !isGenerating else { return }
-        
+        guard !self.isGenerating else { return }
+
         let userMessage = ModelMessage.user(message)
-        messages.append(userMessage)
-        
-        await generate()
+        self.messages.append(userMessage)
+
+        await self.generate()
     }
-    
+
     public func send(text: String, images: [ModelMessage.ContentPart.ImageContent]) async {
-        guard !isGenerating else { return }
-        
+        guard !self.isGenerating else { return }
+
         let userMessage = ModelMessage.user(text: text, images: images)
-        messages.append(userMessage)
-        
-        await generate()
+        self.messages.append(userMessage)
+
+        await self.generate()
     }
-    
+
     public func generate() async {
-        guard !isGenerating else { return }
-        
-        isGenerating = true
-        error = nil
-        lastResult = nil
-        
+        guard !self.isGenerating else { return }
+
+        self.isGenerating = true
+        self.error = nil
+        self.lastResult = nil
+
         do {
             let result = try await generateText(
                 model: model,
                 messages: messages,
-                tools: tools.isEmpty ? nil : tools,
-                settings: settings,
-                maxSteps: 5
-            )
-            
-            lastResult = result
-            messages.append(.assistant(result.text))
-            
+                tools: tools.isEmpty ? nil : self.tools,
+                settings: self.settings,
+                maxSteps: 5)
+
+            self.lastResult = result
+            self.messages.append(.assistant(result.text))
+
         } catch let tachikomaError as TachikomaError {
             error = tachikomaError
         } catch {
             self.error = .apiError(error.localizedDescription)
         }
-        
-        isGenerating = false
+
+        self.isGenerating = false
     }
-    
+
     public func stream() async {
-        guard !isGenerating else { return }
-        
-        isGenerating = true
-        error = nil
-        streamingText = ""
-        
-        streamingTask = Task {
+        guard !self.isGenerating else { return }
+
+        self.isGenerating = true
+        self.error = nil
+        self.streamingText = ""
+
+        self.streamingTask = Task {
             do {
                 let result = try await streamText(
                     model: model,
                     messages: messages,
-                    tools: tools.isEmpty ? nil : tools,
-                    settings: settings,
-                    maxSteps: 1
-                )
-                
+                    tools: tools.isEmpty ? nil : self.tools,
+                    settings: self.settings,
+                    maxSteps: 1)
+
                 var fullText = ""
                 for try await delta in result.textStream {
                     if !Task.isCancelled {
@@ -148,18 +144,18 @@ public class AIManager: ObservableObject {
                             if let content = delta.content {
                                 fullText += content
                                 await MainActor.run {
-                                    streamingText = fullText
+                                    self.streamingText = fullText
                                 }
                             }
                         case .done:
                             await MainActor.run {
-                                messages.append(.assistant(fullText))
-                                streamingText = ""
+                                self.messages.append(.assistant(fullText))
+                                self.streamingText = ""
                             }
                         case .error:
                             if let content = delta.content {
                                 await MainActor.run {
-                                    error = .apiError(content)
+                                    self.error = .apiError(content)
                                 }
                             }
                         default:
@@ -167,7 +163,7 @@ public class AIManager: ObservableObject {
                         }
                     }
                 }
-                
+
             } catch let tachikomaError as TachikomaError {
                 await MainActor.run {
                     error = tachikomaError
@@ -177,49 +173,49 @@ public class AIManager: ObservableObject {
                     self.error = .apiError(error.localizedDescription)
                 }
             }
-            
+
             await MainActor.run {
-                isGenerating = false
+                self.isGenerating = false
             }
         }
     }
-    
+
     public func clear() {
-        messages.removeAll()
-        if let system = system {
-            messages.append(.system(system))
+        self.messages.removeAll()
+        if let system {
+            self.messages.append(.system(system))
         }
-        error = nil
-        lastResult = nil
-        streamingText = ""
-        streamingTask?.cancel()
+        self.error = nil
+        self.lastResult = nil
+        self.streamingText = ""
+        self.streamingTask?.cancel()
     }
-    
+
     public func cancelGeneration() {
-        streamingTask?.cancel()
-        isGenerating = false
+        self.streamingTask?.cancel()
+        self.isGenerating = false
     }
-    
+
     // MARK: - Convenience Properties
-    
+
     public var userMessages: [ModelMessage] {
-        messages.filter { $0.role == .user }
+        self.messages.filter { $0.role == .user }
     }
-    
+
     public var assistantMessages: [ModelMessage] {
-        messages.filter { $0.role == .assistant }
+        self.messages.filter { $0.role == .assistant }
     }
-    
+
     public var conversationMessages: [ModelMessage] {
-        messages.filter { $0.role == .user || $0.role == .assistant }
+        self.messages.filter { $0.role == .user || $0.role == .assistant }
     }
-    
+
     public var hasMessages: Bool {
-        !conversationMessages.isEmpty
+        !self.conversationMessages.isEmpty
     }
-    
+
     public var canGenerate: Bool {
-        !isGenerating && hasMessages
+        !self.isGenerating && self.hasMessages
     }
 }
 
@@ -227,17 +223,16 @@ public class AIManager: ObservableObject {
 
 @available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
 extension View {
-    
     /// Configure AI model for child views
     public func aiModel(_ model: LanguageModel) -> some View {
         environment(\.aiModel, model)
     }
-    
+
     /// Configure AI settings for child views
     public func aiSettings(_ settings: GenerationSettings) -> some View {
         environment(\.aiSettings, settings)
     }
-    
+
     /// Configure AI tools for child views
     public func aiTools(_ tools: [SimpleTool]) -> some View {
         environment(\.aiTools, tools)
@@ -252,12 +247,12 @@ extension EnvironmentValues {
         get { self[AIModelKey.self] }
         set { self[AIModelKey.self] = newValue }
     }
-    
+
     public var aiSettings: GenerationSettings {
         get { self[AISettingsKey.self] }
         set { self[AISettingsKey.self] = newValue }
     }
-    
+
     public var aiTools: [SimpleTool] {
         get { self[AIToolsKey.self] }
         set { self[AIToolsKey.self] = newValue }
@@ -282,70 +277,68 @@ private struct AIToolsKey: EnvironmentKey {
 public struct ChatView: View {
     @AI private var ai
     @State private var inputText: String = ""
-    
+
     public init(
         model: LanguageModel = .default,
         system: String? = nil,
         settings: GenerationSettings = .default,
-        tools: [SimpleTool] = []
-    ) {
+        tools: [SimpleTool] = [])
+    {
         self._ai = AI(
             model: model,
             system: system,
             settings: settings,
-            tools: tools
-        )
+            tools: tools)
     }
-    
+
     public var body: some View {
         VStack {
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 12) {
-                    ForEach(ai.conversationMessages, id: \.id) { message in
+                    ForEach(self.ai.conversationMessages, id: \.id) { message in
                         MessageBubble(message: message)
                     }
-                    
-                    if ai.isGenerating && !ai.streamingText.isEmpty {
+
+                    if self.ai.isGenerating, !self.ai.streamingText.isEmpty {
                         MessageBubble(
-                            message: .assistant(ai.streamingText),
-                            isStreaming: true
-                        )
+                            message: .assistant(self.ai.streamingText),
+                            isStreaming: true)
                     }
                 }
                 .padding()
             }
-            
+
             HStack {
-                TextField("Type a message...", text: $inputText)
+                TextField("Type a message...", text: self.$inputText)
                     .textFieldStyle(RoundedBorderTextFieldStyle())
                     .onSubmit {
-                        sendMessage()
+                        self.sendMessage()
                     }
-                
+
                 Button("Send") {
-                    sendMessage()
+                    self.sendMessage()
                 }
-                .disabled(inputText.isEmpty || ai.isGenerating)
+                .disabled(self.inputText.isEmpty || self.ai.isGenerating)
             }
             .padding()
         }
-        .alert("Error", isPresented: .constant(ai.error != nil)) {
+        .alert("Error", isPresented: .constant(self.ai.error != nil)) {
             Button("OK") {
-                ai.error = nil
+                self.ai.error = nil
             }
         } message: {
-            Text(ai.error?.localizedDescription ?? "Unknown error")
+            Text(self.ai.error?.localizedDescription ?? "Unknown error")
         }
     }
-    
+
     private func sendMessage() {
-        let message = inputText.trimmingCharacters(in: .whitespacesAndNewlines)
+        let message = self.inputText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !message.isEmpty else { return }
-        
-        inputText = ""
-        
+
+        self.inputText = ""
+
         Task {
-            await ai.send(message)
+            await self.ai.send(message)
         }
     }
 }
@@ -354,52 +347,50 @@ public struct ChatView: View {
 public struct MessageBubble: View {
     let message: ModelMessage
     let isStreaming: Bool
-    
+
     public init(message: ModelMessage, isStreaming: Bool = false) {
         self.message = message
         self.isStreaming = isStreaming
     }
-    
+
     public var body: some View {
         HStack {
-            if message.role == .user {
+            if self.message.role == .user {
                 Spacer()
             }
-            
+
             VStack(alignment: .leading, spacing: 4) {
-                Text(contentText)
+                Text(self.contentText)
                     .padding(12)
                     .background(
-                        message.role == .user ? Color.blue : Color.gray.opacity(0.2)
-                    )
+                        self.message.role == .user ? Color.blue : Color.gray.opacity(0.2))
                     .foregroundColor(
-                        message.role == .user ? .white : .primary
-                    )
+                        self.message.role == .user ? .white : .primary)
                     .cornerRadius(16)
-                
-                if isStreaming {
+
+                if self.isStreaming {
                     HStack {
                         Text("•")
                             .foregroundColor(.secondary)
-                            .animation(.easeInOut(duration: 0.6).repeatForever(), value: isStreaming)
+                            .animation(.easeInOut(duration: 0.6).repeatForever(), value: self.isStreaming)
                         Text("AI is typing...")
                             .font(.caption)
                             .foregroundColor(.secondary)
                     }
                 }
             }
-            
-            if message.role == .assistant {
+
+            if self.message.role == .assistant {
                 Spacer()
             }
         }
     }
-    
+
     private var contentText: String {
         // Extract text from content parts
-        return message.content
+        self.message.content
             .compactMap { part in
-                if case .text(let text) = part {
+                if case let .text(text) = part {
                     return text
                 }
                 return nil
@@ -412,39 +403,39 @@ public struct MessageBubble: View {
 
 /*
  Usage examples:
- 
+
  // Simple chat interface
  struct ContentView: View {
-     var body: some View {
-         ChatView(
-             model: .anthropic(.opus4),
-             system: "You are a helpful assistant.",
-             tools: [try! CommonTools.calculator()]
-         )
-     }
+ var body: some View {
+ ChatView(
+ model: .anthropic(.opus4),
+ system: "You are a helpful assistant.",
+ tools: [try! CommonTools.calculator()]
+ )
  }
- 
+ }
+
  // Custom AI integration
  struct CustomView: View {
-     @AI private var ai = AI(
-         model: .openai(.gpt4o),
-         system: "You are a creative writer."
-     )
-     
-     var body: some View {
-         VStack {
-             Button("Generate Story") {
-                 Task {
-                     await ai.send("Write a short story about a robot.")
-                 }
-             }
-             .disabled(ai.isGenerating)
-             
-             if let result = ai.lastResult {
-                 Text(result.text)
-                     .padding()
-             }
-         }
-     }
+ @AI private var ai = AI(
+ model: .openai(.gpt4o),
+ system: "You are a creative writer."
+ )
+
+ var body: some View {
+ VStack {
+ Button("Generate Story") {
+ Task {
+ await ai.send("Write a short story about a robot.")
+ }
+ }
+ .disabled(ai.isGenerating)
+
+ if let result = ai.lastResult {
+ Text(result.text)
+ .padding()
+ }
+ }
+ }
  }
  */

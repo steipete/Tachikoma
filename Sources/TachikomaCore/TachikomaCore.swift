@@ -3,10 +3,9 @@ import Foundation
 
 // MARK: - TachikomaCore Module
 
-/// TachikomaCore - Core functionality for the modern Tachikoma AI SDK
-///
-/// This module provides the fundamental types and generation functions for AI model interaction.
+/// TachikomaCore provides the fundamental types and generation functions for AI model interaction.
 /// It builds on top of the existing Tachikoma implementation while providing a modern, Swift-native API.
+public enum TachikomaCore {}
 
 // Re-export legacy components that are still needed
 // These are kept for compatibility and gradual migration

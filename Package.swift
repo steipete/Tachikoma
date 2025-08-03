@@ -9,31 +9,26 @@ let package = Package(
         .macOS(.v14),
         .iOS(.v17),
         .watchOS(.v10),
-        .tvOS(.v17)
+        .tvOS(.v17),
     ],
     products: [
         // Main unified library that exports all modules
         .library(
             name: "Tachikoma",
-            targets: ["Tachikoma"]
-        ),
+            targets: ["Tachikoma"]),
         // Individual modules for selective imports
         .library(
             name: "TachikomaCore",
-            targets: ["TachikomaCore"]
-        ),
+            targets: ["TachikomaCore"]),
         .library(
             name: "TachikomaBuilders",
-            targets: ["TachikomaBuilders"]
-        ),
+            targets: ["TachikomaBuilders"]),
         .library(
             name: "TachikomaUI",
-            targets: ["TachikomaUI"]
-        ),
+            targets: ["TachikomaUI"]),
         .library(
             name: "TachikomaCLI",
-            targets: ["TachikomaCLI"]
-        ),
+            targets: ["TachikomaCLI"]),
     ],
     dependencies: [
         .package(url: "https://github.com/apple/swift-log.git", from: "1.0.0"),
@@ -46,52 +41,47 @@ let package = Package(
                 .product(name: "Logging", package: "swift-log"),
             ],
             path: "Sources/TachikomaCore",
-            swiftSettings: commonSwiftSettings
-        ),
-        
-        // Builders module - result builders and DSL patterns  
+            swiftSettings: commonSwiftSettings),
+
+        // Builders module - result builders and DSL patterns
         .target(
             name: "TachikomaBuilders",
             dependencies: [
-                "TachikomaCore"
+                "TachikomaCore",
             ],
             path: "Sources/TachikomaBuilders",
-            swiftSettings: commonSwiftSettings
-        ),
-        
+            swiftSettings: commonSwiftSettings),
+
         // UI module - SwiftUI integration and property wrappers
         .target(
             name: "TachikomaUI",
             dependencies: [
-                "TachikomaCore"
+                "TachikomaCore",
             ],
             path: "Sources/TachikomaUI",
-            swiftSettings: commonSwiftSettings
-        ),
-        
+            swiftSettings: commonSwiftSettings),
+
         // CLI module - command-line utilities and model selection
         .target(
             name: "TachikomaCLI",
             dependencies: [
-                "TachikomaCore"
+                "TachikomaCore",
             ],
             path: "Sources/TachikomaCLI",
-            swiftSettings: commonSwiftSettings
-        ),
-        
+            swiftSettings: commonSwiftSettings),
+
         // Main umbrella module that re-exports everything
         .target(
             name: "Tachikoma",
             dependencies: [
                 "TachikomaCore",
-                "TachikomaBuilders", 
+                "TachikomaBuilders",
                 "TachikomaUI",
-                "TachikomaCLI"
+                "TachikomaCLI",
             ],
             path: "Sources/Tachikoma",
-            swiftSettings: commonSwiftSettings
-        ),
-        
+            swiftSettings: commonSwiftSettings),
+
         // Test targets
         .testTarget(
             name: "TachikomatCoreTests",
@@ -100,8 +90,7 @@ let package = Package(
                 .product(name: "Logging", package: "swift-log"),
             ],
             path: "Tests/TachikomaCoreTests",
-            swiftSettings: commonSwiftSettings
-        ),
+            swiftSettings: commonSwiftSettings),
         .testTarget(
             name: "TachikomatBuildersTests",
             dependencies: [
@@ -109,8 +98,7 @@ let package = Package(
                 "TachikomaCore",
             ],
             path: "Tests/TachikomaBuildersTests",
-            swiftSettings: commonSwiftSettings
-        ),
+            swiftSettings: commonSwiftSettings),
         .testTarget(
             name: "TachikomaUITests",
             dependencies: [
@@ -118,8 +106,7 @@ let package = Package(
                 "TachikomaCore",
             ],
             path: "Tests/TachikomaUITests",
-            swiftSettings: commonSwiftSettings
-        ),
+            swiftSettings: commonSwiftSettings),
         .testTarget(
             name: "TachikomaCLITests",
             dependencies: [
@@ -127,8 +114,7 @@ let package = Package(
                 "TachikomaCore",
             ],
             path: "Tests/TachikomaCLITests",
-            swiftSettings: commonSwiftSettings
-        ),
+            swiftSettings: commonSwiftSettings),
         .testTarget(
             name: "TachikomaTests",
             dependencies: [
@@ -136,10 +122,8 @@ let package = Package(
                 .product(name: "Logging", package: "swift-log"),
             ],
             path: "Tests/TachikomaTests",
-            swiftSettings: commonSwiftSettings
-        ),
-    ]
-)
+            swiftSettings: commonSwiftSettings),
+    ])
 
 // Common Swift settings for all targets
 let commonSwiftSettings: [SwiftSetting] = [

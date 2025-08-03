@@ -14,31 +14,31 @@ public enum TachikomaError: Error, LocalizedError, Sendable {
     case invalidInput(String)
     case rateLimited(retryAfter: TimeInterval?)
     case authenticationFailed(String)
-    
+
     public var errorDescription: String? {
         switch self {
-        case .modelNotFound(let model):
-            return "Model not found: \(model)"
-        case .invalidConfiguration(let message):
-            return "Invalid configuration: \(message)"
-        case .unsupportedOperation(let operation):
-            return "Unsupported operation: \(operation)"
-        case .apiError(let message):
-            return "API error: \(message)"
-        case .networkError(let error):
-            return "Network error: \(error.localizedDescription)"
-        case .toolCallFailed(let message):
-            return "Tool call failed: \(message)"
-        case .invalidInput(let message):
-            return "Invalid input: \(message)"
-        case .rateLimited(let retryAfter):
-            if let retryAfter = retryAfter {
-                return "Rate limited. Retry after \(retryAfter) seconds"
+        case let .modelNotFound(model):
+            "Model not found: \(model)"
+        case let .invalidConfiguration(message):
+            "Invalid configuration: \(message)"
+        case let .unsupportedOperation(operation):
+            "Unsupported operation: \(operation)"
+        case let .apiError(message):
+            "API error: \(message)"
+        case let .networkError(error):
+            "Network error: \(error.localizedDescription)"
+        case let .toolCallFailed(message):
+            "Tool call failed: \(message)"
+        case let .invalidInput(message):
+            "Invalid input: \(message)"
+        case let .rateLimited(retryAfter):
+            if let retryAfter {
+                "Rate limited. Retry after \(retryAfter) seconds"
             } else {
-                return "Rate limited"
+                "Rate limited"
             }
-        case .authenticationFailed(let message):
-            return "Authentication failed: \(message)"
+        case let .authenticationFailed(message):
+            "Authentication failed: \(message)"
         }
     }
 }
@@ -52,51 +52,51 @@ public struct ModelMessage: Sendable, Codable, Equatable {
     public let role: Role
     public let content: [ContentPart]
     public let timestamp: Date
-    
+
     public enum Role: String, Sendable, Codable, CaseIterable {
         case system
         case user
         case assistant
         case tool
     }
-    
+
     public enum ContentPart: Sendable, Codable, Equatable {
         case text(String)
         case image(ImageContent)
         case toolCall(ToolCall)
         case toolResult(ToolResult)
-        
+
         public struct ImageContent: Sendable, Codable, Equatable {
             public let data: String // base64 encoded
             public let mimeType: String
-            
+
             public init(data: String, mimeType: String = "image/png") {
                 self.data = data
                 self.mimeType = mimeType
             }
         }
     }
-    
+
     public init(id: String = UUID().uuidString, role: Role, content: [ContentPart], timestamp: Date = Date()) {
         self.id = id
         self.role = role
         self.content = content
         self.timestamp = timestamp
     }
-    
+
     // Convenience initializers
     public static func system(_ text: String) -> ModelMessage {
         ModelMessage(role: .system, content: [.text(text)])
     }
-    
+
     public static func user(_ text: String) -> ModelMessage {
         ModelMessage(role: .user, content: [.text(text)])
     }
-    
+
     public static func assistant(_ text: String) -> ModelMessage {
         ModelMessage(role: .assistant, content: [.text(text)])
     }
-    
+
     public static func user(text: String, images: [ContentPart.ImageContent]) -> ModelMessage {
         var content: [ContentPart] = [.text(text)]
         content.append(contentsOf: images.map { .image($0) })
@@ -112,7 +112,7 @@ public struct ToolCall: Sendable, Codable, Equatable {
     public let id: String
     public let name: String
     public let arguments: [String: ToolArgument]
-    
+
     public init(id: String = UUID().uuidString, name: String, arguments: [String: ToolArgument]) {
         self.id = id
         self.name = name
@@ -126,17 +126,17 @@ public struct ToolResult: Sendable, Codable, Equatable {
     public let toolCallId: String
     public let result: ToolArgument
     public let isError: Bool
-    
+
     public init(toolCallId: String, result: ToolArgument, isError: Bool = false) {
         self.toolCallId = toolCallId
         self.result = result
         self.isError = isError
     }
-    
+
     public static func success(toolCallId: String, result: ToolArgument) -> ToolResult {
         ToolResult(toolCallId: toolCallId, result: result, isError: false)
     }
-    
+
     public static func error(toolCallId: String, error: String) -> ToolResult {
         ToolResult(toolCallId: toolCallId, result: .string(error), isError: true)
     }
@@ -152,10 +152,10 @@ public enum ToolArgument: Sendable, Codable, Equatable {
     case string(String)
     case array([ToolArgument])
     case object([String: ToolArgument])
-    
+
     public init(from decoder: Decoder) throws {
         let container = try decoder.singleValueContainer()
-        
+
         if container.decodeNil() {
             self = .null
         } else if let bool = try? container.decode(Bool.self) {
@@ -174,28 +174,28 @@ public enum ToolArgument: Sendable, Codable, Equatable {
             throw DecodingError.dataCorruptedError(in: container, debugDescription: "Cannot decode ToolArgument")
         }
     }
-    
+
     public func encode(to encoder: Encoder) throws {
         var container = encoder.singleValueContainer()
-        
+
         switch self {
         case .null:
             try container.encodeNil()
-        case .bool(let value):
+        case let .bool(value):
             try container.encode(value)
-        case .int(let value):
+        case let .int(value):
             try container.encode(value)
-        case .double(let value):
+        case let .double(value):
             try container.encode(value)
-        case .string(let value):
+        case let .string(value):
             try container.encode(value)
-        case .array(let value):
+        case let .array(value):
             try container.encode(value)
-        case .object(let value):
+        case let .object(value):
             try container.encode(value)
         }
     }
-    
+
     /// Create ToolArgument from any JSON-compatible value
     public static func from(any value: Any) throws -> ToolArgument {
         if value is NSNull {
@@ -232,19 +232,19 @@ public struct Usage: Sendable, Codable, Equatable {
     public let outputTokens: Int
     public let totalTokens: Int
     public let cost: Cost?
-    
+
     public struct Cost: Sendable, Codable, Equatable {
         public let input: Double
         public let output: Double
         public let total: Double
-        
+
         public init(input: Double, output: Double) {
             self.input = input
             self.output = output
             self.total = input + output
         }
     }
-    
+
     public init(inputTokens: Int, outputTokens: Int, cost: Cost? = nil) {
         self.inputTokens = inputTokens
         self.outputTokens = outputTokens
@@ -258,13 +258,13 @@ public struct Usage: Sendable, Codable, Equatable {
 /// Reason why generation finished
 @available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
 public enum FinishReason: String, Sendable, Codable, CaseIterable {
-    case stop = "stop"
-    case length = "length"
+    case stop
+    case length
     case toolCalls = "tool_calls"
     case contentFilter = "content_filter"
-    case error = "error"
-    case cancelled = "cancelled"
-    case other = "other"
+    case error
+    case cancelled
+    case other
 }
 
 // MARK: - Image Input
@@ -289,7 +289,7 @@ public struct GenerationSettings: Sendable, Codable {
     public let frequencyPenalty: Double?
     public let presencePenalty: Double?
     public let stopSequences: [String]?
-    
+
     public init(
         maxTokens: Int? = nil,
         temperature: Double? = nil,
@@ -297,8 +297,8 @@ public struct GenerationSettings: Sendable, Codable {
         topK: Int? = nil,
         frequencyPenalty: Double? = nil,
         presencePenalty: Double? = nil,
-        stopSequences: [String]? = nil
-    ) {
+        stopSequences: [String]? = nil)
+    {
         self.maxTokens = maxTokens
         self.temperature = temperature
         self.topP = topP
@@ -307,6 +307,6 @@ public struct GenerationSettings: Sendable, Codable {
         self.presencePenalty = presencePenalty
         self.stopSequences = stopSequences
     }
-    
+
     public static let `default` = GenerationSettings()
 }

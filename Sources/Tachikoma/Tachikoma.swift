@@ -87,15 +87,15 @@ public enum Legacy {
     /// Legacy compatibility note
     @available(*, deprecated, message: "Use modern API with dependency injection instead")
     public static let compatibilityMessage = "Legacy types have been renamed with Legacy* prefix"
-    
+
     /// Legacy model provider (deprecated) - now available as LegacyAIModelProvider
     @available(*, deprecated, message: "Use Model enum and global functions instead")
     public static let modelProviderNote = "Use LegacyAIModelProvider directly"
-    
+
     /// Legacy model factory (deprecated) - now available as LegacyAIModelFactory
     @available(*, deprecated, message: "Use Model enum instead")
     public static let modelFactoryNote = "Use LegacyAIModelFactory directly"
-    
+
     /// Legacy configuration (deprecated) - now available as LegacyAIConfiguration
     @available(*, deprecated, message: "Use AIConfiguration.fromEnvironment() instead")
     public static let configurationNote = "Use LegacyAIConfiguration directly"
@@ -106,92 +106,91 @@ public enum Legacy {
 /// Summary of the modern Tachikoma API for documentation
 @available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
 public enum ModernAPI {
-    
     /// Core generation functions
     public enum Generation {
         /// Generate a response from a prompt
         /// - `generate(_ prompt: String, using model: Model?, ...) async throws -> String`
         public static let generate = "Global function for text generation"
-        
+
         /// Stream a response from a prompt
         /// - `stream(_ prompt: String, using model: Model?, ...) -> AsyncThrowingStream<StreamToken, Error>`
         public static let stream = "Global function for streaming generation"
-        
+
         /// Analyze an image with a prompt
         /// - `analyze(image: ImageInput, prompt: String, using model: Model?) async throws -> String`
         public static let analyze = "Global function for vision/multimodal generation"
     }
-    
+
     /// Model selection system
     public enum Models {
         /// Type-safe model selection
         /// - `.openai(.gpt4o)`, `.anthropic(.opus4)`, `.grok(.grok4)`, `.ollama(.llama3_3)`
         public static let typed = "Provider-specific model enums"
-        
+
         /// Custom endpoints
         /// - `.openRouter(modelId: String)`, `.openaiCompatible(modelId: String, baseURL: String)`
         public static let custom = "Support for OpenRouter and custom endpoints"
-        
+
         /// Model capabilities
         /// - `.supportsVision`, `.supportsTools`, `.supportsStreaming`
         public static let capabilities = "Automatic capability detection"
     }
-    
+
     /// Conversation management
     public enum Conversations {
         /// Fluent conversation building
         /// - `Conversation().system(...).user(...).continue(using: model)`
         public static let fluent = "Chainable conversation builder"
-        
+
         /// Multi-turn management
         /// - Automatic message history, tool call handling, response accumulation
         public static let management = "Built-in conversation state management"
-        
+
         /// Branching and copying
         /// - `.copy()`, `.branch(fromIndex:)`, `.merge(_:)`
         public static let branching = "Conversation branching and merging"
     }
-    
+
     /// Tool system
     public enum Tools {
         /// Result builder syntax
         /// - `@ToolKit struct MyTools { func myTool() async throws -> String }`
         public static let builder = "Declarative tool definitions with @ToolKit"
-        
+
         /// Manual tool creation
         /// - `tool(name: "example", description: "...", parameters: ...) { input, context in ... }`
         public static let manual = "Functional tool creation"
-        
+
         /// Automatic execution
         /// - Tool calls are automatically handled during conversation
         public static let execution = "Seamless tool integration"
     }
-    
+
     /// SwiftUI integration
     public enum SwiftUI {
         /// Property wrapper
         /// - `@AI(.claude, systemPrompt: "...") var assistant`
         public static let propertyWrapper = "Reactive AI assistant property wrapper"
-        
+
         /// Built-in chat UI
         /// - `.aiChat(model: .claude, isPresented: $showChat)`
         public static let chatUI = "Ready-to-use chat interface"
-        
+
         /// Observable state
         /// - Automatic UI updates, loading states, error handling
         public static let observable = "ObservableObject-based state management"
     }
-    
+
     /// CLI utilities
     public enum CLI {
         /// Smart model parsing
         /// - `ModelSelector.parseModel("claude")` → `.anthropic(.opus4)`
         public static let parsing = "Intelligent model string parsing with shortcuts"
-        
+
         /// Capability validation
         /// - `ModelSelector.validateModel(model, requiresVision: true)`
         public static let validation = "Model capability requirements validation"
-        
+
         /// Help generation
         /// - `getAllAvailableModels()` for comprehensive CLI help
         public static let help = "Automatic CLI help and model listing"
@@ -203,7 +202,6 @@ public enum ModernAPI {
 /// Migration guide from legacy API to modern API
 @available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
 public enum MigrationGuide {
-    
     /// Legacy: `Tachikoma.shared.getModel("gpt-4").getResponse(request)`
     /// Modern: `generate("Hello", using: .openai(.gpt4o))`
     public static let simpleGeneration = """
@@ -211,11 +209,11 @@ public enum MigrationGuide {
     let model = try await Tachikoma.shared.getModel("gpt-4")
     let request = ModelRequest(messages: [.user(content: .text("Hello"))], settings: .default)
     let response = try await model.getResponse(request: request)
-    
+
     // NEW (modern)
     let response = try await generate("Hello", using: .openai(.gpt4o))
     """
-    
+
     /// Legacy: Complex ModelRequest/ModelResponse handling
     /// Modern: Fluent conversation management
     public static let conversations = """
@@ -225,14 +223,14 @@ public enum MigrationGuide {
     let request = ModelRequest(messages: messages, settings: .default)
     let response = try await model.getResponse(request: request)
     messages.append(.assistant(content: response.content))
-    
+
     // NEW (modern)
     let conversation = Conversation()
         .system("You are helpful")
         .user("Hello")
     let response = try await conversation.continue(using: .claude)
     """
-    
+
     /// Legacy: Manual tool definitions
     /// Modern: @ToolKit result builder
     public static let tools = """
@@ -243,7 +241,7 @@ public enum MigrationGuide {
     )
     let tools = [toolDef]
     let request = ModelRequest(messages: messages, tools: tools, settings: .default)
-    
+
     // NEW (modern)
     @ToolKit
     struct MyTools {
@@ -251,21 +249,21 @@ public enum MigrationGuide {
             return "Sunny, 22°C"
         }
     }
-    
+
     let response = try await generate("Weather in Tokyo", using: .claude, tools: MyTools())
     """
-    
+
     /// Legacy: Manual SwiftUI state management
     /// Modern: @AI property wrapper
     public static let swiftUI = """
     // OLD (deprecated)
     @StateObject private var viewModel = ChatViewModel()
     // Manual message management, loading states, error handling...
-    
+
     // NEW (modern)
     @AI(.claude, systemPrompt: "You are helpful")
     var assistant
-    
+
     // Automatic state management, built-in chat UI, reactive updates
     """
 }
@@ -274,5 +272,5 @@ public enum MigrationGuide {
 @available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
 public func checkMigrationNeeded() -> Bool {
     // In a real implementation, this could check for deprecated API usage
-    return false
+    false
 }

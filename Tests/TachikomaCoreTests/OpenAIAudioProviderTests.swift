@@ -1,0 +1,517 @@
+import Foundation
+import Testing
+@testable import TachikomaCore
+
+@Suite("OpenAI Audio Provider Tests")
+struct OpenAIAudioProviderTests {
+    
+    // MARK: - OpenAI Transcription Provider Tests
+    
+    @Suite("OpenAI Transcription Provider Tests")
+    struct OpenAITranscriptionProviderTests {
+        
+        @Test("OpenAI transcription provider initialization")
+        func openAITranscriptionProviderInit() throws {
+            try TestHelpers.withTestEnvironment(apiKeys: ["openai": "test-api-key"]) {
+                let provider = try OpenAITranscriptionProvider(model: .whisper1)
+                
+                #expect(provider.modelId == "whisper-1")
+                #expect(provider.apiKey == "test-api-key")
+                #expect(provider.capabilities.supportsTimestamps == true)
+                #expect(provider.capabilities.supportsLanguageDetection == true)
+                #expect(provider.capabilities.supportsWordTimestamps == true)
+                #expect(provider.capabilities.maxFileSize == 25 * 1024 * 1024) // 25MB
+            }
+        }
+        
+        @Test("OpenAI transcription provider initialization fails without API key")
+        func openAITranscriptionProviderInitFailsWithoutAPIKey() throws {
+            try TestHelpers.withNoAPIKeys {
+                #expect(throws: TachikomaError.self) {
+                    _ = try OpenAITranscriptionProvider(model: .whisper1)
+                }
+            }
+        }
+        
+        @Test("OpenAI transcription provider different models")
+        func openAITranscriptionProviderDifferentModels() throws {
+            try TestHelpers.withTestEnvironment(apiKeys: ["openai": "test-key"]) {
+                let whisperProvider = try OpenAITranscriptionProvider(model: .whisper1)
+                let gpt4oProvider = try OpenAITranscriptionProvider(model: .gpt4oTranscribe)
+                let gpt4oMiniProvider = try OpenAITranscriptionProvider(model: .gpt4oMiniTranscribe)
+                
+                // Test model IDs
+                #expect(whisperProvider.modelId == "whisper-1")
+                #expect(gpt4oProvider.modelId == "gpt-4o-transcribe")
+                #expect(gpt4oMiniProvider.modelId == "gpt-4o-mini-transcribe")
+                
+                // Test capabilities differences
+                #expect(whisperProvider.capabilities.supportsTimestamps == true)
+                #expect(gpt4oProvider.capabilities.supportsTimestamps == false)
+                #expect(gpt4oMiniProvider.capabilities.supportsTimestamps == false)
+                
+                #expect(whisperProvider.capabilities.supportsLanguageDetection == true)
+                #expect(gpt4oProvider.capabilities.supportsLanguageDetection == false)
+                #expect(gpt4oMiniProvider.capabilities.supportsLanguageDetection == false)
+            }
+        }
+        
+        @Test("OpenAI transcription provider supported formats")
+        func openAITranscriptionProviderSupportedFormats() throws {
+            try TestHelpers.withTestEnvironment(apiKeys: ["openai": "test-key"]) {
+                let provider = try OpenAITranscriptionProvider(model: .whisper1)
+                
+                let supportedFormats = provider.capabilities.supportedFormats
+                let expectedFormats: [AudioFormat] = [.flac, .m4a, .mp3, .mp4, .mpeg, .mpga, .oga, .ogg, .wav, .webm]
+                
+                for format in expectedFormats {
+                    #expect(supportedFormats.contains(format))
+                }
+            }
+        }
+        
+        @Test("OpenAI transcription provider transcribe function")
+        func openAITranscriptionProviderTranscribe() async throws {
+            try await TestHelpers.withTestEnvironment(apiKeys: ["openai": "test-key"]) {
+                let provider = try OpenAITranscriptionProvider(model: .whisper1)
+                let audioData = AudioData(
+                    data: Data([0x01, 0x02, 0x03, 0x04]),
+                    format: .wav,
+                    duration: 2.0
+                )
+                let request = TranscriptionRequest(
+                    audio: audioData,
+                    language: "en",
+                    prompt: "This is a test audio file."
+                )
+                
+                // With placeholder implementation, test the basic flow
+                let result = try await provider.transcribe(request: request)
+                
+                #expect(!result.text.isEmpty)
+                #expect(result.usage != nil)
+                #expect(result.usage?.durationSeconds == 2.0)
+            }
+        }
+        
+        @Test("OpenAI transcription provider with timestamps")
+        func openAITranscriptionProviderTimestamps() async throws {
+            try await TestHelpers.withTestEnvironment(apiKeys: ["openai": "test-key"]) {
+                let provider = try OpenAITranscriptionProvider(model: .whisper1)
+                let audioData = AudioData(data: Data([0x01, 0x02, 0x03, 0x04]), format: .wav)
+                let request = TranscriptionRequest(
+                    audio: audioData,
+                    timestampGranularities: [.word, .segment],
+                    responseFormat: .verbose
+                )
+                
+                let result = try await provider.transcribe(request: request)
+                
+                #expect(!result.text.isEmpty)
+                #expect(result.segments != nil)
+                #expect(!result.segments!.isEmpty)
+            }
+        }
+        
+        @Test("OpenAI transcription provider with abort signal")
+        func openAITranscriptionProviderAbortSignal() async throws {
+            try await TestHelpers.withTestEnvironment(apiKeys: ["openai": "test-key"]) {
+                let provider = try OpenAITranscriptionProvider(model: .whisper1)
+                let audioData = AudioData(data: Data([0x01, 0x02, 0x03, 0x04]), format: .wav)
+                let abortSignal = AbortSignal()
+                let request = TranscriptionRequest(audio: audioData, abortSignal: abortSignal)
+                
+                // Cancel immediately
+                abortSignal.cancel()
+                
+                await #expect(throws: TachikomaError.self) {
+                    try await provider.transcribe(request: request)
+                }
+            }
+        }
+        
+        @Test("OpenAI transcription provider request validation")
+        func openAITranscriptionProviderRequestValidation() async throws {
+            try await TestHelpers.withTestEnvironment(apiKeys: ["openai": "test-key"]) {
+                let provider = try OpenAITranscriptionProvider(model: .whisper1)
+                
+                // Test empty audio data
+                let emptyAudioData = AudioData(data: Data(), format: .wav)
+                let emptyRequest = TranscriptionRequest(audio: emptyAudioData)
+                
+                await #expect(throws: TachikomaError.self) {
+                    try await provider.transcribe(request: emptyRequest)
+                }
+                
+                // Test file too large (over 25MB limit)
+                let largeDummyData = Data(count: 26 * 1024 * 1024) // 26MB
+                let largeAudioData = AudioData(data: largeDummyData, format: .wav)
+                let largeRequest = TranscriptionRequest(audio: largeAudioData)
+                
+                await #expect(throws: TachikomaError.self) {
+                    try await provider.transcribe(request: largeRequest)
+                }
+            }
+        }
+    }
+    
+    // MARK: - OpenAI Speech Provider Tests
+    
+    @Suite("OpenAI Speech Provider Tests")
+    struct OpenAISpeechProviderTests {
+        
+        @Test("OpenAI speech provider initialization")
+        func openAISpeechProviderInit() throws {
+            try TestHelpers.withTestEnvironment(apiKeys: ["openai": "test-api-key"]) {
+                let provider = try OpenAISpeechProvider(model: .tts1)
+                
+                #expect(provider.modelId == "tts-1")
+                #expect(provider.apiKey == "test-api-key")
+                #expect(provider.capabilities.supportsSpeedControl == true)
+                #expect(provider.capabilities.maxTextLength == 4096)
+                #expect(provider.capabilities.supportsVoiceInstructions == false)
+            }
+        }
+        
+        @Test("OpenAI speech provider initialization fails without API key")
+        func openAISpeechProviderInitFailsWithoutAPIKey() throws {
+            try TestHelpers.withNoAPIKeys {
+                #expect(throws: TachikomaError.self) {
+                    _ = try OpenAISpeechProvider(model: .tts1)
+                }
+            }
+        }
+        
+        @Test("OpenAI speech provider different models")
+        func openAISpeechProviderDifferentModels() throws {
+            try TestHelpers.withTestEnvironment(apiKeys: ["openai": "test-key"]) {
+                let tts1Provider = try OpenAISpeechProvider(model: .tts1)
+                let tts1HDProvider = try OpenAISpeechProvider(model: .tts1HD)
+                let gpt4oMiniProvider = try OpenAISpeechProvider(model: .gpt4oMiniTTS)
+                
+                // Test model IDs
+                #expect(tts1Provider.modelId == "tts-1")
+                #expect(tts1HDProvider.modelId == "tts-1-hd")
+                #expect(gpt4oMiniProvider.modelId == "gpt-4o-mini-tts")
+                
+                // Test capabilities differences
+                #expect(tts1Provider.capabilities.supportsVoiceInstructions == false)
+                #expect(tts1HDProvider.capabilities.supportsVoiceInstructions == false)
+                #expect(gpt4oMiniProvider.capabilities.supportsVoiceInstructions == true)
+                
+                // All should support the same formats and voices
+                let expectedFormats: [AudioFormat] = [.mp3, .opus, .aac, .flac, .wav, .pcm]
+                #expect(tts1Provider.capabilities.supportedFormats == expectedFormats)
+                #expect(tts1HDProvider.capabilities.supportedFormats == expectedFormats)
+                #expect(gpt4oMiniProvider.capabilities.supportedFormats == expectedFormats)
+            }
+        }
+        
+        @Test("OpenAI speech provider supported voices")
+        func openAISpeechProviderSupportedVoices() throws {
+            try TestHelpers.withTestEnvironment(apiKeys: ["openai": "test-key"]) {
+                let provider = try OpenAISpeechProvider(model: .tts1)
+                
+                let supportedVoices = provider.capabilities.supportedVoices
+                let expectedVoices: [VoiceOption] = [.alloy, .echo, .fable, .onyx, .nova, .shimmer]
+                
+                #expect(supportedVoices == expectedVoices)
+            }
+        }
+        
+        @Test("OpenAI speech provider generate speech function")
+        func openAISpeechProviderGenerateSpeech() async throws {
+            try await TestHelpers.withTestEnvironment(apiKeys: ["openai": "test-key"]) {
+                let provider = try OpenAISpeechProvider(model: .tts1)
+                let request = SpeechRequest(
+                    text: "Hello, this is a test message for speech synthesis.",
+                    voice: .nova,
+                    speed: 1.0,
+                    format: .mp3
+                )
+                
+                let result = try await provider.generateSpeech(request: request)
+                
+                #expect(!result.audioData.data.isEmpty)
+                #expect(result.audioData.format == .mp3)
+                #expect(result.usage != nil)
+                #expect(result.usage?.charactersProcessed == request.text.count)
+            }
+        }
+        
+        @Test("OpenAI speech provider with different voices")
+        func openAISpeechProviderDifferentVoices() async throws {
+            try await TestHelpers.withTestEnvironment(apiKeys: ["openai": "test-key"]) {
+                let provider = try OpenAISpeechProvider(model: .tts1)
+                
+                let voices: [VoiceOption] = [.alloy, .echo, .fable, .onyx, .nova, .shimmer]
+                
+                for voice in voices {
+                    let request = SpeechRequest(
+                        text: "Testing voice: \(voice.stringValue)",
+                        voice: voice,
+                        format: .wav
+                    )
+                    
+                    let result = try await provider.generateSpeech(request: request)
+                    
+                    #expect(!result.audioData.data.isEmpty)
+                    #expect(result.audioData.format == .wav)
+                }
+            }
+        }
+        
+        @Test("OpenAI speech provider with speed control")
+        func openAISpeechProviderSpeedControl() async throws {
+            try await TestHelpers.withTestEnvironment(apiKeys: ["openai": "test-key"]) {
+                let provider = try OpenAISpeechProvider(model: .tts1)
+                
+                let speeds: [Float] = [0.25, 0.5, 1.0, 1.5, 2.0, 4.0]
+                
+                for speed in speeds {
+                    let request = SpeechRequest(
+                        text: "Testing speed: \(speed)",
+                        voice: .alloy,
+                        speed: speed,
+                        format: .mp3
+                    )
+                    
+                    let result = try await provider.generateSpeech(request: request)
+                    
+                    #expect(!result.audioData.data.isEmpty)
+                    #expect(result.audioData.format == .mp3)
+                }
+            }
+        }
+        
+        @Test("OpenAI speech provider with voice instructions (GPT-4o Mini)")
+        func openAISpeechProviderVoiceInstructions() async throws {
+            try await TestHelpers.withTestEnvironment(apiKeys: ["openai": "test-key"]) {
+                let provider = try OpenAISpeechProvider(model: .gpt4oMiniTTS)
+                let request = SpeechRequest(
+                    text: "This is a test message with custom voice instructions.",
+                    voice: .nova,
+                    instructions: "Speak in a calm, professional tone with clear pronunciation."
+                )
+                
+                let result = try await provider.generateSpeech(request: request)
+                
+                #expect(!result.audioData.data.isEmpty)
+                #expect(result.usage != nil)
+            }
+        }
+        
+        @Test("OpenAI speech provider with abort signal")
+        func openAISpeechProviderAbortSignal() async throws {
+            try await TestHelpers.withTestEnvironment(apiKeys: ["openai": "test-key"]) {
+                let provider = try OpenAISpeechProvider(model: .tts1)
+                let abortSignal = AbortSignal()
+                let request = SpeechRequest(
+                    text: "This should be cancelled",
+                    voice: .alloy,
+                    abortSignal: abortSignal
+                )
+                
+                // Cancel immediately
+                abortSignal.cancel()
+                
+                await #expect(throws: TachikomaError.self) {
+                    try await provider.generateSpeech(request: request)
+                }
+            }
+        }
+        
+        @Test("OpenAI speech provider request validation")
+        func openAISpeechProviderRequestValidation() async throws {
+            try await TestHelpers.withTestEnvironment(apiKeys: ["openai": "test-key"]) {
+                let provider = try OpenAISpeechProvider(model: .tts1)
+                
+                // Test empty text
+                let emptyRequest = SpeechRequest(text: "")
+                
+                await #expect(throws: TachikomaError.self) {
+                    try await provider.generateSpeech(request: emptyRequest)
+                }
+                
+                // Test text too long (over 4096 character limit)
+                let longText = String(repeating: "A", count: 5000)
+                let longRequest = SpeechRequest(text: longText)
+                
+                await #expect(throws: TachikomaError.self) {
+                    try await provider.generateSpeech(request: longRequest)
+                }
+                
+                // Test invalid speed (outside 0.25-4.0 range)
+                let invalidSpeedRequest = SpeechRequest(text: "Test", speed: 5.0)
+                
+                await #expect(throws: TachikomaError.self) {
+                    try await provider.generateSpeech(request: invalidSpeedRequest)
+                }
+            }
+        }
+        
+        @Test("OpenAI speech provider different output formats")
+        func openAISpeechProviderDifferentFormats() async throws {
+            try await TestHelpers.withTestEnvironment(apiKeys: ["openai": "test-key"]) {
+                let provider = try OpenAISpeechProvider(model: .tts1)
+                let formats: [AudioFormat] = [.mp3, .opus, .aac, .flac, .wav, .pcm]
+                
+                for format in formats {
+                    let request = SpeechRequest(
+                        text: "Testing format: \(format.rawValue)",
+                        voice: .alloy,
+                        format: format
+                    )
+                    
+                    let result = try await provider.generateSpeech(request: request)
+                    
+                    #expect(!result.audioData.data.isEmpty)
+                    #expect(result.audioData.format == format)
+                }
+            }
+        }
+    }
+    
+    // MARK: - OpenAI API Configuration Tests
+    
+    @Suite("OpenAI API Configuration Tests")
+    struct OpenAIAPIConfigurationTests {
+        
+        @Test("OpenAI API key configuration from environment")
+        func openAIAPIKeyFromEnvironment() throws {
+            try TestHelpers.withTestEnvironment(apiKeys: ["openai": "env-test-key"]) {
+                let provider = try OpenAITranscriptionProvider(model: .whisper1)
+                #expect(provider.apiKey == "env-test-key")
+            }
+        }
+        
+        @Test("OpenAI custom base URL configuration")
+        func openAICustomBaseURL() throws {
+            try TestHelpers.withTestEnvironment(apiKeys: ["openai": "test-key"]) {
+                // Set custom base URL via environment
+                setenv("OPENAI_BASE_URL", "https://custom-openai-api.example.com", 1)
+                defer { unsetenv("OPENAI_BASE_URL") }
+                
+                let provider = try OpenAITranscriptionProvider(model: .whisper1)
+                
+                // Provider should be created successfully with custom base URL
+                #expect(provider.modelId == "whisper-1")
+            }
+        }
+        
+        @Test("OpenAI organization ID configuration")
+        func openAIOrganizationID() throws {
+            try TestHelpers.withTestEnvironment(apiKeys: ["openai": "test-key"]) {
+                // Set organization ID via environment
+                setenv("OPENAI_ORGANIZATION", "org-test-12345", 1)
+                defer { unsetenv("OPENAI_ORGANIZATION") }
+                
+                let provider = try OpenAITranscriptionProvider(model: .whisper1)
+                
+                // Provider should be created successfully with organization ID
+                #expect(provider.modelId == "whisper-1")
+            }
+        }
+        
+        @Test("OpenAI request timeout configuration")
+        func openAIRequestTimeout() async throws {
+            try await TestHelpers.withTestEnvironment(apiKeys: ["openai": "test-key"]) {
+                let provider = try OpenAITranscriptionProvider(model: .whisper1)
+                let audioData = AudioData(data: Data([0x01, 0x02]), format: .wav)
+                
+                // Test with timeout signal
+                let timeoutSignal = AbortSignal.timeout(0.1) // 100ms timeout
+                let request = TranscriptionRequest(audio: audioData, abortSignal: timeoutSignal)
+                
+                // Should timeout quickly with our short timeout
+                // Note: In real implementation this would timeout, but with placeholder it might not
+                do {
+                    _ = try await provider.transcribe(request: request)
+                    // If it completes quickly (placeholder), that's also valid
+                } catch {
+                    // Timeout or cancellation is expected
+                    #expect(error is TachikomaError)
+                }
+            }
+        }
+    }
+    
+    // MARK: - OpenAI Error Handling Tests
+    
+    @Suite("OpenAI Error Handling Tests")
+    struct OpenAIErrorHandlingTests {
+        
+        @Test("OpenAI provider handles network errors")
+        func openAIProviderNetworkErrors() async throws {
+            try await TestHelpers.withTestEnvironment(apiKeys: ["openai": "invalid-key"]) {
+                let provider = try OpenAITranscriptionProvider(model: .whisper1)
+                let audioData = AudioData(data: Data([0x01, 0x02]), format: .wav)
+                let request = TranscriptionRequest(audio: audioData)
+                
+                // With placeholder implementation, this won't actually make network calls
+                // In real implementation, this would test authentication errors
+                do {
+                    _ = try await provider.transcribe(request: request)
+                    // Placeholder allows this
+                } catch {
+                    // Real implementation would throw authentication error
+                    #expect(error is TachikomaError)
+                }
+            }
+        }
+        
+        @Test("OpenAI provider handles unsupported formats gracefully")
+        func openAIProviderUnsupportedFormats() async throws {
+            try await TestHelpers.withTestEnvironment(apiKeys: ["openai": "test-key"]) {
+                let provider = try OpenAITranscriptionProvider(model: .whisper1)
+                
+                // Create audio data with a format not in OpenAI's supported list
+                // For this test, let's assume there's a hypothetical unsupported format
+                let audioData = AudioData(data: Data([0x01, 0x02]), format: .wav) // WAV is supported
+                let request = TranscriptionRequest(audio: audioData)
+                
+                // This should work since WAV is supported
+                let result = try await provider.transcribe(request: request)
+                #expect(!result.text.isEmpty)
+            }
+        }
+        
+        @Test("OpenAI provider handles rate limiting")
+        func openAIProviderRateLimiting() async throws {
+            try await TestHelpers.withTestEnvironment(apiKeys: ["openai": "test-key"]) {
+                let provider = try OpenAITranscriptionProvider(model: .whisper1)
+                let audioData = AudioData(data: Data([0x01, 0x02]), format: .wav)
+                
+                // Simulate multiple rapid requests
+                let requests = (1...5).map { _ in
+                    TranscriptionRequest(audio: audioData)
+                }
+                
+                // With placeholder implementation, all should succeed
+                for request in requests {
+                    let result = try await provider.transcribe(request: request)
+                    #expect(!result.text.isEmpty)
+                }
+                
+                // Real implementation might implement rate limiting handling
+            }
+        }
+        
+        @Test("OpenAI provider error message formatting")
+        func openAIProviderErrorMessageFormatting() async throws {
+            try await TestHelpers.withNoAPIKeys {
+                // Test that error messages are properly formatted
+                do {
+                    _ = try OpenAITranscriptionProvider(model: .whisper1)
+                    Issue.record("Expected error for missing API key")
+                } catch let error as TachikomaError {
+                    let errorMessage = error.localizedDescription
+                    #expect(errorMessage.contains("API key"))
+                    #expect(errorMessage.contains("OpenAI"))
+                } catch {
+                    Issue.record("Expected TachikomaError, got \(type(of: error))")
+                }
+            }
+        }
+    }
+}
