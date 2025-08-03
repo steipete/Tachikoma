@@ -11,6 +11,7 @@
 </p>
 
   **A Modern Swift AI SDK that makes AI integration feel natural**
+  
   Named after the spider-tank AI from Ghost in the Shell, **Tachikoma** provides an intelligent, adaptable interface for AI services with a completely modern Swift-native API
 </div>
 
