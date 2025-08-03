@@ -94,12 +94,14 @@ public struct AgentRunner {
         input: String,
         context: Context,
         model: (any ModelInterface)? = nil,
+        modelProvider: AIModelProvider? = nil,
         sessionId: String? = nil
     ) async throws -> AgentExecutionResult where Context: Sendable {
         let runner = AgentRunnerImpl(
             agent: agent,
             context: context,
-            model: model
+            model: model,
+            modelProvider: modelProvider
         )
         
         return try await runner.run(input: input, sessionId: sessionId)
@@ -111,6 +113,7 @@ public struct AgentRunner {
         input: String,
         context: Context,
         model: (any ModelInterface)? = nil,
+        modelProvider: AIModelProvider? = nil,
         sessionId: String? = nil,
         streamHandler: @Sendable @escaping (String) async -> Void,
         eventHandler: (@Sendable (ToolExecutionEvent) async -> Void)? = nil,
@@ -119,7 +122,8 @@ public struct AgentRunner {
         let runner = AgentRunnerImpl(
             agent: agent,
             context: context,
-            model: model
+            model: model,
+            modelProvider: modelProvider
         )
         
         return try await runner.runStreaming(
@@ -139,11 +143,13 @@ private actor AgentRunnerImpl<Context> where Context: Sendable {
     let agent: PeekabooAgent<Context>
     let context: Context
     let model: (any ModelInterface)?
+    let modelProvider: AIModelProvider?
     
-    init(agent: PeekabooAgent<Context>, context: Context, model: (any ModelInterface)? = nil) {
+    init(agent: PeekabooAgent<Context>, context: Context, model: (any ModelInterface)? = nil, modelProvider: AIModelProvider? = nil) {
         self.agent = agent
         self.context = context
         self.model = model
+        self.modelProvider = modelProvider
     }
     
     func run(input: String, sessionId: String? = nil) async throws -> AgentExecutionResult {
@@ -248,8 +254,12 @@ private actor AgentRunnerImpl<Context> where Context: Sendable {
             return model
         }
         
+        guard let modelProvider = modelProvider else {
+            throw TachikomaError.modelNotFound("No model provider available")
+        }
+        
         let modelName = agent.modelSettings.modelName
-        return try await Tachikoma.shared.getModel(modelName)
+        return try modelProvider.getModel(modelName)
     }
     
     private func extractContent(from content: [AssistantContent]) -> String {
