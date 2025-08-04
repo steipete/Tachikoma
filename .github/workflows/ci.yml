@@ -17,7 +17,7 @@ jobs:
     
     strategy:
       matrix:
-        os: [macos-14, macos-15, macos-latest]  # TODO: Add Linux/Windows after fixing URLSession compatibility
+        os: [macos-14, macos-15, macos-latest, ubuntu-22.04]  # Windows still needs work
         swift-version: ['6.0']
         
     steps:
@@ -81,7 +81,7 @@ jobs:
     
     strategy:
       matrix:
-        os: [macos-latest]  # TODO: Add Linux/Windows after fixing cross-platform issues
+        os: [macos-latest, ubuntu-22.04]  # Windows still needs work
     
     steps:
     - name: Checkout
