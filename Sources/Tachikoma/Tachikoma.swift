@@ -40,19 +40,8 @@ import Foundation
 // var assistant
 // ```
 
-// Core functionality
-@_exported import TachikomaCore
-
-// Result builders and DSL
-@_exported import TachikomaBuilders
-
-// SwiftUI integration - TEMPORARILY DISABLED
-// #if canImport(SwiftUI)
-// @_exported import TachikomaUI
-// #endif
-
-// CLI utilities
-@_exported import TachikomaCLI
+// All functionality is now included directly in the Tachikoma module
+// No need for internal imports since everything is in the same target
 
 // MARK: - Convenience API
 

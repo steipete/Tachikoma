@@ -1,6 +1,6 @@
 import Foundation
 import Testing
-@testable import TachikomaCore
+@testable import Tachikoma
 
 @Suite("Audio Providers Tests")
 struct AudioProvidersTests {

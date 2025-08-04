@@ -1,6 +1,6 @@
 import Foundation
 import Testing
-@testable import TachikomaCore
+@testable import Tachikoma
 
 @Suite("Generation Function Tests")
 struct GenerationTests {

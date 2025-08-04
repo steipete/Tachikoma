@@ -12,89 +12,25 @@ let package = Package(
         .tvOS(.v17),
     ],
     products: [
-        // Main unified library that exports all modules
+        // Unified Tachikoma library
         .library(
             name: "Tachikoma",
             targets: ["Tachikoma"]),
-        // Individual modules for selective imports
-        .library(
-            name: "TachikomaCore",
-            targets: ["TachikomaCore"]),
-        .library(
-            name: "TachikomaBuilders",
-            targets: ["TachikomaBuilders"]),
-        .library(
-            name: "TachikomaCLI",
-            targets: ["TachikomaCLI"]),
     ],
     dependencies: [
         .package(url: "https://github.com/apple/swift-log.git", from: "1.0.0"),
     ],
     targets: [
-        // Core module - fundamental types and generation functions
-        .target(
-            name: "TachikomaCore",
-            dependencies: [
-                .product(name: "Logging", package: "swift-log"),
-            ],
-            path: "Sources/TachikomaCore",
-            swiftSettings: commonSwiftSettings),
-
-        // Builders module - result builders and DSL patterns
-        .target(
-            name: "TachikomaBuilders",
-            dependencies: [
-                "TachikomaCore",
-            ],
-            path: "Sources/TachikomaBuilders",
-            swiftSettings: commonSwiftSettings),
-
-
-        // CLI module - command-line utilities and model selection
-        .target(
-            name: "TachikomaCLI",
-            dependencies: [
-                "TachikomaCore",
-            ],
-            path: "Sources/TachikomaCLI",
-            swiftSettings: commonSwiftSettings),
-
-        // Main umbrella module that re-exports everything
+        // Unified Tachikoma module with all functionality
         .target(
             name: "Tachikoma",
             dependencies: [
-                "TachikomaCore",
-                "TachikomaBuilders",
-                "TachikomaCLI",
+                .product(name: "Logging", package: "swift-log"),
             ],
             path: "Sources/Tachikoma",
             swiftSettings: commonSwiftSettings),
 
-        // Test targets
-        .testTarget(
-            name: "TachikomatCoreTests",
-            dependencies: [
-                "TachikomaCore",
-                .product(name: "Logging", package: "swift-log"),
-            ],
-            path: "Tests/TachikomaCoreTests",
-            swiftSettings: commonSwiftSettings),
-        .testTarget(
-            name: "TachikomatBuildersTests",
-            dependencies: [
-                "TachikomaBuilders",
-                "TachikomaCore",
-            ],
-            path: "Tests/TachikomaBuildersTests",
-            swiftSettings: commonSwiftSettings),
-        .testTarget(
-            name: "TachikomaCLITests",
-            dependencies: [
-                "TachikomaCLI",
-                "TachikomaCore",
-            ],
-            path: "Tests/TachikomaCLITests",
-            swiftSettings: commonSwiftSettings),
+        // Unified test target
         .testTarget(
             name: "TachikomaTests",
             dependencies: [

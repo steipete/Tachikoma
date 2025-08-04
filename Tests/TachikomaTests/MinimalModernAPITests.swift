@@ -1,7 +1,7 @@
 import Foundation
 import Testing
-@testable import TachikomaBuilders
-@testable import TachikomaCore
+@testable import Tachikoma
+@testable import Tachikoma
 
 @Suite("Minimal Modern API Tests")
 struct MinimalModernAPITests {

@@ -1,7 +1,7 @@
 #if false // Disable this test file - it references non-existent types like SpeechRecognizer
 import Foundation
 import Testing
-@testable import TachikomaCore
+@testable import Tachikoma
 
 @Suite("Audio System Integration Tests")
 struct AudioSystemIntegrationTests {

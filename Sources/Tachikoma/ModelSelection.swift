@@ -1,5 +1,4 @@
 import Foundation
-import TachikomaCore
 
 // MARK: - CLI Model Selection
 

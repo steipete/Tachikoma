@@ -1,7 +1,7 @@
 import Testing
-@testable import TachikomaBuilders
+@testable import Tachikoma
 
-@Suite("TachikomaBuilders Placeholder Tests")
+@Suite("TachikomaCLI Placeholder Tests")
 struct PlaceholderTests {
     @Test("Placeholder test")
     func placeholderTest() {

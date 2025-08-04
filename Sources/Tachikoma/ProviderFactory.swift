@@ -810,6 +810,405 @@ struct OllamaErrorResponse: Codable {
     let error: String
 }
 
+// MARK: - OpenAI-Compatible Helper
+
+/// Shared helper for OpenAI-compatible APIs (OpenAI, Grok, etc.)
+@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+struct OpenAICompatibleHelper {
+    static func generateText(
+        request: ProviderRequest,
+        modelId: String,
+        baseURL: String,
+        apiKey: String,
+        providerName: String,
+        additionalHeaders: [String: String] = [:]
+    ) async throws -> ProviderResponse {
+        let url = URL(string: "\(baseURL)/chat/completions")!
+        var urlRequest = URLRequest(url: url)
+        urlRequest.httpMethod = "POST"
+        urlRequest.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+        urlRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
+
+        // Add any additional headers (for specific providers)
+        for (key, value) in additionalHeaders {
+            urlRequest.setValue(value, forHTTPHeaderField: key)
+        }
+
+        // Convert request to OpenAI-compatible format
+        let openAIRequest = try OpenAIChatRequest(
+            model: modelId,
+            messages: try convertMessages(request.messages),
+            temperature: request.settings.temperature,
+            maxTokens: request.settings.maxTokens,
+            tools: try convertTools(request.tools),
+            stream: nil
+        )
+
+        let jsonData = try JSONEncoder().encode(openAIRequest)
+        urlRequest.httpBody = jsonData
+
+        // Debug: Print the JSON being sent (only in verbose mode)
+        if
+            let jsonString = String(data: jsonData, encoding: .utf8),
+            ProcessInfo.processInfo.arguments.contains("--verbose") ||
+                ProcessInfo.processInfo.arguments.contains("-v")
+        {
+            print("DEBUG: \(providerName) API Request JSON:")
+            print(jsonString)
+        }
+
+        let (data, response) = try await URLSession.shared.data(for: urlRequest)
+
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw TachikomaError.networkError(NSError(domain: "Invalid response", code: 0))
+        }
+
+        if httpResponse.statusCode != 200 {
+            if let errorData = try? JSONDecoder().decode(OpenAIErrorResponse.self, from: data) {
+                throw TachikomaError.apiError("\(providerName) API Error: \(errorData.error.message)")
+            } else {
+                let responseBody = String(data: data, encoding: .utf8) ?? "Unknown error"
+                throw TachikomaError.apiError("\(providerName) API Error: HTTP \(httpResponse.statusCode) - \(responseBody)")
+            }
+        }
+
+        // Debug: Log raw API response in verbose mode
+        if
+            ProcessInfo.processInfo.arguments.contains("--verbose") ||
+                ProcessInfo.processInfo.arguments.contains("-v")
+        {
+            if let responseString = String(data: data, encoding: .utf8) {
+                print("DEBUG ProviderFactory: Raw \(providerName) API Response:")
+                print(responseString)
+            }
+        }
+
+        let openAIResponse = try JSONDecoder().decode(OpenAIChatResponse.self, from: data)
+
+        // Convert response back to ProviderResponse format
+        let choice = openAIResponse.choices.first ?? OpenAIChatResponse.Choice(
+            index: 0,
+            message: OpenAIChatResponse.Message(role: "assistant", content: "No response", toolCalls: nil),
+            finishReason: "error"
+        )
+
+        let usage = openAIResponse.usage.map {
+            Usage(
+                inputTokens: $0.promptTokens,
+                outputTokens: $0.completionTokens
+            )
+        }
+
+        return ProviderResponse(
+            text: choice.message.content ?? "",
+            usage: usage,
+            finishReason: convertFinishReason(choice.finishReason),
+            toolCalls: choice.message.toolCalls?.map { convertToolCall($0) }
+        )
+    }
+
+    static func streamText(
+        request: ProviderRequest,
+        modelId: String,
+        baseURL: String,
+        apiKey: String,
+        providerName: String,
+        additionalHeaders: [String: String] = [:]
+    ) async throws -> AsyncThrowingStream<TextStreamDelta, Error> {
+        let url = URL(string: "\(baseURL)/chat/completions")!
+        var urlRequestBuilder = URLRequest(url: url)
+        urlRequestBuilder.httpMethod = "POST"
+        urlRequestBuilder.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+        urlRequestBuilder.setValue("application/json", forHTTPHeaderField: "Content-Type")
+
+        // Add any additional headers (for specific providers)
+        for (key, value) in additionalHeaders {
+            urlRequestBuilder.setValue(value, forHTTPHeaderField: key)
+        }
+
+        // Convert request to OpenAI-compatible format with streaming enabled
+        let openAIRequest = try OpenAIChatRequest(
+            model: modelId,
+            messages: try convertMessages(request.messages),
+            temperature: request.settings.temperature,
+            maxTokens: request.settings.maxTokens,
+            tools: try convertTools(request.tools),
+            stream: true
+        )
+
+        let jsonData = try JSONEncoder().encode(openAIRequest)
+        urlRequestBuilder.httpBody = jsonData
+
+        let finalUrlRequest = urlRequestBuilder // Make it immutable
+
+        return AsyncThrowingStream { continuation in
+            Task {
+                do {
+                    let (bytes, response) = try await URLSession.shared.bytes(for: finalUrlRequest)
+
+                    guard let httpResponse = response as? HTTPURLResponse else {
+                        continuation.finish(throwing: TachikomaError.networkError(NSError(
+                            domain: "Invalid response",
+                            code: 0
+                        )))
+                        return
+                    }
+
+                    if httpResponse.statusCode != 200 {
+                        continuation.finish(throwing: TachikomaError.apiError("HTTP \(httpResponse.statusCode)"))
+                        return
+                    }
+
+                    for try await line in bytes.lines where line.hasPrefix("data: ") {
+                        let data = String(line.dropFirst(6))
+
+                        if data == "[DONE]" {
+                            continuation.yield(TextStreamDelta(type: .done))
+                            continuation.finish()
+                            return
+                        }
+
+                        if
+                            let chunkData = data.data(using: .utf8),
+                            let chunk = try? JSONDecoder().decode(OpenAIStreamChunk.self, from: chunkData)
+                        {
+                            if
+                                let choice = chunk.choices.first,
+                                let content = choice.delta.content
+                            {
+                                continuation.yield(TextStreamDelta(type: .textDelta, content: content))
+                            }
+                        }
+                    }
+
+                    continuation.finish()
+                } catch {
+                    continuation.finish(throwing: error)
+                }
+            }
+        }
+    }
+
+    // MARK: - Helper Methods
+
+    private static func convertMessages(_ messages: [ModelMessage]) throws -> [OpenAIChatMessage] {
+        try messages.map { message -> OpenAIChatMessage in
+            switch message.role {
+            case .system:
+                if
+                    let textContent = message.content.first,
+                    case let .text(text) = textContent
+                {
+                    return OpenAIChatMessage(role: "system", content: text)
+                }
+                throw TachikomaError.invalidInput("System message must have text content")
+
+            case .user:
+                if
+                    let textContent = message.content.first,
+                    case let .text(text) = textContent
+                {
+                    return OpenAIChatMessage(role: "user", content: text)
+                } else if message.content.count > 1 {
+                    // Multi-modal message
+                    let content = try message.content.map { part -> OpenAIChatMessageContent in
+                        switch part {
+                        case let .text(text):
+                            return .text(OpenAIChatMessageContent.TextContent(type: "text", text: text))
+                        case let .image(imageContent):
+                            return .imageUrl(OpenAIChatMessageContent.ImageUrlContent(
+                                type: "image_url",
+                                imageUrl: OpenAIChatMessageContent
+                                    .ImageUrl(url: "data:\(imageContent.mimeType);base64,\(imageContent.data)")
+                            ))
+                        default:
+                            throw TachikomaError.invalidInput("Unsupported content type")
+                        }
+                    }
+                    return OpenAIChatMessage(role: "user", content: content)
+                }
+                throw TachikomaError.invalidInput("User message must have content")
+
+            case .assistant:
+                // Extract text content
+                var textContent: String?
+                var toolCalls: [OpenAIChatMessage.ToolCall] = []
+
+                for part in message.content {
+                    switch part {
+                    case let .text(text):
+                        textContent = text
+                    case let .toolCall(toolCall):
+                        // Convert ToolArgument dictionary to JSON-serializable dictionary
+                        let serializableArgs = try convertToolArgumentsToSerializable(toolCall.arguments)
+                        let argumentsData = try JSONSerialization.data(withJSONObject: serializableArgs)
+                        let argumentsString = String(data: argumentsData, encoding: .utf8) ?? "{}"
+                        let openAIToolCall = OpenAIChatMessage.ToolCall(
+                            id: toolCall.id,
+                            type: "function",
+                            function: OpenAIChatMessage.ToolCall.Function(
+                                name: toolCall.name,
+                                arguments: argumentsString
+                            )
+                        )
+                        toolCalls.append(openAIToolCall)
+                    default:
+                        throw TachikomaError.invalidInput("Unsupported assistant message content type")
+                    }
+                }
+
+                if !toolCalls.isEmpty {
+                    // Assistant message with tool calls
+                    return OpenAIChatMessage(role: "assistant", content: textContent, toolCalls: toolCalls)
+                } else if let text = textContent {
+                    // Regular assistant message
+                    return OpenAIChatMessage(role: "assistant", content: text)
+                } else {
+                    throw TachikomaError.invalidInput("Assistant message must have text or tool call content")
+                }
+
+            case .tool:
+                if
+                    let toolResult = message.content.first,
+                    case let .toolResult(result) = toolResult
+                {
+                    // Convert ToolArgument to string
+                    let resultString: String = switch result.result {
+                    case let .string(str):
+                        str
+                    case let .int(int):
+                        String(int)
+                    case let .double(double):
+                        String(double)
+                    case let .bool(bool):
+                        String(bool)
+                    case .null:
+                        "null"
+                    case let .array(array):
+                        array.description
+                    case let .object(object):
+                        object.description
+                    }
+                    return OpenAIChatMessage(role: "tool", content: resultString, toolCallId: result.toolCallId)
+                }
+                throw TachikomaError.invalidInput("Tool message must have tool result content")
+            }
+        }
+    }
+
+    private static func convertTools(_ tools: [SimpleTool]?) throws -> [OpenAITool]? {
+        tools?.map { tool in
+            // Convert ToolParameters to OpenAI format
+            var properties: [String: Any] = [:]
+
+            for (paramName, paramProp) in tool.parameters.properties {
+                var propDict: [String: Any] = [:]
+
+                // Map parameter type
+                switch paramProp.type {
+                case .string:
+                    propDict["type"] = "string"
+                case .integer:
+                    propDict["type"] = "integer"
+                case .number:
+                    propDict["type"] = "number"
+                case .boolean:
+                    propDict["type"] = "boolean"
+                case .array:
+                    propDict["type"] = "array"
+                case .object:
+                    propDict["type"] = "object"
+                case .null:
+                    propDict["type"] = "null"
+                }
+
+                // Add description if available
+                if let description = paramProp.description {
+                    propDict["description"] = description
+                }
+
+                // Add enum values if available
+                if let enumValues = paramProp.enumValues {
+                    propDict["enum"] = enumValues
+                }
+
+                properties[paramName] = propDict
+            }
+
+            return OpenAITool(
+                type: "function",
+                function: OpenAITool.Function(
+                    name: tool.name,
+                    description: tool.description,
+                    parameters: [
+                        "type": "object",
+                        "properties": properties,
+                        "required": tool.parameters.required,
+                    ]
+                )
+            )
+        }
+    }
+
+    private static func convertToolArgumentsToSerializable(_ arguments: [String: ToolArgument]) throws -> [String: Any] {
+        var result: [String: Any] = [:]
+        for (key, value) in arguments {
+            result[key] = try convertToolArgumentToSerializable(value)
+        }
+        return result
+    }
+
+    private static func convertToolArgumentToSerializable(_ argument: ToolArgument) throws -> Any {
+        switch argument {
+        case let .string(str):
+            return str
+        case let .int(int):
+            return int
+        case let .double(double):
+            return double
+        case let .bool(bool):
+            return bool
+        case .null:
+            return NSNull()
+        case let .array(array):
+            return try array.map { try convertToolArgumentToSerializable($0) }
+        case let .object(object):
+            return try convertToolArgumentsToSerializable(object)
+        }
+    }
+
+    private static func convertFinishReason(_ reason: String?) -> FinishReason {
+        switch reason {
+        case "stop": .stop
+        case "length": .length
+        case "tool_calls": .toolCalls
+        case "content_filter": .contentFilter
+        default: .other
+        }
+    }
+
+    private static func convertToolCall(_ toolCall: OpenAIChatResponse.ToolCall) -> ToolCall {
+        // Parse arguments JSON string into ToolArgument dictionary
+        var arguments: [String: ToolArgument] = [:]
+        if
+            let argsData = toolCall.function.arguments.data(using: .utf8),
+            let argsDict = try? JSONSerialization.jsonObject(with: argsData) as? [String: Any]
+        {
+            for (key, value) in argsDict {
+                if let toolArg = try? ToolArgument.from(any: value) {
+                    arguments[key] = toolArg
+                }
+            }
+        }
+
+        return ToolCall(
+            id: toolCall.id,
+            name: toolCall.function.name,
+            arguments: arguments
+        )
+    }
+}
+
 // MARK: - Provider Factory
 
 /// Factory for creating model providers from LanguageModel enum
@@ -901,365 +1300,41 @@ public final class OpenAIProvider: ModelProvider {
     }
 
     public func generateText(request: ProviderRequest) async throws -> ProviderResponse {
-        let url = URL(string: "\(self.baseURL!)/chat/completions")!
-        var urlRequest = URLRequest(url: url)
-        urlRequest.httpMethod = "POST"
-        urlRequest.setValue("Bearer \(self.apiKey!)", forHTTPHeaderField: "Authorization")
-        urlRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
-
+        // Build OpenAI-specific headers
+        var additionalHeaders: [String: String] = [:]
         if let orgId = ProcessInfo.processInfo.environment["OPENAI_ORG_ID"] {
-            urlRequest.setValue(orgId, forHTTPHeaderField: "OpenAI-Organization")
+            additionalHeaders["OpenAI-Organization"] = orgId
         }
 
-        // Convert request to OpenAI format
-        let openAIRequest = try OpenAIChatRequest(
-            model: self.modelId,
-            messages: self.convertMessages(request.messages),
-            temperature: request.settings.temperature,
-            maxTokens: request.settings.maxTokens,
-            tools: self.convertTools(request.tools),
-            stream: nil
-        )
-
-        let jsonData = try JSONEncoder().encode(openAIRequest)
-        urlRequest.httpBody = jsonData
-
-        let (data, response) = try await URLSession.shared.data(for: urlRequest)
-
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw TachikomaError.networkError(NSError(domain: "Invalid response", code: 0))
-        }
-
-        if httpResponse.statusCode != 200 {
-            if let errorData = try? JSONDecoder().decode(OpenAIErrorResponse.self, from: data) {
-                throw TachikomaError.apiError("OpenAI API Error: \(errorData.error.message)")
-            } else {
-                throw TachikomaError.apiError("OpenAI API Error: HTTP \(httpResponse.statusCode)")
-            }
-        }
-
-        let openAIResponse = try JSONDecoder().decode(OpenAIChatResponse.self, from: data)
-
-        // Convert response back to ProviderResponse format
-        let choice = openAIResponse.choices.first ?? OpenAIChatResponse.Choice(
-            index: 0,
-            message: OpenAIChatResponse.Message(role: "assistant", content: "No response", toolCalls: nil),
-            finishReason: "error"
-        )
-
-        let usage = openAIResponse.usage.map {
-            Usage(
-                inputTokens: $0.promptTokens,
-                outputTokens: $0.completionTokens
-            )
-        }
-
-        return ProviderResponse(
-            text: choice.message.content ?? "",
-            usage: usage,
-            finishReason: self.convertFinishReason(choice.finishReason),
-            toolCalls: choice.message.toolCalls?.map { self.convertToolCall($0) }
+        // Use shared OpenAI-compatible implementation
+        return try await OpenAICompatibleHelper.generateText(
+            request: request,
+            modelId: self.modelId,
+            baseURL: self.baseURL!,
+            apiKey: self.apiKey!,
+            providerName: "OpenAI",
+            additionalHeaders: additionalHeaders
         )
     }
 
     public func streamText(request: ProviderRequest) async throws -> AsyncThrowingStream<TextStreamDelta, Error> {
-        let url = URL(string: "\(self.baseURL!)/chat/completions")!
-        var urlRequestBuilder = URLRequest(url: url)
-        urlRequestBuilder.httpMethod = "POST"
-        urlRequestBuilder.setValue("Bearer \(self.apiKey!)", forHTTPHeaderField: "Authorization")
-        urlRequestBuilder.setValue("application/json", forHTTPHeaderField: "Content-Type")
-
+        // Build OpenAI-specific headers
+        var additionalHeaders: [String: String] = [:]
         if let orgId = ProcessInfo.processInfo.environment["OPENAI_ORG_ID"] {
-            urlRequestBuilder.setValue(orgId, forHTTPHeaderField: "OpenAI-Organization")
+            additionalHeaders["OpenAI-Organization"] = orgId
         }
 
-        // Convert request to OpenAI format with streaming enabled
-        let openAIRequest = try OpenAIChatRequest(
-            model: self.modelId,
-            messages: self.convertMessages(request.messages),
-            temperature: request.settings.temperature,
-            maxTokens: request.settings.maxTokens,
-            tools: self.convertTools(request.tools),
-            stream: true
-        )
-
-        let jsonData = try JSONEncoder().encode(openAIRequest)
-        urlRequestBuilder.httpBody = jsonData
-
-        let finalUrlRequest = urlRequestBuilder // Make it immutable
-
-        return AsyncThrowingStream { continuation in
-            Task {
-                do {
-                    let (bytes, response) = try await URLSession.shared.bytes(for: finalUrlRequest)
-
-                    guard let httpResponse = response as? HTTPURLResponse else {
-                        continuation.finish(throwing: TachikomaError.networkError(NSError(
-                            domain: "Invalid response",
-                            code: 0
-                        )))
-                        return
-                    }
-
-                    if httpResponse.statusCode != 200 {
-                        continuation.finish(throwing: TachikomaError.apiError("HTTP \(httpResponse.statusCode)"))
-                        return
-                    }
-
-                    for try await line in bytes.lines where line.hasPrefix("data: ") {
-                        let data = String(line.dropFirst(6))
-
-                        if data == "[DONE]" {
-                            continuation.yield(TextStreamDelta(type: .done))
-                            continuation.finish()
-                            return
-                        }
-
-                        if
-                            let chunkData = data.data(using: .utf8),
-                            let chunk = try? JSONDecoder().decode(OpenAIStreamChunk.self, from: chunkData)
-                        {
-                            if
-                                let choice = chunk.choices.first,
-                                let content = choice.delta.content
-                            {
-                                continuation.yield(TextStreamDelta(type: .textDelta, content: content))
-                            }
-                        }
-                    }
-
-                    continuation.finish()
-                } catch {
-                    continuation.finish(throwing: error)
-                }
-            }
-        }
-    }
-
-    // MARK: - Helper Methods
-
-    private func convertToolArgumentsToSerializable(_ arguments: [String: ToolArgument]) throws -> [String: Any] {
-        var result: [String: Any] = [:]
-        for (key, value) in arguments {
-            result[key] = try self.convertToolArgumentToSerializable(value)
-        }
-        return result
-    }
-
-    private func convertToolArgumentToSerializable(_ argument: ToolArgument) throws -> Any {
-        switch argument {
-        case let .string(str):
-            return str
-        case let .int(int):
-            return int
-        case let .double(double):
-            return double
-        case let .bool(bool):
-            return bool
-        case .null:
-            return NSNull()
-        case let .array(array):
-            return try array.map { try self.convertToolArgumentToSerializable($0) }
-        case let .object(object):
-            return try self.convertToolArgumentsToSerializable(object)
-        }
-    }
-
-    private func convertMessages(_ messages: [ModelMessage]) throws -> [OpenAIChatMessage] {
-        try messages.map { message -> OpenAIChatMessage in
-            switch message.role {
-            case .system:
-                if
-                    let textContent = message.content.first,
-                    case let .text(text) = textContent
-                {
-                    return OpenAIChatMessage(role: "system", content: text)
-                }
-                throw TachikomaError.invalidInput("System message must have text content")
-
-            case .user:
-                if
-                    let textContent = message.content.first,
-                    case let .text(text) = textContent
-                {
-                    return OpenAIChatMessage(role: "user", content: text)
-                } else if message.content.count > 1 {
-                    // Multi-modal message
-                    let content = try message.content.map { part -> OpenAIChatMessageContent in
-                        switch part {
-                        case let .text(text):
-                            return .text(OpenAIChatMessageContent.TextContent(type: "text", text: text))
-                        case let .image(imageContent):
-                            return .imageUrl(OpenAIChatMessageContent.ImageUrlContent(
-                                type: "image_url",
-                                imageUrl: OpenAIChatMessageContent
-                                    .ImageUrl(url: "data:\(imageContent.mimeType);base64,\(imageContent.data)")
-                            ))
-                        default:
-                            throw TachikomaError.invalidInput("Unsupported content type")
-                        }
-                    }
-                    return OpenAIChatMessage(role: "user", content: content)
-                }
-                throw TachikomaError.invalidInput("User message must have content")
-
-            case .assistant:
-                // Extract text content
-                var textContent: String?
-                var toolCalls: [OpenAIChatMessage.ToolCall] = []
-
-                for part in message.content {
-                    switch part {
-                    case let .text(text):
-                        textContent = text
-                    case let .toolCall(toolCall):
-                        // Convert ToolArgument dictionary to JSON-serializable dictionary
-                        let serializableArgs = try self.convertToolArgumentsToSerializable(toolCall.arguments)
-                        let argumentsData = try JSONSerialization.data(withJSONObject: serializableArgs)
-                        let argumentsString = String(data: argumentsData, encoding: .utf8) ?? "{}"
-                        let openAIToolCall = OpenAIChatMessage.ToolCall(
-                            id: toolCall.id,
-                            type: "function",
-                            function: OpenAIChatMessage.ToolCall.Function(
-                                name: toolCall.name,
-                                arguments: argumentsString
-                            )
-                        )
-                        toolCalls.append(openAIToolCall)
-                    default:
-                        throw TachikomaError.invalidInput("Unsupported assistant message content type")
-                    }
-                }
-
-                if !toolCalls.isEmpty {
-                    // Assistant message with tool calls
-                    return OpenAIChatMessage(role: "assistant", content: textContent, toolCalls: toolCalls)
-                } else if let text = textContent {
-                    // Regular assistant message
-                    return OpenAIChatMessage(role: "assistant", content: text)
-                } else {
-                    throw TachikomaError.invalidInput("Assistant message must have text or tool call content")
-                }
-
-            case .tool:
-                if
-                    let toolResult = message.content.first,
-                    case let .toolResult(result) = toolResult
-                {
-                    // Convert ToolArgument to string
-                    let resultString: String = switch result.result {
-                    case let .string(str):
-                        str
-                    case let .int(int):
-                        String(int)
-                    case let .double(double):
-                        String(double)
-                    case let .bool(bool):
-                        String(bool)
-                    case .null:
-                        "null"
-                    case let .array(array):
-                        array.description
-                    case let .object(object):
-                        object.description
-                    }
-                    return OpenAIChatMessage(role: "tool", content: resultString, toolCallId: result.toolCallId)
-                }
-                throw TachikomaError.invalidInput("Tool message must have tool result content")
-            }
-        }
-    }
-
-    private func convertTools(_ tools: [SimpleTool]?) throws -> [OpenAITool]? {
-        if let tools = tools {
-            print("DEBUG: OpenAI convertTools called with \(tools.count) tools")
-        }
-        return tools?.map { tool in
-            print("DEBUG: Converting tool '\(tool.name)' with \(tool.parameters.properties.count) parameters")
-            // Convert ToolParameters to OpenAI format
-            var properties: [String: Any] = [:]
-
-            for (paramName, paramProp) in tool.parameters.properties {
-                var propDict: [String: Any] = [:]
-
-                // Map parameter type
-                switch paramProp.type {
-                case .string:
-                    propDict["type"] = "string"
-                case .integer:
-                    propDict["type"] = "integer"
-                case .number:
-                    propDict["type"] = "number"
-                case .boolean:
-                    propDict["type"] = "boolean"
-                case .array:
-                    propDict["type"] = "array"
-                case .object:
-                    propDict["type"] = "object"
-                case .null:
-                    propDict["type"] = "null"
-                }
-
-                // Add description if available
-                if let description = paramProp.description {
-                    propDict["description"] = description
-                }
-
-                // Add enum values if available
-                if let enumValues = paramProp.enumValues {
-                    propDict["enum"] = enumValues
-                }
-
-                properties[paramName] = propDict
-            }
-
-            let parametersObj = [
-                "type": "object",
-                "properties": properties,
-                "required": tool.parameters.required,
-            ]
-            print("DEBUG: Tool '\(tool.name)' final parameters: \(parametersObj)")
-            return OpenAITool(
-                type: "function",
-                function: OpenAITool.Function(
-                    name: tool.name,
-                    description: tool.description,
-                    parameters: parametersObj
-                )
-            )
-        }
-    }
-
-    private func convertFinishReason(_ reason: String?) -> FinishReason {
-        switch reason {
-        case "stop": .stop
-        case "length": .length
-        case "tool_calls": .toolCalls
-        case "content_filter": .contentFilter
-        default: .other
-        }
-    }
-
-    private func convertToolCall(_ toolCall: OpenAIChatResponse.ToolCall) -> ToolCall {
-        // Parse arguments JSON string into ToolArgument dictionary
-        var arguments: [String: ToolArgument] = [:]
-        if
-            let argsData = toolCall.function.arguments.data(using: .utf8),
-            let argsDict = try? JSONSerialization.jsonObject(with: argsData) as? [String: Any]
-        {
-            for (key, value) in argsDict {
-                if let toolArg = try? ToolArgument.from(any: value) {
-                    arguments[key] = toolArg
-                }
-            }
-        }
-
-        return ToolCall(
-            id: toolCall.id,
-            name: toolCall.function.name,
-            arguments: arguments
+        // Use shared OpenAI-compatible implementation
+        return try await OpenAICompatibleHelper.streamText(
+            request: request,
+            modelId: self.modelId,
+            baseURL: self.baseURL!,
+            apiKey: self.apiKey!,
+            providerName: "OpenAI",
+            additionalHeaders: additionalHeaders
         )
     }
+
 }
 
 /// Provider for Anthropic Claude models
@@ -1790,11 +1865,8 @@ public final class GrokProvider: ModelProvider {
         self.modelId = model.modelId
         self.baseURL = "https://api.x.ai/v1"
 
-        // Support both X_AI_API_KEY and XAI_API_KEY environment variables
-        if
-            let key = ProcessInfo.processInfo.environment["X_AI_API_KEY"] ??
-                ProcessInfo.processInfo.environment["XAI_API_KEY"]
-        {
+        // Get API key from configuration system (environment or credentials)
+        if let key = TachikomaConfiguration.shared.getAPIKey(for: "grok") {
             self.apiKey = key
         } else {
             throw TachikomaError.authenticationFailed("X_AI_API_KEY or XAI_API_KEY not found")

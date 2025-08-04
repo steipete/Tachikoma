@@ -1,6 +1,6 @@
 import Foundation
 import Testing
-@testable import TachikomaCore
+@testable import Tachikoma
 
 @Suite("OpenAI Audio Provider Tests")
 struct OpenAIAudioProviderTests {

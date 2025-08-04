@@ -1,5 +1,5 @@
 import Foundation
-@testable import TachikomaCore
+@testable import Tachikoma
 
 /// Test helper functions for configuring Tachikoma in test environments
 enum TestHelpers {
