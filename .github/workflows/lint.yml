@@ -1,0 +1,161 @@
+name: Lint
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  swiftlint:
+    name: SwiftLint
+    runs-on: macos-15
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Setup Xcode
+      uses: maxim-lobanov/setup-xcode@v1
+      with:
+        xcode-version: latest-stable
+
+    - name: Cache SwiftLint
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.mint
+          /usr/local/bin/swiftlint
+        key: ${{ runner.os }}-swiftlint-${{ hashFiles('.swiftlint.yml') }}
+        restore-keys: |
+          ${{ runner.os }}-swiftlint-
+
+    - name: Install SwiftLint
+      run: |
+        if ! command -v swiftlint &> /dev/null; then
+          brew install swiftlint
+        fi
+
+    - name: Verify SwiftLint Version
+      run: |
+        swiftlint version
+        echo "SwiftLint configuration:"
+        cat .swiftlint.yml || echo "No .swiftlint.yml found"
+
+    - name: Run SwiftLint
+      run: |
+        swiftlint lint --reporter github-actions-logging --strict
+
+    - name: Run SwiftLint (Autocorrect Check)
+      run: |
+        # Run autocorrect in dry-run mode to check for fixable issues
+        swiftlint lint --fix --dry-run --reporter github-actions-logging
+
+  swiftformat:
+    name: SwiftFormat
+    runs-on: macos-15
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Setup Xcode
+      uses: maxim-lobanov/setup-xcode@v1
+      with:
+        xcode-version: latest-stable
+
+    - name: Cache SwiftFormat
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.mint
+          /usr/local/bin/swiftformat
+        key: ${{ runner.os }}-swiftformat-${{ hashFiles('.swiftformat') }}
+        restore-keys: |
+          ${{ runner.os }}-swiftformat-
+
+    - name: Install SwiftFormat
+      run: |
+        if ! command -v swiftformat &> /dev/null; then
+          brew install swiftformat
+        fi
+
+    - name: Verify SwiftFormat Version
+      run: |
+        swiftformat --version
+        echo "SwiftFormat configuration:"
+        cat .swiftformat || echo "No .swiftformat found"
+
+    - name: Check SwiftFormat
+      run: |
+        swiftformat --lint .
+
+  swift6-compatibility:
+    name: Swift 6 Compatibility Check
+    runs-on: macos-15
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Setup Xcode
+      uses: maxim-lobanov/setup-xcode@v1
+      with:
+        xcode-version: latest-stable
+
+    - name: Check Swift 6 Language Mode
+      run: |
+        # Verify Swift 6 language mode is enabled
+        grep -r "swift-language-version.*6" Package.swift || {
+          echo "Warning: Swift 6 language mode not found in Package.swift"
+          exit 1
+        }
+
+    - name: Build with Swift 6 Strict Concurrency
+      run: |
+        swift build \
+          -Xswiftc -strict-concurrency=complete \
+          -Xswiftc -enable-actor-data-race-checks \
+          -Xswiftc -warn-concurrency \
+          -Xswiftc -enable-library-evolution
+
+    - name: Check for Swift 6 Migration Issues
+      run: |
+        # Build with all strict Swift 6 settings
+        swift build \
+          -Xswiftc -swift-version \
+          -Xswiftc 6 \
+          -Xswiftc -strict-concurrency=complete \
+          -Xswiftc -enable-actor-data-race-checks \
+          -Xswiftc -enable-library-evolution \
+          -Xswiftc -warn-concurrency \
+          -Xswiftc -warnings-as-errors
+
+  package-validation:
+    name: Package Validation
+    runs-on: macos-15
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Setup Xcode
+      uses: maxim-lobanov/setup-xcode@v1
+      with:
+        xcode-version: latest-stable
+
+    - name: Validate Swift Package Structure
+      run: |
+        # Check package structure
+        swift package describe --type json | jq '.'
+        
+        # Validate dependencies
+        swift package show-dependencies --format json | jq '.'
+        
+        # Check for common issues
+        swift package diagnose
+
+    - name: Check Documentation
+      run: |
+        # Verify documentation coverage
+        swift package generate-documentation --warnings-as-errors --analyze
