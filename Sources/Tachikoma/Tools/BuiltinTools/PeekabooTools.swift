@@ -62,7 +62,7 @@ public struct PeekabooTools: ToolKit {
             let coords = input.stringValue("coords", default: nil)
             let double = input.boolValue("double", default: false)
             let right = input.boolValue("right", default: false)
-            let waitFor = input.intValue("wait_for", default: 5000)
+            let waitFor = input.intValue("wait_for", default: 5000) ?? 5000
 
             return try await context.clickElement(
                 element: element,
@@ -83,7 +83,7 @@ public struct PeekabooTools: ToolKit {
             let element = input.stringValue("element", default: nil)
             let clear = input.boolValue("clear", default: false)
             let pressReturn = input.boolValue("press_return", default: false)
-            let delay = input.intValue("delay", default: 5)
+            let delay = input.intValue("delay", default: 5) ?? 5
 
             return try await context.typeText(
                 text: text,
@@ -118,7 +118,7 @@ public struct PeekabooTools: ToolKit {
             description: "Execute a shell command and return the output"
         ) { input, context in
             let command = try input.stringValue("command")
-            let timeout = input.intValue("timeout", default: 30)
+            let timeout = input.intValue("timeout", default: 30) ?? 30
             let workingDirectory = input.stringValue("working_directory", default: nil)
 
             return try await context.executeShellCommand(
@@ -194,10 +194,10 @@ public struct PeekabooTools: ToolKit {
             description: "Scroll in a specific direction within a window or element"
         ) { input, context in
             let direction = try input.stringValue("direction")
-            let amount = input.intValue("amount", default: 3)
+            let amount = input.intValue("amount", default: 3) ?? 3
             let element = input.stringValue("element", default: nil)
             let smooth = input.boolValue("smooth", default: false)
-            let delay = input.intValue("delay", default: 2)
+            let delay = input.intValue("delay", default: 2) ?? 2
 
             return try await context.scroll(
                 direction: direction,
@@ -215,7 +215,7 @@ public struct PeekabooTools: ToolKit {
             description: "Press keyboard shortcuts and key combinations"
         ) { input, context in
             let keys = try input.stringValue("keys")
-            let holdDuration = input.intValue("hold_duration", default: 50)
+            let holdDuration = input.intValue("hold_duration", default: 50) ?? 50
 
             return try await context.pressHotkey(
                 keys: keys,
@@ -231,8 +231,8 @@ public struct PeekabooTools: ToolKit {
         ) { input, context in
             let from = try input.stringValue("from")
             let to = try input.stringValue("to")
-            let duration = input.intValue("duration", default: 500)
-            let steps = input.intValue("steps", default: 10)
+            let duration = input.intValue("duration", default: 500) ?? 500
+            let steps = input.intValue("steps", default: 10) ?? 10
 
             return try await context.performSwipe(
                 from: from,
@@ -261,7 +261,7 @@ public struct PeekabooTools: ToolKit {
             let action = try input.stringValue("action")
             let app = try input.stringValue("app")
             let force = input.boolValue("force", default: false)
-            let wait = input.intValue("wait", default: 2)
+            let wait = input.intValue("wait", default: 2) ?? 2
             let waitUntilReady = input.boolValue("wait_until_ready", default: false)
 
             return try await context.controlApplication(

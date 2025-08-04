@@ -1122,10 +1122,8 @@ struct OpenAICompatibleHelper {
                     propDict["type"] = "null"
                 }
 
-                // Add description if available
-                if let description = paramProp.description {
-                    propDict["description"] = description
-                }
+                // Add description 
+                propDict["description"] = paramProp.description
 
                 // Add enum values if available
                 if let enumValues = paramProp.enumValues {
@@ -1637,10 +1635,8 @@ public final class AnthropicProvider: ModelProvider {
                     propDict["type"] = "null"
                 }
 
-                // Add description if available
-                if let description = paramProp.description {
-                    propDict["description"] = description
-                }
+                // Add description 
+                propDict["description"] = paramProp.description
 
                 // Add enum values if available
                 if let enumValues = paramProp.enumValues {
@@ -2163,10 +2159,8 @@ public final class OllamaProvider: ModelProvider {
                     propDict["type"] = "null"
                 }
 
-                // Add description if available
-                if let description = paramProp.description {
-                    propDict["description"] = description
-                }
+                // Add description 
+                propDict["description"] = paramProp.description
 
                 // Add enum values if available
                 if let enumValues = paramProp.enumValues {
