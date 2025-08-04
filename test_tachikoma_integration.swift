@@ -3,7 +3,7 @@
 import Foundation
 
 // Add the package dependency - this should work now that we have Tachikoma built
-import TachikomaCore
+import Tachikoma
 
 /// Comprehensive Tachikoma integration test using real API keys
 print("🕷️  Tachikoma Integration Test with Real APIs")

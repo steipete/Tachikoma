@@ -12,11 +12,11 @@
 import Foundation
 
 #if canImport(TachikomaCore)
-import TachikomaCore
+import Tachikoma
 #endif
 
 #if canImport(TachikomaBuilders)
-import TachikomaBuilders
+import Tachikoma
 #endif
 
 // Simple test expectation function for standalone execution

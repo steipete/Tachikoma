@@ -1,8 +1,8 @@
 #!/usr/bin/env swift
 
 import Foundation
-import TachikomaBuilders
-import TachikomaCore
+import Tachikoma
+import Tachikoma
 
 @main
 struct TachikomaExamples {
