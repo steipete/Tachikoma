@@ -5,7 +5,7 @@
 
 <p align="center">
   <a href="https://swift.org"><img src="https://img.shields.io/badge/Swift-6.0+-FA7343?style=for-the-badge&logo=swift&logoColor=white" alt="Swift 6.0+"></a>
-  <a href="https://github.com/steipete/Tachikoma"><img src="https://img.shields.io/badge/platforms-macOS%20%7C%20iOS%20%7C%20watchOS%20%7C%20tvOS-blue?style=for-the-badge" alt="Platforms"></a>
+  <a href="https://github.com/steipete/Tachikoma"><img src="https://img.shields.io/badge/platforms-macOS%20%7C%20iOS%20%7C%20watchOS%20%7C%20tvOS%20%7C%20Linux%20%7C%20Windows-blue?style=for-the-badge" alt="Platforms"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-green?style=for-the-badge" alt="MIT License"></a>
   <a href="#testing"><img src="https://img.shields.io/badge/tests-passing-brightgreen?style=for-the-badge" alt="Tests"></a>
 </p>
@@ -744,6 +744,8 @@ See the following files for complete working examples:
   - iOS 17.0+
   - watchOS 10.0+
   - tvOS 17.0+
+  - Linux (Ubuntu 20.04+)
+  - Windows 10+
 - **Concurrency**: Full `@Sendable` compliance throughout
 - **Dependencies**: 
   - [swift-log](https://github.com/apple/swift-log) for logging

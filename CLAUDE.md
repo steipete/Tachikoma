@@ -1,83 +1,118 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with the Tachikoma AI SDK.
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## Development Philosophy
+## Project Overview
 
-**No Backwards Compatibility**: We never care about backwards compatibility. We prioritize clean, modern code and user experience over maintaining legacy support. Breaking changes are acceptable and expected as the project evolves. This includes removing deprecated code, changing APIs freely, and not supporting legacy formats or approaches.
+Tachikoma is a modern Swift AI integration library with a unified single-module architecture. Everything is accessible via `import Tachikoma`. The library provides type-safe, Swift-native APIs for multiple AI providers including OpenAI, Anthropic, Grok, Google, Mistral, Groq, and Ollama.
 
-**No "Modern" or Version Suffixes**: When refactoring, never use names like "Modern", "New", "V2", etc. Simply refactor the existing things in place. If we are doing a refactor, we want to replace the old implementation completely, not create parallel versions. Use the idiomatic name that the API should have.
+## Build Commands
 
-**Swift-Native Design**: Tachikoma should feel like a natural extension of Swift itself. Prefer:
-- Global functions over complex class hierarchies
-- Enum-based model selection with autocomplete
-- Async/await over completion handlers
-- Result builders (@ToolKit) over verbose configuration
-- Property wrappers (@AI) for state management
+```bash
+# Build the package
+swift build
 
-**Type Safety**: Use Swift's type system to prevent errors at compile time:
-- Enum-based provider selection
-- Generic tool systems with context types
-- Sendable conformance throughout
-- Strict concurrency compliance
+# Run all tests
+swift test
 
-**Minimum Platform Requirements**: 
-- Swift 6.0+
-- macOS 14.0+ / iOS 17.0+ / watchOS 10.0+ / tvOS 17.0+
+# Run specific test suite
+swift test --filter "GenerationTests"
 
-## API Design Principles
+# Build in release mode
+swift build -c release
 
-**Simple by Default, Powerful When Needed**:
+# Resolve dependencies
+swift package resolve
+```
+
+## Architecture & Key Design Patterns
+
+### Single Module Architecture
+- Migrated from 4-module to 1-module structure
+- All functionality in `Sources/Tachikoma/`
+- No complex import hierarchies
+
+### Swift-Native APIs
 ```swift
-// Simple case (1 line)
+// Simple one-liner
 let answer = try await generate("What is 2+2?", using: .openai(.gpt4o))
 
-// Complex case (still clean)
+// Advanced usage
 let response = try await generateText(
     model: .anthropic(.opus4),
     messages: conversation.messages,
-    tools: [weatherTool, calculatorTool],
-    settings: .init(temperature: 0.7, maxTokens: 1000)
+    tools: myTools,
+    settings: .init(temperature: 0.7)
 )
 ```
 
-**Provider-Specific Model Enums**:
+### Type-Safe Model Selection
+Models use hierarchical enums with provider-specific sub-enums:
 ```swift
-// Type-safe, autocomplete-friendly
 .openai(.gpt4o, .gpt41, .o3)
 .anthropic(.opus4, .sonnet4, .haiku35)
 .grok(.grok4, .grok2Vision)
+.ollama(.llama3)
 ```
 
-**Tool System with @ToolKit**:
+### Tool System
+Tools use result builders (transitioning to macros):
 ```swift
 @ToolKit
 struct MyTools {
-    func getWeather(location: String) async throws -> String {
+    func calculate(expression: String) async throws -> Double {
         // Implementation
     }
 }
 ```
 
-## Testing Philosophy
+## Core Components
 
-- Prefer Swift Testing (`@Test`) over XCTest
-- Test real API integrations with authentication checks
-- Use async/await patterns in tests
-- Mock complex dependencies only when necessary
+- **Generation.swift**: Global functions (`generateText`, `streamText`, `generateObject`)
+- **Model.swift**: Type-safe model system with capability detection
+- **ToolKit.swift**: Tool system with result builders
+- **Types.swift**: Message types, streaming events, all `Sendable`
+- **Provider files**: Individual implementations (OpenAI, Anthropic, etc.)
 
-## Code Quality
+## Testing
 
-- Never use `Any`, `AnyObject`, or type erasure
-- Prefer value types over reference types
-- Use `@Sendable` throughout for concurrency safety
-- Write self-documenting code with clear names
-- Minimal comments - let the types tell the story
+Uses Swift Testing framework (`@Test`, `#expect`):
+```bash
+# Run tests
+swift test
 
-## Documentation Standards
+# Test with environment variables
+OPENAI_API_KEY=sk-... swift test --filter "OpenAIProviderTests"
+```
 
-- **Professional README**: Avoid excessive emoji usage in README files - looks unprofessional
-- Use horizontal lines (`---`) to separate major sections
-- Style badges using `style=for-the-badge` for consistency
-- Center-align badges and logo for visual balance
-- Keep section headers clean and readable without emoji clutter
+## Important Implementation Details
+
+### Concurrency
+- Swift 6.0 strict concurrency
+- All public APIs are `Sendable`
+- Actor-safe design where appropriate
+
+### Provider Details
+- **OpenAI**: Dual API support (Chat Completions + Responses API for o3/o4)
+- **Anthropic**: Native implementation, default model is Claude Opus 4
+- **Ollama**: Requires longer timeouts (5+ minutes) for model loading
+
+### Environment Variables
+- `OPENAI_API_KEY`: For OpenAI provider
+- `ANTHROPIC_API_KEY`: For Anthropic provider
+- `GROQ_API_KEY`: For Groq provider
+- `MISTRAL_API_KEY`: For Mistral provider
+- `GOOGLE_API_KEY`: For Google provider
+- `X_AI_API_KEY` or `XAI_API_KEY`: For Grok provider
+
+### No Backwards Compatibility
+- Targets Swift 6.0+ exclusively
+- macOS 14.0+, iOS 17.0+, watchOS 10.0+, tvOS 17.0+
+- Free to break APIs for better design
+
+## Development Philosophy
+
+- **Type Safety**: No `Any`, `AnyObject`, or type erasure
+- **Swift-Native**: Global functions, enums, async/await
+- **Performance**: Streaming, lazy loading, minimal overhead
+- **Modern Swift**: Result builders, property wrappers, experimental features enabled

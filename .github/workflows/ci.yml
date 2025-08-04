@@ -17,7 +17,7 @@ jobs:
     
     strategy:
       matrix:
-        os: [macos-14, macos-15]
+        os: [macos-14, macos-15, macos-latest, ubuntu-latest, windows-latest]
         swift-version: ['6.0']
         
     steps:
@@ -28,6 +28,14 @@ jobs:
       uses: swift-actions/setup-swift@v2
       with:
         swift-version: ${{ matrix.swift-version }}
+      if: runner.os != 'Windows'
+        
+    - name: Setup Swift on Windows
+      uses: compnerd/gha-setup-swift@main
+      with:
+        branch: swift-${{ matrix.swift-version }}-release
+        tag: ${{ matrix.swift-version }}-RELEASE
+      if: runner.os == 'Windows'
         
     - name: Cache Swift Package Manager
       uses: actions/cache@v4
@@ -57,8 +65,12 @@ jobs:
       continue-on-error: true # Temporarily allow test failures while we fix them
 
   build-examples:
-    name: Build Examples
-    runs-on: macos-14
+    name: Build Examples on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    
+    strategy:
+      matrix:
+        os: [macos-latest, ubuntu-latest, windows-latest]
     
     steps:
     - name: Checkout
@@ -68,6 +80,14 @@ jobs:
       uses: swift-actions/setup-swift@v2
       with:
         swift-version: '6.0'
+      if: runner.os != 'Windows'
+        
+    - name: Setup Swift on Windows
+      uses: compnerd/gha-setup-swift@main
+      with:
+        branch: swift-6.0-release
+        tag: 6.0-RELEASE
+      if: runner.os == 'Windows'
         
     - name: Build Examples
       run: |
@@ -82,6 +102,7 @@ jobs:
   lint:
     name: SwiftLint
     runs-on: macos-14
+    # SwiftLint only runs on macOS
     
     steps:
     - name: Checkout
