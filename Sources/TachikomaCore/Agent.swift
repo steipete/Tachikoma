@@ -199,7 +199,7 @@ public final class AgentSessionManager: @unchecked Sendable {
     private let fileManager = FileManager.default
 
     private init() {}
-    
+
     /// Helper function to extract text from content part
     private func extractTextFromContentPart(_ contentPart: ModelMessage.ContentPart?) -> String? {
         guard let contentPart = contentPart else { return nil }
@@ -219,10 +219,10 @@ public final class AgentSessionManager: @unchecked Sendable {
     private func getSessionsDirectory() -> URL {
         let url = fileManager.homeDirectoryForCurrentUser
             .appendingPathComponent(".peekaboo/agent_sessions")
-        
+
         // Ensure the directory exists
         try? fileManager.createDirectory(at: url, withIntermediateDirectories: true)
-        
+
         return url
     }
 
@@ -297,7 +297,7 @@ public final class AgentSessionManager: @unchecked Sendable {
     /// List all sessions from disk
     public func listSessions() -> [SessionSummary] {
         let sessionsDir = getSessionsDirectory()
-        
+
         guard let sessionFiles = try? fileManager.contentsOfDirectory(
             at: sessionsDir,
             includingPropertiesForKeys: [.creationDateKey, .contentModificationDateKey],
@@ -305,16 +305,16 @@ public final class AgentSessionManager: @unchecked Sendable {
         ) else {
             return []
         }
-        
+
         var summaries: [SessionSummary] = []
-        
+
         for sessionFile in sessionFiles where sessionFile.pathExtension == "json" {
-            let sessionId = sessionFile.deletingPathExtension().lastPathComponent
-            
+            _ = sessionFile.deletingPathExtension().lastPathComponent
+
             do {
                 let data = try Data(contentsOf: sessionFile)
                 let session = try JSONDecoder().decode(AgentSession.self, from: data)
-                
+
                 let summary = SessionSummary(
                     id: session.id,
                     modelName: session.modelName,
@@ -330,7 +330,7 @@ public final class AgentSessionManager: @unchecked Sendable {
                 try? fileManager.removeItem(at: sessionFile)
             }
         }
-        
+
         return summaries.sorted { $0.lastAccessedAt > $1.lastAccessedAt }
     }
 
@@ -357,15 +357,15 @@ public final class AgentSessionManager: @unchecked Sendable {
     /// Load a session from disk
     public func loadSession(id: String) async throws -> AgentSession? {
         let filePath = getSessionFilePath(for: id)
-        
+
         guard fileManager.fileExists(atPath: filePath.path) else {
             return nil
         }
-        
+
         do {
             let data = try Data(contentsOf: filePath)
             let session = try JSONDecoder().decode(AgentSession.self, from: data)
-            
+
             // Update in-memory cache
             self.lock.withLock {
                 let sessionData = AgentSessionData(
@@ -378,7 +378,7 @@ public final class AgentSessionManager: @unchecked Sendable {
                 )
                 self.sessions[session.id] = sessionData
             }
-            
+
             return session
         } catch {
             // Remove corrupted session file
@@ -390,10 +390,10 @@ public final class AgentSessionManager: @unchecked Sendable {
     /// Delete a session from disk and memory
     public func deleteSession(id: String) async throws {
         // Remove from memory
-        self.lock.withLock {
+        _ = self.lock.withLock {
             self.sessions.removeValue(forKey: id)
         }
-        
+
         // Remove from disk
         let filePath = getSessionFilePath(for: id)
         try? fileManager.removeItem(at: filePath)
@@ -405,7 +405,7 @@ public final class AgentSessionManager: @unchecked Sendable {
         let filePath = getSessionFilePath(for: session.id)
         let data = try JSONEncoder().encode(session)
         try data.write(to: filePath, options: .atomic)
-        
+
         // Update in-memory cache
         self.lock.withLock {
             let sessionData = AgentSessionData(

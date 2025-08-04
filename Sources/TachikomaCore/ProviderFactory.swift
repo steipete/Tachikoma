@@ -818,12 +818,12 @@ public struct ProviderFactory {
     /// Create a provider for the specified language model
     public static func createProvider(for model: LanguageModel) throws -> any ModelProvider {
         // Check if we're in test mode or if API tests are disabled
-        if TachikomaConfiguration.shared.isTestMode || 
+        if TachikomaConfiguration.shared.isTestMode ||
            ProcessInfo.processInfo.environment["TACHIKOMA_DISABLE_API_TESTS"] == "true" ||
            ProcessInfo.processInfo.environment["TACHIKOMA_TEST_MODE"] == "mock" {
             return MockProvider(model: model)
         }
-        
+
         switch model {
         case let .openai(openaiModel):
             return try OpenAIProvider(model: openaiModel)
@@ -1105,9 +1105,9 @@ public final class OpenAIProvider: ModelProvider {
 
             case .assistant:
                 // Extract text content
-                var textContent: String? = nil
+                var textContent: String?
                 var toolCalls: [OpenAIChatMessage.ToolCall] = []
-                
+
                 for part in message.content {
                     switch part {
                     case let .text(text):
@@ -1130,7 +1130,7 @@ public final class OpenAIProvider: ModelProvider {
                         throw TachikomaError.invalidInput("Unsupported assistant message content type")
                     }
                 }
-                
+
                 if !toolCalls.isEmpty {
                     // Assistant message with tool calls
                     return OpenAIChatMessage(role: "assistant", content: textContent, toolCalls: toolCalls)
@@ -2136,7 +2136,7 @@ public final class OllamaProvider: ModelProvider {
                     // Look for tool call patterns - try both "arguments" and "parameters"
                     if let name = json["name"] as? String {
                         let arguments = (json["arguments"] as? [String: Any]) ?? (json["parameters"] as? [String: Any]) ?? [:]
-                        
+
                         // Convert arguments to ToolArgument format
                         var toolArguments: [String: ToolArgument] = [:]
                         for (key, value) in arguments {
@@ -2437,15 +2437,15 @@ public final class MockProvider: ModelProvider {
     public let baseURL: String?
     public let apiKey: String?
     public let capabilities: ModelCapabilities
-    
+
     private let model: LanguageModel
-    
+
     public init(model: LanguageModel) {
         self.model = model
         self.modelId = model.modelId
         self.baseURL = "https://mock.api.example.com"
         self.apiKey = "mock-api-key"
-        
+
         self.capabilities = ModelCapabilities(
             supportsVision: true,
             supportsTools: true,
@@ -2454,11 +2454,11 @@ public final class MockProvider: ModelProvider {
             maxOutputTokens: 4096
         )
     }
-    
+
     public func generateText(request: ProviderRequest) async throws -> ProviderResponse {
         // Simulate network delay
         try await Task.sleep(for: .milliseconds(100))
-        
+
         // Extract prompt text from messages
         let promptText = request.messages.compactMap { message in
             message.content.compactMap { part in
@@ -2468,20 +2468,20 @@ public final class MockProvider: ModelProvider {
                 return nil
             }.joined()
         }.joined(separator: " ")
-        
+
         // Generate mock response based on provider type
         let mockResponse = generateMockResponse(for: model, prompt: promptText, hasTools: request.tools?.isEmpty == false)
-        
+
         // Handle tool calls if requested
-        var toolCalls: [ToolCall]? = nil
+        var toolCalls: [ToolCall]?
         if let tools = request.tools, !tools.isEmpty, mockResponse.contains("tool_call") {
             toolCalls = [ToolCall(
                 id: "mock_tool_call_123",
                 name: tools.first?.name ?? "mock_tool",
                 arguments: ["query": .string("mock query")]
-            )]
+            ),]
         }
-        
+
         return ProviderResponse(
             text: mockResponse,
             usage: Usage(inputTokens: 50, outputTokens: 100, cost: Usage.Cost(input: 0.0005, output: 0.0005)),
@@ -2489,19 +2489,19 @@ public final class MockProvider: ModelProvider {
             toolCalls: toolCalls
         )
     }
-    
+
     public func streamText(request: ProviderRequest) async throws -> AsyncThrowingStream<TextStreamDelta, Error> {
-        return AsyncThrowingStream { continuation in
+        AsyncThrowingStream { continuation in
             Task {
                 do {
                     let response = try await generateText(request: request)
                     let words = response.text.split(separator: " ")
-                    
+
                     for word in words {
                         continuation.yield(TextStreamDelta(type: .textDelta, content: String(word) + " "))
                         try await Task.sleep(for: .milliseconds(50))
                     }
-                    
+
                     continuation.yield(TextStreamDelta(type: .done))
                     continuation.finish()
                 } catch {
@@ -2510,7 +2510,7 @@ public final class MockProvider: ModelProvider {
             }
         }
     }
-    
+
     private func generateMockResponse(for model: LanguageModel, prompt: String, hasTools: Bool) -> String {
         switch model {
         case .openai:
@@ -2519,10 +2519,11 @@ public final class MockProvider: ModelProvider {
             } else {
                 return "OpenAI response for '\(prompt)' with model \(model.modelId)."
             }
-            
+
         case .anthropic:
             if prompt.contains("quantum physics") {
-                return "Quantum physics is a fundamental theory in physics that describes the behavior of matter and energy at the atomic and subatomic level."
+                return "Quantum physics is a fundamental theory in physics that describes the behavior of matter and energy " +
+                       "at the atomic and subatomic level."
             } else if prompt.contains("2+2") {
                 return "2+2 equals 4."
             } else if prompt.contains("Hello world") {
@@ -2530,22 +2531,22 @@ public final class MockProvider: ModelProvider {
             } else {
                 return "I'm Claude, an AI assistant created by Anthropic. I'm here to help with a variety of tasks."
             }
-            
+
         case .google:
             return "Google Gemini response for '\(prompt)' with model \(model.modelId)."
-            
+
         case .mistral:
             return "Mistral response for '\(prompt)' with model \(model.modelId)."
-            
+
         case .groq:
             return "Groq response for '\(prompt)' with model \(model.modelId)."
-            
+
         case .grok:
             return "Grok response for '\(prompt)' with model \(model.modelId)."
-            
+
         case .ollama:
             return "Ollama response for '\(prompt)' with model \(model.modelId)."
-            
+
         default:
             return "Mock response for '\(prompt)' with model \(model.modelId)."
         }
