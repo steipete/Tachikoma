@@ -61,6 +61,14 @@ jobs:
           -derivedDataPath .build/DerivedData \
           CODE_SIGNING_REQUIRED=NO \
           CODE_SIGNING_ALLOWED=NO | xcpretty
+      env:
+        OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+        MISTRAL_API_KEY: ${{ secrets.MISTRAL_API_KEY }}
+        GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+        X_AI_API_KEY: ${{ secrets.X_AI_API_KEY }}
+        XAI_API_KEY: ${{ secrets.X_AI_API_KEY }}
 
     - name: Upload coverage reports
       if: matrix.platform == 'macOS'
@@ -102,6 +110,14 @@ jobs:
 
     - name: Test
       run: swift test --verbose --parallel
+      env:
+        OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+        MISTRAL_API_KEY: ${{ secrets.MISTRAL_API_KEY }}
+        GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+        X_AI_API_KEY: ${{ secrets.X_AI_API_KEY }}
+        XAI_API_KEY: ${{ secrets.X_AI_API_KEY }}
 
   # Windows tests
   test-windows:
@@ -137,6 +153,14 @@ jobs:
 
     - name: Test
       run: swift test --verbose --parallel
+      env:
+        OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+        MISTRAL_API_KEY: ${{ secrets.MISTRAL_API_KEY }}
+        GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+        X_AI_API_KEY: ${{ secrets.X_AI_API_KEY }}
+        XAI_API_KEY: ${{ secrets.X_AI_API_KEY }}
       shell: cmd
 
   # Package validation
@@ -176,6 +200,11 @@ jobs:
       env:
         OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+        MISTRAL_API_KEY: ${{ secrets.MISTRAL_API_KEY }}
+        GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+        X_AI_API_KEY: ${{ secrets.X_AI_API_KEY }}
+        XAI_API_KEY: ${{ secrets.X_AI_API_KEY }}
       run: |
         if [[ -n "$OPENAI_API_KEY" && -n "$ANTHROPIC_API_KEY" ]]; then
           swift test --filter IntegrationTests

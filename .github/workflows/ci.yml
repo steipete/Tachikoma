@@ -53,15 +53,26 @@ jobs:
     - name: Run Tests (Unit Tests Only)
       run: swift test --filter TachikomaBuildersTests --filter TachikomaCLITests --filter TachikomaTests
       env:
-        # Disable real API tests in CI
-        TACHIKOMA_DISABLE_API_TESTS: "true"
+        # Enable API tests with provided keys
+        OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+        MISTRAL_API_KEY: ${{ secrets.MISTRAL_API_KEY }}
+        GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+        X_AI_API_KEY: ${{ secrets.X_AI_API_KEY }}
+        XAI_API_KEY: ${{ secrets.X_AI_API_KEY }} # Some tests might check for XAI_API_KEY
         
-    - name: Run Package Tests (No External API)
+    - name: Run Package Tests (Full API Testing)
       run: swift test --build-path .build-test --verbose
       env:
-        # Mock all external API calls
-        TACHIKOMA_TEST_MODE: "mock"
-        TACHIKOMA_DISABLE_API_TESTS: "true"
+        # Enable full API testing with all providers
+        OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+        MISTRAL_API_KEY: ${{ secrets.MISTRAL_API_KEY }}
+        GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+        X_AI_API_KEY: ${{ secrets.X_AI_API_KEY }}
+        XAI_API_KEY: ${{ secrets.X_AI_API_KEY }}
       continue-on-error: true # Temporarily allow test failures while we fix them
 
   build-examples:
