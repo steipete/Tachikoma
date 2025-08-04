@@ -23,9 +23,9 @@ struct ProviderIntegrationTests {
         }
         
         let model = Model.openai(.gpt4oMini)
-        let provider = try ProviderFactory.createProvider(for: model)
+        let _ = try ProviderFactory.createProvider(for: model)
         
-        let response = try await generate(TestConfig.shortMessage, using: model, temperature: 0.0, maxTokens: 50)
+        let response = try await generate(TestConfig.shortMessage, using: model, maxTokens: 50, temperature: 0.0)
         
         #expect(response.lowercased().contains("hello"))
         #expect(response.contains("Tachikoma"))
@@ -47,13 +47,16 @@ struct ProviderIntegrationTests {
             parameters: ToolParameters(
                 properties: [
                     "location": ToolParameterProperty(
+                        name: "location",
                         type: .string,
                         description: "The city and state, e.g. San Francisco, CA"
                     )
                 ],
                 required: ["location"]
             )
-        )
+        ) { args in
+            .string("Weather: 72°F, sunny")
+        }
         
         let request = ProviderRequest(
             messages: [
@@ -85,7 +88,7 @@ struct ProviderIntegrationTests {
                 ModelMessage(role: .user, content: [.text(TestConfig.streamMessage)])
             ],
             tools: nil,
-            settings: .init(temperature: 0.0, maxTokens: 100)
+            settings: .init(maxTokens: 100, temperature: 0.0)
         )
         
         let stream = try await provider.streamText(request: request)
@@ -101,6 +104,9 @@ struct ProviderIntegrationTests {
                 }
             case .done:
                 receivedDone = true
+                break
+            case .toolCallStart, .toolCallDelta, .toolCallEnd, .toolResult, .stepStart, .stepEnd, .error:
+                // Ignore other delta types for this test
                 break
             }
         }
@@ -123,7 +129,7 @@ struct ProviderIntegrationTests {
         }
         
         let model = Model.anthropic(.haiku35)
-        let response = try await generate(TestConfig.shortMessage, using: model, temperature: 0.0, maxTokens: 50)
+        let response = try await generate(TestConfig.shortMessage, using: model, maxTokens: 50, temperature: 0.0)
         
         #expect(response.lowercased().contains("hello"))
         #expect(response.contains("Tachikoma"))
@@ -145,13 +151,16 @@ struct ProviderIntegrationTests {
             parameters: ToolParameters(
                 properties: [
                     "expression": ToolParameterProperty(
+                        name: "expression",
                         type: .string,
                         description: "The arithmetic expression to evaluate"
                     )
                 ],
                 required: ["expression"]
             )
-        )
+        ) { args in
+            .string("59")
+        }
         
         let request = ProviderRequest(
             messages: [
@@ -185,7 +194,7 @@ struct ProviderIntegrationTests {
         }
         
         let model = Model.ollama(.llama33)
-        let response = try await generate(TestConfig.shortMessage, using: model, temperature: 0.0, maxTokens: 50)
+        let response = try await generate(TestConfig.shortMessage, using: model, maxTokens: 50, temperature: 0.0)
         
         #expect(response.lowercased().contains("hello"))
         #expect(response.contains("Tachikoma"))
@@ -202,7 +211,7 @@ struct ProviderIntegrationTests {
         }
         
         let model = Model.grok(.grokBeta)
-        let response = try await generate(TestConfig.shortMessage, using: model, temperature: 0.0, maxTokens: 50)
+        let response = try await generate(TestConfig.shortMessage, using: model, maxTokens: 50, temperature: 0.0)
         
         #expect(response.lowercased().contains("hello"))
         #expect(response.contains("Tachikoma"))
@@ -217,8 +226,8 @@ struct ProviderIntegrationTests {
             return
         }
         
-        let model = Model.google(.geminiFlash)
-        let response = try await generate(TestConfig.shortMessage, using: model, temperature: 0.0, maxTokens: 50)
+        let model = Model.google(.gemini15Flash)
+        let response = try await generate(TestConfig.shortMessage, using: model, maxTokens: 50, temperature: 0.0)
         
         #expect(response.lowercased().contains("hello"))
         #expect(response.contains("Tachikoma"))
@@ -233,8 +242,8 @@ struct ProviderIntegrationTests {
             return
         }
         
-        let model = Model.mistral(.mistralSmall)
-        let response = try await generate(TestConfig.shortMessage, using: model, temperature: 0.0, maxTokens: 50)
+        let model = Model.mistral(.small)
+        let response = try await generate(TestConfig.shortMessage, using: model, maxTokens: 50, temperature: 0.0)
         
         #expect(response.lowercased().contains("hello"))
         #expect(response.contains("Tachikoma"))
@@ -249,8 +258,8 @@ struct ProviderIntegrationTests {
             return
         }
         
-        let model = Model.groq(.llama3_8b)
-        let response = try await generate(TestConfig.shortMessage, using: model, temperature: 0.0, maxTokens: 50)
+        let model = Model.groq(.llama38b)
+        let response = try await generate(TestConfig.shortMessage, using: model, maxTokens: 50, temperature: 0.0)
         
         #expect(response.lowercased().contains("hello"))
         #expect(response.contains("Tachikoma"))
@@ -271,7 +280,7 @@ struct ProviderIntegrationTests {
         // Create a simple base64 encoded 1x1 red pixel PNG
         let redPixelPNG = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg=="
         
-        let imageContent = ModelMessage.Content.ImageContent(
+        let imageContent = ModelMessage.ContentPart.ImageContent(
             data: redPixelPNG,
             mimeType: "image/png"
         )
@@ -284,7 +293,7 @@ struct ProviderIntegrationTests {
                 ])
             ],
             tools: nil,
-            settings: .init(temperature: 0.0, maxTokens: 50)
+            settings: .init(maxTokens: 50, temperature: 0.0)
         )
         
         let response = try await provider.generateText(request: request)

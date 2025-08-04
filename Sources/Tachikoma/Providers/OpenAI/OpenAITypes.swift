@@ -1,0 +1,245 @@
+import Foundation
+
+// MARK: - OpenAI API Types
+
+struct OpenAIChatRequest: Codable {
+    let model: String
+    let messages: [OpenAIChatMessage]
+    let temperature: Double?
+    let maxTokens: Int?
+    let tools: [OpenAITool]?
+    let stream: Bool?
+
+    enum CodingKeys: String, CodingKey {
+        case model, messages, temperature, tools, stream
+        case maxTokens = "max_tokens"
+    }
+}
+
+struct OpenAIChatMessage: Codable {
+    let role: String
+    let content: Either<String, [OpenAIChatMessageContent]>?
+    let toolCallId: String?
+    let toolCalls: [ToolCall]?
+
+    enum CodingKeys: String, CodingKey {
+        case role, content
+        case toolCallId = "tool_call_id"
+        case toolCalls = "tool_calls"
+    }
+
+    struct ToolCall: Codable {
+        let id: String
+        let type: String
+        let function: Function
+
+        struct Function: Codable {
+            let name: String
+            let arguments: String
+        }
+    }
+
+    init(role: String, content: String, toolCallId: String? = nil) {
+        self.role = role
+        self.content = .left(content)
+        self.toolCallId = toolCallId
+        self.toolCalls = nil
+    }
+
+    init(role: String, content: [OpenAIChatMessageContent], toolCallId: String? = nil) {
+        self.role = role
+        self.content = .right(content)
+        self.toolCallId = toolCallId
+        self.toolCalls = nil
+    }
+
+    init(role: String, content: String? = nil, toolCalls: [ToolCall]?) {
+        self.role = role
+        self.content = content.map { .left($0) }
+        self.toolCallId = nil
+        self.toolCalls = toolCalls
+    }
+}
+
+enum OpenAIChatMessageContent: Codable {
+    case text(TextContent)
+    case imageUrl(ImageUrlContent)
+
+    struct TextContent: Codable {
+        let type: String
+        let text: String
+    }
+
+    struct ImageUrlContent: Codable {
+        let type: String
+        let imageUrl: ImageUrl
+
+        enum CodingKeys: String, CodingKey {
+            case type
+            case imageUrl = "image_url"
+        }
+    }
+
+    struct ImageUrl: Codable {
+        let url: String
+    }
+}
+
+struct OpenAITool: Codable {
+    let type: String
+    let function: Function
+
+    struct Function: Codable {
+        let name: String
+        let description: String
+        let parameters: [String: Any]
+
+        init(name: String, description: String, parameters: [String: Any]) {
+            self.name = name
+            self.description = description
+            self.parameters = parameters
+        }
+
+        enum CodingKeys: String, CodingKey {
+            case name, description, parameters
+        }
+
+        init(from decoder: Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            self.name = try container.decode(String.self, forKey: .name)
+            self.description = try container.decode(String.self, forKey: .description)
+
+            // Decode parameters as generic dictionary
+            if
+                let data = try? container.decode(Data.self, forKey: .parameters),
+                let dict = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
+            {
+                self.parameters = dict
+            } else {
+                self.parameters = [:]
+            }
+        }
+
+        func encode(to encoder: Encoder) throws {
+            var container = encoder.container(keyedBy: CodingKeys.self)
+            try container.encode(self.name, forKey: .name)
+            try container.encode(self.description, forKey: .description)
+
+            // Encode parameters as a nested JSON structure
+            var parametersContainer = container.nestedContainer(keyedBy: DynamicCodingKey.self, forKey: .parameters)
+            try encodeAnyValue(self.parameters, to: &parametersContainer)
+        }
+    }
+}
+
+struct OpenAIChatResponse: Codable {
+    let id: String
+    let choices: [Choice]
+    let usage: Usage?
+
+    struct Choice: Codable {
+        let index: Int
+        let message: Message
+        let finishReason: String?
+
+        enum CodingKeys: String, CodingKey {
+            case index, message
+            case finishReason = "finish_reason"
+        }
+    }
+
+    struct Message: Codable {
+        let role: String
+        let content: String?
+        let toolCalls: [ToolCall]?
+
+        enum CodingKeys: String, CodingKey {
+            case role, content
+            case toolCalls = "tool_calls"
+        }
+    }
+
+    struct ToolCall: Codable {
+        let id: String
+        let type: String
+        let function: Function
+
+        struct Function: Codable {
+            let name: String
+            let arguments: String
+        }
+    }
+
+    struct Usage: Codable {
+        let promptTokens: Int
+        let completionTokens: Int
+        let totalTokens: Int
+
+        enum CodingKeys: String, CodingKey {
+            case promptTokens = "prompt_tokens"
+            case completionTokens = "completion_tokens"
+            case totalTokens = "total_tokens"
+        }
+    }
+}
+
+struct OpenAIStreamChunk: Codable {
+    let id: String
+    let choices: [Choice]
+
+    struct Choice: Codable {
+        let index: Int
+        let delta: Delta
+        let finishReason: String?
+
+        enum CodingKeys: String, CodingKey {
+            case index, delta
+            case finishReason = "finish_reason"
+        }
+    }
+
+    struct Delta: Codable {
+        let role: String?
+        let content: String?
+    }
+}
+
+struct OpenAIErrorResponse: Codable {
+    let error: Error
+
+    struct Error: Codable {
+        let message: String
+        let type: String?
+        let code: String?
+    }
+}
+
+// Helper type for Either content
+enum Either<Left, Right>: Codable where Left: Codable, Right: Codable {
+    case left(Left)
+    case right(Right)
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        if let leftValue = try? container.decode(Left.self) {
+            self = .left(leftValue)
+        } else if let rightValue = try? container.decode(Right.self) {
+            self = .right(rightValue)
+        } else {
+            throw DecodingError.typeMismatch(Either.self, DecodingError.Context(
+                codingPath: decoder.codingPath,
+                debugDescription: "Could not decode Either<\(Left.self), \(Right.self)>"
+            ))
+        }
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        switch self {
+        case let .left(value):
+            try container.encode(value)
+        case let .right(value):
+            try container.encode(value)
+        }
+    }
+}

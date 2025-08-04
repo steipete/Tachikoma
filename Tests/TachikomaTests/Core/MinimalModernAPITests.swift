@@ -90,17 +90,54 @@ struct MinimalModernAPITests {
     func weatherToolKitStructure() {
         let toolkit = WeatherToolKit()
         #expect(toolkit.tools.count == 2)
-        #expect(toolkit.toolNames.count == 2)
-        #expect(toolkit.hasTool(named: "get_weather"))
+        #expect(toolkit.tools.contains { $0.name == "get_weather" })
     }
 
     @Test("MathToolKit basic structure")
     func mathToolKitStructure() {
         let toolkit = MathToolKit()
         #expect(toolkit.tools.count == 2)
-        #expect(toolkit.hasTool(named: "calculate"))
+        #expect(toolkit.tools.contains { $0.name == "calculate" })
     }
+}
 
+// MARK: - Test ToolKit Implementations
+
+@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+struct WeatherToolKit: ToolKit {
+    var tools: [Tool<WeatherToolKit>] {
+        [
+            createTool(name: "get_weather", description: "Get current weather") { input, context in
+                let location = try input.stringValue("location")
+                return "Weather in \(location): 72°F, sunny"
+            },
+            createTool(name: "get_forecast", description: "Get weather forecast") { input, context in
+                let location = try input.stringValue("location")
+                return "Forecast for \(location): sunny week ahead"
+            }
+        ]
+    }
+}
+
+@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+struct MathToolKit: ToolKit {
+    var tools: [Tool<MathToolKit>] {
+        [
+            createTool(name: "calculate", description: "Perform calculations") { input, context in
+                let _ = try input.stringValue("expression")
+                return "Result: 42"
+            },
+            createTool(name: "square", description: "Calculate square") { input, context in
+                let number = try input.intValue("number")
+                return "Square of \(number): \(number * number)"
+            }
+        ]
+    }
+}
+
+// MARK: - Additional Test Code
+
+extension MinimalModernAPITests {
     // MARK: - Error Types
 
     @Test("Tool error types")
