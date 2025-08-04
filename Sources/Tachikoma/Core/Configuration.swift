@@ -37,9 +37,9 @@ public final class TachikomaConfiguration: @unchecked Sendable {
         self.lock.withLock {
             let lowercaseProvider = provider.lowercased()
 
-            // In test mode, check test overrides first
-            if self._isTestMode, let testKey = _testOverrides[lowercaseProvider] {
-                return testKey
+            // In test mode, only use test overrides (ignore environment/config keys)
+            if self._isTestMode {
+                return _testOverrides[lowercaseProvider]
             }
 
             return self._apiKeys[lowercaseProvider]

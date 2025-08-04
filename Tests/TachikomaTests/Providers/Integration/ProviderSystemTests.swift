@@ -58,17 +58,15 @@ struct ProviderSystemTests {
     @Test("Provider Factory - Missing API Key Error")
     func providerFactoryMissingAPIKey() async throws {
         try await TestHelpers.withNoAPIKeys {
-            let model = LanguageModel.openai(.gpt4o)
-
+            // Test the actual provider constructors directly since ProviderFactory
+            // uses MockProvider in test mode to avoid hitting real APIs
+            
             #expect(throws: TachikomaError.self) {
-                try ProviderFactory.createProvider(for: model)
+                try OpenAIProvider(model: .gpt4o)
             }
 
-            // Also test Anthropic
-            let anthropicModel = LanguageModel.anthropic(.opus4)
-
             #expect(throws: TachikomaError.self) {
-                try ProviderFactory.createProvider(for: anthropicModel)
+                try AnthropicProvider(model: .opus4)
             }
         }
     }

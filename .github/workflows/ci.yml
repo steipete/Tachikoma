@@ -51,7 +51,7 @@ jobs:
       run: swift build -c release --verbose
       
     - name: Run Tests (Unit Tests Only)
-      run: swift test --filter TachikomaBuildersTests --filter TachikomaCLITests --filter TachikomaTests
+      run: swift test --filter TachikomaTests
       env:
         # Enable API tests with provided keys
         OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
@@ -63,7 +63,7 @@ jobs:
         XAI_API_KEY: ${{ secrets.X_AI_API_KEY }} # Some tests might check for XAI_API_KEY
         
     - name: Run Package Tests (Full API Testing)
-      run: swift test --build-path .build-test --verbose
+      run: swift test --verbose
       env:
         # Enable full API testing with all providers
         OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
