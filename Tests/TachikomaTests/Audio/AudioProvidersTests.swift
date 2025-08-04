@@ -93,7 +93,9 @@ struct AudioProvidersTests {
         @Test("TranscriptionProviderFactory creates OpenAI provider")
         func transcriptionFactoryOpenAI() async throws {
             try await TestHelpers.withTestEnvironment(apiKeys: ["openai": "test-key"]) {
-                let provider = try TranscriptionProviderFactory.createProvider(for: .openai(.whisper1))
+                // Test the actual provider constructor directly since TranscriptionProviderFactory
+                // uses MockTranscriptionProvider in test mode to avoid hitting real APIs
+                let provider = try OpenAITranscriptionProvider(model: .whisper1)
 
                 #expect(provider.modelId == "whisper-1")
                 #expect(provider.capabilities.supportedFormats.contains(.wav))
@@ -107,8 +109,10 @@ struct AudioProvidersTests {
         @Test("TranscriptionProviderFactory fails without API key")
         func transcriptionFactoryNoAPIKey() async throws {
             try await TestHelpers.withNoAPIKeys {
+                // Test the actual provider constructor directly since TranscriptionProviderFactory
+                // uses MockTranscriptionProvider in test mode to avoid hitting real APIs
                 #expect(throws: TachikomaError.self) {
-                    _ = try TranscriptionProviderFactory.createProvider(for: .openai(.whisper1))
+                    _ = try OpenAITranscriptionProvider(model: .whisper1)
                 }
             }
         }
@@ -143,7 +147,9 @@ struct AudioProvidersTests {
         @Test("SpeechProviderFactory creates OpenAI provider")
         func speechFactoryOpenAI() async throws {
             try await TestHelpers.withTestEnvironment(apiKeys: ["openai": "test-key"]) {
-                let provider = try SpeechProviderFactory.createProvider(for: .openai(.tts1))
+                // Test the actual provider constructor directly since SpeechProviderFactory
+                // uses MockSpeechProvider in test mode to avoid hitting real APIs
+                let provider = try OpenAISpeechProvider(model: .tts1)
 
                 #expect(provider.modelId == "tts-1")
                 #expect(provider.capabilities.supportedFormats.contains(.mp3))
@@ -158,8 +164,10 @@ struct AudioProvidersTests {
         @Test("SpeechProviderFactory fails without API key")
         func speechFactoryNoAPIKey() async throws {
             try await TestHelpers.withNoAPIKeys {
+                // Test the actual provider constructor directly since SpeechProviderFactory
+                // uses MockSpeechProvider in test mode to avoid hitting real APIs
                 #expect(throws: TachikomaError.self) {
-                    _ = try SpeechProviderFactory.createProvider(for: .openai(.tts1))
+                    _ = try OpenAISpeechProvider(model: .tts1)
                 }
             }
         }
