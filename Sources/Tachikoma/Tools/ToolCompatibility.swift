@@ -165,7 +165,7 @@ public struct Tool<Context: Sendable>: Sendable {
             execute: { args in
                 let input = ToolInput(args)
                 let output = try await execute(input, context)
-                return .string(output.content)
+                return try .string(output.toJSONString())
             }
         )
     }
@@ -182,7 +182,7 @@ public func createTool<Context: Sendable>(
         description: description
     ) { input, context in
         let result = try await handler(input, context)
-        return ToolOutput(content: result)
+        return .string(result)
     }
 }
 
@@ -198,6 +198,55 @@ public protocol ToolKit: Sendable {
 extension ToolKit where Context == Self {
     public var simpleTools: [SimpleTool] {
         return tools.map { $0.toSimpleTool(context: self) }
+    }
+}
+
+/// Extension to convert ToolKit to provider tools
+@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+extension ToolKit {
+    /// Convert tools to provider tool format
+    public func toProviderTools() throws -> [ProviderTool] {
+        tools.map { tool in
+            // Create basic parameters structure for the provider tool
+            let parameters = ToolParameters(
+                properties: [
+                    "input": ToolParameterProperty(
+                        name: "input",
+                        type: .string,
+                        description: "Tool input parameters"
+                    )
+                ],
+                required: []
+            )
+            
+            return ProviderTool(
+                name: tool.name,
+                description: tool.description,
+                parameters: parameters
+            )
+        }
+    }
+}
+
+/// Empty tool kit for testing
+@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+public struct EmptyToolKit: ToolKit {
+    public let tools: [Tool<EmptyToolKit>] = []
+
+    public init() {}
+}
+
+/// Provider tool definition for compatibility
+@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+public struct ProviderTool: Sendable {
+    public let name: String
+    public let description: String
+    public let parameters: ToolParameters
+
+    public init(name: String, description: String, parameters: ToolParameters) {
+        self.name = name
+        self.description = description
+        self.parameters = parameters
     }
 }
 
@@ -229,6 +278,48 @@ public struct ToolInput: Sendable {
     
     public init(_ dict: [String: ToolArgument]) {
         self.arguments = ToolArguments(dict)
+    }
+    
+    public init(jsonString: String) throws {
+        guard let data = jsonString.data(using: .utf8) else {
+            throw TachikomaError.invalidInput("Invalid UTF-8 JSON string")
+        }
+        
+        let jsonObject = try JSONSerialization.jsonObject(with: data, options: [])
+        guard let dict = jsonObject as? [String: Any] else {
+            throw TachikomaError.invalidInput("JSON must be a dictionary")
+        }
+        
+        var toolArgs: [String: ToolArgument] = [:]
+        for (key, value) in dict {
+            if let stringValue = value as? String {
+                toolArgs[key] = .string(stringValue)
+            } else if let numberValue = value as? Double {
+                toolArgs[key] = .double(numberValue)
+            } else if let intValue = value as? Int {
+                toolArgs[key] = .double(Double(intValue))
+            } else if let boolValue = value as? Bool {
+                toolArgs[key] = .bool(boolValue)
+            } else if value is NSNull {
+                // Skip null values
+                continue
+            } else if let arrayValue = value as? [Any] {
+                toolArgs[key] = .array(arrayValue.compactMap { element in
+                    if let str = element as? String {
+                        return .string(str)
+                    } else if let num = element as? Double {
+                        return .double(num)
+                    } else if let int = element as? Int {
+                        return .double(Double(int))
+                    } else if let bool = element as? Bool {
+                        return .bool(bool)
+                    }
+                    return nil
+                })
+            }
+        }
+        
+        self.arguments = ToolArguments(toolArgs)
     }
     
     public func stringValue(_ key: String) throws -> String {
@@ -276,6 +367,10 @@ public struct ToolInput: Sendable {
     }
     
     // Convenience methods with default parameters
+    public func stringValue(_ key: String, default defaultValue: String) -> String {
+        return (try? stringValue(key)) ?? defaultValue
+    }
+    
     public func stringValue(_ key: String, default defaultValue: String?) -> String? {
         if let result = try? stringValue(key) {
             return result
@@ -287,11 +382,23 @@ public struct ToolInput: Sendable {
         return try integerValue(key)
     }
     
+    public func intValue(_ key: String, default defaultValue: Int) -> Int {
+        return (try? integerValue(key)) ?? defaultValue
+    }
+    
     public func intValue(_ key: String, default defaultValue: Int?) -> Int? {
         if let result = try? integerValue(key) {
             return result
         }
         return defaultValue
+    }
+    
+    public func doubleValue(_ key: String) throws -> Double {
+        return try numberValue(key)
+    }
+    
+    public func doubleValue(_ key: String, default defaultValue: Double) -> Double {
+        return (try? numberValue(key)) ?? defaultValue
     }
     
     public func boolValue(_ key: String) throws -> Bool {
@@ -303,14 +410,54 @@ public struct ToolInput: Sendable {
     }
 }
 
-/// Output wrapper for compatibility with TachikomaBuilders
-public struct ToolOutput: Sendable {
-    public let content: String
-    public let metadata: [String: String]
-    
-    public init(content: String, metadata: [String: String] = [:]) {
-        self.content = content
-        self.metadata = metadata
+/// Tool output type for TachikomaBuilders compatibility
+@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+public enum ToolOutput: Sendable {
+    case string(String)
+    case int(Int)
+    case double(Double)
+    case bool(Bool)
+    case array([ToolOutput])
+    case object([String: ToolOutput])
+    case null
+
+    /// Create an error output
+    public static func error(message: String) -> ToolOutput {
+        .string("Error: \(message)")
+    }
+
+    /// Create a successful output
+    public static func success(_ message: String) -> ToolOutput {
+        .string(message)
+    }
+
+    /// Create a failure output
+    public static func failure(_ error: Error) -> ToolOutput {
+        .string("Error: \(error.localizedDescription)")
+    }
+
+    /// Convert to JSON string representation
+    public func toJSONString() throws -> String {
+        switch self {
+        case let .string(str):
+            return str
+        case let .int(int):
+            return String(int)
+        case let .double(double):
+            return String(double)
+        case let .bool(bool):
+            return String(bool)
+        case .null:
+            return "null"
+        case let .array(array):
+            let items = try array.map { try $0.toJSONString() }
+            return "[\(items.joined(separator: ", "))]"
+        case let .object(dict):
+            let pairs = try dict.map { key, value in
+                try "\"\(key)\": \(value.toJSONString())"
+            }
+            return "{\(pairs.joined(separator: ", "))}"
+        }
     }
 }
 
@@ -328,6 +475,10 @@ extension ToolError {
     
     public static func authenticationError(_ message: String) -> ToolError {
         return .executionFailed("Authentication error: \(message)")
+    }
+    
+    public static func toolNotFound(_ toolName: String) -> ToolError {
+        return .invalidInput("Tool not found: \(toolName)")
     }
 }
 
