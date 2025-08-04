@@ -196,8 +196,40 @@ public final class AgentSessionManager: @unchecked Sendable {
 
     private var sessions: [String: AgentSessionData] = [:]
     private let lock = NSLock()
+    private let fileManager = FileManager.default
 
     private init() {}
+    
+    /// Helper function to extract text from content part
+    private func extractTextFromContentPart(_ contentPart: ModelMessage.ContentPart?) -> String? {
+        guard let contentPart = contentPart else { return nil }
+        switch contentPart {
+        case let .text(text):
+            return text
+        case .image:
+            return "[Image]"
+        case let .toolCall(toolCall):
+            return "Tool: \(toolCall.name)"
+        case let .toolResult(toolResult):
+            return "Result: \(toolResult.toolCallId)"
+        }
+    }
+
+    /// Get the sessions storage directory
+    private func getSessionsDirectory() -> URL {
+        let url = fileManager.homeDirectoryForCurrentUser
+            .appendingPathComponent(".peekaboo/agent_sessions")
+        
+        // Ensure the directory exists
+        try? fileManager.createDirectory(at: url, withIntermediateDirectories: true)
+        
+        return url
+    }
+
+    /// Get the file path for a specific session
+    private func getSessionFilePath(for sessionId: String) -> URL {
+        getSessionsDirectory().appendingPathComponent("\(sessionId).json")
+    }
 
     /// Create a new agent session
     public func createSession(
@@ -262,22 +294,44 @@ public final class AgentSessionManager: @unchecked Sendable {
         )
     }
 
-    /// List all sessions
+    /// List all sessions from disk
     public func listSessions() -> [SessionSummary] {
-        self.lock.lock()
-        defer { lock.unlock() }
-
-        return self.sessions.values.map { sessionData in
-            SessionSummary(
-                id: sessionData.id,
-                modelName: sessionData.modelName,
-                createdAt: sessionData.createdAt,
-                lastAccessedAt: sessionData.lastAccessedAt,
-                messageCount: sessionData.messageCount,
-                status: sessionData.status,
-                summary: nil
-            )
-        }.sorted { $0.lastAccessedAt > $1.lastAccessedAt }
+        let sessionsDir = getSessionsDirectory()
+        
+        guard let sessionFiles = try? fileManager.contentsOfDirectory(
+            at: sessionsDir,
+            includingPropertiesForKeys: [.creationDateKey, .contentModificationDateKey],
+            options: .skipsHiddenFiles
+        ) else {
+            return []
+        }
+        
+        var summaries: [SessionSummary] = []
+        
+        for sessionFile in sessionFiles where sessionFile.pathExtension == "json" {
+            let sessionId = sessionFile.deletingPathExtension().lastPathComponent
+            
+            do {
+                let data = try Data(contentsOf: sessionFile)
+                let session = try JSONDecoder().decode(AgentSession.self, from: data)
+                
+                let summary = SessionSummary(
+                    id: session.id,
+                    modelName: session.modelName,
+                    createdAt: session.createdAt,
+                    lastAccessedAt: session.lastAccessedAt,
+                    messageCount: session.messages.count,
+                    status: .active, // All loaded sessions are considered active
+                    summary: extractTextFromContentPart(session.messages.last?.content.first)
+                )
+                summaries.append(summary)
+            } catch {
+                // Skip corrupted session files
+                try? fileManager.removeItem(at: sessionFile)
+            }
+        }
+        
+        return summaries.sorted { $0.lastAccessedAt > $1.lastAccessedAt }
     }
 
     /// Remove a session
@@ -298,6 +352,99 @@ public final class AgentSessionManager: @unchecked Sendable {
         self.sessions = self.sessions.filter { _, sessionData in
             sessionData.lastAccessedAt >= cutoffDate
         }
+    }
+
+    /// Load a session from disk
+    public func loadSession(id: String) async throws -> AgentSession? {
+        let filePath = getSessionFilePath(for: id)
+        
+        guard fileManager.fileExists(atPath: filePath.path) else {
+            return nil
+        }
+        
+        do {
+            let data = try Data(contentsOf: filePath)
+            let session = try JSONDecoder().decode(AgentSession.self, from: data)
+            
+            // Update in-memory cache
+            self.lock.withLock {
+                let sessionData = AgentSessionData(
+                    id: session.id,
+                    modelName: session.modelName,
+                    createdAt: session.createdAt,
+                    lastAccessedAt: session.lastAccessedAt,
+                    messageCount: session.messages.count,
+                    status: .active
+                )
+                self.sessions[session.id] = sessionData
+            }
+            
+            return session
+        } catch {
+            // Remove corrupted session file
+            try? fileManager.removeItem(at: filePath)
+            return nil
+        }
+    }
+
+    /// Delete a session from disk and memory
+    public func deleteSession(id: String) async throws {
+        // Remove from memory
+        self.lock.withLock {
+            self.sessions.removeValue(forKey: id)
+        }
+        
+        // Remove from disk
+        let filePath = getSessionFilePath(for: id)
+        try? fileManager.removeItem(at: filePath)
+    }
+
+    /// Save a session to disk and memory
+    public func saveSession(_ session: AgentSession) async throws {
+        // Save to disk
+        let filePath = getSessionFilePath(for: session.id)
+        let data = try JSONEncoder().encode(session)
+        try data.write(to: filePath, options: .atomic)
+        
+        // Update in-memory cache
+        self.lock.withLock {
+            let sessionData = AgentSessionData(
+                id: session.id,
+                modelName: session.modelName,
+                createdAt: session.createdAt,
+                lastAccessedAt: session.lastAccessedAt,
+                messageCount: session.messages.count,
+                status: .active
+            )
+            self.sessions[session.id] = sessionData
+        }
+    }
+}
+
+/// Public session data for external consumption
+@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+public struct AgentSession: Codable {
+    public let id: String
+    public let modelName: String
+    public let messages: [ModelMessage]
+    public let createdAt: Date
+    public let lastAccessedAt: Date
+    public let metadata: [String: String]
+
+    public init(
+        id: String,
+        modelName: String,
+        messages: [ModelMessage],
+        createdAt: Date,
+        lastAccessedAt: Date,
+        metadata: [String: String] = [:]
+    ) {
+        self.id = id
+        self.modelName = modelName
+        self.messages = messages
+        self.createdAt = createdAt
+        self.lastAccessedAt = lastAccessedAt
+        self.metadata = metadata
     }
 }
 

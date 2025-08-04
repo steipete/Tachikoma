@@ -36,24 +36,46 @@ struct OpenAIChatRequest: Codable {
 
 struct OpenAIChatMessage: Codable {
     let role: String
-    let content: Either<String, [OpenAIChatMessageContent]>
+    let content: Either<String, [OpenAIChatMessageContent]>?
     let toolCallId: String?
+    let toolCalls: [ToolCall]?
 
     enum CodingKeys: String, CodingKey {
         case role, content
         case toolCallId = "tool_call_id"
+        case toolCalls = "tool_calls"
+    }
+
+    struct ToolCall: Codable {
+        let id: String
+        let type: String
+        let function: Function
+
+        struct Function: Codable {
+            let name: String
+            let arguments: String
+        }
     }
 
     init(role: String, content: String, toolCallId: String? = nil) {
         self.role = role
         self.content = .left(content)
         self.toolCallId = toolCallId
+        self.toolCalls = nil
     }
 
     init(role: String, content: [OpenAIChatMessageContent], toolCallId: String? = nil) {
         self.role = role
         self.content = .right(content)
         self.toolCallId = toolCallId
+        self.toolCalls = nil
+    }
+
+    init(role: String, content: String? = nil, toolCalls: [ToolCall]?) {
+        self.role = role
+        self.content = content.map { .left($0) }
+        self.toolCallId = nil
+        self.toolCalls = toolCalls
     }
 }
 
@@ -121,8 +143,9 @@ struct OpenAITool: Codable {
             try container.encode(self.name, forKey: .name)
             try container.encode(self.description, forKey: .description)
 
-            let data = try JSONSerialization.data(withJSONObject: self.parameters)
-            try container.encode(data, forKey: .parameters)
+            // Encode parameters as a nested JSON structure
+            var parametersContainer = container.nestedContainer(keyedBy: DynamicCodingKey.self, forKey: .parameters)
+            try encodeAnyValue(self.parameters, to: &parametersContainer)
         }
     }
 }
@@ -794,45 +817,52 @@ struct OllamaErrorResponse: Codable {
 public struct ProviderFactory {
     /// Create a provider for the specified language model
     public static func createProvider(for model: LanguageModel) throws -> any ModelProvider {
+        // Check if we're in test mode or if API tests are disabled
+        if TachikomaConfiguration.shared.isTestMode || 
+           ProcessInfo.processInfo.environment["TACHIKOMA_DISABLE_API_TESTS"] == "true" ||
+           ProcessInfo.processInfo.environment["TACHIKOMA_TEST_MODE"] == "mock" {
+            return MockProvider(model: model)
+        }
+        
         switch model {
         case let .openai(openaiModel):
-            try OpenAIProvider(model: openaiModel)
+            return try OpenAIProvider(model: openaiModel)
 
         case let .anthropic(anthropicModel):
-            try AnthropicProvider(model: anthropicModel)
+            return try AnthropicProvider(model: anthropicModel)
 
         case let .google(googleModel):
-            try GoogleProvider(model: googleModel)
+            return try GoogleProvider(model: googleModel)
 
         case let .mistral(mistralModel):
-            try MistralProvider(model: mistralModel)
+            return try MistralProvider(model: mistralModel)
 
         case let .groq(groqModel):
-            try GroqProvider(model: groqModel)
+            return try GroqProvider(model: groqModel)
 
         case let .grok(grokModel):
-            try GrokProvider(model: grokModel)
+            return try GrokProvider(model: grokModel)
 
         case let .ollama(ollamaModel):
-            try OllamaProvider(model: ollamaModel)
+            return try OllamaProvider(model: ollamaModel)
 
         case let .openRouter(modelId):
-            try OpenRouterProvider(modelId: modelId)
+            return try OpenRouterProvider(modelId: modelId)
 
         case let .together(modelId):
-            try TogetherProvider(modelId: modelId)
+            return try TogetherProvider(modelId: modelId)
 
         case let .replicate(modelId):
-            try ReplicateProvider(modelId: modelId)
+            return try ReplicateProvider(modelId: modelId)
 
         case let .openaiCompatible(modelId, baseURL):
-            try OpenAICompatibleProvider(modelId: modelId, baseURL: baseURL)
+            return try OpenAICompatibleProvider(modelId: modelId, baseURL: baseURL)
 
         case let .anthropicCompatible(modelId, baseURL):
-            try AnthropicCompatibleProvider(modelId: modelId, baseURL: baseURL)
+            return try AnthropicCompatibleProvider(modelId: modelId, baseURL: baseURL)
 
         case let .custom(provider):
-            provider
+            return provider
         }
     }
 }
@@ -1008,6 +1038,33 @@ public final class OpenAIProvider: ModelProvider {
 
     // MARK: - Helper Methods
 
+    private func convertToolArgumentsToSerializable(_ arguments: [String: ToolArgument]) throws -> [String: Any] {
+        var result: [String: Any] = [:]
+        for (key, value) in arguments {
+            result[key] = try self.convertToolArgumentToSerializable(value)
+        }
+        return result
+    }
+
+    private func convertToolArgumentToSerializable(_ argument: ToolArgument) throws -> Any {
+        switch argument {
+        case let .string(str):
+            return str
+        case let .int(int):
+            return int
+        case let .double(double):
+            return double
+        case let .bool(bool):
+            return bool
+        case .null:
+            return NSNull()
+        case let .array(array):
+            return try array.map { try self.convertToolArgumentToSerializable($0) }
+        case let .object(object):
+            return try self.convertToolArgumentsToSerializable(object)
+        }
+    }
+
     private func convertMessages(_ messages: [ModelMessage]) throws -> [OpenAIChatMessage] {
         try messages.map { message -> OpenAIChatMessage in
             switch message.role {
@@ -1047,13 +1104,42 @@ public final class OpenAIProvider: ModelProvider {
                 throw TachikomaError.invalidInput("User message must have content")
 
             case .assistant:
-                if
-                    let textContent = message.content.first,
-                    case let .text(text) = textContent
-                {
-                    return OpenAIChatMessage(role: "assistant", content: text)
+                // Extract text content
+                var textContent: String? = nil
+                var toolCalls: [OpenAIChatMessage.ToolCall] = []
+                
+                for part in message.content {
+                    switch part {
+                    case let .text(text):
+                        textContent = text
+                    case let .toolCall(toolCall):
+                        // Convert ToolArgument dictionary to JSON-serializable dictionary
+                        let serializableArgs = try self.convertToolArgumentsToSerializable(toolCall.arguments)
+                        let argumentsData = try JSONSerialization.data(withJSONObject: serializableArgs)
+                        let argumentsString = String(data: argumentsData, encoding: .utf8) ?? "{}"
+                        let openAIToolCall = OpenAIChatMessage.ToolCall(
+                            id: toolCall.id,
+                            type: "function",
+                            function: OpenAIChatMessage.ToolCall.Function(
+                                name: toolCall.name,
+                                arguments: argumentsString
+                            )
+                        )
+                        toolCalls.append(openAIToolCall)
+                    default:
+                        throw TachikomaError.invalidInput("Unsupported assistant message content type")
+                    }
                 }
-                throw TachikomaError.invalidInput("Assistant message must have text content")
+                
+                if !toolCalls.isEmpty {
+                    // Assistant message with tool calls
+                    return OpenAIChatMessage(role: "assistant", content: textContent, toolCalls: toolCalls)
+                } else if let text = textContent {
+                    // Regular assistant message
+                    return OpenAIChatMessage(role: "assistant", content: text)
+                } else {
+                    throw TachikomaError.invalidInput("Assistant message must have text or tool call content")
+                }
 
             case .tool:
                 if
@@ -1085,7 +1171,11 @@ public final class OpenAIProvider: ModelProvider {
     }
 
     private func convertTools(_ tools: [SimpleTool]?) throws -> [OpenAITool]? {
-        tools?.map { tool in
+        if let tools = tools {
+            print("DEBUG: OpenAI convertTools called with \(tools.count) tools")
+        }
+        return tools?.map { tool in
+            print("DEBUG: Converting tool '\(tool.name)' with \(tool.parameters.properties.count) parameters")
             // Convert ToolParameters to OpenAI format
             var properties: [String: Any] = [:]
 
@@ -1123,16 +1213,18 @@ public final class OpenAIProvider: ModelProvider {
                 properties[paramName] = propDict
             }
 
+            let parametersObj = [
+                "type": "object",
+                "properties": properties,
+                "required": tool.parameters.required,
+            ]
+            print("DEBUG: Tool '\(tool.name)' final parameters: \(parametersObj)")
             return OpenAITool(
                 type: "function",
                 function: OpenAITool.Function(
                     name: tool.name,
                     description: tool.description,
-                    parameters: [
-                        "type": "object",
-                        "properties": properties,
-                        "required": tool.parameters.required,
-                    ]
+                    parameters: parametersObj
                 )
             )
         }
@@ -2259,5 +2351,203 @@ public final class AnthropicCompatibleProvider: ModelProvider {
 
     public func streamText(request: ProviderRequest) async throws -> AsyncThrowingStream<TextStreamDelta, Error> {
         throw TachikomaError.unsupportedOperation("Anthropic-compatible streaming not yet implemented")
+    }
+}
+
+// MARK: - JSON Encoding Helpers
+
+/// Dynamic coding key for encoding arbitrary dictionaries
+struct DynamicCodingKey: CodingKey {
+    var stringValue: String
+    var intValue: Int?
+
+    init?(stringValue: String) {
+        self.stringValue = stringValue
+        self.intValue = nil
+    }
+
+    init?(intValue: Int) {
+        self.stringValue = String(intValue)
+        self.intValue = intValue
+    }
+}
+
+/// Encode Any values into a keyed container without using AnyCodable
+func encodeAnyValue<Container: KeyedEncodingContainerProtocol>(_ value: Any, to container: inout Container, forKey key: Container.Key) throws {
+    if let string = value as? String {
+        try container.encode(string, forKey: key)
+    } else if let int = value as? Int {
+        try container.encode(int, forKey: key)
+    } else if let double = value as? Double {
+        try container.encode(double, forKey: key)
+    } else if let bool = value as? Bool {
+        try container.encode(bool, forKey: key)
+    } else if let array = value as? [Any] {
+        var arrayContainer = container.nestedUnkeyedContainer(forKey: key)
+        for item in array {
+            try encodeAnyValueToUnkeyed(item, to: &arrayContainer)
+        }
+    } else if let dict = value as? [String: Any] {
+        var dictContainer = container.nestedContainer(keyedBy: DynamicCodingKey.self, forKey: key)
+        try encodeAnyValue(dict, to: &dictContainer)
+    } else {
+        try container.encodeNil(forKey: key)
+    }
+}
+
+/// Encode a dictionary of Any values into a keyed container
+func encodeAnyValue<Container: KeyedEncodingContainerProtocol>(_ dict: [String: Any], to container: inout Container) throws where Container.Key == DynamicCodingKey {
+    for (key, value) in dict {
+        guard let codingKey = DynamicCodingKey(stringValue: key) else {
+            continue
+        }
+        try encodeAnyValue(value, to: &container, forKey: codingKey)
+    }
+}
+
+/// Encode Any values into an unkeyed container
+func encodeAnyValueToUnkeyed<Container: UnkeyedEncodingContainer>(_ value: Any, to container: inout Container) throws {
+    if let string = value as? String {
+        try container.encode(string)
+    } else if let int = value as? Int {
+        try container.encode(int)
+    } else if let double = value as? Double {
+        try container.encode(double)
+    } else if let bool = value as? Bool {
+        try container.encode(bool)
+    } else if let array = value as? [Any] {
+        var arrayContainer = container.nestedUnkeyedContainer()
+        for item in array {
+            try encodeAnyValueToUnkeyed(item, to: &arrayContainer)
+        }
+    } else if let dict = value as? [String: Any] {
+        var dictContainer = container.nestedContainer(keyedBy: DynamicCodingKey.self)
+        try encodeAnyValue(dict, to: &dictContainer)
+    } else {
+        try container.encodeNil()
+    }
+}
+
+// MARK: - Mock Provider for Testing
+
+/// Mock provider that returns predictable responses for testing
+@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+public final class MockProvider: ModelProvider {
+    public let modelId: String
+    public let baseURL: String?
+    public let apiKey: String?
+    public let capabilities: ModelCapabilities
+    
+    private let model: LanguageModel
+    
+    public init(model: LanguageModel) {
+        self.model = model
+        self.modelId = model.modelId
+        self.baseURL = "https://mock.api.example.com"
+        self.apiKey = "mock-api-key"
+        
+        self.capabilities = ModelCapabilities(
+            supportsVision: true,
+            supportsTools: true,
+            supportsStreaming: true,
+            contextLength: 128_000,
+            maxOutputTokens: 4096
+        )
+    }
+    
+    public func generateText(request: ProviderRequest) async throws -> ProviderResponse {
+        // Simulate network delay
+        try await Task.sleep(for: .milliseconds(100))
+        
+        // Extract prompt text from messages
+        let promptText = request.messages.compactMap { message in
+            message.content.compactMap { part in
+                if case let .text(text) = part {
+                    return text
+                }
+                return nil
+            }.joined()
+        }.joined(separator: " ")
+        
+        // Generate mock response based on provider type
+        let mockResponse = generateMockResponse(for: model, prompt: promptText, hasTools: request.tools?.isEmpty == false)
+        
+        // Handle tool calls if requested
+        var toolCalls: [ToolCall]? = nil
+        if let tools = request.tools, !tools.isEmpty, mockResponse.contains("tool_call") {
+            toolCalls = [ToolCall(
+                id: "mock_tool_call_123",
+                name: tools.first?.name ?? "mock_tool",
+                arguments: ["query": .string("mock query")]
+            )]
+        }
+        
+        return ProviderResponse(
+            text: mockResponse,
+            usage: Usage(inputTokens: 50, outputTokens: 100, cost: Usage.Cost(input: 0.0005, output: 0.0005)),
+            finishReason: toolCalls != nil ? .toolCalls : .stop,
+            toolCalls: toolCalls
+        )
+    }
+    
+    public func streamText(request: ProviderRequest) async throws -> AsyncThrowingStream<TextStreamDelta, Error> {
+        return AsyncThrowingStream { continuation in
+            Task {
+                do {
+                    let response = try await generateText(request: request)
+                    let words = response.text.split(separator: " ")
+                    
+                    for word in words {
+                        continuation.yield(TextStreamDelta(type: .textDelta, content: String(word) + " "))
+                        try await Task.sleep(for: .milliseconds(50))
+                    }
+                    
+                    continuation.yield(TextStreamDelta(type: .done))
+                    continuation.finish()
+                } catch {
+                    continuation.finish(throwing: error)
+                }
+            }
+        }
+    }
+    
+    private func generateMockResponse(for model: LanguageModel, prompt: String, hasTools: Bool) -> String {
+        switch model {
+        case .openai:
+            if hasTools {
+                return "OpenAI response for '\(prompt)' with model \(model.modelId). Using tool_call to help answer."
+            } else {
+                return "OpenAI response for '\(prompt)' with model \(model.modelId)."
+            }
+            
+        case .anthropic:
+            if prompt.contains("quantum physics") {
+                return "Quantum physics is a fundamental theory in physics that describes the behavior of matter and energy at the atomic and subatomic level."
+            } else if prompt.contains("2+2") {
+                return "2+2 equals 4."
+            } else if prompt.contains("Hello world") {
+                return "Hello! How can I help you today?"
+            } else {
+                return "I'm Claude, an AI assistant created by Anthropic. I'm here to help with a variety of tasks."
+            }
+            
+        case .google:
+            return "Google Gemini response for '\(prompt)' with model \(model.modelId)."
+            
+        case .mistral:
+            return "Mistral response for '\(prompt)' with model \(model.modelId)."
+            
+        case .groq:
+            return "Groq response for '\(prompt)' with model \(model.modelId)."
+            
+        case .grok:
+            return "Grok response for '\(prompt)' with model \(model.modelId)."
+            
+        case .ollama:
+            return "Ollama response for '\(prompt)' with model \(model.modelId)."
+            
+        default:
+            return "Mock response for '\(prompt)' with model \(model.modelId)."
+        }
     }
 }

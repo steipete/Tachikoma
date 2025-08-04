@@ -98,21 +98,28 @@ public struct SpeechCapabilities: Sendable {
 public struct TranscriptionProviderFactory {
     /// Create a transcription provider for the specified model
     public static func createProvider(for model: TranscriptionModel) throws -> any TranscriptionProvider {
+        // Check if we're in test mode or if API tests are disabled
+        if TachikomaConfiguration.shared.isTestMode || 
+           ProcessInfo.processInfo.environment["TACHIKOMA_DISABLE_API_TESTS"] == "true" ||
+           ProcessInfo.processInfo.environment["TACHIKOMA_TEST_MODE"] == "mock" {
+            return MockTranscriptionProvider(model: model)
+        }
+        
         switch model {
         case let .openai(openaiModel):
-            try OpenAITranscriptionProvider(model: openaiModel)
+            return try OpenAITranscriptionProvider(model: openaiModel)
         case let .groq(groqModel):
-            try GroqTranscriptionProvider(model: groqModel)
+            return try GroqTranscriptionProvider(model: groqModel)
         case let .deepgram(deepgramModel):
-            try DeepgramTranscriptionProvider(model: deepgramModel)
+            return try DeepgramTranscriptionProvider(model: deepgramModel)
         case let .assemblyai(assemblyaiModel):
-            try AssemblyAITranscriptionProvider(model: assemblyaiModel)
+            return try AssemblyAITranscriptionProvider(model: assemblyaiModel)
         case let .elevenlabs(elevenlabsModel):
-            try ElevenLabsTranscriptionProvider(model: elevenlabsModel)
+            return try ElevenLabsTranscriptionProvider(model: elevenlabsModel)
         case let .revai(revaiModel):
-            try RevAITranscriptionProvider(model: revaiModel)
+            return try RevAITranscriptionProvider(model: revaiModel)
         case let .azure(azureModel):
-            try AzureTranscriptionProvider(model: azureModel)
+            return try AzureTranscriptionProvider(model: azureModel)
         }
     }
 }
@@ -122,15 +129,22 @@ public struct TranscriptionProviderFactory {
 public struct SpeechProviderFactory {
     /// Create a speech provider for the specified model
     public static func createProvider(for model: SpeechModel) throws -> any SpeechProvider {
+        // Check if we're in test mode or if API tests are disabled
+        if TachikomaConfiguration.shared.isTestMode || 
+           ProcessInfo.processInfo.environment["TACHIKOMA_DISABLE_API_TESTS"] == "true" ||
+           ProcessInfo.processInfo.environment["TACHIKOMA_TEST_MODE"] == "mock" {
+            return MockSpeechProvider(model: model)
+        }
+        
         switch model {
         case let .openai(openaiModel):
-            try OpenAISpeechProvider(model: openaiModel)
+            return try OpenAISpeechProvider(model: openaiModel)
         case let .lmnt(lmntModel):
-            try LMNTSpeechProvider(model: lmntModel)
+            return try LMNTSpeechProvider(model: lmntModel)
         case let .hume(humeModel):
-            try HumeSpeechProvider(model: humeModel)
+            return try HumeSpeechProvider(model: humeModel)
         case let .elevenlabs(elevenlabsModel):
-            try ElevenLabsSpeechProvider(model: elevenlabsModel)
+            return try ElevenLabsSpeechProvider(model: elevenlabsModel)
         }
     }
 }
@@ -416,5 +430,70 @@ public final class ElevenLabsSpeechProvider: SpeechProvider {
 
     public func generateSpeech(request: SpeechRequest) async throws -> SpeechResult {
         throw TachikomaError.unsupportedOperation("ElevenLabs speech generation not yet implemented")
+    }
+}
+
+// MARK: - Mock Providers for Testing
+
+/// Mock transcription provider for testing
+@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+public final class MockTranscriptionProvider: TranscriptionProvider {
+    public let modelId: String
+    public let capabilities: TranscriptionCapabilities
+    
+    private let model: TranscriptionModel
+    
+    public init(model: TranscriptionModel) {
+        self.model = model
+        self.modelId = model.modelId
+        self.capabilities = TranscriptionCapabilities(
+            supportedFormats: AudioFormat.allCases,
+            supportsTimestamps: true,
+            supportsLanguageDetection: true,
+            supportsWordTimestamps: true
+        )
+    }
+    
+    public func transcribe(request: TranscriptionRequest) async throws -> TranscriptionResult {
+        // Simulate network delay
+        try await Task.sleep(for: .milliseconds(100))
+        
+        return TranscriptionResult(
+            text: "Mock transcription result for audio file.",
+            language: request.language ?? "en",
+            duration: 5.0,
+            segments: []
+        )
+    }
+}
+
+/// Mock speech provider for testing
+@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+public final class MockSpeechProvider: SpeechProvider {
+    public let modelId: String
+    public let capabilities: SpeechCapabilities
+    
+    private let model: SpeechModel
+    
+    public init(model: SpeechModel) {
+        self.model = model
+        self.modelId = model.modelId
+        self.capabilities = SpeechCapabilities(
+            supportedFormats: [.mp3, .wav],
+            supportedVoices: [.alloy, .echo, .fable],
+            supportsSpeedControl: true
+        )
+    }
+    
+    public func generateSpeech(request: SpeechRequest) async throws -> SpeechResult {
+        // Simulate network delay
+        try await Task.sleep(for: .milliseconds(100))
+        
+        // Generate minimal audio data (empty for testing)
+        let mockAudioData = Data([0x00, 0x01, 0x02, 0x03]) // Minimal mock data
+        
+        return SpeechResult(
+            audioData: AudioData(data: mockAudioData, format: request.format)
+        )
     }
 }
