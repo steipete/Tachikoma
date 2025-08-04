@@ -1,6 +1,6 @@
 import Foundation
-@testable import TachikomaCore
 import Testing
+@testable import TachikomaCore
 
 @Suite("ToolKit System Tests")
 struct ToolKitTests {

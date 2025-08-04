@@ -38,14 +38,14 @@ public func createTool<Context>(
     parameters: ParameterSchema = .object(properties: [:]),
     _ handler: @escaping @Sendable (ToolInput, Context) async throws -> String
 )
-    -> Tool<Context> {
+-> Tool<Context> {
     Tool(
         name: name,
         description: description
-    )        { input, context in
-            let result = try await handler(input, context)
-            return .string(result)
-        }
+    ) { input, context in
+        let result = try await handler(input, context)
+        return .string(result)
+    }
 }
 
 /// Create a tool with structured output
@@ -56,7 +56,7 @@ public func createTool<Context>(
     parameters: ParameterSchema = .object(properties: [:]),
     _ handler: @escaping @Sendable (ToolInput, Context) async throws -> ToolOutput
 )
-    -> Tool<Context> {
+-> Tool<Context> {
     Tool(
         name: name,
         description: description,
@@ -72,14 +72,14 @@ public func createTool<Context>(
     parameters: ParameterSchema = .object(properties: [:]),
     _ handler: @escaping @Sendable (ToolInput, Context) throws -> String
 )
-    -> Tool<Context> {
+-> Tool<Context> {
     Tool(
         name: name,
         description: description
-    )        { input, context in
-            let result = try handler(input, context)
-            return .string(result)
-        }
+    ) { input, context in
+        let result = try handler(input, context)
+        return .string(result)
+    }
 }
 
 /// Create a tool from a simple synchronous function
@@ -90,14 +90,14 @@ public func createTool<Context>(
     parameters: ParameterSchema = .object(properties: [:]),
     _ handler: @escaping @Sendable (ToolInput, Context) -> String
 )
-    -> Tool<Context> {
+-> Tool<Context> {
     Tool(
         name: name,
         description: description
-    )        { input, context in
-            let result = handler(input, context)
-            return .string(result)
-        }
+    ) { input, context in
+        let result = handler(input, context)
+        return .string(result)
+    }
 }
 
 // MARK: - Macro Implementation Placeholder

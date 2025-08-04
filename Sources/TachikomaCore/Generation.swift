@@ -23,7 +23,7 @@ public func generateText(
     settings: GenerationSettings = .default,
     maxSteps: Int = 1
 ) async throws
-    -> GenerateTextResult {
+-> GenerateTextResult {
     let provider = try ProviderFactory.createProvider(for: model)
 
     var currentMessages = messages
@@ -94,7 +94,8 @@ public func generateText(
                         // Debug: Log tool call details in verbose mode
                         if
                             ProcessInfo.processInfo.arguments.contains("--verbose") ||
-                            ProcessInfo.processInfo.arguments.contains("-v") {
+                                ProcessInfo.processInfo.arguments.contains("-v")
+                        {
                             print(
                                 "DEBUG Generation.swift: Executing tool '\(toolCall.name)' with \(toolCall.arguments.count) arguments:"
                             )
@@ -178,7 +179,7 @@ public func streamText(
     settings: GenerationSettings = .default,
     maxSteps: Int = 1
 ) async throws
-    -> StreamTextResult {
+-> StreamTextResult {
     let provider = try ProviderFactory.createProvider(for: model)
 
     let request = ProviderRequest(
@@ -259,7 +260,7 @@ public func generateObject<T: Codable & Sendable>(
     schema: T.Type,
     settings: GenerationSettings = .default
 ) async throws
-    -> GenerateObjectResult<T> {
+-> GenerateObjectResult<T> {
     let provider = try ProviderFactory.createProvider(for: model)
 
     let request = ProviderRequest(
@@ -299,7 +300,7 @@ public func generate(
     system: String? = nil,
     tools: (any ToolKit)? = nil
 ) async throws
-    -> String {
+-> String {
     // For now, just return a mock response since we don't have provider implementations
     "Mock response for prompt: \(prompt)"
 }
@@ -313,7 +314,7 @@ public func generate(
     maxTokens: Int? = nil,
     temperature: Double? = nil
 ) async throws
-    -> String {
+-> String {
     var messages: [ModelMessage] = []
 
     if let system {
@@ -343,7 +344,7 @@ public func analyze(
     prompt: String,
     using model: Model? = nil
 ) async throws
-    -> String {
+-> String {
     // Determine the model to use
     let selectedModel: LanguageModel = if let model {
         model
@@ -429,7 +430,7 @@ public func stream(
     maxTokens: Int? = nil,
     temperature: Double? = nil
 ) async throws
-    -> AsyncThrowingStream<TextStreamDelta, Error> {
+-> AsyncThrowingStream<TextStreamDelta, Error> {
     var messages: [ModelMessage] = []
 
     if let system {

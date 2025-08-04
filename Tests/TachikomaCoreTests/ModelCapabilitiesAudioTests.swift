@@ -1,6 +1,6 @@
 import Foundation
-@testable import TachikomaCore
 import Testing
+@testable import TachikomaCore
 
 @Suite("Model Audio Capabilities Tests")
 struct ModelAudioCapabilitiesTests {
@@ -25,7 +25,7 @@ struct ModelAudioCapabilitiesTests {
             #expect(geminiModel.supportsAudioOutput == true) // Gemini Live
 
             // Test non-audio models
-            let groqModel = Model.groq(.llama31_70b)
+            let groqModel = Model.groq(.llama3170b)
             #expect(groqModel.supportsAudioInput == false)
             #expect(groqModel.supportsAudioOutput == false)
         }
@@ -57,7 +57,7 @@ struct ModelAudioCapabilitiesTests {
 
             // Test other providers
             let groqTranscription = TranscriptionModel.groq(.whisperLargeV3Turbo)
-            let groqLanguage = Model.groq(.llama31_70b)
+            let groqLanguage = Model.groq(.llama3170b)
 
             #expect(groqTranscription.providerName == "Groq")
             #expect(groqLanguage.providerName == "Groq")
@@ -161,7 +161,7 @@ struct ModelAudioCapabilitiesTests {
             #expect(openaiSpeech.providerName == "OpenAI")
 
             // Groq provider should have good transcription but limited other capabilities
-            let groqLanguage = Model.groq(.llama31_70b)
+            let groqLanguage = Model.groq(.llama3170b)
             let groqTranscription = TranscriptionModel.groq(.whisperLargeV3Turbo)
 
             #expect(groqLanguage.providerName == "Groq")

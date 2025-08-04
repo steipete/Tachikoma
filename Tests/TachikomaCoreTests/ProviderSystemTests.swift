@@ -1,6 +1,6 @@
 import Foundation
-@testable import TachikomaCore
 import Testing
+@testable import TachikomaCore
 
 @Suite("Provider System Tests")
 struct ProviderSystemTests {
@@ -79,12 +79,12 @@ struct ProviderSystemTests {
     func modelCapabilitiesVision() {
         #expect(Model.openai(.gpt4o).supportsVision == true)
         #expect(Model.openai(.gpt4oMini).supportsVision == true)
-        #expect(Model.openai(.gpt4_1).supportsVision == false)
+        #expect(Model.openai(.gpt41).supportsVision == false)
 
         #expect(Model.anthropic(.opus4).supportsVision == true)
         #expect(Model.anthropic(.sonnet4).supportsVision == true)
 
-        #expect(Model.grok(.grok2Vision_1212).supportsVision == true)
+        #expect(Model.grok(.grok2Vision1212).supportsVision == true)
         #expect(Model.grok(.grok4).supportsVision == false)
 
         #expect(Model.ollama(.llava).supportsVision == true)
@@ -94,7 +94,7 @@ struct ProviderSystemTests {
     @Test("Model Capabilities - Tool Support")
     func modelCapabilitiesTools() {
         #expect(Model.openai(.gpt4o).supportsTools == true)
-        #expect(Model.openai(.gpt4_1).supportsTools == true)
+        #expect(Model.openai(.gpt41).supportsTools == true)
 
         #expect(Model.anthropic(.opus4).supportsTools == true)
         #expect(Model.anthropic(.sonnet4).supportsTools == true)

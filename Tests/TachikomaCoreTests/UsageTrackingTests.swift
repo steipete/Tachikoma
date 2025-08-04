@@ -1,6 +1,6 @@
 import Foundation
-@testable import TachikomaCore
 import Testing
+@testable import TachikomaCore
 
 struct UsageTrackingTests {
     // MARK: - Session Management Tests
@@ -123,7 +123,7 @@ struct UsageTrackingTests {
         #expect(gpt4oMiniCost.total == 0.75)
 
         // Test Anthropic pricing
-        let claudeHaikuCost = calculator.calculateCost(for: .anthropic(.haiku3_5), usage: usage)
+        let claudeHaikuCost = calculator.calculateCost(for: .anthropic(.haiku35), usage: usage)
         #expect(claudeHaikuCost.input == 0.80) // $0.80 per million input tokens
         #expect(claudeHaikuCost.output == 4.00) // $4.00 per million output tokens
         #expect(claudeHaikuCost.total == 4.80)
@@ -154,7 +154,7 @@ struct UsageTrackingTests {
         let session2 = tracker.startSession()
         tracker.recordUsage(
             sessionId: session2,
-            model: .anthropic(.haiku3_5),
+            model: .anthropic(.haiku35),
             usage: Usage(inputTokens: 200, outputTokens: 100),
             operation: .imageAnalysis
         )

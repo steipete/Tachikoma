@@ -137,10 +137,10 @@ public enum LanguageModel: Sendable, CustomStringConvertible {
                 .opus4Thinking,
                 .sonnet4,
                 .sonnet4Thinking,
-                .sonnet3_7,
-                .opus3_5,
-                .sonnet3_5,
-                .haiku3_5,
+                .sonnet37,
+                .opus35,
+                .sonnet35,
+                .haiku35,
                 .opus3,
                 .sonnet3,
                 .haiku3,
@@ -272,12 +272,12 @@ public enum LanguageModel: Sendable, CustomStringConvertible {
 
     public enum Groq: String, Sendable, Hashable, CaseIterable {
         // Groq-hosted models (ultra-fast inference)
-        case llama31_70b = "llama-3.1-70b"
-        case llama31_8b = "llama-3.1-8b"
-        case llama3_70b = "llama-3-70b"
-        case llama3_8b = "llama-3-8b"
+        case llama3170b = "llama-3.1-70b"
+        case llama318b = "llama-3.1-8b"
+        case llama370b = "llama-3-70b"
+        case llama38b = "llama-3-8b"
         case mixtral8x7b = "mixtral-8x7b"
-        case gemma2_9b = "gemma2-9b"
+        case gemma29b = "gemma2-9b"
 
         public var supportsVision: Bool { false } // Groq models don't support vision yet
         public var supportsTools: Bool { true }
@@ -287,10 +287,10 @@ public enum LanguageModel: Sendable, CustomStringConvertible {
 
         public var contextLength: Int {
             switch self {
-            case .llama31_70b, .llama31_8b: 128_000
-            case .llama3_70b, .llama3_8b: 8000
+            case .llama3170b, .llama318b: 128_000
+            case .llama370b, .llama38b: 8000
             case .mixtral8x7b: 32_000
-            case .gemma2_9b: 8000
+            case .gemma29b: 8000
             }
         }
     }
@@ -350,7 +350,7 @@ public enum LanguageModel: Sendable, CustomStringConvertible {
 
         public var supportsVision: Bool {
             switch self {
-            case .grok2Vision_1212, .grok2Image_1212, .grokVisionBeta: true
+            case .grok2Vision1212, .grok2Image1212, .grokVisionBeta: true
             case .custom: true // Assume custom models support vision
             default: false
             }
@@ -370,9 +370,9 @@ public enum LanguageModel: Sendable, CustomStringConvertible {
 
         public var contextLength: Int {
             switch self {
-            case .grok4, .grok4_0709, .grok4Latest: 256_000
+            case .grok4, .grok40709, .grok4Latest: 256_000
             case .grok3, .grok3Mini, .grok3Fast, .grok3MiniFast: 128_000
-            case .grok2_1212, .grok2Vision_1212, .grok2Image_1212: 128_000
+            case .grok21212, .grok2Vision1212, .grok2Image1212: 128_000
             case .grokBeta, .grokVisionBeta: 128_000
             case .custom: 128_000 // Default assumption for custom models
             }
@@ -424,11 +424,9 @@ public enum LanguageModel: Sendable, CustomStringConvertible {
                 .llava,
                 .bakllava,
                 .llama32Vision11b,
-                .llama3_2Vision11b,
                 .llama32Vision90b,
-                .llama3_2Vision90b,
-                .qwen2_5vl7b,
-                .qwen2_5vl32b,
+                .qwen25vl7b,
+                .qwen25vl32b,
                 .codellama,
                 .mistralNemo,
                 .qwen25,
@@ -441,8 +439,8 @@ public enum LanguageModel: Sendable, CustomStringConvertible {
                 .neuralChat,
                 .gemma,
                 .devstral,
-                .deepseekR1_8b,
-                .deepseekR1_671b,
+                .deepseekR18b,
+                .deepseekR1671b,
                 .firefunction,
                 .commandR,
             ]
@@ -451,15 +449,15 @@ public enum LanguageModel: Sendable, CustomStringConvertible {
         public var modelId: String {
             switch self {
             case let .custom(id): id
-            case .llama33, .llama3_3: "llama3.3"
-            case .llama32, .llama3_2: "llama3.2"
-            case .llama31, .llama3_1: "llama3.1"
+            case .llama33: "llama3.3"
+            case .llama32: "llama3.2"
+            case .llama31: "llama3.1"
             case .llava: "llava"
             case .bakllava: "bakllava"
-            case .llama32Vision11b, .llama3_2Vision11b: "llama3.2-vision:11b"
-            case .llama32Vision90b, .llama3_2Vision90b: "llama3.2-vision:90b"
-            case .qwen2_5vl7b: "qwen2.5vl:7b"
-            case .qwen2_5vl32b: "qwen2.5vl:32b"
+            case .llama32Vision11b: "llama3.2-vision:11b"
+            case .llama32Vision90b: "llama3.2-vision:90b"
+            case .qwen25vl7b: "qwen2.5vl:7b"
+            case .qwen25vl32b: "qwen2.5vl:32b"
             case .codellama: "codellama"
             case .mistralNemo: "mistral-nemo"
             case .qwen25: "qwen2.5"
@@ -472,8 +470,8 @@ public enum LanguageModel: Sendable, CustomStringConvertible {
             case .neuralChat: "neural-chat"
             case .gemma: "gemma"
             case .devstral: "devstral"
-            case .deepseekR1_8b: "deepseek-r1:8b"
-            case .deepseekR1_671b: "deepseek-r1:671b"
+            case .deepseekR18b: "deepseek-r1:8b"
+            case .deepseekR1671b: "deepseek-r1:671b"
             case .firefunction: "firefunction-v2"
             case .commandR: "command-r"
             }
@@ -481,20 +479,20 @@ public enum LanguageModel: Sendable, CustomStringConvertible {
 
         public var supportsVision: Bool {
             switch self {
-            case .llava, .bakllava, .llama32Vision11b, .llama3_2Vision11b, .llama32Vision90b, .llama3_2Vision90b,
-                 .qwen2_5vl7b, .qwen2_5vl32b: true
+            case .llava, .bakllava, .llama32Vision11b, .llama32Vision90b,
+                 .qwen25vl7b, .qwen25vl32b: true
             default: false
             }
         }
 
         public var supportsTools: Bool {
             switch self {
-            case .llava, .bakllava, .llama32Vision11b, .llama3_2Vision11b, .llama32Vision90b, .llama3_2Vision90b,
-                 .qwen2_5vl7b, .qwen2_5vl32b: false // Vision models don't support tools
-            case .llama33, .llama3_3, .llama32, .llama3_2, .llama31, .llama3_1, .mistralNemo: true
+            case .llava, .bakllava, .llama32Vision11b, .llama32Vision90b,
+                 .qwen25vl7b, .qwen25vl32b: false // Vision models don't support tools
+            case .llama33, .llama32, .llama31, .mistralNemo: true
             case .codellama, .qwen25, .deepseekR1, .commandRPlus: true
             case .llama2, .llama4, .mistral, .mixtral, .neuralChat, .gemma: true
-            case .deepseekR1_8b, .deepseekR1_671b, .firefunction, .commandR: true
+            case .deepseekR18b, .deepseekR1671b, .firefunction, .commandR: true
             case .devstral: false // DevStral doesn't support tools
             case .custom: true // Assume tools support
             }
@@ -506,11 +504,11 @@ public enum LanguageModel: Sendable, CustomStringConvertible {
 
         public var contextLength: Int {
             switch self {
-            case .llama33, .llama3_3, .llama32, .llama3_2, .llama31, .llama3_1: 128_000
+            case .llama33, .llama32, .llama31: 128_000
             case .llava, .bakllava: 32_000
-            case .llama32Vision11b, .llama3_2Vision11b: 128_000
-            case .llama32Vision90b, .llama3_2Vision90b: 128_000
-            case .qwen2_5vl7b, .qwen2_5vl32b: 32_000
+            case .llama32Vision11b: 128_000
+            case .llama32Vision90b: 128_000
+            case .qwen25vl7b, .qwen25vl32b: 32_000
             case .codellama: 32_000
             case .mistralNemo: 128_000
             case .qwen25: 32_000
@@ -520,8 +518,8 @@ public enum LanguageModel: Sendable, CustomStringConvertible {
             case .mistral, .mixtral: 32_000
             case .neuralChat, .gemma: 32_000
             case .devstral: 16_000
-            case .deepseekR1_8b: 64_000
-            case .deepseekR1_671b: 128_000
+            case .deepseekR18b: 64_000
+            case .deepseekR1671b: 128_000
             case .firefunction: 32_000
             case .commandR: 128_000
             case .custom: 32_000

@@ -1,5 +1,5 @@
-@testable import TachikomaBuilders
 import Testing
+@testable import TachikomaBuilders
 
 @Suite("TachikomaBuilders Placeholder Tests")
 struct PlaceholderTests {

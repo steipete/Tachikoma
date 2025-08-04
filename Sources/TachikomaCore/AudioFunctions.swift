@@ -31,7 +31,7 @@ public func transcribe(
     abortSignal: AbortSignal? = nil,
     headers: [String: String] = [:]
 ) async throws
-    -> TranscriptionResult {
+-> TranscriptionResult {
     let provider = try TranscriptionProviderFactory.createProvider(for: model)
 
     let request = TranscriptionRequest(
@@ -81,7 +81,7 @@ public func generateSpeech(
     abortSignal: AbortSignal? = nil,
     headers: [String: String] = [:]
 ) async throws
-    -> SpeechResult {
+-> SpeechResult {
     let provider = try SpeechProviderFactory.createProvider(for: model)
 
     let request = SpeechRequest(
@@ -114,7 +114,7 @@ public func transcribe(
     _ audio: AudioData,
     language: String? = nil
 ) async throws
-    -> String {
+-> String {
     let result = try await transcribe(
         audio,
         using: .default,
@@ -135,7 +135,7 @@ public func transcribe(
     using model: TranscriptionModel = .default,
     language: String? = nil
 ) async throws
-    -> String {
+-> String {
     let audio = try AudioData(contentsOf: url)
     let result = try await transcribe(audio, using: model, language: language)
     return result.text
@@ -154,7 +154,7 @@ public func generateSpeech(
     _ text: String,
     voice: VoiceOption = .alloy
 ) async throws
-    -> AudioData {
+-> AudioData {
     let result = try await generateSpeech(
         text,
         using: .default,
@@ -205,7 +205,7 @@ public func transcribeBatch(
     language: String? = nil,
     concurrency: Int = 3
 ) async throws
-    -> [TranscriptionResult] {
+-> [TranscriptionResult] {
     try await withThrowingTaskGroup(
         of: (Int, TranscriptionResult).self,
         returning: [TranscriptionResult].self
@@ -250,7 +250,7 @@ public func generateSpeechBatch(
     voice: VoiceOption = .alloy,
     concurrency: Int = 3
 ) async throws
-    -> [SpeechResult] {
+-> [SpeechResult] {
     try await withThrowingTaskGroup(of: (Int, SpeechResult).self, returning: [SpeechResult].self) { group in
         let semaphore = AsyncSemaphore(value: concurrency)
 

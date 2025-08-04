@@ -2,42 +2,43 @@ import Foundation
 
 // MARK: - Tachikoma - Modern AI SDK
 
-/// Tachikoma - A comprehensive Swift package for AI model integration
-///
-/// Named after the AI entity from Ghost in the Shell, Tachikoma embodies
-/// the cyberpunk aesthetic of autonomous AI systems.
-///
-/// ## Modern API Design
-///
-/// Tachikoma 4.0+ provides a Swift-native API that feels like a natural extension
-/// of Swift itself, providing powerful AI capabilities with minimal complexity.
-///
-/// ### Core Features
-/// - **Type-safe model selection** with provider-specific enums
-/// - **Global generation functions** for simple one-line AI calls
-/// - **Fluent conversation management** for multi-turn interactions
-/// - **Result builder toolkits** for easy tool integration
-/// - **SwiftUI property wrappers** for reactive AI components
-/// - **Comprehensive provider support** (OpenAI, Anthropic, Grok, Ollama, custom)
-///
-/// ### Quick Start
-///
-/// ```swift
-/// // Simple generation
-/// let answer = try await generate("What is 2+2?", using: .openai(.gpt4o))
-///
-/// // Conversation management
-/// let conversation = Conversation()
-///     .system("You are a helpful assistant")
-///     .user("Hello!")
-/// let response = try await conversation.continue(using: .claude)
-///
-/// // SwiftUI integration
-/// @AI(.anthropic(.opus4), systemPrompt: "You are helpful")
-/// var assistant
-/// ```
-
 // MARK: - Module Re-exports
+
+//
+// Tachikoma - A comprehensive Swift package for AI model integration
+//
+// Named after the AI entity from Ghost in the Shell, Tachikoma embodies
+// the cyberpunk aesthetic of autonomous AI systems.
+//
+// ## Modern API Design
+//
+// Tachikoma 4.0+ provides a Swift-native API that feels like a natural extension
+// of Swift itself, providing powerful AI capabilities with minimal complexity.
+//
+// ### Core Features
+// - **Type-safe model selection** with provider-specific enums
+// - **Global generation functions** for simple one-line AI calls
+// - **Fluent conversation management** for multi-turn interactions
+// - **Result builder toolkits** for easy tool integration
+// - **SwiftUI property wrappers** for reactive AI components
+// - **Comprehensive provider support** (OpenAI, Anthropic, Grok, Ollama, custom)
+//
+// ### Quick Start
+//
+// ```swift
+// // Simple generation
+// let answer = try await generate("What is 2+2?", using: .openai(.gpt4o))
+//
+// // Conversation management
+// let conversation = Conversation()
+//     .system("You are a helpful assistant")
+//     .user("Hello!")
+// let response = try await conversation.continue(using: .claude)
+//
+// // SwiftUI integration
+// @AI(.anthropic(.opus4), systemPrompt: "You are helpful")
+// var assistant
+// ```
 
 // Core functionality
 @_exported import TachikomaCore

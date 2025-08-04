@@ -156,7 +156,8 @@ public final class TachikomaConfiguration: @unchecked Sendable {
 
         guard
             let credentialsData = try? Data(contentsOf: credentialsURL),
-            let credentialsString = String(data: credentialsData, encoding: .utf8) else {
+            let credentialsString = String(data: credentialsData, encoding: .utf8) else
+        {
             return
         }
 

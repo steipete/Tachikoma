@@ -197,8 +197,8 @@ public enum ProviderParser {
         case "o3-mini": .openai(.o3Mini)
         case "o3-pro": .openai(.o3Pro)
         case "o4-mini": .openai(.o4Mini)
-        case "gpt-4.1", "gpt4.1": .openai(.gpt4_1)
-        case "gpt-4.1-mini", "gpt4.1-mini": .openai(.gpt4_1Mini)
+        case "gpt-4.1", "gpt4.1": .openai(.gpt41)
+        case "gpt-4.1-mini", "gpt4.1-mini": .openai(.gpt41Mini)
         case "gpt-4o", "gpt4o": .openai(.gpt4o)
         case "gpt-4o-mini", "gpt4o-mini": .openai(.gpt4oMini)
         case "gpt-4-turbo", "gpt4-turbo": .openai(.gpt4Turbo)
@@ -216,10 +216,10 @@ public enum ProviderParser {
         case "claude-sonnet-4-20250514", "claude-sonnet-4", "sonnet-4": .anthropic(.sonnet4)
         case "claude-sonnet-4-20250514-thinking", "claude-sonnet-4-thinking",
              "sonnet-4-thinking": .anthropic(.sonnet4Thinking)
-        case "claude-3.7-sonnet", "claude-37-sonnet": .anthropic(.sonnet3_7)
-        case "claude-3-5-haiku", "claude-35-haiku": .anthropic(.haiku3_5)
-        case "claude-3-5-sonnet", "claude-35-sonnet": .anthropic(.sonnet3_5)
-        case "claude-3-5-opus", "claude-35-opus": .anthropic(.opus3_5)
+        case "claude-3.7-sonnet", "claude-37-sonnet": .anthropic(.sonnet37)
+        case "claude-3-5-haiku", "claude-35-haiku": .anthropic(.haiku35)
+        case "claude-3-5-sonnet", "claude-35-sonnet": .anthropic(.sonnet35)
+        case "claude-3-5-opus", "claude-35-opus": .anthropic(.opus35)
         default:
             // Handle custom models
             .anthropic(.custom(modelString))
@@ -229,11 +229,11 @@ public enum ProviderParser {
     private static func parseGrokModel(_ modelString: String) -> LanguageModel? {
         switch modelString.lowercased() {
         case "grok-4", "grok4": .grok(.grok4)
-        case "grok-4-0709": .grok(.grok4_0709)
+        case "grok-4-0709": .grok(.grok40709)
         case "grok-4-latest": .grok(.grok4Latest)
-        case "grok-2", "grok2": .grok(.grok2_1212)
-        case "grok-2-1212": .grok(.grok2_1212)
-        case "grok-2-vision-1212": .grok(.grok2Vision_1212)
+        case "grok-2", "grok2": .grok(.grok21212)
+        case "grok-2-1212": .grok(.grok21212)
+        case "grok-2-vision-1212": .grok(.grok2Vision1212)
         case "grok-beta": .grok(.grokBeta)
         case "grok-vision-beta": .grok(.grokVisionBeta)
         default:

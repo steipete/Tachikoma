@@ -1,7 +1,7 @@
 import Foundation
+import Testing
 @testable import TachikomaBuilders
 @testable import TachikomaCore
-import Testing
 
 @Suite("Minimal Modern API Tests")
 struct MinimalModernAPITests {
@@ -13,7 +13,7 @@ struct MinimalModernAPITests {
         let openaiModel = Model.openai(.gpt4o)
         let anthropicModel = Model.anthropic(.opus4)
         _ = Model.grok(.grok4)
-        _ = Model.ollama(.llama3_3)
+        _ = Model.ollama(.llama33)
 
         // Test that they can be used in a switch statement
         switch openaiModel {

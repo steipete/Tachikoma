@@ -20,7 +20,7 @@ enum TestHelpers {
         apiKeys: [String: String],
         _ body: () async throws -> T
     ) async rethrows
-        -> T {
+    -> T {
         self.configureTestEnvironment(apiKeys: apiKeys)
         defer { resetTestEnvironment() }
         return try await body()
@@ -40,7 +40,7 @@ enum TestHelpers {
     static func withStandardTestKeys<T>(
         _ body: () async throws -> T
     ) async rethrows
-        -> T {
+    -> T {
         try await self.withTestEnvironment(apiKeys: self.standardTestKeys, body)
     }
 
@@ -48,7 +48,7 @@ enum TestHelpers {
     static func withNoAPIKeys<T>(
         _ body: () async throws -> T
     ) async rethrows
-        -> T {
+    -> T {
         try await self.withTestEnvironment(apiKeys: [:], body)
     }
 
@@ -57,7 +57,7 @@ enum TestHelpers {
         present: [String],
         _ body: () async throws -> T
     ) async rethrows
-        -> T {
+    -> T {
         let keys = present.reduce(into: [String: String]()) { result, provider in
             result[provider] = "test-key"
         }

@@ -108,7 +108,8 @@ struct OpenAITool: Codable {
             // Decode parameters as generic dictionary
             if
                 let data = try? container.decode(Data.self, forKey: .parameters),
-                let dict = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+                let dict = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
+            {
                 self.parameters = dict
             } else {
                 self.parameters = [:]
@@ -350,7 +351,8 @@ struct AnthropicInputSchema: Codable {
 
         if
             let data = try? container.decode(Data.self, forKey: .properties),
-            let dict = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+            let dict = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
+        {
             self.properties = dict
         } else {
             self.properties = [:]
@@ -467,7 +469,8 @@ enum AnthropicResponseContent: Codable {
                     // Fallback to the old Data-based approach
                     if
                         let data = try? container.decode(Data.self, forKey: .input),
-                        let obj = try? JSONSerialization.jsonObject(with: data) {
+                        let obj = try? JSONSerialization.jsonObject(with: data)
+                    {
                         self.input = obj
                     } else {
                         self.input = [:]
@@ -579,6 +582,209 @@ struct AnthropicErrorResponse: Codable {
         let type: String
         let message: String
     }
+}
+
+// MARK: - Ollama API Types
+
+struct OllamaChatRequest: Codable {
+    let model: String
+    let messages: [OllamaChatMessage]
+    let tools: [OllamaTool]?
+    let stream: Bool?
+    let options: OllamaOptions?
+
+    struct OllamaOptions: Codable {
+        let temperature: Double?
+        let numCtx: Int? // Context length
+        let numPredict: Int? // Max tokens
+
+        enum CodingKeys: String, CodingKey {
+            case temperature
+            case numCtx = "num_ctx"
+            case numPredict = "num_predict"
+        }
+    }
+}
+
+struct OllamaChatMessage: Codable {
+    let role: String
+    let content: String
+    let toolCalls: [OllamaToolCall]?
+
+    enum CodingKeys: String, CodingKey {
+        case role, content
+        case toolCalls = "tool_calls"
+    }
+
+    init(role: String, content: String, toolCalls: [OllamaToolCall]? = nil) {
+        self.role = role
+        self.content = content
+        self.toolCalls = toolCalls
+    }
+}
+
+struct OllamaToolCall: Codable {
+    let function: Function
+
+    struct Function: Codable {
+        let name: String
+        let arguments: [String: Any]
+
+        init(name: String, arguments: [String: Any]) {
+            self.name = name
+            self.arguments = arguments
+        }
+
+        enum CodingKeys: String, CodingKey {
+            case name, arguments
+        }
+
+        init(from decoder: Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            self.name = try container.decode(String.self, forKey: .name)
+
+            // Decode arguments as generic dictionary
+            if
+                let data = try? container.decode(Data.self, forKey: .arguments),
+                let dict = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
+            {
+                self.arguments = dict
+            } else {
+                self.arguments = [:]
+            }
+        }
+
+        func encode(to encoder: Encoder) throws {
+            var container = encoder.container(keyedBy: CodingKeys.self)
+            try container.encode(self.name, forKey: .name)
+
+            let data = try JSONSerialization.data(withJSONObject: self.arguments)
+            try container.encode(data, forKey: .arguments)
+        }
+    }
+}
+
+struct OllamaTool: Codable {
+    let type: String
+    let function: Function
+
+    struct Function: Codable {
+        let name: String
+        let description: String
+        let parameters: [String: Any]
+
+        init(name: String, description: String, parameters: [String: Any]) {
+            self.name = name
+            self.description = description
+            self.parameters = parameters
+        }
+
+        enum CodingKeys: String, CodingKey {
+            case name, description, parameters
+        }
+
+        init(from decoder: Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            self.name = try container.decode(String.self, forKey: .name)
+            self.description = try container.decode(String.self, forKey: .description)
+
+            // Decode parameters as generic dictionary
+            if
+                let data = try? container.decode(Data.self, forKey: .parameters),
+                let dict = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
+            {
+                self.parameters = dict
+            } else {
+                self.parameters = [:]
+            }
+        }
+
+        func encode(to encoder: Encoder) throws {
+            var container = encoder.container(keyedBy: CodingKeys.self)
+            try container.encode(self.name, forKey: .name)
+            try container.encode(self.description, forKey: .description)
+
+            // Encode parameters directly as JSON object, not as base64 data
+            var parametersContainer = container.nestedContainer(keyedBy: AnyCodingKey.self, forKey: .parameters)
+            try self.encodeAnyDictionary(self.parameters, to: &parametersContainer)
+        }
+
+        private func encodeAnyDictionary(
+            _ dict: [String: Any],
+            to container: inout KeyedEncodingContainer<AnyCodingKey>
+        ) throws {
+            for (key, value) in dict {
+                guard let codingKey = AnyCodingKey(stringValue: key) else { continue }
+                switch value {
+                case let stringValue as String:
+                    try container.encode(stringValue, forKey: codingKey)
+                case let intValue as Int:
+                    try container.encode(intValue, forKey: codingKey)
+                case let doubleValue as Double:
+                    try container.encode(doubleValue, forKey: codingKey)
+                case let boolValue as Bool:
+                    try container.encode(boolValue, forKey: codingKey)
+                case let arrayValue as [Any]:
+                    try container.encode(arrayValue.map { String(describing: $0) }, forKey: codingKey)
+                case let dictValue as [String: Any]:
+                    // Encode nested objects properly as nested containers
+                    var nestedContainer = container.nestedContainer(keyedBy: AnyCodingKey.self, forKey: codingKey)
+                    try self.encodeAnyDictionary(dictValue, to: &nestedContainer)
+                default:
+                    // Fallback: convert to string
+                    try container.encode(String(describing: value), forKey: codingKey)
+                }
+            }
+        }
+    }
+}
+
+struct OllamaChatResponse: Codable {
+    let model: String
+    let message: Message
+    let done: Bool
+    let totalDuration: Int?
+    let loadDuration: Int?
+    let promptEvalCount: Int?
+    let promptEvalDuration: Int?
+    let evalCount: Int?
+    let evalDuration: Int?
+
+    enum CodingKeys: String, CodingKey {
+        case model, message, done
+        case totalDuration = "total_duration"
+        case loadDuration = "load_duration"
+        case promptEvalCount = "prompt_eval_count"
+        case promptEvalDuration = "prompt_eval_duration"
+        case evalCount = "eval_count"
+        case evalDuration = "eval_duration"
+    }
+
+    struct Message: Codable {
+        let role: String
+        let content: String
+        let toolCalls: [OllamaToolCall]?
+
+        enum CodingKeys: String, CodingKey {
+            case role, content
+            case toolCalls = "tool_calls"
+        }
+    }
+}
+
+struct OllamaStreamChunk: Codable {
+    let model: String
+    let message: Delta
+    let done: Bool
+
+    struct Delta: Codable {
+        let role: String?
+        let content: String?
+    }
+}
+
+struct OllamaErrorResponse: Codable {
+    let error: String
 }
 
 // MARK: - Provider Factory
@@ -770,24 +976,24 @@ public final class OpenAIProvider: ModelProvider {
                         return
                     }
 
-                    for try await line in bytes.lines {
-                        if line.hasPrefix("data: ") {
-                            let data = String(line.dropFirst(6))
+                    for try await line in bytes.lines where line.hasPrefix("data: ") {
+                        let data = String(line.dropFirst(6))
 
-                            if data == "[DONE]" {
-                                continuation.yield(TextStreamDelta(type: .done))
-                                continuation.finish()
-                                return
-                            }
+                        if data == "[DONE]" {
+                            continuation.yield(TextStreamDelta(type: .done))
+                            continuation.finish()
+                            return
+                        }
 
+                        if
+                            let chunkData = data.data(using: .utf8),
+                            let chunk = try? JSONDecoder().decode(OpenAIStreamChunk.self, from: chunkData)
+                        {
                             if
-                                let chunkData = data.data(using: .utf8),
-                                let chunk = try? JSONDecoder().decode(OpenAIStreamChunk.self, from: chunkData) {
-                                if
-                                    let choice = chunk.choices.first,
-                                    let content = choice.delta.content {
-                                    continuation.yield(TextStreamDelta(type: .textDelta, content: content))
-                                }
+                                let choice = chunk.choices.first,
+                                let content = choice.delta.content
+                            {
+                                continuation.yield(TextStreamDelta(type: .textDelta, content: content))
                             }
                         }
                     }
@@ -808,7 +1014,8 @@ public final class OpenAIProvider: ModelProvider {
             case .system:
                 if
                     let textContent = message.content.first,
-                    case let .text(text) = textContent {
+                    case let .text(text) = textContent
+                {
                     return OpenAIChatMessage(role: "system", content: text)
                 }
                 throw TachikomaError.invalidInput("System message must have text content")
@@ -816,7 +1023,8 @@ public final class OpenAIProvider: ModelProvider {
             case .user:
                 if
                     let textContent = message.content.first,
-                    case let .text(text) = textContent {
+                    case let .text(text) = textContent
+                {
                     return OpenAIChatMessage(role: "user", content: text)
                 } else if message.content.count > 1 {
                     // Multi-modal message
@@ -841,7 +1049,8 @@ public final class OpenAIProvider: ModelProvider {
             case .assistant:
                 if
                     let textContent = message.content.first,
-                    case let .text(text) = textContent {
+                    case let .text(text) = textContent
+                {
                     return OpenAIChatMessage(role: "assistant", content: text)
                 }
                 throw TachikomaError.invalidInput("Assistant message must have text content")
@@ -849,7 +1058,8 @@ public final class OpenAIProvider: ModelProvider {
             case .tool:
                 if
                     let toolResult = message.content.first,
-                    case let .toolResult(result) = toolResult {
+                    case let .toolResult(result) = toolResult
+                {
                     // Convert ToolArgument to string
                     let resultString: String = switch result.result {
                     case let .string(str):
@@ -876,12 +1086,53 @@ public final class OpenAIProvider: ModelProvider {
 
     private func convertTools(_ tools: [SimpleTool]?) throws -> [OpenAITool]? {
         tools?.map { tool in
-            OpenAITool(
+            // Convert ToolParameters to OpenAI format
+            var properties: [String: Any] = [:]
+
+            for (paramName, paramProp) in tool.parameters.properties {
+                var propDict: [String: Any] = [:]
+
+                // Map parameter type
+                switch paramProp.type {
+                case .string:
+                    propDict["type"] = "string"
+                case .integer:
+                    propDict["type"] = "integer"
+                case .number:
+                    propDict["type"] = "number"
+                case .boolean:
+                    propDict["type"] = "boolean"
+                case .array:
+                    propDict["type"] = "array"
+                case .object:
+                    propDict["type"] = "object"
+                case .null:
+                    propDict["type"] = "null"
+                }
+
+                // Add description if available
+                if let description = paramProp.description {
+                    propDict["description"] = description
+                }
+
+                // Add enum values if available
+                if let enumValues = paramProp.enumValues {
+                    propDict["enum"] = enumValues
+                }
+
+                properties[paramName] = propDict
+            }
+
+            return OpenAITool(
                 type: "function",
                 function: OpenAITool.Function(
                     name: tool.name,
                     description: tool.description,
-                    parameters: ["type": "object", "properties": [:]] // Simplified for now
+                    parameters: [
+                        "type": "object",
+                        "properties": properties,
+                        "required": tool.parameters.required,
+                    ]
                 )
             )
         }
@@ -902,7 +1153,8 @@ public final class OpenAIProvider: ModelProvider {
         var arguments: [String: ToolArgument] = [:]
         if
             let argsData = toolCall.function.arguments.data(using: .utf8),
-            let argsDict = try? JSONSerialization.jsonObject(with: argsData) as? [String: Any] {
+            let argsDict = try? JSONSerialization.jsonObject(with: argsData) as? [String: Any]
+        {
             for (key, value) in argsDict {
                 if let toolArg = try? ToolArgument.from(any: value) {
                     arguments[key] = toolArg
@@ -975,7 +1227,8 @@ public final class AnthropicProvider: ModelProvider {
         if
             let jsonString = String(data: jsonData, encoding: .utf8),
             ProcessInfo.processInfo.arguments.contains("--verbose") ||
-            ProcessInfo.processInfo.arguments.contains("-v") {
+                ProcessInfo.processInfo.arguments.contains("-v")
+        {
             print("DEBUG: Anthropic API Request JSON:")
             print(jsonString)
         }
@@ -997,7 +1250,8 @@ public final class AnthropicProvider: ModelProvider {
         // Debug: Log raw API response in verbose mode
         if
             ProcessInfo.processInfo.arguments.contains("--verbose") ||
-            ProcessInfo.processInfo.arguments.contains("-v") {
+                ProcessInfo.processInfo.arguments.contains("-v")
+        {
             if let responseString = String(data: data, encoding: .utf8) {
                 print("DEBUG ProviderFactory: Raw Anthropic API Response:")
                 print(responseString)
@@ -1069,25 +1323,25 @@ public final class AnthropicProvider: ModelProvider {
                         return
                     }
 
-                    for try await line in bytes.lines {
-                        if line.hasPrefix("data: ") {
-                            let data = String(line.dropFirst(6))
+                    for try await line in bytes.lines where line.hasPrefix("data: ") {
+                        let data = String(line.dropFirst(6))
 
-                            if data == "[DONE]" {
-                                continuation.yield(TextStreamDelta(type: .done))
-                                continuation.finish()
-                                return
-                            }
+                        if data == "[DONE]" {
+                            continuation.yield(TextStreamDelta(type: .done))
+                            continuation.finish()
+                            return
+                        }
 
+                        if
+                            let chunkData = data.data(using: .utf8),
+                            let chunk = try? JSONDecoder().decode(AnthropicStreamChunk.self, from: chunkData)
+                        {
                             if
-                                let chunkData = data.data(using: .utf8),
-                                let chunk = try? JSONDecoder().decode(AnthropicStreamChunk.self, from: chunkData) {
-                                if
-                                    chunk.type == "content_block_delta",
-                                    let delta = chunk.delta,
-                                    case let .textDelta(text) = delta {
-                                    continuation.yield(TextStreamDelta(type: .textDelta, content: text))
-                                }
+                                chunk.type == "content_block_delta",
+                                let delta = chunk.delta,
+                                case let .textDelta(text) = delta
+                            {
+                                continuation.yield(TextStreamDelta(type: .textDelta, content: text))
                             }
                         }
                     }
@@ -1150,7 +1404,8 @@ public final class AnthropicProvider: ModelProvider {
                 // Handle tool results
                 if
                     let toolResult = message.content.first,
-                    case let .toolResult(result) = toolResult {
+                    case let .toolResult(result) = toolResult
+                {
                     let resultString: String = switch result.result {
                     case let .string(str): str
                     case let .int(int): String(int)
@@ -1243,7 +1498,8 @@ public final class AnthropicProvider: ModelProvider {
                 // Debug: Log raw tool use content in verbose mode
                 if
                     ProcessInfo.processInfo.arguments.contains("--verbose") ||
-                    ProcessInfo.processInfo.arguments.contains("-v") {
+                        ProcessInfo.processInfo.arguments.contains("-v")
+                {
                     print("DEBUG ProviderFactory: Raw tool use:")
                     print("  name: \(toolUse.name)")
                     print("  id: \(toolUse.id)")
@@ -1256,7 +1512,8 @@ public final class AnthropicProvider: ModelProvider {
                 if let inputDict = toolUse.input as? [String: Any] {
                     if
                         ProcessInfo.processInfo.arguments.contains("--verbose") ||
-                        ProcessInfo.processInfo.arguments.contains("-v") {
+                            ProcessInfo.processInfo.arguments.contains("-v")
+                    {
                         print("DEBUG ProviderFactory: Input dictionary has \(inputDict.count) keys:")
                         for (key, value) in inputDict {
                             print("  \(key): \(value) (type: \(type(of: value)))")
@@ -1269,7 +1526,8 @@ public final class AnthropicProvider: ModelProvider {
                         } else {
                             if
                                 ProcessInfo.processInfo.arguments.contains("--verbose") ||
-                                ProcessInfo.processInfo.arguments.contains("-v") {
+                                    ProcessInfo.processInfo.arguments.contains("-v")
+                            {
                                 print("DEBUG ProviderFactory: Failed to convert \(key): \(value) to ToolArgument")
                             }
                         }
@@ -1277,7 +1535,8 @@ public final class AnthropicProvider: ModelProvider {
                 } else {
                     if
                         ProcessInfo.processInfo.arguments.contains("--verbose") ||
-                        ProcessInfo.processInfo.arguments.contains("-v") {
+                            ProcessInfo.processInfo.arguments.contains("-v")
+                    {
                         print("DEBUG ProviderFactory: Input is not a dictionary or is nil")
                     }
                 }
@@ -1430,7 +1689,8 @@ public final class GrokProvider: ModelProvider {
         // Support both X_AI_API_KEY and XAI_API_KEY environment variables
         if
             let key = ProcessInfo.processInfo.environment["X_AI_API_KEY"] ??
-            ProcessInfo.processInfo.environment["XAI_API_KEY"] {
+                ProcessInfo.processInfo.environment["XAI_API_KEY"]
+        {
             self.apiKey = key
         } else {
             throw TachikomaError.authenticationFailed("X_AI_API_KEY or XAI_API_KEY not found")
@@ -1480,11 +1740,334 @@ public final class OllamaProvider: ModelProvider {
     }
 
     public func generateText(request: ProviderRequest) async throws -> ProviderResponse {
-        throw TachikomaError.unsupportedOperation("Ollama provider not yet implemented")
+        let url = URL(string: "\(self.baseURL!)/api/chat")!
+        var urlRequest = URLRequest(url: url)
+        urlRequest.httpMethod = "POST"
+        urlRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        urlRequest.timeoutInterval = 300 // 5 minutes for Ollama model loading
+
+        // Convert request to Ollama format
+        let ollamaRequest = try OllamaChatRequest(
+            model: self.modelId,
+            messages: self.convertMessages(request.messages),
+            tools: self.convertTools(request.tools),
+            stream: false,
+            options: OllamaChatRequest.OllamaOptions(
+                temperature: request.settings.temperature,
+                numCtx: nil, // Use default context
+                numPredict: request.settings.maxTokens
+            )
+        )
+
+        let jsonData = try JSONEncoder().encode(ollamaRequest)
+        urlRequest.httpBody = jsonData
+
+        // Debug: Print the JSON being sent to Ollama (only in verbose mode)
+        if
+            let jsonString = String(data: jsonData, encoding: .utf8),
+            ProcessInfo.processInfo.arguments.contains("--verbose") ||
+                ProcessInfo.processInfo.arguments.contains("-v")
+        {
+            print("DEBUG: Ollama API Request JSON:")
+            print(jsonString)
+        }
+
+        let (data, response) = try await URLSession.shared.data(for: urlRequest)
+
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw TachikomaError.networkError(NSError(domain: "Invalid response", code: 0))
+        }
+
+        if httpResponse.statusCode != 200 {
+            if let errorData = try? JSONDecoder().decode(OllamaErrorResponse.self, from: data) {
+                throw TachikomaError.apiError("Ollama API Error: \(errorData.error)")
+            } else {
+                let responseBody = String(data: data, encoding: .utf8) ?? "Unknown error"
+                throw TachikomaError.apiError("Ollama API Error: HTTP \(httpResponse.statusCode) - \(responseBody)")
+            }
+        }
+
+        // Debug: Log raw API response in verbose mode
+        if
+            ProcessInfo.processInfo.arguments.contains("--verbose") ||
+                ProcessInfo.processInfo.arguments.contains("-v")
+        {
+            if let responseString = String(data: data, encoding: .utf8) {
+                print("DEBUG ProviderFactory: Raw Ollama API Response:")
+                print(responseString)
+            }
+        }
+
+        let ollamaResponse = try JSONDecoder().decode(OllamaChatResponse.self, from: data)
+
+        // Calculate usage information from Ollama's detailed metrics
+        let usage = Usage(
+            inputTokens: ollamaResponse.promptEvalCount ?? 0,
+            outputTokens: ollamaResponse.evalCount ?? 0
+        )
+
+        // Try to extract tool calls from both standard format and text content
+        let toolCalls = self.extractOllamaToolCalls(ollamaResponse.message.toolCalls) ??
+            self.parseToolCallsFromText(ollamaResponse.message.content)
+
+        return ProviderResponse(
+            text: ollamaResponse.message.content,
+            usage: usage,
+            finishReason: .stop,
+            toolCalls: toolCalls
+        )
     }
 
     public func streamText(request: ProviderRequest) async throws -> AsyncThrowingStream<TextStreamDelta, Error> {
-        throw TachikomaError.unsupportedOperation("Ollama streaming not yet implemented")
+        let url = URL(string: "\(self.baseURL!)/api/chat")!
+        var urlRequestBuilder = URLRequest(url: url)
+        urlRequestBuilder.httpMethod = "POST"
+        urlRequestBuilder.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        urlRequestBuilder.timeoutInterval = 300 // 5 minutes for Ollama model loading
+
+        // Convert request to Ollama format with streaming enabled
+        let ollamaRequest = try OllamaChatRequest(
+            model: self.modelId,
+            messages: self.convertMessages(request.messages),
+            tools: self.convertTools(request.tools),
+            stream: true,
+            options: OllamaChatRequest.OllamaOptions(
+                temperature: request.settings.temperature,
+                numCtx: nil, // Use default context
+                numPredict: request.settings.maxTokens
+            )
+        )
+
+        let jsonData = try JSONEncoder().encode(ollamaRequest)
+        urlRequestBuilder.httpBody = jsonData
+
+        let finalUrlRequest = urlRequestBuilder
+
+        return AsyncThrowingStream { continuation in
+            Task {
+                do {
+                    let (bytes, response) = try await URLSession.shared.bytes(for: finalUrlRequest)
+
+                    guard let httpResponse = response as? HTTPURLResponse else {
+                        continuation.finish(throwing: TachikomaError.networkError(NSError(
+                            domain: "Invalid response",
+                            code: 0
+                        )))
+                        return
+                    }
+
+                    if httpResponse.statusCode != 200 {
+                        continuation.finish(throwing: TachikomaError.apiError("HTTP \(httpResponse.statusCode)"))
+                        return
+                    }
+
+                    for try await line in bytes.lines where !line.isEmpty {
+                        if
+                            let chunkData = line.data(using: .utf8),
+                            let chunk = try? JSONDecoder().decode(OllamaStreamChunk.self, from: chunkData)
+                        {
+                            if let content = chunk.message.content, !content.isEmpty {
+                                continuation.yield(TextStreamDelta(type: .textDelta, content: content))
+                            }
+
+                            if chunk.done {
+                                continuation.yield(TextStreamDelta(type: .done))
+                                continuation.finish()
+                                return
+                            }
+                        }
+                    }
+
+                    continuation.finish()
+                } catch {
+                    continuation.finish(throwing: error)
+                }
+            }
+        }
+    }
+
+    // MARK: - Ollama Helper Methods
+
+    private func convertMessages(_ messages: [ModelMessage]) throws -> [OllamaChatMessage] {
+        try messages.map { message -> OllamaChatMessage in
+            switch message.role {
+            case .system:
+                if
+                    let textContent = message.content.first,
+                    case let .text(text) = textContent
+                {
+                    return OllamaChatMessage(role: "system", content: text)
+                }
+                throw TachikomaError.invalidInput("System message must have text content")
+
+            case .user:
+                if
+                    let textContent = message.content.first,
+                    case let .text(text) = textContent
+                {
+                    return OllamaChatMessage(role: "user", content: text)
+                }
+                throw TachikomaError.invalidInput("User message must have text content")
+
+            case .assistant:
+                if
+                    let textContent = message.content.first,
+                    case let .text(text) = textContent
+                {
+                    return OllamaChatMessage(role: "assistant", content: text)
+                }
+                throw TachikomaError.invalidInput("Assistant message must have text content")
+
+            case .tool:
+                if
+                    let toolResult = message.content.first,
+                    case let .toolResult(result) = toolResult
+                {
+                    // Convert ToolArgument to string
+                    let resultString: String = switch result.result {
+                    case let .string(str):
+                        str
+                    case let .int(int):
+                        String(int)
+                    case let .double(double):
+                        String(double)
+                    case let .bool(bool):
+                        String(bool)
+                    case .null:
+                        "null"
+                    case let .array(array):
+                        array.description
+                    case let .object(object):
+                        object.description
+                    }
+                    return OllamaChatMessage(role: "tool", content: "Tool result: \(resultString)")
+                }
+                throw TachikomaError.invalidInput("Tool message must have tool result content")
+            }
+        }
+    }
+
+    private func convertTools(_ tools: [SimpleTool]?) throws -> [OllamaTool]? {
+        tools?.map { tool in
+            // Convert ToolParameters to Ollama format
+            var properties: [String: Any] = [:]
+
+            for (paramName, paramProp) in tool.parameters.properties {
+                var propDict: [String: Any] = [:]
+
+                // Map parameter type
+                switch paramProp.type {
+                case .string:
+                    propDict["type"] = "string"
+                case .integer:
+                    propDict["type"] = "integer"
+                case .number:
+                    propDict["type"] = "number"
+                case .boolean:
+                    propDict["type"] = "boolean"
+                case .array:
+                    propDict["type"] = "array"
+                case .object:
+                    propDict["type"] = "object"
+                case .null:
+                    propDict["type"] = "null"
+                }
+
+                // Add description if available
+                if let description = paramProp.description {
+                    propDict["description"] = description
+                }
+
+                // Add enum values if available
+                if let enumValues = paramProp.enumValues {
+                    propDict["enum"] = enumValues
+                }
+
+                properties[paramName] = propDict
+            }
+
+            return OllamaTool(
+                type: "function",
+                function: OllamaTool.Function(
+                    name: tool.name,
+                    description: tool.description,
+                    parameters: [
+                        "type": "object",
+                        "properties": properties,
+                        "required": tool.parameters.required,
+                    ]
+                )
+            )
+        }
+    }
+
+    private func extractOllamaToolCalls(_ toolCalls: [OllamaToolCall]?) -> [ToolCall]? {
+        guard let toolCalls, !toolCalls.isEmpty else { return nil }
+
+        return toolCalls.map { ollamaToolCall in
+            // Convert arguments to ToolArgument dictionary
+            var arguments: [String: ToolArgument] = [:]
+            for (key, value) in ollamaToolCall.function.arguments {
+                if let toolArg = try? ToolArgument.from(any: value) {
+                    arguments[key] = toolArg
+                }
+            }
+
+            return ToolCall(
+                id: UUID().uuidString, // Generate ID for Ollama (which doesn't provide IDs)
+                name: ollamaToolCall.function.name,
+                arguments: arguments
+            )
+        }
+    }
+
+    /// Parse tool calls from text content (for models that output tool calls as JSON text)
+    private func parseToolCallsFromText(_ text: String) -> [ToolCall]? {
+        var toolCalls: [ToolCall] = []
+
+        // Look for JSON-like patterns in the text
+        let lines = text.components(separatedBy: .newlines)
+
+        for line in lines {
+            let trimmedLine = line.trimmingCharacters(in: .whitespacesAndNewlines)
+
+            // Skip empty lines or non-JSON looking lines
+            guard trimmedLine.hasPrefix("{"), trimmedLine.hasSuffix("}") else {
+                continue
+            }
+
+            // Try to parse as JSON
+            guard let data = trimmedLine.data(using: .utf8) else { continue }
+
+            do {
+                if let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] {
+                    // Look for tool call patterns - try both "arguments" and "parameters"
+                    if let name = json["name"] as? String {
+                        let arguments = (json["arguments"] as? [String: Any]) ?? (json["parameters"] as? [String: Any]) ?? [:]
+                        
+                        // Convert arguments to ToolArgument format
+                        var toolArguments: [String: ToolArgument] = [:]
+                        for (key, value) in arguments {
+                            if let toolArg = try? ToolArgument.from(any: value) {
+                                toolArguments[key] = toolArg
+                            }
+                        }
+
+                        let toolCall = ToolCall(
+                            id: UUID().uuidString,
+                            name: name,
+                            arguments: toolArguments
+                        )
+                        toolCalls.append(toolCall)
+                    }
+                }
+            } catch {
+                // Skip lines that aren't valid JSON
+                continue
+            }
+        }
+
+        return toolCalls.isEmpty ? nil : toolCalls
     }
 }
 
@@ -1615,7 +2198,8 @@ public final class OpenAICompatibleProvider: ModelProvider {
         // Try common environment variable patterns
         if
             let key = ProcessInfo.processInfo.environment["OPENAI_COMPATIBLE_API_KEY"] ??
-            ProcessInfo.processInfo.environment["API_KEY"] {
+                ProcessInfo.processInfo.environment["API_KEY"]
+        {
             self.apiKey = key
         } else {
             self.apiKey = nil // Some compatible APIs don't require keys
@@ -1653,7 +2237,8 @@ public final class AnthropicCompatibleProvider: ModelProvider {
 
         if
             let key = ProcessInfo.processInfo.environment["ANTHROPIC_COMPATIBLE_API_KEY"] ??
-            ProcessInfo.processInfo.environment["API_KEY"] {
+                ProcessInfo.processInfo.environment["API_KEY"]
+        {
             self.apiKey = key
         } else {
             self.apiKey = nil

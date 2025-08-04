@@ -137,7 +137,7 @@ public struct ToolParameterProperty: Sendable, Codable {
     }
 }
 
-/// Legacy compatibility types (commented out to avoid conflicts)
+// Legacy compatibility types (commented out to avoid conflicts)
 // These are replaced by the types defined later in the file
 
 /// Tool definition for model API compatibility
@@ -289,7 +289,7 @@ public class ToolBuilder {
         minLength: Int? = nil,
         maxLength: Int? = nil
     )
-        -> ToolBuilder {
+    -> ToolBuilder {
         self.properties[name] = ToolParameterProperty(
             type: type,
             description: description,
@@ -317,7 +317,7 @@ public class ToolBuilder {
         minLength: Int? = nil,
         maxLength: Int? = nil
     )
-        -> ToolBuilder {
+    -> ToolBuilder {
         self.parameter(
             name,
             type: .string,
@@ -337,7 +337,7 @@ public class ToolBuilder {
         minimum: Double? = nil,
         maximum: Double? = nil
     )
-        -> ToolBuilder {
+    -> ToolBuilder {
         self.parameter(
             name,
             type: .integer,
@@ -356,7 +356,7 @@ public class ToolBuilder {
         minimum: Double? = nil,
         maximum: Double? = nil
     )
-        -> ToolBuilder {
+    -> ToolBuilder {
         self.parameter(
             name,
             type: .number,
@@ -373,7 +373,7 @@ public class ToolBuilder {
         description: String,
         required: Bool = false
     )
-        -> ToolBuilder {
+    -> ToolBuilder {
         self.parameter(
             name,
             type: .boolean,
@@ -416,7 +416,7 @@ public func tool(
     description: String,
     _ configure: (ToolBuilder) throws -> ToolBuilder
 ) throws
-    -> SimpleTool {
+-> SimpleTool {
     let builder = ToolBuilder(name: name, description: description)
     return try configure(builder).build()
 }

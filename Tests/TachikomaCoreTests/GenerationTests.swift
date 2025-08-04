@@ -1,6 +1,6 @@
 import Foundation
-@testable import TachikomaCore
 import Testing
+@testable import TachikomaCore
 
 @Suite("Generation Function Tests")
 struct GenerationTests {
@@ -147,7 +147,7 @@ struct GenerationTests {
                 try await analyze(
                     image: .base64("test-image"),
                     prompt: "Describe this",
-                    using: .openai(.gpt4_1)
+                    using: .openai(.gpt41)
                 )
             }
         }

@@ -174,23 +174,23 @@ public struct ModelSelector {
         switch input {
         // Direct matches
         case "llama3.3", "llama3.3:latest":
-            .llama3_3
+            .llama33
         case "llama3.2", "llama3.2:latest":
-            .llama3_2
+            .llama32
         case "llama3.1", "llama3.1:latest":
-            .llama3_1
+            .llama31
         case "llava", "llava:latest":
             .llava
         case "bakllava", "bakllava:latest":
             .bakllava
         case "llama3.2-vision:11b":
-            .llama3_2Vision11b
+            .llama32Vision11b
         case "llama3.2-vision:90b":
-            .llama3_2Vision90b
+            .llama32Vision90b
         case "qwen2.5vl:7b":
-            .qwen2_5vl7b
+            .qwen25vl7b
         case "qwen2.5vl:32b":
-            .qwen2_5vl32b
+            .qwen25vl32b
         case "llama2", "llama2:latest":
             .llama2
         case "llama4", "llama4:latest":
@@ -210,9 +210,9 @@ public struct ModelSelector {
         case "devstral", "devstral:latest":
             .devstral
         case "deepseek-r1:8b":
-            .deepseekR1_8b
+            .deepseekR18b
         case "deepseek-r1:671b":
-            .deepseekR1_671b
+            .deepseekR1671b
         case "firefunction-v2", "firefunction-v2:latest":
             .firefunction
         case "command-r", "command-r:latest":
@@ -221,9 +221,9 @@ public struct ModelSelector {
             .commandRPlus
         // Shortcuts
         case "llama", "llama3":
-            .llama3_3 // Default to latest Llama
+            .llama33 // Default to latest Llama
         case "ollama":
-            .llama3_3 // Default Ollama model
+            .llama33 // Default Ollama model
         default:
             // For Ollama, accept any model ID as custom
             .custom(input)

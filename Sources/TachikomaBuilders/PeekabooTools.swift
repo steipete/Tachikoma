@@ -349,7 +349,7 @@ extension PeekabooTools {
         windowIndex: Int?,
         captureFocus: String?
     ) async throws
-        -> String {
+    -> String {
         // This would integrate with the actual PeekabooCore services
         // For now, return a placeholder
         let appText = app.map { " of \($0)" } ?? ""
@@ -364,7 +364,7 @@ extension PeekabooTools {
         right: Bool,
         waitFor: Int
     ) async throws
-        -> String {
+    -> String {
         let clickType = double ? "Double-clicked" : (right ? "Right-clicked" : "Clicked")
         let coordsText = coords.map { " at \($0)" } ?? ""
         return "\(clickType) on '\(element)'\(coordsText)"
@@ -377,7 +377,7 @@ extension PeekabooTools {
         pressReturn: Bool,
         delay: Int
     ) async throws
-        -> String {
+    -> String {
         let elementText = element.map { " in '\($0)'" } ?? ""
         let clearText = clear ? " (cleared first)" : ""
         let returnText = pressReturn ? " and pressed Return" : ""
@@ -389,7 +389,7 @@ extension PeekabooTools {
         includeDetails: Bool,
         onlyVisible: Bool
     ) async throws
-        -> String {
+    -> String {
         let appText = app.map { " for \($0)" } ?? " for all applications"
         return "Listed windows\(appText)"
     }
@@ -399,7 +399,7 @@ extension PeekabooTools {
         timeout: Int,
         workingDirectory: String?
     ) async throws
-        -> String {
+    -> String {
         "Executed shell command: \(command)"
     }
 
@@ -408,7 +408,7 @@ extension PeekabooTools {
         path: String?,
         item: String?
     ) async throws
-        -> String {
+    -> String {
         if let path {
             return "Clicked menu item '\(path)' in \(app)"
         } else if let item {
@@ -426,7 +426,7 @@ extension PeekabooTools {
         path: String?,
         force: Bool
     ) async throws
-        -> String {
+    -> String {
         switch action {
         case "click":
             guard let button else {
@@ -458,7 +458,7 @@ extension PeekabooTools {
         windowIndex: Int?,
         bringToCurrentSpace: Bool
     ) async throws
-        -> String {
+    -> String {
         let windowText = windowTitle.map { " '\($0)'" } ??
             windowIndex.map { " (index \($0))" } ?? ""
         return "Focused \(app) window\(windowText)"
@@ -471,7 +471,7 @@ extension PeekabooTools {
         smooth: Bool,
         delay: Int
     ) async throws
-        -> String {
+    -> String {
         let elementText = element.map { " in '\($0)'" } ?? ""
         let smoothText = smooth ? " smoothly" : ""
         return "Scrolled \(direction)\(smoothText) \(amount) times\(elementText)"
@@ -481,7 +481,7 @@ extension PeekabooTools {
         keys: String,
         holdDuration: Int
     ) async throws
-        -> String {
+    -> String {
         "Pressed hotkey: \(keys)"
     }
 
@@ -491,7 +491,7 @@ extension PeekabooTools {
         duration: Int,
         steps: Int
     ) async throws
-        -> String {
+    -> String {
         "Swiped from \(from) to \(to) over \(duration)ms"
     }
 
@@ -507,7 +507,7 @@ extension PeekabooTools {
         wait: Int,
         waitUntilReady: Bool
     ) async throws
-        -> String {
+    -> String {
         let forceText = force ? " (forced)" : ""
         return "\(action.capitalized) \(app)\(forceText)"
     }
@@ -520,7 +520,7 @@ extension PeekabooTools {
         x: Int?, y: Int?,
         width: Int?, height: Int?
     ) async throws
-        -> String {
+    -> String {
         let windowText = windowTitle.map { " '\($0)'" } ??
             windowIndex.map { " (index \($0))" } ?? ""
 
@@ -545,7 +545,7 @@ extension PeekabooTools {
         app: String?,
         select: String?
     ) async throws
-        -> String {
+    -> String {
         switch action {
         case "launch":
             guard let app else {
@@ -575,7 +575,7 @@ extension PeekabooTools {
         app: String?,
         follow: Bool
     ) async throws
-        -> String {
+    -> String {
         switch action {
         case "list":
             return "Listed available Spaces"
