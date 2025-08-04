@@ -171,7 +171,8 @@ public final class AnthropicProvider: ModelProvider {
         let encoder = JSONEncoder()
         urlRequest.httpBody = try encoder.encode(anthropicRequest)
 
-        let (bytes, response) = try await URLSession.shared.bytes(for: urlRequest)
+        let (data, response) = try await URLSession.shared.data(for: urlRequest)
+        let bytes = data
 
         guard let httpResponse = response as? HTTPURLResponse else {
             throw TachikomaError.networkError(NSError(domain: "Invalid response", code: 0))
@@ -514,7 +515,8 @@ public final class OllamaProvider: ModelProvider {
         let encoder = JSONEncoder()
         urlRequest.httpBody = try encoder.encode(ollamaRequest)
 
-        let (bytes, response) = try await URLSession.shared.bytes(for: urlRequest)
+        let (data, response) = try await URLSession.shared.data(for: urlRequest)
+        let bytes = data
 
         guard let httpResponse = response as? HTTPURLResponse else {
             throw TachikomaError.networkError(NSError(domain: "Invalid response", code: 0))

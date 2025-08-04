@@ -141,7 +141,8 @@ struct OpenAICompatibleHelper {
         let encoder = JSONEncoder()
         urlRequest.httpBody = try encoder.encode(openAIRequest)
 
-        let (bytes, response) = try await URLSession.shared.bytes(for: urlRequest)
+        let (data, response) = try await URLSession.shared.data(for: urlRequest)
+        let bytes = data
 
         guard let httpResponse = response as? HTTPURLResponse else {
             throw TachikomaError.networkError(NSError(domain: "Invalid response", code: 0))

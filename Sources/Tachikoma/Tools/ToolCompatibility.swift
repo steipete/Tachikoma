@@ -35,13 +35,9 @@ public let calculatorTool = createTool(
 ) { args in
     let expression = try args.stringValue("expression")
     
-    // Basic math evaluation using NSExpression
-    let nsExpression = NSExpression(format: expression)
-    guard let result = nsExpression.expressionValue(with: nil, context: nil) as? NSNumber else {
-        throw ToolError.executionFailed("Invalid mathematical expression: \(expression)")
-    }
-    
-    return .string("Result: \(result.doubleValue)")
+    // Basic math evaluation - cross-platform implementation
+    let result = try evaluateExpression(expression)
+    return .string("Result: \(result)")
 }
 
 /// Built-in time tool
@@ -565,4 +561,52 @@ public struct ParameterSchema {
             required: required
         )
     }
+}
+
+// MARK: - Cross-Platform Math Evaluator
+
+/// Simple cross-platform math expression evaluator
+private func evaluateExpression(_ expression: String) throws -> Double {
+    let cleanExpression = expression.trimmingCharacters(in: .whitespacesAndNewlines)
+    
+    // Handle simple operations with regex pattern matching
+    let patterns = [
+        // Addition: "2 + 3"
+        (#"^(\d+\.?\d*)\s*\+\s*(\d+\.?\d*)$"#, { (a: Double, b: Double) in a + b }),
+        // Subtraction: "5 - 2"
+        (#"^(\d+\.?\d*)\s*-\s*(\d+\.?\d*)$"#, { (a: Double, b: Double) in a - b }),
+        // Multiplication: "4 * 6"
+        (#"^(\d+\.?\d*)\s*\*\s*(\d+\.?\d*)$"#, { (a: Double, b: Double) in a * b }),
+        // Division: "8 / 2"
+        (#"^(\d+\.?\d*)\s*/\s*(\d+\.?\d*)$"#, { (a: Double, b: Double) in a / b })
+    ]
+    
+    for (pattern, operation) in patterns {
+        let regex = try NSRegularExpression(pattern: pattern)
+        let range = NSRange(cleanExpression.startIndex..., in: cleanExpression)
+        if let match = regex.firstMatch(in: cleanExpression, range: range) {
+            let firstRange = Range(match.range(at: 1), in: cleanExpression)!
+            let secondRange = Range(match.range(at: 2), in: cleanExpression)!
+            
+            let firstNumber = Double(cleanExpression[firstRange])!
+            let secondNumber = Double(cleanExpression[secondRange])!
+            
+            return operation(firstNumber, secondNumber)
+        }
+    }
+    
+    // Handle single numbers
+    if let number = Double(cleanExpression) {
+        return number
+    }
+    
+    // Handle basic functions
+    if cleanExpression.hasPrefix("sqrt(") && cleanExpression.hasSuffix(")") {
+        let inner = String(cleanExpression.dropFirst(5).dropLast(1))
+        if let number = Double(inner) {
+            return sqrt(number)
+        }
+    }
+    
+    throw ToolError.executionFailed("Unsupported mathematical expression: \(cleanExpression). Supported: basic arithmetic (+, -, *, /), sqrt()")
 }
