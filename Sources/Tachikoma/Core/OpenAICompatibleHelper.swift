@@ -141,26 +141,25 @@ struct OpenAICompatibleHelper {
         let encoder = JSONEncoder()
         urlRequest.httpBody = try encoder.encode(openAIRequest)
 
-        let (bytes, response) = try await URLSession.shared.bytes(for: urlRequest)
+        let (data, response) = try await URLSession.shared.data(for: urlRequest)
 
         guard let httpResponse = response as? HTTPURLResponse else {
             throw TachikomaError.networkError(NSError(domain: "Invalid response", code: 0))
         }
 
         guard httpResponse.statusCode == 200 else {
-            // Try to collect error data
-            var errorData = Data()
-            for try await byte in bytes {
-                errorData.append(byte)
-            }
-            let errorText = String(data: errorData, encoding: .utf8) ?? "Unknown error"
+            let errorText = String(data: data, encoding: .utf8) ?? "Unknown error"
             throw TachikomaError.apiError("\(providerName) Error (HTTP \(httpResponse.statusCode)): \(errorText)")
         }
 
         return AsyncThrowingStream { continuation in
             Task {
                 do {
-                    for try await line in bytes.lines {
+                    // Split the data by lines for SSE processing
+                    let responseString = String(data: data, encoding: .utf8) ?? ""
+                    let lines = responseString.components(separatedBy: .newlines)
+                    
+                    for line in lines {
                         if line.hasPrefix("data: ") {
                             let jsonString = String(line.dropFirst(6))
                             
