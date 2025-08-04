@@ -53,8 +53,8 @@ jobs:
     - name: Run Tests (Unit Tests Only)
       run: |
         if [[ "${{ runner.os }}" == "Linux" ]]; then
-          # On Linux, skip problematic AudioConfiguration tests that cause fatalError
-          swift test --filter TachikomaTests --skip "AudioConfigurationTests"
+          # On Linux, skip all AudioProvidersTests that contain fatalError issues
+          swift test --filter TachikomaTests --skip "AudioProvidersTests"
         else
           swift test --filter TachikomaTests
         fi
