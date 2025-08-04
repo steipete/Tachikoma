@@ -164,7 +164,7 @@ public struct AudioConfiguration {
         // Then check environment variables with common patterns
         let envKeys = self.environmentKeys(for: provider)
         for key in envKeys {
-            if let value = ProcessInfo.processInfo.environment[key] {
+            if let value = ProcessInfo.processInfo.environment[key], !value.isEmpty {
                 return value
             }
         }

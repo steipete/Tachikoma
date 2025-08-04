@@ -109,6 +109,12 @@ public final class TachikomaConfiguration: @unchecked Sendable {
     private func loadFromEnvironment() {
         let environment = ProcessInfo.processInfo.environment
 
+        // Check for test mode indicators
+        if environment["TACHIKOMA_TEST_MODE"] == "mock" ||
+           environment["TACHIKOMA_DISABLE_API_TESTS"] == "true" {
+            self.setTestMode(true, overrides: [:])
+        }
+
         // Load API keys from environment
         let keyMappings: [String: String] = [
             "openai": "OPENAI_API_KEY",
@@ -121,13 +127,13 @@ public final class TachikomaConfiguration: @unchecked Sendable {
         ]
 
         for (provider, envVar) in keyMappings {
-            if let key = environment[envVar] {
+            if let key = environment[envVar], !key.isEmpty {
                 self.setAPIKey(key, for: provider)
             }
         }
 
         // Also check for alternative Grok API key name
-        if !self.hasAPIKey(for: "grok"), let xaiKey = environment["XAI_API_KEY"] {
+        if !self.hasAPIKey(for: "grok"), let xaiKey = environment["XAI_API_KEY"], !xaiKey.isEmpty {
             self.setAPIKey(xaiKey, for: "grok")
         }
 
@@ -139,7 +145,7 @@ public final class TachikomaConfiguration: @unchecked Sendable {
         ]
 
         for (provider, envVar) in urlMappings {
-            if let url = environment[envVar] {
+            if let url = environment[envVar], !url.isEmpty {
                 self.setBaseURL(url, for: provider)
             }
         }
