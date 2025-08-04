@@ -53,19 +53,10 @@ jobs:
     - name: Run Tests (Unit Tests Only)
       run: swift test --filter TachikomaTests
       env:
-        # Enable API tests with provided keys
-        OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-        ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-        GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
-        MISTRAL_API_KEY: ${{ secrets.MISTRAL_API_KEY }}
-        GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
-        X_AI_API_KEY: ${{ secrets.X_AI_API_KEY }}
-        XAI_API_KEY: ${{ secrets.X_AI_API_KEY }} # Some tests might check for XAI_API_KEY
-        
-    - name: Run Package Tests (Full API Testing)
-      run: swift test --verbose
-      env:
-        # Enable full API testing with all providers
+        # Control test behavior - disable API tests for fast CI
+        TACHIKOMA_DISABLE_API_TESTS: "true"
+        TACHIKOMA_TEST_MODE: "mock"
+        # Still provide API keys for tests that need them
         OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
@@ -73,7 +64,19 @@ jobs:
         GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
         X_AI_API_KEY: ${{ secrets.X_AI_API_KEY }}
         XAI_API_KEY: ${{ secrets.X_AI_API_KEY }}
-      continue-on-error: true # Temporarily allow test failures while we fix them
+        
+    - name: Run Package Tests (Full API Testing)
+      run: swift test --verbose
+      env:
+        # Enable full API testing with all providers (no mocking)
+        OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+        MISTRAL_API_KEY: ${{ secrets.MISTRAL_API_KEY }}
+        GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+        X_AI_API_KEY: ${{ secrets.X_AI_API_KEY }}
+        XAI_API_KEY: ${{ secrets.X_AI_API_KEY }}
+      continue-on-error: true # Allow failures until API keys are properly configured
 
   build-examples:
     name: Build Examples on ${{ matrix.os }}
