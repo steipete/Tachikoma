@@ -18,8 +18,9 @@ enum TestHelpers {
     /// Automatically resets the environment after the test
     static func withTestEnvironment<T>(
         apiKeys: [String: String],
-        _ body: () async throws -> T) async rethrows -> T
-    {
+        _ body: () async throws -> T
+    ) async rethrows
+        -> T {
         self.configureTestEnvironment(apiKeys: apiKeys)
         defer { resetTestEnvironment() }
         return try await body()
@@ -37,23 +38,26 @@ enum TestHelpers {
 
     /// Execute a test with standard test API keys
     static func withStandardTestKeys<T>(
-        _ body: () async throws -> T) async rethrows -> T
-    {
+        _ body: () async throws -> T
+    ) async rethrows
+        -> T {
         try await self.withTestEnvironment(apiKeys: self.standardTestKeys, body)
     }
 
     /// Execute a test with no API keys (for testing missing key scenarios)
     static func withNoAPIKeys<T>(
-        _ body: () async throws -> T) async rethrows -> T
-    {
+        _ body: () async throws -> T
+    ) async rethrows
+        -> T {
         try await self.withTestEnvironment(apiKeys: [:], body)
     }
 
     /// Execute a test with specific API keys present and others missing
     static func withSelectiveAPIKeys<T>(
         present: [String],
-        _ body: () async throws -> T) async rethrows -> T
-    {
+        _ body: () async throws -> T
+    ) async rethrows
+        -> T {
         let keys = present.reduce(into: [String: String]()) { result, provider in
             result[provider] = "test-key"
         }

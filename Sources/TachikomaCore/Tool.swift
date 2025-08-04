@@ -22,27 +22,7 @@ public final class Box<T>: Sendable, Codable where T: Codable & Sendable {
 
 // MARK: - Tool System
 
-// MARK: - Generic Tool System (Primary)
-
-/// A tool that AI models can call to perform actions
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
-public struct Tool<Context>: Sendable {
-    public let name: String
-    public let description: String
-    public let execute: @Sendable (ToolInput, Context) async throws -> ToolOutput
-
-    public init(
-        name: String,
-        description: String,
-        execute: @escaping @Sendable (ToolInput, Context) async throws -> ToolOutput)
-    {
-        self.name = name
-        self.description = description
-        self.execute = execute
-    }
-}
-
-// MARK: - Non-Generic Tool for Core API
+// MARK: - Core Tool for API
 
 /// Non-generic tool for simple use cases
 @available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
@@ -56,12 +36,25 @@ public struct SimpleTool: Sendable {
         name: String,
         description: String,
         parameters: ToolParameters,
-        execute: @escaping @Sendable (ToolArguments) async throws -> ToolArgument)
-    {
+        execute: @escaping @Sendable (ToolArguments) async throws -> ToolArgument
+    ) {
         self.name = name
         self.description = description
         self.parameters = parameters
         self.execute = execute
+    }
+
+    /// Convert to ToolDefinition for API compatibility
+    public func toToolDefinition() -> ToolDefinition {
+        ToolDefinition(
+            type: .function,
+            function: FunctionDefinition(
+                name: self.name,
+                description: self.description,
+                parameters: self.parameters,
+                strict: true
+            )
+        )
     }
 }
 
@@ -76,8 +69,8 @@ public struct ToolParameters: Sendable, Codable {
     public init(
         properties: [String: ToolParameterProperty],
         required: [String] = [],
-        additionalProperties: Bool = false)
-    {
+        additionalProperties: Bool = false
+    ) {
         self.type = "object"
         self.properties = properties
         self.required = required
@@ -121,8 +114,8 @@ public struct ToolParameterProperty: Sendable, Codable {
         minimum: Double? = nil,
         maximum: Double? = nil,
         minLength: Int? = nil,
-        maxLength: Int? = nil)
-    {
+        maxLength: Int? = nil
+    ) {
         self.type = type
         self.description = description
         self.enumValues = enumValues
@@ -141,6 +134,41 @@ public struct ToolParameterProperty: Sendable, Codable {
         case enumValues = "enum"
         case defaultValue = "default"
         case minimum, maximum, minLength, maxLength
+    }
+}
+
+/// Legacy compatibility types (commented out to avoid conflicts)
+// These are replaced by the types defined later in the file
+
+/// Tool definition for model API compatibility
+@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+public struct ToolDefinition: Sendable, Codable {
+    public let type: ToolType
+    public let function: FunctionDefinition
+
+    public enum ToolType: String, Sendable, Codable {
+        case function
+    }
+
+    public init(type: ToolType = .function, function: FunctionDefinition) {
+        self.type = type
+        self.function = function
+    }
+}
+
+/// Function definition for tools
+@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+public struct FunctionDefinition: Sendable, Codable {
+    public let name: String
+    public let description: String
+    public let parameters: ToolParameters
+    public let strict: Bool?
+
+    public init(name: String, description: String, parameters: ToolParameters, strict: Bool? = nil) {
+        self.name = name
+        self.description = description
+        self.parameters = parameters
+        self.strict = strict
     }
 }
 
@@ -259,8 +287,9 @@ public class ToolBuilder {
         minimum: Double? = nil,
         maximum: Double? = nil,
         minLength: Int? = nil,
-        maxLength: Int? = nil) -> ToolBuilder
-    {
+        maxLength: Int? = nil
+    )
+        -> ToolBuilder {
         self.properties[name] = ToolParameterProperty(
             type: type,
             description: description,
@@ -269,7 +298,8 @@ public class ToolBuilder {
             minimum: minimum,
             maximum: maximum,
             minLength: minLength,
-            maxLength: maxLength)
+            maxLength: maxLength
+        )
 
         if required {
             self.required.append(name)
@@ -285,8 +315,9 @@ public class ToolBuilder {
         required: Bool = false,
         enumValues: [String]? = nil,
         minLength: Int? = nil,
-        maxLength: Int? = nil) -> ToolBuilder
-    {
+        maxLength: Int? = nil
+    )
+        -> ToolBuilder {
         self.parameter(
             name,
             type: .string,
@@ -294,7 +325,8 @@ public class ToolBuilder {
             required: required,
             enumValues: enumValues,
             minLength: minLength,
-            maxLength: maxLength)
+            maxLength: maxLength
+        )
     }
 
     @discardableResult
@@ -303,15 +335,17 @@ public class ToolBuilder {
         description: String,
         required: Bool = false,
         minimum: Double? = nil,
-        maximum: Double? = nil) -> ToolBuilder
-    {
+        maximum: Double? = nil
+    )
+        -> ToolBuilder {
         self.parameter(
             name,
             type: .integer,
             description: description,
             required: required,
             minimum: minimum,
-            maximum: maximum)
+            maximum: maximum
+        )
     }
 
     @discardableResult
@@ -320,28 +354,32 @@ public class ToolBuilder {
         description: String,
         required: Bool = false,
         minimum: Double? = nil,
-        maximum: Double? = nil) -> ToolBuilder
-    {
+        maximum: Double? = nil
+    )
+        -> ToolBuilder {
         self.parameter(
             name,
             type: .number,
             description: description,
             required: required,
             minimum: minimum,
-            maximum: maximum)
+            maximum: maximum
+        )
     }
 
     @discardableResult
     public func boolParameter(
         _ name: String,
         description: String,
-        required: Bool = false) -> ToolBuilder
-    {
+        required: Bool = false
+    )
+        -> ToolBuilder {
         self.parameter(
             name,
             type: .boolean,
             description: description,
-            required: required)
+            required: required
+        )
     }
 
     @discardableResult
@@ -357,13 +395,15 @@ public class ToolBuilder {
 
         let parameters = ToolParameters(
             properties: properties,
-            required: required)
+            required: required
+        )
 
         return SimpleTool(
             name: self.name,
             description: self.description,
             parameters: parameters,
-            execute: executeFunction)
+            execute: executeFunction
+        )
     }
 }
 
@@ -374,8 +414,9 @@ public class ToolBuilder {
 public func tool(
     name: String,
     description: String,
-    _ configure: (ToolBuilder) throws -> ToolBuilder) throws -> SimpleTool
-{
+    _ configure: (ToolBuilder) throws -> ToolBuilder
+) throws
+    -> SimpleTool {
     let builder = ToolBuilder(name: name, description: description)
     return try configure(builder).build()
 }
@@ -408,7 +449,8 @@ public struct CommonTools {
                     "format",
                     description: "Date format (iso8601, timestamp, readable)",
                     required: false,
-                    enumValues: ["iso8601", "timestamp", "readable"])
+                    enumValues: ["iso8601", "timestamp", "readable"]
+                )
                 .execute { args in
                     let format = args.getStringOptional("format") ?? "iso8601"
                     let now = Date()
@@ -478,6 +520,54 @@ private func evaluateExpression(_ expression: String) throws -> Double {
     throw TachikomaError.invalidInput("Invalid expression: \(expression)")
 }
 
+// MARK: - Vendor-Style Tool (for TachikomaBuilders Compatibility)
+
+/// A tool that can be used by an agent to perform actions (vendor-compatible version)
+@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+public struct Tool<Context>: Sendable {
+    /// Unique name of the tool
+    public let name: String
+
+    /// Description of what the tool does
+    public let description: String
+
+    /// Parameters the tool accepts
+    public let parameters: ToolParameters
+
+    /// Whether to use strict parameter validation
+    public let strict: Bool
+
+    /// The function to execute when the tool is called
+    public let execute: @Sendable (ToolInput, Context) async throws -> ToolOutput
+
+    public init(
+        name: String,
+        description: String,
+        parameters: ToolParameters = ToolParameters(properties: [:]),
+        strict: Bool = true,
+        execute: @escaping @Sendable (ToolInput, Context) async throws -> ToolOutput
+    ) {
+        self.name = name
+        self.description = description
+        self.parameters = parameters
+        self.strict = strict
+        self.execute = execute
+    }
+
+    /// Convert to a tool definition for the model
+    public func toToolDefinition() -> ToolDefinition {
+        ToolDefinition(
+            type: .function,
+            function: FunctionDefinition(
+                name: self.name,
+                description: self.description,
+                parameters: self.parameters,
+                strict: self.strict
+            )
+        )
+    }
+}
+
 // MARK: - ToolKit Protocol for TachikomaBuilders Compatibility
 
 /// Protocol for tool collections used by TachikomaBuilders
@@ -520,14 +610,17 @@ extension ToolKit {
                 properties: [
                     "input": ToolParameterProperty(
                         type: .string,
-                        description: tool.description),
+                        description: tool.description
+                    ),
                 ],
-                required: ["input"])
+                required: ["input"]
+            )
 
             return ProviderTool(
                 name: tool.name,
                 description: tool.description,
-                parameters: parameters)
+                parameters: parameters
+            )
         }
     }
 }
@@ -710,6 +803,16 @@ public enum ToolOutput: Sendable {
     /// Create an error output
     public static func error(message: String) -> ToolOutput {
         .string("Error: \(message)")
+    }
+
+    /// Create a successful output
+    public static func success(_ message: String) -> ToolOutput {
+        .string(message)
+    }
+
+    /// Create a failure output
+    public static func failure(_ error: Error) -> ToolOutput {
+        .string("Error: \(error.localizedDescription)")
     }
 
     /// Convert to JSON string representation

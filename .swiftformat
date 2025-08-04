@@ -4,20 +4,11 @@
 # Swift version
 --swiftversion 6.0
 
-# Enable all formatting rules by default
---enable all
-
-# Disable specific rules that conflict with our style
---disable redundantSelf
---disable wrapMultilineStatementBraces
---disable wrapConditionalBodies
-
 # Indentation
 --indent 4
 --tabwidth 4
 --smarttabs enabled
 --indentcase false
---ifdef indent
 
 # Line length
 --maxwidth 120
@@ -26,7 +17,6 @@
 --commas always
 --semicolons never
 --ranges spaced
---comments indent
 --trimwhitespace always
 
 # Wrapping
@@ -35,8 +25,6 @@
 --wrapcollections before-first
 --wrapconditions before-first
 --wrapreturntype if-multiline
---wraptypenames before-first
---wrapternary before-operators
 
 # Closure formatting
 --closingparen balanced
@@ -46,21 +34,12 @@
 # Import organization
 --importgrouping testable-bottom
 
-# Enum and case formatting
---enumnamespaces always
---structnamespaces always
-
-# Type formatting
---typemark remove
---markTypes always
---categorymark "MARK: %c"
---marktypes always
---beforemarks 
+# Enum formatting
+--enum-namespaces always
 
 # Function formatting  
 --funcattributes prev-line
 --typeattributes prev-line
---varattributes preserve
 
 # Access control
 --extensionacl on-declarations
@@ -70,65 +49,12 @@
 --elseposition same-line
 --guardelse same-line
 
-# Parentheses
---redundantparens false
-
-# String formatting
---redundanttype inferred
-
 # Operator formatting
 --operatorfunc spaced
---nospaceoperators ..<,...,..,?
+--nospaceoperators ..<,...,..
 
-# Swift 6 specific formatting
---async-await-spacing consistent
---actor-isolation preserve
-
-# Documentation formatting
---doccomments preserve
-
-# File header (can be customized per project)
+# File header
 --header strip
 
-# Experimental rules for Swift 6
---enable asyncAwaitSpacing
---enable actorIsolation
---enable sendableConformance
-
-# Exclude certain files/folders
+# Exclude files
 --exclude .build,.swiftpm,Package.swift
---exclude Sources/*/Resources
---exclude "**/Generated/**"
---exclude "**/Derived/**"
-
-# File extensions to format
---include "*.swift"
-
-# Rules specific to Swift 6 concurrency
---enable mainActorAttribute
---enable sendableViolation
-
-# Modern Swift features
---enable modernSyntax
---enable asyncAwaitBestPractices
-
-# Code organization
---enable sortedImports
---enable organizeDeclarations
-
-# Error handling
---enable properErrorHandling
-
-# Performance optimizations
---enable redundantOptionalBinding
---enable redundantReturn
-
-# Memory management (still relevant in Swift 6)
---enable strongSelf
-
-# Naming conventions
---enable acronyms
---enable blankLinesAroundMark
-
-# Swift 6 migration helpers
---enable migrationAssistance

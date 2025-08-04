@@ -47,6 +47,19 @@ public final class Conversation: @unchecked Sendable {
         self.lock.unlock()
     }
 
+    /// Get messages as ModelMessage array for API compatibility
+    public func getModelMessages() -> [ModelMessage] {
+        self.messages.map { $0.toModelMessage() }
+    }
+
+    /// Add a ModelMessage to the conversation
+    public func addModelMessage(_ modelMessage: ModelMessage) {
+        let conversationMessage = ConversationMessage.from(modelMessage)
+        self.lock.lock()
+        self._messages.append(conversationMessage)
+        self.lock.unlock()
+    }
+
     /// Continue the conversation with a model
     public func continueConversation(using model: Model? = nil, tools: (any ToolKit)? = nil) async throws -> String {
         // Convert conversation messages to model messages
@@ -55,7 +68,8 @@ public final class Conversation: @unchecked Sendable {
                 id: conversationMessage.id,
                 role: ModelMessage.Role(rawValue: conversationMessage.role.rawValue) ?? .user,
                 content: [.text(conversationMessage.content)],
-                timestamp: conversationMessage.timestamp)
+                timestamp: conversationMessage.timestamp
+            )
         }
 
         // Generate response using the core API
@@ -63,7 +77,8 @@ public final class Conversation: @unchecked Sendable {
             model: model ?? .default,
             messages: modelMessages,
             tools: [],
-            settings: .default)
+            settings: .default
+        )
 
         // Add the response to the conversation
         self.addAssistantMessage(response.text)
@@ -92,5 +107,49 @@ public struct ConversationMessage: Sendable, Codable, Equatable {
         self.role = role
         self.content = content
         self.timestamp = timestamp
+    }
+
+    /// Convert to ModelMessage for API compatibility
+    public func toModelMessage() -> ModelMessage {
+        let modelRole: ModelMessage.Role = switch self.role {
+        case .system: .system
+        case .user: .user
+        case .assistant: .assistant
+        case .tool: .tool
+        }
+
+        return ModelMessage(
+            id: self.id,
+            role: modelRole,
+            content: [.text(self.content)],
+            timestamp: self.timestamp
+        )
+    }
+
+    /// Create from ModelMessage
+    public static func from(_ modelMessage: ModelMessage) -> ConversationMessage {
+        let role: Role = switch modelMessage.role {
+        case .system: .system
+        case .user: .user
+        case .assistant: .assistant
+        case .tool: .tool
+        }
+
+        // Extract text content from ModelMessage content parts
+        let textContent = modelMessage.content
+            .compactMap { part in
+                if case let .text(text) = part {
+                    return text
+                }
+                return nil
+            }
+            .joined(separator: "\n")
+
+        return ConversationMessage(
+            id: modelMessage.id,
+            role: role,
+            content: textContent,
+            timestamp: modelMessage.timestamp
+        )
     }
 }

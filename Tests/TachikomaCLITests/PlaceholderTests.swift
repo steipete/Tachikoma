@@ -1,5 +1,5 @@
-import Testing
 @testable import TachikomaCLI
+import Testing
 
 @Suite("TachikomaCLI Placeholder Tests")
 struct PlaceholderTests {

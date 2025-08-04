@@ -1,8 +1,5 @@
 #!/usr/bin/env swift
 
-// Tachikoma Examples - Demonstrating the Modern Swift AI SDK
-// Run with: swift Examples/TachikomaExamples.swift
-
 import Foundation
 import TachikomaBuilders
 import TachikomaCore
@@ -198,21 +195,24 @@ extension TachikomaExamples {
             model: "gpt-4o".lowercased(),
             inputTokens: 100,
             outputTokens: 50,
-            cost: 0.003)
+            cost: 0.003
+        )
 
         try? await tracker.recordUsage(
             operation: .analysis,
             model: "claude-opus-4".lowercased(),
             inputTokens: 200,
             outputTokens: 75,
-            cost: 0.006)
+            cost: 0.006
+        )
 
         try? await tracker.recordUsage(
             operation: .streaming,
             model: "grok-4".lowercased(),
             inputTokens: 150,
             outputTokens: 100,
-            cost: 0.004)
+            cost: 0.004
+        )
 
         // Generate reports
         let totalUsage = await tracker.getTotalUsage()

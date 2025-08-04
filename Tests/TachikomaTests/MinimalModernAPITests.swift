@@ -1,7 +1,7 @@
 import Foundation
-import Testing
 @testable import TachikomaBuilders
 @testable import TachikomaCore
+import Testing
 
 @Suite("Minimal Modern API Tests")
 struct MinimalModernAPITests {
@@ -12,8 +12,8 @@ struct MinimalModernAPITests {
         // Test that model enums can be constructed
         let openaiModel = Model.openai(.gpt4o)
         let anthropicModel = Model.anthropic(.opus4)
-        let _ = Model.grok(.grok4)
-        let _ = Model.ollama(.llama3_3)
+        _ = Model.grok(.grok4)
+        _ = Model.ollama(.llama3_3)
 
         // Test that they can be used in a switch statement
         switch openaiModel {
@@ -49,8 +49,8 @@ struct MinimalModernAPITests {
     func toolCreation() {
         let tool = Tool<String>(
             name: "test_tool",
-            description: "A test tool")
-        { _, _ in
+            description: "A test tool"
+        ) { _, _ in
             .string("Tool executed")
         }
 
@@ -136,7 +136,8 @@ struct MinimalModernAPITests {
             id: "test",
             role: .user,
             content: "Test",
-            timestamp: Date())
+            timestamp: Date()
+        )
 
         #expect(message.id == "test")
         #expect(message.role == .user)

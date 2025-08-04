@@ -39,7 +39,8 @@ if availableProviders.contains("openai") {
         let result = try await generate(
             "What is 3+3? Answer with just the number.",
             using: .openai(.gpt4o),
-            maxTokens: 10)
+            maxTokens: 10
+        )
         print("✅ OpenAI: \(result.trimmingCharacters(in: .whitespacesAndNewlines))")
     } catch {
         print("❌ OpenAI Error: \(error)")
@@ -52,7 +53,8 @@ if availableProviders.contains("anthropic") {
         let result = try await generate(
             "What is 4+4? Answer with just the number.",
             using: .anthropic(.opus4),
-            maxTokens: 10)
+            maxTokens: 10
+        )
         print("✅ Anthropic: \(result.trimmingCharacters(in: .whitespacesAndNewlines))")
     } catch {
         print("❌ Anthropic Error: \(error)")
@@ -65,7 +67,8 @@ if availableProviders.contains("grok") {
         let result = try await generate(
             "What is 5+5? Answer with just the number.",
             using: .grok(.grok4),
-            maxTokens: 10)
+            maxTokens: 10
+        )
         print("✅ Grok: \(result.trimmingCharacters(in: .whitespacesAndNewlines))")
     } catch {
         print("❌ Grok Error: \(error)")
@@ -82,7 +85,8 @@ if availableProviders.contains("openai") {
         let stream = try await stream(
             "Count from 1 to 3 slowly",
             using: .openai(.gpt4oMini),
-            maxTokens: 50)
+            maxTokens: 50
+        )
 
         print("Stream tokens: ", terminator: "")
         var tokenCount = 0
@@ -116,7 +120,8 @@ if availableProviders.contains("openai") {
         let result = try await analyze(
             image: .base64(testImageBase64),
             prompt: "What color is this 1x1 pixel?",
-            using: .openai(.gpt4o))
+            using: .openai(.gpt4o)
+        )
         print("✅ Vision: \(result.prefix(100))...")
     } catch {
         print("❌ Vision Error: \(error)")
@@ -148,7 +153,8 @@ if availableProviders.contains("anthropic") {
             "Use the add function to calculate 7 + 8",
             using: .anthropic(.sonnet4),
             tools: toolkit,
-            maxTokens: 100)
+            maxTokens: 100
+        )
         print("✅ Tool usage: \(result.prefix(150))...")
     } catch {
         print("❌ Tool Error: \(error)")

@@ -34,8 +34,8 @@ public enum LanguageModel: Sendable, CustomStringConvertible {
         case o4Mini
 
         // GPT-4.1 Series
-        case gpt4_1
-        case gpt4_1Mini
+        case gpt41
+        case gpt41Mini
 
         // GPT-4o Series (Multimodal)
         case gpt4o
@@ -49,7 +49,7 @@ public enum LanguageModel: Sendable, CustomStringConvertible {
         case custom(String)
 
         public static var allCases: [OpenAI] {
-            [.o3, .o3Mini, .o3Pro, .o4Mini, .gpt4_1, .gpt4_1Mini, .gpt4o, .gpt4oMini, .gpt4Turbo, .gpt35Turbo]
+            [.o3, .o3Mini, .o3Pro, .o4Mini, .gpt41, .gpt41Mini, .gpt4o, .gpt4oMini, .gpt4Turbo, .gpt35Turbo]
         }
 
         public var modelId: String {
@@ -59,8 +59,8 @@ public enum LanguageModel: Sendable, CustomStringConvertible {
             case .o3Mini: "o3-mini"
             case .o3Pro: "o3-pro"
             case .o4Mini: "o4-mini"
-            case .gpt4_1: "gpt-4.1"
-            case .gpt4_1Mini: "gpt-4.1-mini"
+            case .gpt41: "gpt-4.1"
+            case .gpt41Mini: "gpt-4.1-mini"
             case .gpt4o: "gpt-4o"
             case .gpt4oMini: "gpt-4o-mini"
             case .gpt4Turbo: "gpt-4-turbo"
@@ -77,7 +77,7 @@ public enum LanguageModel: Sendable, CustomStringConvertible {
 
         public var supportsTools: Bool {
             switch self {
-            case .o3, .o3Mini, .o3Pro, .o4Mini, .gpt4_1, .gpt4_1Mini, .gpt4o, .gpt4oMini, .gpt4Turbo: true
+            case .o3, .o3Mini, .o3Pro, .o4Mini, .gpt41, .gpt41Mini, .gpt4o, .gpt4oMini, .gpt4Turbo: true
             case .gpt35Turbo: true
             case .custom: true // Assume custom models support tools
             }
@@ -99,10 +99,10 @@ public enum LanguageModel: Sendable, CustomStringConvertible {
             switch self {
             case .o3, .o3Pro: 1_000_000
             case .o3Mini, .o4Mini: 128_000
-            case .gpt4_1, .gpt4_1Mini: 1_000_000
+            case .gpt41, .gpt41Mini: 1_000_000
             case .gpt4o, .gpt4oMini: 128_000
             case .gpt4Turbo: 128_000
-            case .gpt35Turbo: 16000
+            case .gpt35Turbo: 16_000
             case .custom: 128_000 // Default assumption
             }
         }
@@ -116,12 +116,12 @@ public enum LanguageModel: Sendable, CustomStringConvertible {
         case sonnet4Thinking
 
         // Claude 3.7 Series
-        case sonnet3_7
+        case sonnet37
 
         // Claude 3.5 Series
-        case opus3_5
-        case sonnet3_5
-        case haiku3_5
+        case opus35
+        case sonnet35
+        case haiku35
 
         // Legacy Claude 3 Series
         case opus3
@@ -154,10 +154,10 @@ public enum LanguageModel: Sendable, CustomStringConvertible {
             case .opus4Thinking: "claude-opus-4-20250514-thinking"
             case .sonnet4: "claude-sonnet-4-20250514"
             case .sonnet4Thinking: "claude-sonnet-4-20250514-thinking"
-            case .sonnet3_7: "claude-3-7-sonnet"
-            case .opus3_5: "claude-3-5-opus"
-            case .sonnet3_5: "claude-3-5-sonnet"
-            case .haiku3_5: "claude-3-5-haiku"
+            case .sonnet37: "claude-3-7-sonnet"
+            case .opus35: "claude-3-5-opus"
+            case .sonnet35: "claude-3-5-sonnet"
+            case .haiku35: "claude-3-5-haiku"
             case .opus3: "claude-3-opus"
             case .sonnet3: "claude-3-sonnet"
             case .haiku3: "claude-3-haiku"
@@ -166,7 +166,7 @@ public enum LanguageModel: Sendable, CustomStringConvertible {
 
         public var supportsVision: Bool {
             switch self {
-            case .opus4, .opus4Thinking, .sonnet4, .sonnet4Thinking, .sonnet3_7, .opus3_5, .sonnet3_5, .haiku3_5: true
+            case .opus4, .opus4Thinking, .sonnet4, .sonnet4Thinking, .sonnet37, .opus35, .sonnet35, .haiku35: true
             case .opus3, .sonnet3, .haiku3: true
             case .custom: true // Most modern Claude models support vision
             }
@@ -187,9 +187,9 @@ public enum LanguageModel: Sendable, CustomStringConvertible {
         public var contextLength: Int {
             switch self {
             case .opus4, .opus4Thinking, .sonnet4, .sonnet4Thinking: 500_000
-            case .sonnet3_7: 200_000
-            case .opus3_5, .sonnet3_5: 200_000
-            case .haiku3_5: 200_000
+            case .sonnet37: 200_000
+            case .opus35, .sonnet35: 200_000
+            case .haiku35: 200_000
             case .opus3, .sonnet3: 200_000
             case .haiku3: 200_000
             case .custom: 200_000
@@ -234,7 +234,7 @@ public enum LanguageModel: Sendable, CustomStringConvertible {
             case .gemini2Flash, .gemini2FlashThinking: 1_000_000
             case .gemini15Pro, .gemini15Flash: 2_000_000
             case .gemini15Flash8B: 1_000_000
-            case .geminiPro, .geminiProVision: 32000
+            case .geminiPro, .geminiProVision: 32_000
             }
         }
     }
@@ -262,10 +262,10 @@ public enum LanguageModel: Sendable, CustomStringConvertible {
         public var contextLength: Int {
             switch self {
             case .large2, .large: 128_000
-            case .medium: 32000
-            case .small: 32000
+            case .medium: 32_000
+            case .small: 32_000
             case .nemo: 128_000
-            case .codestral: 32000
+            case .codestral: 32_000
             }
         }
     }
@@ -289,7 +289,7 @@ public enum LanguageModel: Sendable, CustomStringConvertible {
             switch self {
             case .llama31_70b, .llama31_8b: 128_000
             case .llama3_70b, .llama3_8b: 8000
-            case .mixtral8x7b: 32000
+            case .mixtral8x7b: 32_000
             case .gemma2_9b: 8000
             }
         }
@@ -298,15 +298,15 @@ public enum LanguageModel: Sendable, CustomStringConvertible {
     public enum Grok: Sendable, Hashable, CaseIterable {
         // xAI Grok models
         case grok4
-        case grok4_0709
+        case grok40709
         case grok4Latest
         case grok3
         case grok3Mini
         case grok3Fast
         case grok3MiniFast
-        case grok2_1212
-        case grok2Vision_1212
-        case grok2Image_1212
+        case grok21212
+        case grok2Vision1212
+        case grok2Image1212
         case grokBeta
         case grokVisionBeta
 
@@ -316,15 +316,15 @@ public enum LanguageModel: Sendable, CustomStringConvertible {
         public static var allCases: [Grok] {
             [
                 .grok4,
-                .grok4_0709,
+                .grok40709,
                 .grok4Latest,
                 .grok3,
                 .grok3Mini,
                 .grok3Fast,
                 .grok3MiniFast,
-                .grok2_1212,
-                .grok2Vision_1212,
-                .grok2Image_1212,
+                .grok21212,
+                .grok2Vision1212,
+                .grok2Image1212,
                 .grokBeta,
                 .grokVisionBeta,
             ]
@@ -334,15 +334,15 @@ public enum LanguageModel: Sendable, CustomStringConvertible {
             switch self {
             case let .custom(id): id
             case .grok4: "grok-4"
-            case .grok4_0709: "grok-4-0709"
+            case .grok40709: "grok-4-0709"
             case .grok4Latest: "grok-4-latest"
             case .grok3: "grok-3"
             case .grok3Mini: "grok-3-mini"
             case .grok3Fast: "grok-3-fast"
             case .grok3MiniFast: "grok-3-mini-fast"
-            case .grok2_1212: "grok-2-1212"
-            case .grok2Vision_1212: "grok-2-vision-1212"
-            case .grok2Image_1212: "grok-2-image-1212"
+            case .grok21212: "grok-2-1212"
+            case .grok2Vision1212: "grok-2-vision-1212"
+            case .grok2Image1212: "grok-2-image-1212"
             case .grokBeta: "grok-beta"
             case .grokVisionBeta: "grok-vision-beta"
             }
@@ -382,21 +382,16 @@ public enum LanguageModel: Sendable, CustomStringConvertible {
     public enum Ollama: Sendable, Hashable, CaseIterable {
         // Recommended models for different use cases
         case llama33 // Best overall
-        case llama3_3 // Alternative naming
         case llama32 // Good alternative
-        case llama3_2 // Alternative naming
         case llama31 // Older but reliable
-        case llama3_1 // Alternative naming
 
         // Vision models (no tool support)
         case llava
         case bakllava
         case llama32Vision11b
-        case llama3_2Vision11b
         case llama32Vision90b
-        case llama3_2Vision90b
-        case qwen2_5vl7b
-        case qwen2_5vl32b
+        case qwen25vl7b
+        case qwen25vl32b
 
         // Specialized models
         case codellama
@@ -413,8 +408,8 @@ public enum LanguageModel: Sendable, CustomStringConvertible {
         case neuralChat
         case gemma
         case devstral
-        case deepseekR1_8b
-        case deepseekR1_671b
+        case deepseekR18b
+        case deepseekR1671b
         case firefunction
         case commandR
 
@@ -424,11 +419,8 @@ public enum LanguageModel: Sendable, CustomStringConvertible {
         public static var allCases: [Ollama] {
             [
                 .llama33,
-                .llama3_3,
                 .llama32,
-                .llama3_2,
                 .llama31,
-                .llama3_1,
                 .llava,
                 .bakllava,
                 .llama32Vision11b,
@@ -515,24 +507,24 @@ public enum LanguageModel: Sendable, CustomStringConvertible {
         public var contextLength: Int {
             switch self {
             case .llama33, .llama3_3, .llama32, .llama3_2, .llama31, .llama3_1: 128_000
-            case .llava, .bakllava: 32000
+            case .llava, .bakllava: 32_000
             case .llama32Vision11b, .llama3_2Vision11b: 128_000
             case .llama32Vision90b, .llama3_2Vision90b: 128_000
-            case .qwen2_5vl7b, .qwen2_5vl32b: 32000
-            case .codellama: 32000
+            case .qwen2_5vl7b, .qwen2_5vl32b: 32_000
+            case .codellama: 32_000
             case .mistralNemo: 128_000
-            case .qwen25: 32000
+            case .qwen25: 32_000
             case .deepseekR1: 128_000
             case .commandRPlus: 128_000
             case .llama2, .llama4: 128_000
-            case .mistral, .mixtral: 32000
-            case .neuralChat, .gemma: 32000
-            case .devstral: 16000
-            case .deepseekR1_8b: 64000
+            case .mistral, .mixtral: 32_000
+            case .neuralChat, .gemma: 32_000
+            case .devstral: 16_000
+            case .deepseekR1_8b: 64_000
             case .deepseekR1_671b: 128_000
-            case .firefunction: 32000
+            case .firefunction: 32_000
             case .commandR: 128_000
-            case .custom: 32000
+            case .custom: 32_000
             }
         }
     }
@@ -815,8 +807,8 @@ public struct ModelCapabilities: Sendable {
         supportsAudioOutput: Bool = false,
         contextLength: Int = 128_000,
         maxOutputTokens: Int = 4096,
-        costPerToken: (input: Double, output: Double)? = nil)
-    {
+        costPerToken: (input: Double, output: Double)? = nil
+    ) {
         self.supportsVision = supportsVision
         self.supportsTools = supportsTools
         self.supportsStreaming = supportsStreaming
@@ -847,8 +839,8 @@ public struct ProviderRequest: Sendable {
         messages: [ModelMessage],
         tools: [SimpleTool]? = nil,
         settings: GenerationSettings = .default,
-        outputFormat: OutputFormat? = nil)
-    {
+        outputFormat: OutputFormat? = nil
+    ) {
         self.messages = messages
         self.tools = tools
         self.settings = settings
@@ -868,8 +860,8 @@ public struct ProviderResponse: Sendable {
         text: String,
         usage: Usage? = nil,
         finishReason: FinishReason? = nil,
-        toolCalls: [ToolCall]? = nil)
-    {
+        toolCalls: [ToolCall]? = nil
+    ) {
         self.text = text
         self.usage = usage
         self.finishReason = finishReason

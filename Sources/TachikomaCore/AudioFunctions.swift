@@ -29,8 +29,9 @@ public func transcribe(
     timestampGranularities: [TimestampGranularity] = [],
     responseFormat: TranscriptionResponseFormat = .verbose,
     abortSignal: AbortSignal? = nil,
-    headers: [String: String] = [:]) async throws -> TranscriptionResult
-{
+    headers: [String: String] = [:]
+) async throws
+    -> TranscriptionResult {
     let provider = try TranscriptionProviderFactory.createProvider(for: model)
 
     let request = TranscriptionRequest(
@@ -40,7 +41,8 @@ public func transcribe(
         timestampGranularities: timestampGranularities,
         responseFormat: responseFormat,
         abortSignal: abortSignal,
-        headers: headers)
+        headers: headers
+    )
 
     return try await provider.transcribe(request: request)
 }
@@ -77,8 +79,9 @@ public func generateSpeech(
     format: AudioFormat = .mp3,
     instructions: String? = nil,
     abortSignal: AbortSignal? = nil,
-    headers: [String: String] = [:]) async throws -> SpeechResult
-{
+    headers: [String: String] = [:]
+) async throws
+    -> SpeechResult {
     let provider = try SpeechProviderFactory.createProvider(for: model)
 
     let request = SpeechRequest(
@@ -89,7 +92,8 @@ public func generateSpeech(
         format: format,
         instructions: instructions,
         abortSignal: abortSignal,
-        headers: headers)
+        headers: headers
+    )
 
     return try await provider.generateSpeech(request: request)
 }
@@ -108,12 +112,14 @@ public func generateSpeech(
 @available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
 public func transcribe(
     _ audio: AudioData,
-    language: String? = nil) async throws -> String
-{
+    language: String? = nil
+) async throws
+    -> String {
     let result = try await transcribe(
         audio,
         using: .default,
-        language: language)
+        language: language
+    )
     return result.text
 }
 
@@ -127,8 +133,9 @@ public func transcribe(
 public func transcribe(
     contentsOf url: URL,
     using model: TranscriptionModel = .default,
-    language: String? = nil) async throws -> String
-{
+    language: String? = nil
+) async throws
+    -> String {
     let audio = try AudioData(contentsOf: url)
     let result = try await transcribe(audio, using: model, language: language)
     return result.text
@@ -145,12 +152,14 @@ public func transcribe(
 @available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
 public func generateSpeech(
     _ text: String,
-    voice: VoiceOption = .alloy) async throws -> AudioData
-{
+    voice: VoiceOption = .alloy
+) async throws
+    -> AudioData {
     let result = try await generateSpeech(
         text,
         using: .default,
-        voice: voice)
+        voice: voice
+    )
     return result.audioData
 }
 
@@ -166,14 +175,15 @@ public func generateSpeech(
     using model: SpeechModel = .default,
     voice: VoiceOption = .alloy,
     speed: Double = 1.0,
-    format: AudioFormat = .mp3) async throws
-{
+    format: AudioFormat = .mp3
+) async throws {
     let result = try await generateSpeech(
         text,
         using: model,
         voice: voice,
         speed: speed,
-        format: format)
+        format: format
+    )
     try result.audioData.write(to: url)
 }
 
@@ -193,12 +203,13 @@ public func transcribeBatch(
     _ audioURLs: [URL],
     using model: TranscriptionModel,
     language: String? = nil,
-    concurrency: Int = 3) async throws -> [TranscriptionResult]
-{
+    concurrency: Int = 3
+) async throws
+    -> [TranscriptionResult] {
     try await withThrowingTaskGroup(
         of: (Int, TranscriptionResult).self,
-        returning: [TranscriptionResult].self)
-    { group in
+        returning: [TranscriptionResult].self
+    ) { group in
         let semaphore = AsyncSemaphore(value: concurrency)
 
         for (index, url) in audioURLs.enumerated() {
@@ -237,8 +248,9 @@ public func generateSpeechBatch(
     _ texts: [String],
     using model: SpeechModel,
     voice: VoiceOption = .alloy,
-    concurrency: Int = 3) async throws -> [SpeechResult]
-{
+    concurrency: Int = 3
+) async throws
+    -> [SpeechResult] {
     try await withThrowingTaskGroup(of: (Int, SpeechResult).self, returning: [SpeechResult].self) { group in
         let semaphore = AsyncSemaphore(value: concurrency)
 

@@ -218,7 +218,7 @@ public enum ToolArgument: Sendable, Codable, Equatable {
             }
             return .object(toolDict)
         } else {
-            throw ToolError.invalidInput("Unsupported value type: \(type(of: value))")
+            throw TachikomaError.invalidInput("Unsupported value type: \(type(of: value))")
         }
     }
 }
@@ -297,8 +297,8 @@ public struct GenerationSettings: Sendable, Codable {
         topK: Int? = nil,
         frequencyPenalty: Double? = nil,
         presencePenalty: Double? = nil,
-        stopSequences: [String]? = nil)
-    {
+        stopSequences: [String]? = nil
+    ) {
         self.maxTokens = maxTokens
         self.temperature = temperature
         self.topP = topP

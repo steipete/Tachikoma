@@ -1,6 +1,6 @@
 import Foundation
-import Testing
 @testable import TachikomaCore
+import Testing
 
 struct UsageTrackingTests {
     // MARK: - Session Management Tests
@@ -18,13 +18,13 @@ struct UsageTrackingTests {
         #expect(session != nil)
         #expect(session?.isComplete == false)
         #expect(tracker.activeSessions.count == 1)
-        #expect(tracker.completedSessions.count == 0)
+        #expect(tracker.completedSessions.isEmpty)
 
         // End the session
         let endedSession = tracker.endSession(sessionId)
         #expect(endedSession != nil)
         #expect(endedSession?.isComplete == true)
-        #expect(tracker.activeSessions.count == 0)
+        #expect(tracker.activeSessions.isEmpty)
         #expect(tracker.completedSessions.count == 1)
     }
 
@@ -56,7 +56,8 @@ struct UsageTrackingTests {
             sessionId: sessionId,
             model: model,
             usage: usage,
-            operation: .textGeneration)
+            operation: .textGeneration
+        )
 
         // Check that usage was recorded
         let session = tracker.getSession(sessionId)
@@ -89,13 +90,15 @@ struct UsageTrackingTests {
             sessionId: sessionId,
             model: model,
             usage: Usage(inputTokens: 100, outputTokens: 50),
-            operation: .textGeneration)
+            operation: .textGeneration
+        )
 
         tracker.recordUsage(
             sessionId: sessionId,
             model: model,
             usage: Usage(inputTokens: 200, outputTokens: 100),
-            operation: .imageAnalysis)
+            operation: .imageAnalysis
+        )
 
         let session = tracker.getSession(sessionId)
         #expect(session?.operations.count == 2)
@@ -144,7 +147,8 @@ struct UsageTrackingTests {
             sessionId: session1,
             model: .openai(.gpt4oMini),
             usage: Usage(inputTokens: 100, outputTokens: 50),
-            operation: .textGeneration)
+            operation: .textGeneration
+        )
         tracker.endSession(session1)
 
         let session2 = tracker.startSession()
@@ -152,7 +156,8 @@ struct UsageTrackingTests {
             sessionId: session2,
             model: .anthropic(.haiku3_5),
             usage: Usage(inputTokens: 200, outputTokens: 100),
-            operation: .imageAnalysis)
+            operation: .imageAnalysis
+        )
         tracker.endSession(session2)
 
         let totalUsage = tracker.totalUsage
@@ -188,7 +193,8 @@ struct UsageTrackingTests {
             sessionId: sessionId,
             model: .openai(.gpt4oMini),
             usage: Usage(inputTokens: 1000, outputTokens: 500),
-            operation: .textGeneration)
+            operation: .textGeneration
+        )
         tracker.endSession(sessionId)
 
         // Generate a report for today
@@ -219,7 +225,8 @@ struct UsageTrackingTests {
             sessionId: sessionId,
             model: .openai(.gpt4oMini),
             usage: Usage(inputTokens: 100, outputTokens: 50),
-            operation: .textGeneration)
+            operation: .textGeneration
+        )
         tracker.endSession(sessionId)
 
         let now = Date()

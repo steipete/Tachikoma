@@ -1,6 +1,6 @@
 import Foundation
-import Testing
 @testable import TachikomaCore
+import Testing
 
 @Suite("Provider System Tests")
 struct ProviderSystemTests {
@@ -120,7 +120,8 @@ struct ProviderSystemTests {
         let request = ProviderRequest(
             messages: [ModelMessage(role: .user, content: [.text("Hello world")])],
             tools: nil,
-            settings: GenerationSettings(maxTokens: 100, temperature: 0.7))
+            settings: GenerationSettings(maxTokens: 100, temperature: 0.7)
+        )
 
         #expect(request.messages.count == 1)
         #expect(request.messages[0].role == .user)
@@ -137,9 +138,10 @@ struct ProviderSystemTests {
             messages: [ModelMessage(role: .user, content: [
                 .text("Describe this image"),
                 .image(imageContent),
-            ])],
+            ]),],
             tools: nil,
-            settings: .default)
+            settings: .default
+        )
 
         #expect(request.messages.count == 1)
         #expect(request.messages[0].content.count == 2)

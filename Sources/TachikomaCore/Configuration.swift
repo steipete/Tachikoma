@@ -154,9 +154,9 @@ public final class TachikomaConfiguration: @unchecked Sendable {
         let credentialsPath = "\(homeDirectory)/.tachikoma/credentials"
         let credentialsURL = URL(fileURLWithPath: credentialsPath)
 
-        guard let credentialsData = try? Data(contentsOf: credentialsURL),
-              let credentialsString = String(data: credentialsData, encoding: .utf8)
-        else {
+        guard
+            let credentialsData = try? Data(contentsOf: credentialsURL),
+            let credentialsString = String(data: credentialsData, encoding: .utf8) else {
             return
         }
 

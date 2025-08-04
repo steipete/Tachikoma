@@ -1,6 +1,6 @@
 import Foundation
-import Testing
 @testable import TachikomaCore
+import Testing
 
 @Suite("Generation Function Tests")
 struct GenerationTests {
@@ -12,7 +12,8 @@ struct GenerationTests {
             let result = try await generate(
                 "What is 2+2?",
                 using: .openai(.gpt4o),
-                maxTokens: 100)
+                maxTokens: 100
+            )
 
             // Since we're using placeholder implementations, verify the format
             #expect(result.contains("OpenAI response"))
@@ -28,7 +29,8 @@ struct GenerationTests {
                 "Explain quantum physics",
                 using: .anthropic(.opus4),
                 system: "You are a physics teacher",
-                maxTokens: 200)
+                maxTokens: 200
+            )
 
             // Anthropic provider uses real implementation, so we expect actual response structure
             // For now, with our placeholder, verify basic functionality
@@ -53,7 +55,8 @@ struct GenerationTests {
                 "Tell me a joke",
                 using: .openai(.gpt4oMini),
                 system: "You are a comedian",
-                temperature: 0.8)
+                temperature: 0.8
+            )
 
             #expect(result.contains("OpenAI response"))
             #expect(result.contains("Tell me a joke"))
@@ -68,7 +71,8 @@ struct GenerationTests {
             let stream = try await stream(
                 "Count to 5",
                 using: .openai(.gpt4o),
-                maxTokens: 50)
+                maxTokens: 50
+            )
 
             var tokens: [TextStreamDelta] = []
 
@@ -94,7 +98,8 @@ struct GenerationTests {
             let stream = try await stream(
                 "Write a haiku",
                 using: .anthropic(.sonnet4),
-                system: "You are a poet")
+                system: "You are a poet"
+            )
 
             var receivedTokens = 0
             var completed = false
@@ -126,7 +131,8 @@ struct GenerationTests {
             let result = try await analyze(
                 image: .base64("test-image-base64"),
                 prompt: "What do you see?",
-                using: .openai(.gpt4o))
+                using: .openai(.gpt4o)
+            )
 
             #expect(result.contains("OpenAI response"))
             #expect(result.contains("What do you see?"))
@@ -141,7 +147,8 @@ struct GenerationTests {
                 try await analyze(
                     image: .base64("test-image"),
                     prompt: "Describe this",
-                    using: .openai(.gpt4_1))
+                    using: .openai(.gpt4_1)
+                )
             }
         }
     }
@@ -153,7 +160,8 @@ struct GenerationTests {
             let testImageBase64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=="
             let result = try await analyze(
                 image: .base64(testImageBase64),
-                prompt: "Analyze this image")
+                prompt: "Analyze this image"
+            )
 
             // Should default to GPT-4o for vision tasks
             #expect(result.contains("OpenAI response"))
@@ -195,7 +203,8 @@ struct GenerationTests {
             let result = try await generate(
                 "Hello",
                 using: .openai(.gpt4o),
-                tools: toolkit)
+                tools: toolkit
+            )
 
             #expect(!result.isEmpty)
         }
@@ -220,7 +229,8 @@ struct GenerationTests {
             let result = try await generate(
                 "Use the test tool",
                 using: .anthropic(.sonnet4),
-                tools: toolkit)
+                tools: toolkit
+            )
 
             #expect(!result.isEmpty)
         }

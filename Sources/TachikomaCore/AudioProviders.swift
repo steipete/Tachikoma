@@ -44,8 +44,8 @@ public struct TranscriptionCapabilities: Sendable {
         supportsWordTimestamps: Bool = false,
         maxFileSize: Int? = nil,
         maxDuration: TimeInterval? = nil,
-        supportedLanguages: [String]? = nil)
-    {
+        supportedLanguages: [String]? = nil
+    ) {
         self.supportedFormats = supportedFormats
         self.supportsTimestamps = supportsTimestamps
         self.supportsLanguageDetection = supportsLanguageDetection
@@ -78,8 +78,8 @@ public struct SpeechCapabilities: Sendable {
         supportsLanguageSelection: Bool = false,
         supportsEmotionalControl: Bool = false,
         maxTextLength: Int? = nil,
-        supportedLanguages: [String]? = nil)
-    {
+        supportedLanguages: [String]? = nil
+    ) {
         self.supportedFormats = supportedFormats
         self.supportedVoices = supportedVoices
         self.supportsVoiceInstructions = supportsVoiceInstructions
@@ -216,7 +216,8 @@ public final class OpenAITranscriptionProvider: TranscriptionProvider {
             supportsSummarization: false,
             supportsWordTimestamps: model.supportsTimestamps,
             maxFileSize: 25 * 1024 * 1024, // 25MB
-            maxDuration: nil)
+            maxDuration: nil
+        )
     }
 
     // Implementation is in OpenAIAudioProvider.swift extension
@@ -246,7 +247,8 @@ public final class OpenAISpeechProvider: SpeechProvider {
             supportsSpeedControl: true,
             supportsLanguageSelection: false,
             supportsEmotionalControl: false,
-            maxTextLength: 4096)
+            maxTextLength: 4096
+        )
     }
 
     // Implementation is in OpenAIAudioProvider.swift extension
@@ -263,7 +265,8 @@ public final class GroqTranscriptionProvider: TranscriptionProvider {
         self.modelId = model.rawValue
         self.capabilities = TranscriptionCapabilities(
             supportsTimestamps: model.supportsTimestamps,
-            supportsLanguageDetection: model.supportsLanguageDetection)
+            supportsLanguageDetection: model.supportsLanguageDetection
+        )
     }
 
     public func transcribe(request: TranscriptionRequest) async throws -> TranscriptionResult {
@@ -281,7 +284,8 @@ public final class DeepgramTranscriptionProvider: TranscriptionProvider {
         self.capabilities = TranscriptionCapabilities(
             supportsTimestamps: model.supportsTimestamps,
             supportsLanguageDetection: model.supportsLanguageDetection,
-            supportsSummarization: model.supportsSummarization)
+            supportsSummarization: model.supportsSummarization
+        )
     }
 
     public func transcribe(request: TranscriptionRequest) async throws -> TranscriptionResult {
@@ -299,7 +303,8 @@ public final class AssemblyAITranscriptionProvider: TranscriptionProvider {
         self.capabilities = TranscriptionCapabilities(
             supportsTimestamps: model.supportsTimestamps,
             supportsLanguageDetection: model.supportsLanguageDetection,
-            supportsSpeakerDiarization: model.supportsSpeakerDiarization)
+            supportsSpeakerDiarization: model.supportsSpeakerDiarization
+        )
     }
 
     public func transcribe(request: TranscriptionRequest) async throws -> TranscriptionResult {
@@ -316,7 +321,8 @@ public final class ElevenLabsTranscriptionProvider: TranscriptionProvider {
         self.modelId = model.rawValue
         self.capabilities = TranscriptionCapabilities(
             supportsTimestamps: model.supportsTimestamps,
-            supportsLanguageDetection: model.supportsLanguageDetection)
+            supportsLanguageDetection: model.supportsLanguageDetection
+        )
     }
 
     public func transcribe(request: TranscriptionRequest) async throws -> TranscriptionResult {
@@ -333,7 +339,8 @@ public final class RevAITranscriptionProvider: TranscriptionProvider {
         self.modelId = model.rawValue
         self.capabilities = TranscriptionCapabilities(
             supportsTimestamps: model.supportsTimestamps,
-            supportsLanguageDetection: model.supportsLanguageDetection)
+            supportsLanguageDetection: model.supportsLanguageDetection
+        )
     }
 
     public func transcribe(request: TranscriptionRequest) async throws -> TranscriptionResult {
@@ -349,7 +356,8 @@ public final class AzureTranscriptionProvider: TranscriptionProvider {
     public init(model: TranscriptionModel.Azure) throws {
         self.modelId = model.rawValue
         self.capabilities = TranscriptionCapabilities(
-            supportsTimestamps: model.supportsTimestamps)
+            supportsTimestamps: model.supportsTimestamps
+        )
     }
 
     public func transcribe(request: TranscriptionRequest) async throws -> TranscriptionResult {
@@ -366,7 +374,8 @@ public final class LMNTSpeechProvider: SpeechProvider {
         self.modelId = model.rawValue
         self.capabilities = SpeechCapabilities(
             supportedFormats: model.supportedFormats,
-            supportsLanguageSelection: model.supportsLanguages)
+            supportsLanguageSelection: model.supportsLanguages
+        )
     }
 
     public func generateSpeech(request: SpeechRequest) async throws -> SpeechResult {
@@ -383,7 +392,8 @@ public final class HumeSpeechProvider: SpeechProvider {
         self.modelId = model.rawValue
         self.capabilities = SpeechCapabilities(
             supportedFormats: model.supportedFormats,
-            supportsEmotionalControl: model.supportsEmotionalControl)
+            supportsEmotionalControl: model.supportsEmotionalControl
+        )
     }
 
     public func generateSpeech(request: SpeechRequest) async throws -> SpeechResult {
@@ -400,7 +410,8 @@ public final class ElevenLabsSpeechProvider: SpeechProvider {
         self.modelId = model.rawValue
         self.capabilities = SpeechCapabilities(
             supportedFormats: model.supportedFormats,
-            supportsVoiceInstructions: model.supportsVoiceCloning)
+            supportsVoiceInstructions: model.supportsVoiceCloning
+        )
     }
 
     public func generateSpeech(request: SpeechRequest) async throws -> SpeechResult {

@@ -106,9 +106,9 @@ struct OpenAITool: Codable {
             self.description = try container.decode(String.self, forKey: .description)
 
             // Decode parameters as generic dictionary
-            if let data = try? container.decode(Data.self, forKey: .parameters),
-               let dict = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
-            {
+            if
+                let data = try? container.decode(Data.self, forKey: .parameters),
+                let dict = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
                 self.parameters = dict
             } else {
                 self.parameters = [:]
@@ -222,7 +222,8 @@ enum Either<Left, Right>: Codable where Left: Codable, Right: Codable {
         } else {
             throw DecodingError.typeMismatch(Either.self, DecodingError.Context(
                 codingPath: decoder.codingPath,
-                debugDescription: "Could not decode Either<\(Left.self), \(Right.self)>"))
+                debugDescription: "Could not decode Either<\(Left.self), \(Right.self)>"
+            ))
         }
     }
 
@@ -297,7 +298,8 @@ enum AnthropicContent: Codable {
             throw DecodingError.dataCorruptedError(
                 forKey: .type,
                 in: container,
-                debugDescription: "Unknown content type: \(type)")
+                debugDescription: "Unknown content type: \(type)"
+            )
         }
     }
 
@@ -346,9 +348,9 @@ struct AnthropicInputSchema: Codable {
         self.type = try container.decode(String.self, forKey: .type)
         self.required = try container.decode([String].self, forKey: .required)
 
-        if let data = try? container.decode(Data.self, forKey: .properties),
-           let dict = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
-        {
+        if
+            let data = try? container.decode(Data.self, forKey: .properties),
+            let dict = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
             self.properties = dict
         } else {
             self.properties = [:]
@@ -367,8 +369,8 @@ struct AnthropicInputSchema: Codable {
 
     private func encodeAnyDictionary(
         _ dict: [String: Any],
-        to container: inout KeyedEncodingContainer<AnyCodingKey>) throws
-    {
+        to container: inout KeyedEncodingContainer<AnyCodingKey>
+    ) throws {
         for (key, value) in dict {
             let codingKey = AnyCodingKey(stringValue: key)!
 
@@ -463,9 +465,9 @@ enum AnthropicResponseContent: Codable {
                     self.input = inputDict
                 } catch {
                     // Fallback to the old Data-based approach
-                    if let data = try? container.decode(Data.self, forKey: .input),
-                       let obj = try? JSONSerialization.jsonObject(with: data)
-                    {
+                    if
+                        let data = try? container.decode(Data.self, forKey: .input),
+                        let obj = try? JSONSerialization.jsonObject(with: data) {
                         self.input = obj
                     } else {
                         self.input = [:]
@@ -500,7 +502,8 @@ enum AnthropicResponseContent: Codable {
             throw DecodingError.dataCorruptedError(
                 forKey: .type,
                 in: container,
-                debugDescription: "Unknown content type: \(type)")
+                debugDescription: "Unknown content type: \(type)"
+            )
         }
     }
 
@@ -657,7 +660,8 @@ public final class OpenAIProvider: ModelProvider {
             supportsTools: model.supportsTools,
             supportsStreaming: true,
             contextLength: model.contextLength,
-            maxOutputTokens: 4096)
+            maxOutputTokens: 4096
+        )
     }
 
     public func generateText(request: ProviderRequest) async throws -> ProviderResponse {
@@ -678,7 +682,8 @@ public final class OpenAIProvider: ModelProvider {
             temperature: request.settings.temperature,
             maxTokens: request.settings.maxTokens,
             tools: self.convertTools(request.tools),
-            stream: nil)
+            stream: nil
+        )
 
         let jsonData = try JSONEncoder().encode(openAIRequest)
         urlRequest.httpBody = jsonData
@@ -703,19 +708,22 @@ public final class OpenAIProvider: ModelProvider {
         let choice = openAIResponse.choices.first ?? OpenAIChatResponse.Choice(
             index: 0,
             message: OpenAIChatResponse.Message(role: "assistant", content: "No response", toolCalls: nil),
-            finishReason: "error")
+            finishReason: "error"
+        )
 
         let usage = openAIResponse.usage.map {
             Usage(
                 inputTokens: $0.promptTokens,
-                outputTokens: $0.completionTokens)
+                outputTokens: $0.completionTokens
+            )
         }
 
         return ProviderResponse(
             text: choice.message.content ?? "",
             usage: usage,
             finishReason: self.convertFinishReason(choice.finishReason),
-            toolCalls: choice.message.toolCalls?.map { self.convertToolCall($0) })
+            toolCalls: choice.message.toolCalls?.map { self.convertToolCall($0) }
+        )
     }
 
     public func streamText(request: ProviderRequest) async throws -> AsyncThrowingStream<TextStreamDelta, Error> {
@@ -736,7 +744,8 @@ public final class OpenAIProvider: ModelProvider {
             temperature: request.settings.temperature,
             maxTokens: request.settings.maxTokens,
             tools: self.convertTools(request.tools),
-            stream: true)
+            stream: true
+        )
 
         let jsonData = try JSONEncoder().encode(openAIRequest)
         urlRequestBuilder.httpBody = jsonData
@@ -751,7 +760,8 @@ public final class OpenAIProvider: ModelProvider {
                     guard let httpResponse = response as? HTTPURLResponse else {
                         continuation.finish(throwing: TachikomaError.networkError(NSError(
                             domain: "Invalid response",
-                            code: 0)))
+                            code: 0
+                        )))
                         return
                     }
 
@@ -770,12 +780,12 @@ public final class OpenAIProvider: ModelProvider {
                                 return
                             }
 
-                            if let chunkData = data.data(using: .utf8),
-                               let chunk = try? JSONDecoder().decode(OpenAIStreamChunk.self, from: chunkData)
-                            {
-                                if let choice = chunk.choices.first,
-                                   let content = choice.delta.content
-                                {
+                            if
+                                let chunkData = data.data(using: .utf8),
+                                let chunk = try? JSONDecoder().decode(OpenAIStreamChunk.self, from: chunkData) {
+                                if
+                                    let choice = chunk.choices.first,
+                                    let content = choice.delta.content {
                                     continuation.yield(TextStreamDelta(type: .textDelta, content: content))
                                 }
                             }
@@ -796,17 +806,17 @@ public final class OpenAIProvider: ModelProvider {
         try messages.map { message -> OpenAIChatMessage in
             switch message.role {
             case .system:
-                if let textContent = message.content.first,
-                   case let .text(text) = textContent
-                {
+                if
+                    let textContent = message.content.first,
+                    case let .text(text) = textContent {
                     return OpenAIChatMessage(role: "system", content: text)
                 }
                 throw TachikomaError.invalidInput("System message must have text content")
 
             case .user:
-                if let textContent = message.content.first,
-                   case let .text(text) = textContent
-                {
+                if
+                    let textContent = message.content.first,
+                    case let .text(text) = textContent {
                     return OpenAIChatMessage(role: "user", content: text)
                 } else if message.content.count > 1 {
                     // Multi-modal message
@@ -818,7 +828,8 @@ public final class OpenAIProvider: ModelProvider {
                             return .imageUrl(OpenAIChatMessageContent.ImageUrlContent(
                                 type: "image_url",
                                 imageUrl: OpenAIChatMessageContent
-                                    .ImageUrl(url: "data:\(imageContent.mimeType);base64,\(imageContent.data)")))
+                                    .ImageUrl(url: "data:\(imageContent.mimeType);base64,\(imageContent.data)")
+                            ))
                         default:
                             throw TachikomaError.invalidInput("Unsupported content type")
                         }
@@ -828,17 +839,17 @@ public final class OpenAIProvider: ModelProvider {
                 throw TachikomaError.invalidInput("User message must have content")
 
             case .assistant:
-                if let textContent = message.content.first,
-                   case let .text(text) = textContent
-                {
+                if
+                    let textContent = message.content.first,
+                    case let .text(text) = textContent {
                     return OpenAIChatMessage(role: "assistant", content: text)
                 }
                 throw TachikomaError.invalidInput("Assistant message must have text content")
 
             case .tool:
-                if let toolResult = message.content.first,
-                   case let .toolResult(result) = toolResult
-                {
+                if
+                    let toolResult = message.content.first,
+                    case let .toolResult(result) = toolResult {
                     // Convert ToolArgument to string
                     let resultString: String = switch result.result {
                     case let .string(str):
@@ -871,7 +882,8 @@ public final class OpenAIProvider: ModelProvider {
                     name: tool.name,
                     description: tool.description,
                     parameters: ["type": "object", "properties": [:]] // Simplified for now
-                ))
+                )
+            )
         }
     }
 
@@ -888,9 +900,9 @@ public final class OpenAIProvider: ModelProvider {
     private func convertToolCall(_ toolCall: OpenAIChatResponse.ToolCall) -> ToolCall {
         // Parse arguments JSON string into ToolArgument dictionary
         var arguments: [String: ToolArgument] = [:]
-        if let argsData = toolCall.function.arguments.data(using: .utf8),
-           let argsDict = try? JSONSerialization.jsonObject(with: argsData) as? [String: Any]
-        {
+        if
+            let argsData = toolCall.function.arguments.data(using: .utf8),
+            let argsDict = try? JSONSerialization.jsonObject(with: argsData) as? [String: Any] {
             for (key, value) in argsDict {
                 if let toolArg = try? ToolArgument.from(any: value) {
                     arguments[key] = toolArg
@@ -901,7 +913,8 @@ public final class OpenAIProvider: ModelProvider {
         return ToolCall(
             id: toolCall.id,
             name: toolCall.function.name,
-            arguments: arguments)
+            arguments: arguments
+        )
     }
 }
 
@@ -932,7 +945,8 @@ public final class AnthropicProvider: ModelProvider {
             supportsTools: model.supportsTools,
             supportsStreaming: true,
             contextLength: model.contextLength,
-            maxOutputTokens: 8192)
+            maxOutputTokens: 8192
+        )
     }
 
     public func generateText(request: ProviderRequest) async throws -> ProviderResponse {
@@ -951,16 +965,17 @@ public final class AnthropicProvider: ModelProvider {
             system: self.extractSystemMessage(request.messages),
             messages: self.convertAnthropicMessages(request.messages),
             tools: self.convertAnthropicTools(request.tools),
-            stream: nil)
+            stream: nil
+        )
 
         let jsonData = try JSONEncoder().encode(anthropicRequest)
         urlRequest.httpBody = jsonData
 
         // Debug: Print the JSON being sent to Anthropic (only in verbose mode)
-        if let jsonString = String(data: jsonData, encoding: .utf8),
-           ProcessInfo.processInfo.arguments.contains("--verbose") ||
-           ProcessInfo.processInfo.arguments.contains("-v")
-        {
+        if
+            let jsonString = String(data: jsonData, encoding: .utf8),
+            ProcessInfo.processInfo.arguments.contains("--verbose") ||
+            ProcessInfo.processInfo.arguments.contains("-v") {
             print("DEBUG: Anthropic API Request JSON:")
             print(jsonString)
         }
@@ -980,9 +995,9 @@ public final class AnthropicProvider: ModelProvider {
         }
 
         // Debug: Log raw API response in verbose mode
-        if ProcessInfo.processInfo.arguments.contains("--verbose") ||
-            ProcessInfo.processInfo.arguments.contains("-v")
-        {
+        if
+            ProcessInfo.processInfo.arguments.contains("--verbose") ||
+            ProcessInfo.processInfo.arguments.contains("-v") {
             if let responseString = String(data: data, encoding: .utf8) {
                 print("DEBUG ProviderFactory: Raw Anthropic API Response:")
                 print(responseString)
@@ -1001,13 +1016,15 @@ public final class AnthropicProvider: ModelProvider {
 
         let usage = Usage(
             inputTokens: anthropicResponse.usage.inputTokens,
-            outputTokens: anthropicResponse.usage.outputTokens)
+            outputTokens: anthropicResponse.usage.outputTokens
+        )
 
         return ProviderResponse(
             text: text,
             usage: usage,
             finishReason: self.convertAnthropicFinishReason(anthropicResponse.stopReason),
-            toolCalls: self.extractAnthropicToolCalls(anthropicResponse.content))
+            toolCalls: self.extractAnthropicToolCalls(anthropicResponse.content)
+        )
     }
 
     public func streamText(request: ProviderRequest) async throws -> AsyncThrowingStream<TextStreamDelta, Error> {
@@ -1026,7 +1043,8 @@ public final class AnthropicProvider: ModelProvider {
             system: self.extractSystemMessage(request.messages),
             messages: self.convertAnthropicMessages(request.messages),
             tools: self.convertAnthropicTools(request.tools),
-            stream: true)
+            stream: true
+        )
 
         let jsonData = try JSONEncoder().encode(anthropicRequest)
         urlRequestBuilder.httpBody = jsonData
@@ -1041,7 +1059,8 @@ public final class AnthropicProvider: ModelProvider {
                     guard let httpResponse = response as? HTTPURLResponse else {
                         continuation.finish(throwing: TachikomaError.networkError(NSError(
                             domain: "Invalid response",
-                            code: 0)))
+                            code: 0
+                        )))
                         return
                     }
 
@@ -1060,13 +1079,13 @@ public final class AnthropicProvider: ModelProvider {
                                 return
                             }
 
-                            if let chunkData = data.data(using: .utf8),
-                               let chunk = try? JSONDecoder().decode(AnthropicStreamChunk.self, from: chunkData)
-                            {
-                                if chunk.type == "content_block_delta",
-                                   let delta = chunk.delta,
-                                   case let .textDelta(text) = delta
-                                {
+                            if
+                                let chunkData = data.data(using: .utf8),
+                                let chunk = try? JSONDecoder().decode(AnthropicStreamChunk.self, from: chunkData) {
+                                if
+                                    chunk.type == "content_block_delta",
+                                    let delta = chunk.delta,
+                                    case let .textDelta(text) = delta {
                                     continuation.yield(TextStreamDelta(type: .textDelta, content: text))
                                 }
                             }
@@ -1109,7 +1128,9 @@ public final class AnthropicProvider: ModelProvider {
                             source: AnthropicContent.ImageSource(
                                 type: "base64",
                                 mediaType: imageContent.mimeType,
-                                data: imageContent.data)))
+                                data: imageContent.data
+                            )
+                        ))
                     default:
                         throw TachikomaError.invalidInput("Unsupported user content type")
                     }
@@ -1127,9 +1148,9 @@ public final class AnthropicProvider: ModelProvider {
 
             case .tool:
                 // Handle tool results
-                if let toolResult = message.content.first,
-                   case let .toolResult(result) = toolResult
-                {
+                if
+                    let toolResult = message.content.first,
+                    case let .toolResult(result) = toolResult {
                     let resultString: String = switch result.result {
                     case let .string(str): str
                     case let .int(int): String(int)
@@ -1144,7 +1165,9 @@ public final class AnthropicProvider: ModelProvider {
                         role: "user",
                         content: [.text(AnthropicContent.TextContent(
                             type: "text",
-                            text: "Tool result for \(result.toolCallId): \(resultString)"))])
+                            text: "Tool result for \(result.toolCallId): \(resultString)"
+                        )),]
+                    )
                 }
                 return nil
 
@@ -1199,7 +1222,9 @@ public final class AnthropicProvider: ModelProvider {
                 inputSchema: AnthropicInputSchema(
                     type: "object",
                     properties: properties,
-                    required: tool.parameters.required))
+                    required: tool.parameters.required
+                )
+            )
         }
     }
 
@@ -1216,9 +1241,9 @@ public final class AnthropicProvider: ModelProvider {
         let toolCalls = content.compactMap { content -> ToolCall? in
             if case let .toolUse(toolUse) = content {
                 // Debug: Log raw tool use content in verbose mode
-                if ProcessInfo.processInfo.arguments.contains("--verbose") ||
-                    ProcessInfo.processInfo.arguments.contains("-v")
-                {
+                if
+                    ProcessInfo.processInfo.arguments.contains("--verbose") ||
+                    ProcessInfo.processInfo.arguments.contains("-v") {
                     print("DEBUG ProviderFactory: Raw tool use:")
                     print("  name: \(toolUse.name)")
                     print("  id: \(toolUse.id)")
@@ -1229,9 +1254,9 @@ public final class AnthropicProvider: ModelProvider {
                 // Convert input to ToolArgument dictionary
                 var arguments: [String: ToolArgument] = [:]
                 if let inputDict = toolUse.input as? [String: Any] {
-                    if ProcessInfo.processInfo.arguments.contains("--verbose") ||
-                        ProcessInfo.processInfo.arguments.contains("-v")
-                    {
+                    if
+                        ProcessInfo.processInfo.arguments.contains("--verbose") ||
+                        ProcessInfo.processInfo.arguments.contains("-v") {
                         print("DEBUG ProviderFactory: Input dictionary has \(inputDict.count) keys:")
                         for (key, value) in inputDict {
                             print("  \(key): \(value) (type: \(type(of: value)))")
@@ -1242,17 +1267,17 @@ public final class AnthropicProvider: ModelProvider {
                         if let toolArg = try? ToolArgument.from(any: value) {
                             arguments[key] = toolArg
                         } else {
-                            if ProcessInfo.processInfo.arguments.contains("--verbose") ||
-                                ProcessInfo.processInfo.arguments.contains("-v")
-                            {
+                            if
+                                ProcessInfo.processInfo.arguments.contains("--verbose") ||
+                                ProcessInfo.processInfo.arguments.contains("-v") {
                                 print("DEBUG ProviderFactory: Failed to convert \(key): \(value) to ToolArgument")
                             }
                         }
                     }
                 } else {
-                    if ProcessInfo.processInfo.arguments.contains("--verbose") ||
-                        ProcessInfo.processInfo.arguments.contains("-v")
-                    {
+                    if
+                        ProcessInfo.processInfo.arguments.contains("--verbose") ||
+                        ProcessInfo.processInfo.arguments.contains("-v") {
                         print("DEBUG ProviderFactory: Input is not a dictionary or is nil")
                     }
                 }
@@ -1260,7 +1285,8 @@ public final class AnthropicProvider: ModelProvider {
                 return ToolCall(
                     id: toolUse.id,
                     name: toolUse.name,
-                    arguments: arguments)
+                    arguments: arguments
+                )
             }
             return nil
         }
@@ -1295,7 +1321,8 @@ public final class GoogleProvider: ModelProvider {
             supportsTools: model.supportsTools,
             supportsStreaming: true,
             contextLength: model.contextLength,
-            maxOutputTokens: 8192)
+            maxOutputTokens: 8192
+        )
     }
 
     public func generateText(request: ProviderRequest) async throws -> ProviderResponse {
@@ -1333,7 +1360,8 @@ public final class MistralProvider: ModelProvider {
             supportsTools: model.supportsTools,
             supportsStreaming: true,
             contextLength: model.contextLength,
-            maxOutputTokens: 4096)
+            maxOutputTokens: 4096
+        )
     }
 
     public func generateText(request: ProviderRequest) async throws -> ProviderResponse {
@@ -1371,7 +1399,8 @@ public final class GroqProvider: ModelProvider {
             supportsTools: model.supportsTools,
             supportsStreaming: true,
             contextLength: model.contextLength,
-            maxOutputTokens: 4096)
+            maxOutputTokens: 4096
+        )
     }
 
     public func generateText(request: ProviderRequest) async throws -> ProviderResponse {
@@ -1399,9 +1428,9 @@ public final class GrokProvider: ModelProvider {
         self.baseURL = "https://api.x.ai/v1"
 
         // Support both X_AI_API_KEY and XAI_API_KEY environment variables
-        if let key = ProcessInfo.processInfo.environment["X_AI_API_KEY"] ??
-            ProcessInfo.processInfo.environment["XAI_API_KEY"]
-        {
+        if
+            let key = ProcessInfo.processInfo.environment["X_AI_API_KEY"] ??
+            ProcessInfo.processInfo.environment["XAI_API_KEY"] {
             self.apiKey = key
         } else {
             throw TachikomaError.authenticationFailed("X_AI_API_KEY or XAI_API_KEY not found")
@@ -1412,7 +1441,8 @@ public final class GrokProvider: ModelProvider {
             supportsTools: model.supportsTools,
             supportsStreaming: true,
             contextLength: model.contextLength,
-            maxOutputTokens: 4096)
+            maxOutputTokens: 4096
+        )
     }
 
     public func generateText(request: ProviderRequest) async throws -> ProviderResponse {
@@ -1445,7 +1475,8 @@ public final class OllamaProvider: ModelProvider {
             supportsTools: model.supportsTools,
             supportsStreaming: true,
             contextLength: model.contextLength,
-            maxOutputTokens: 4096)
+            maxOutputTokens: 4096
+        )
     }
 
     public func generateText(request: ProviderRequest) async throws -> ProviderResponse {
@@ -1482,7 +1513,8 @@ public final class OpenRouterProvider: ModelProvider {
             supportsTools: true,
             supportsStreaming: true,
             contextLength: 128_000,
-            maxOutputTokens: 4096)
+            maxOutputTokens: 4096
+        )
     }
 
     public func generateText(request: ProviderRequest) async throws -> ProviderResponse {
@@ -1517,7 +1549,8 @@ public final class TogetherProvider: ModelProvider {
             supportsTools: true,
             supportsStreaming: true,
             contextLength: 128_000,
-            maxOutputTokens: 4096)
+            maxOutputTokens: 4096
+        )
     }
 
     public func generateText(request: ProviderRequest) async throws -> ProviderResponse {
@@ -1551,8 +1584,9 @@ public final class ReplicateProvider: ModelProvider {
             supportsVision: false,
             supportsTools: false, // Most Replicate models don't support tools
             supportsStreaming: true,
-            contextLength: 32000,
-            maxOutputTokens: 4096)
+            contextLength: 32_000,
+            maxOutputTokens: 4096
+        )
     }
 
     public func generateText(request: ProviderRequest) async throws -> ProviderResponse {
@@ -1579,9 +1613,9 @@ public final class OpenAICompatibleProvider: ModelProvider {
         self.baseURL = baseURL
 
         // Try common environment variable patterns
-        if let key = ProcessInfo.processInfo.environment["OPENAI_COMPATIBLE_API_KEY"] ??
-            ProcessInfo.processInfo.environment["API_KEY"]
-        {
+        if
+            let key = ProcessInfo.processInfo.environment["OPENAI_COMPATIBLE_API_KEY"] ??
+            ProcessInfo.processInfo.environment["API_KEY"] {
             self.apiKey = key
         } else {
             self.apiKey = nil // Some compatible APIs don't require keys
@@ -1592,7 +1626,8 @@ public final class OpenAICompatibleProvider: ModelProvider {
             supportsTools: true,
             supportsStreaming: true,
             contextLength: 128_000,
-            maxOutputTokens: 4096)
+            maxOutputTokens: 4096
+        )
     }
 
     public func generateText(request: ProviderRequest) async throws -> ProviderResponse {
@@ -1616,9 +1651,9 @@ public final class AnthropicCompatibleProvider: ModelProvider {
         self.modelId = modelId
         self.baseURL = baseURL
 
-        if let key = ProcessInfo.processInfo.environment["ANTHROPIC_COMPATIBLE_API_KEY"] ??
-            ProcessInfo.processInfo.environment["API_KEY"]
-        {
+        if
+            let key = ProcessInfo.processInfo.environment["ANTHROPIC_COMPATIBLE_API_KEY"] ??
+            ProcessInfo.processInfo.environment["API_KEY"] {
             self.apiKey = key
         } else {
             self.apiKey = nil
@@ -1629,7 +1664,8 @@ public final class AnthropicCompatibleProvider: ModelProvider {
             supportsTools: true,
             supportsStreaming: true,
             contextLength: 200_000,
-            maxOutputTokens: 8192)
+            maxOutputTokens: 8192
+        )
     }
 
     public func generateText(request: ProviderRequest) async throws -> ProviderResponse {

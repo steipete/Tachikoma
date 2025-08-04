@@ -93,7 +93,8 @@ extension OpenAITranscriptionProvider {
         body
             .append(
                 "Content-Disposition: form-data; name=\"file\"; filename=\"audio.\(request.audio.format.rawValue)\"\r\n"
-                    .data(using: .utf8)!)
+                    .data(using: .utf8)!
+            )
         body.append("Content-Type: \(request.audio.format.mimeType)\r\n\r\n".data(using: .utf8)!)
         body.append(request.audio.data)
         body.append("\r\n".data(using: .utf8)!)
@@ -132,7 +133,8 @@ extension OpenAITranscriptionProvider {
                 body.append("--\(boundary)\r\n".data(using: .utf8)!)
                 body
                     .append("Content-Disposition: form-data; name=\"timestamp_granularities[]\"\r\n\r\n"
-                        .data(using: .utf8)!)
+                        .data(using: .utf8)!
+                    )
                 body.append(granularity.rawValue.data(using: .utf8)!)
                 body.append("\r\n".data(using: .utf8)!)
             }
@@ -180,7 +182,8 @@ extension OpenAITranscriptionProvider {
                         return TranscriptionWord(
                             word: word.word,
                             start: word.start,
-                            end: word.end)
+                            end: word.end
+                        )
                     }
                     return nil
                 }
@@ -189,7 +192,8 @@ extension OpenAITranscriptionProvider {
                     text: segment.text,
                     start: segment.start,
                     end: segment.end,
-                    words: words)
+                    words: words
+                )
             }
 
             let usage = openaiResponse.duration.map { duration in
@@ -201,7 +205,8 @@ extension OpenAITranscriptionProvider {
                 language: openaiResponse.language,
                 duration: openaiResponse.duration,
                 segments: segments,
-                usage: usage)
+                usage: usage
+            )
 
         case .srt, .vtt:
             // Subtitle formats - return as text for now
@@ -292,13 +297,15 @@ extension OpenAISpeechProvider {
         // Response is raw audio data
         let audioData = AudioData(
             data: data,
-            format: request.format)
+            format: request.format
+        )
 
         let usage = SpeechUsage(charactersProcessed: request.text.count)
 
         return SpeechResult(
             audioData: audioData,
-            usage: usage)
+            usage: usage
+        )
     }
 }
 

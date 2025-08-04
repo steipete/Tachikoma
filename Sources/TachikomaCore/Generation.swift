@@ -21,8 +21,9 @@ public func generateText(
     messages: [ModelMessage],
     tools: [SimpleTool]? = nil,
     settings: GenerationSettings = .default,
-    maxSteps: Int = 1) async throws -> GenerateTextResult
-{
+    maxSteps: Int = 1
+) async throws
+    -> GenerateTextResult {
     let provider = try ProviderFactory.createProvider(for: model)
 
     var currentMessages = messages
@@ -33,7 +34,8 @@ public func generateText(
         let request = ProviderRequest(
             messages: currentMessages,
             tools: tools,
-            settings: settings)
+            settings: settings
+        )
 
         let response = try await provider.generateText(request: request)
 
@@ -49,7 +51,8 @@ public func generateText(
                 sessionId: sessionId,
                 model: model,
                 usage: usage,
-                operation: operationType)
+                operation: operationType
+            )
             _ = UsageTracker.shared.endSession(sessionId)
         }
 
@@ -69,7 +72,8 @@ public func generateText(
             toolCalls: response.toolCalls ?? [],
             toolResults: [],
             usage: response.usage,
-            finishReason: response.finishReason)
+            finishReason: response.finishReason
+        )
 
         allSteps.append(step)
 
@@ -88,11 +92,12 @@ public func generateText(
                 if let tool = tools?.first(where: { $0.name == toolCall.name }) {
                     do {
                         // Debug: Log tool call details in verbose mode
-                        if ProcessInfo.processInfo.arguments.contains("--verbose") ||
-                            ProcessInfo.processInfo.arguments.contains("-v")
-                        {
+                        if
+                            ProcessInfo.processInfo.arguments.contains("--verbose") ||
+                            ProcessInfo.processInfo.arguments.contains("-v") {
                             print(
-                                "DEBUG Generation.swift: Executing tool '\(toolCall.name)' with \(toolCall.arguments.count) arguments:")
+                                "DEBUG Generation.swift: Executing tool '\(toolCall.name)' with \(toolCall.arguments.count) arguments:"
+                            )
                             for (key, value) in toolCall.arguments {
                                 print("DEBUG   \(key): \(value)")
                             }
@@ -105,14 +110,16 @@ public func generateText(
                         // Add tool result message
                         currentMessages.append(ModelMessage(
                             role: .tool,
-                            content: [.toolResult(toolResult)]))
+                            content: [.toolResult(toolResult)]
+                        ))
                     } catch {
                         let errorResult = ToolResult.error(toolCallId: toolCall.id, error: error.localizedDescription)
                         toolResults.append(errorResult)
 
                         currentMessages.append(ModelMessage(
                             role: .tool,
-                            content: [.toolResult(errorResult)]))
+                            content: [.toolResult(errorResult)]
+                        ))
                     }
                 }
             }
@@ -124,7 +131,8 @@ public func generateText(
                 toolCalls: toolCalls,
                 toolResults: toolResults,
                 usage: response.usage,
-                finishReason: response.finishReason)
+                finishReason: response.finishReason
+            )
 
             // Continue to next step if not done
             if response.finishReason != .toolCalls, response.finishReason != .stop {
@@ -146,7 +154,8 @@ public func generateText(
         usage: totalUsage,
         finishReason: finalFinishReason,
         steps: allSteps,
-        messages: currentMessages)
+        messages: currentMessages
+    )
 }
 
 /// Stream text generation following the Vercel AI SDK streamText pattern
@@ -167,14 +176,16 @@ public func streamText(
     messages: [ModelMessage],
     tools: [SimpleTool]? = nil,
     settings: GenerationSettings = .default,
-    maxSteps: Int = 1) async throws -> StreamTextResult
-{
+    maxSteps: Int = 1
+) async throws
+    -> StreamTextResult {
     let provider = try ProviderFactory.createProvider(for: model)
 
     let request = ProviderRequest(
         messages: messages,
         tools: tools,
-        settings: settings)
+        settings: settings
+    )
 
     let stream = try await provider.streamText(request: request)
 
@@ -202,13 +213,15 @@ public func streamText(
                         // Record final usage (this is approximate for streaming)
                         let usage = Usage(
                             inputTokens: totalInputTokens,
-                            outputTokens: totalOutputTokens)
+                            outputTokens: totalOutputTokens
+                        )
 
                         UsageTracker.shared.recordUsage(
                             sessionId: sessionId,
                             model: model,
                             usage: usage,
-                            operation: .textStreaming)
+                            operation: .textStreaming
+                        )
                         _ = UsageTracker.shared.endSession(sessionId)
                     }
                 }
@@ -224,7 +237,8 @@ public func streamText(
     return StreamTextResult(
         stream: trackedStream,
         model: model,
-        settings: settings)
+        settings: settings
+    )
 }
 
 /// Generate structured objects using AI following the generateObject pattern
@@ -243,15 +257,17 @@ public func generateObject<T: Codable & Sendable>(
     model: LanguageModel,
     messages: [ModelMessage],
     schema: T.Type,
-    settings: GenerationSettings = .default) async throws -> GenerateObjectResult<T>
-{
+    settings: GenerationSettings = .default
+) async throws
+    -> GenerateObjectResult<T> {
     let provider = try ProviderFactory.createProvider(for: model)
 
     let request = ProviderRequest(
         messages: messages,
         tools: nil,
         settings: settings,
-        outputFormat: .json)
+        outputFormat: .json
+    )
 
     let response = try await provider.generateText(request: request)
 
@@ -266,7 +282,8 @@ public func generateObject<T: Codable & Sendable>(
             object: object,
             usage: response.usage,
             finishReason: response.finishReason ?? .other,
-            rawText: response.text)
+            rawText: response.text
+        )
     } catch {
         throw TachikomaError.invalidInput("Failed to parse response as \(T.self): \(error.localizedDescription)")
     }
@@ -280,8 +297,9 @@ public func generate(
     _ prompt: String,
     using model: Model? = nil,
     system: String? = nil,
-    tools: (any ToolKit)? = nil) async throws -> String
-{
+    tools: (any ToolKit)? = nil
+) async throws
+    -> String {
     // For now, just return a mock response since we don't have provider implementations
     "Mock response for prompt: \(prompt)"
 }
@@ -293,8 +311,9 @@ public func generate(
     using model: LanguageModel = .default,
     system: String? = nil,
     maxTokens: Int? = nil,
-    temperature: Double? = nil) async throws -> String
-{
+    temperature: Double? = nil
+) async throws
+    -> String {
     var messages: [ModelMessage] = []
 
     if let system {
@@ -305,12 +324,14 @@ public func generate(
 
     let settings = GenerationSettings(
         maxTokens: maxTokens,
-        temperature: temperature)
+        temperature: temperature
+    )
 
     let result = try await generateText(
         model: model,
         messages: messages,
-        settings: settings)
+        settings: settings
+    )
 
     return result.text
 }
@@ -320,8 +341,9 @@ public func generate(
 public func analyze(
     image: ImageInput,
     prompt: String,
-    using model: Model? = nil) async throws -> String
-{
+    using model: Model? = nil
+) async throws
+    -> String {
     // Determine the model to use
     let selectedModel: LanguageModel = if let model {
         model
@@ -378,7 +400,8 @@ public func analyze(
     let result = try await generateText(
         model: selectedModel,
         messages: messages,
-        settings: .default)
+        settings: .default
+    )
 
     // Additional tracking for image analysis (the generateText call above already tracks usage)
     // This could be enhanced to track image-specific metrics
@@ -389,7 +412,8 @@ public func analyze(
             sessionId: sessionId,
             model: selectedModel,
             usage: usage,
-            operation: .imageAnalysis)
+            operation: .imageAnalysis
+        )
         _ = UsageTracker.shared.endSession(sessionId)
     }
 
@@ -403,8 +427,9 @@ public func stream(
     using model: LanguageModel = .default,
     system: String? = nil,
     maxTokens: Int? = nil,
-    temperature: Double? = nil) async throws -> AsyncThrowingStream<TextStreamDelta, Error>
-{
+    temperature: Double? = nil
+) async throws
+    -> AsyncThrowingStream<TextStreamDelta, Error> {
     var messages: [ModelMessage] = []
 
     if let system {
@@ -415,12 +440,14 @@ public func stream(
 
     let settings = GenerationSettings(
         maxTokens: maxTokens,
-        temperature: temperature)
+        temperature: temperature
+    )
 
     let result = try await streamText(
         model: model,
         messages: messages,
-        settings: settings)
+        settings: settings
+    )
 
     return result.textStream
 }
@@ -441,8 +468,8 @@ public struct GenerateTextResult: Sendable {
         usage: Usage?,
         finishReason: FinishReason,
         steps: [GenerationStep],
-        messages: [ModelMessage])
-    {
+        messages: [ModelMessage]
+    ) {
         self.text = text
         self.usage = usage
         self.finishReason = finishReason
@@ -461,8 +488,8 @@ public struct StreamTextResult: Sendable {
     public init(
         stream: AsyncThrowingStream<TextStreamDelta, Error>,
         model: LanguageModel,
-        settings: GenerationSettings)
-    {
+        settings: GenerationSettings
+    ) {
         self.textStream = stream
         self.model = model
         self.settings = settings
@@ -501,8 +528,8 @@ public struct GenerationStep: Sendable {
         toolCalls: [ToolCall],
         toolResults: [ToolResult],
         usage: Usage?,
-        finishReason: FinishReason?)
-    {
+        finishReason: FinishReason?
+    ) {
         self.stepIndex = stepIndex
         self.text = text
         self.toolCalls = toolCalls

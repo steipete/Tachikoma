@@ -1,6 +1,4 @@
 #!/usr/bin/env swift
-// Simple test to verify real API integration
-
 import Foundation
 
 // Simulate the TachikomaCore behavior
@@ -69,11 +67,12 @@ if let apiKey = env["OPENAI_API_KEY"] {
 
             if httpResponse.statusCode == 200 {
                 do {
-                    if let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
-                       let choices = json["choices"] as? [[String: Any]],
-                       let firstChoice = choices.first,
-                       let message = firstChoice["message"] as? [String: Any],
-                       let content = message["content"] as? String
+                    if
+                        let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+                        let choices = json["choices"] as? [[String: Any]],
+                        let firstChoice = choices.first,
+                        let message = firstChoice["message"] as? [String: Any],
+                        let content = message["content"] as? String
                     {
                         result = "✅ OpenAI API working! Response: \(content.trimmingCharacters(in: .whitespacesAndNewlines))"
                     } else {
@@ -141,10 +140,11 @@ if let apiKey = env["ANTHROPIC_API_KEY"] {
 
             if httpResponse.statusCode == 200 {
                 do {
-                    if let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
-                       let content = json["content"] as? [[String: Any]],
-                       let firstContent = content.first,
-                       let text = firstContent["text"] as? String
+                    if
+                        let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+                        let content = json["content"] as? [[String: Any]],
+                        let firstContent = content.first,
+                        let text = firstContent["text"] as? String
                     {
                         result = "✅ Anthropic API working! Response: \(text.trimmingCharacters(in: .whitespacesAndNewlines))"
                     } else {

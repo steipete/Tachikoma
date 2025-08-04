@@ -1,6 +1,7 @@
 #!/usr/bin/env swift
 
 // MARK: - Standalone Tachikoma SDK Examples
+
 //
 // This demonstrates the Tachikoma SDK API patterns without requiring imports
 // Shows the type-safe, modern Swift interface design
@@ -129,11 +130,11 @@ struct FileOperations {
     func readFile(path: String) async throws -> String {
         return try String(contentsOfFile: path)
     }
-    
+
     func writeFile(path: String, content: String) async throws -> Void {
         try content.write(toFile: path, atomically: true, encoding: .utf8)
     }
-    
+
     func listDirectory(path: String) async throws -> [String] {
         return try FileManager.default.contentsOfDirectory(atPath: path)
     }
@@ -324,7 +325,7 @@ class ChatService {
 // 5. Error Recovery with Fallbacks
 func generateWithFallback(_ prompt: String) async throws -> String {
     let models: [LanguageModel] = [.claude, .gpt4o, .ollama(.llama33)]
-    
+
     for model in models {
         do {
             return try await generate(prompt, using: model)
@@ -353,7 +354,7 @@ let features = [
     ("⚙️ Configuration", "Flexible settings, model capabilities, error handling"),
     ("📊 Usage Tracking", "Automatic token counting, cost monitoring, sessions"),
     ("🧪 Advanced Features", "Structured output, multi-step generation, multimodal"),
-    ("🎭 Integration Ready", "Production patterns for real-world applications")
+    ("🎭 Integration Ready", "Production patterns for real-world applications"),
 ]
 
 print("\n📊 FEATURES DEMONSTRATED:")
@@ -368,7 +369,7 @@ print("🕷️ Intelligent • Adaptable • Reliable")
 print("\n📚 Key Benefits:")
 print("   • 60-80% reduction in boilerplate code")
 print("   • Full Swift 6.0 compliance with @Sendable")
-print("   • Type-safe model selection prevents runtime errors") 
+print("   • Type-safe model selection prevents runtime errors")
 print("   • Global functions work anywhere in your code")
 print("   • Built-in usage tracking and cost monitoring")
 print("   • Comprehensive error handling with recovery patterns")

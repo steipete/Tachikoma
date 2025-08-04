@@ -36,15 +36,16 @@ public func createTool<Context>(
     name: String,
     description: String,
     parameters: ParameterSchema = .object(properties: [:]),
-    _ handler: @escaping @Sendable (ToolInput, Context) async throws -> String) -> Tool<Context>
-{
+    _ handler: @escaping @Sendable (ToolInput, Context) async throws -> String
+)
+    -> Tool<Context> {
     Tool(
         name: name,
-        description: description,
-        execute: { input, context in
+        description: description
+    )        { input, context in
             let result = try await handler(input, context)
             return .string(result)
-        })
+        }
 }
 
 /// Create a tool with structured output
@@ -53,12 +54,14 @@ public func createTool<Context>(
     name: String,
     description: String,
     parameters: ParameterSchema = .object(properties: [:]),
-    _ handler: @escaping @Sendable (ToolInput, Context) async throws -> ToolOutput) -> Tool<Context>
-{
+    _ handler: @escaping @Sendable (ToolInput, Context) async throws -> ToolOutput
+)
+    -> Tool<Context> {
     Tool(
         name: name,
         description: description,
-        execute: handler)
+        execute: handler
+    )
 }
 
 /// Create a tool from a throwing function
@@ -67,15 +70,16 @@ public func createTool<Context>(
     name: String,
     description: String,
     parameters: ParameterSchema = .object(properties: [:]),
-    _ handler: @escaping @Sendable (ToolInput, Context) throws -> String) -> Tool<Context>
-{
+    _ handler: @escaping @Sendable (ToolInput, Context) throws -> String
+)
+    -> Tool<Context> {
     Tool(
         name: name,
-        description: description,
-        execute: { input, context in
+        description: description
+    )        { input, context in
             let result = try handler(input, context)
             return .string(result)
-        })
+        }
 }
 
 /// Create a tool from a simple synchronous function
@@ -84,15 +88,16 @@ public func createTool<Context>(
     name: String,
     description: String,
     parameters: ParameterSchema = .object(properties: [:]),
-    _ handler: @escaping @Sendable (ToolInput, Context) -> String) -> Tool<Context>
-{
+    _ handler: @escaping @Sendable (ToolInput, Context) -> String
+)
+    -> Tool<Context> {
     Tool(
         name: name,
-        description: description,
-        execute: { input, context in
+        description: description
+    )        { input, context in
             let result = handler(input, context)
             return .string(result)
-        })
+        }
 }
 
 // MARK: - Macro Implementation Placeholder
@@ -123,8 +128,8 @@ public struct WeatherToolKit: ToolKit {
         [
             createTool(
                 name: "get_weather",
-                description: "Get current weather for a location")
-            { input, context in
+                description: "Get current weather for a location"
+            ) { input, context in
                 let location = try input.stringValue("location")
                 let units = input.stringValue("units", default: "celsius")
                 return try await context.getWeather(location: location, units: units)
@@ -132,8 +137,8 @@ public struct WeatherToolKit: ToolKit {
 
             createTool(
                 name: "get_forecast",
-                description: "Get weather forecast for a location")
-            { input, context in
+                description: "Get weather forecast for a location"
+            ) { input, context in
                 let location = try input.stringValue("location")
                 let days = input.intValue("days", default: 3)
                 return try await context.getForecast(location: location, days: days)
@@ -166,16 +171,16 @@ public struct MathToolKit: ToolKit {
         [
             createTool(
                 name: "calculate",
-                description: "Perform mathematical calculations")
-            { input, context in
+                description: "Perform mathematical calculations"
+            ) { input, context in
                 let expression = try input.stringValue("expression")
                 return try context.calculate(expression)
             },
 
             createTool(
                 name: "convert_units",
-                description: "Convert between different units")
-            { input, context in
+                description: "Convert between different units"
+            ) { input, context in
                 let value = try input.doubleValue("value")
                 let fromUnit = try input.stringValue("from_unit")
                 let toUnit = try input.stringValue("to_unit")
@@ -206,10 +211,10 @@ public struct MathToolKit: ToolKit {
             let celsius = (value - 32) * 5 / 9
             return "\(value)°F = \(celsius)°C"
         case ("meters", "feet"):
-            let feet = value * 3.28084
+            let feet = value * 3.280_84
             return "\(value)m = \(feet)ft"
         case ("feet", "meters"):
-            let meters = value / 3.28084
+            let meters = value / 3.280_84
             return "\(value)ft = \(meters)m"
         default:
             throw ToolError.executionFailed("Unsupported unit conversion: \(fromUnit) to \(toUnit)")

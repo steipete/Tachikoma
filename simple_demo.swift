@@ -10,7 +10,7 @@ print("Code:")
 print("let answer = try await generate(\"What is 2+2?\", using: .anthropic(.opus4))")
 print("\n📋 Simple one-line AI generation with type-safe model selection")
 
-print("\n2️⃣ === Multi-Provider Example ===") 
+print("\n2️⃣ === Multi-Provider Example ===")
 print("Code:")
 print("let models: [LanguageModel] = [.openai(.gpt4o), .anthropic(.opus4), .grok(.grok4)]")
 print("\n📋 Multi-provider support with error handling")

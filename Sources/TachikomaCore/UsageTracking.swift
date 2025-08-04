@@ -65,8 +65,8 @@ public final class UsageTracker: @unchecked Sendable {
         sessionId: String,
         model: LanguageModel,
         usage: Usage,
-        operation: OperationType = .textGeneration)
-    {
+        operation: OperationType = .textGeneration
+    ) {
         self.lock.withLock {
             guard let session = _sessions[sessionId] else { return }
 
@@ -74,12 +74,14 @@ public final class UsageTracker: @unchecked Sendable {
             let enhancedUsage = Usage(
                 inputTokens: usage.inputTokens,
                 outputTokens: usage.outputTokens,
-                cost: cost)
+                cost: cost
+            )
 
             let updatedSession = session.addingUsage(
                 model: model,
                 usage: enhancedUsage,
-                operation: operation)
+                operation: operation
+            )
 
             self._sessions[sessionId] = updatedSession
         }
@@ -143,7 +145,8 @@ public final class UsageTracker: @unchecked Sendable {
             startDate: startDate,
             endDate: endDate,
             sessions: sessions,
-            costCalculator: self._costCalculator)
+            costCalculator: self._costCalculator
+        )
     }
 
     /// Generate a usage report for today
@@ -214,13 +217,15 @@ public struct UsageSession: Sendable, Codable {
             timestamp: Date(),
             model: model,
             usage: usage,
-            type: operation)
+            type: operation
+        )
 
         return UsageSession(
             id: self.id,
             startTime: self.startTime,
             endTime: self.endTime,
-            operations: self.operations + [newOperation])
+            operations: self.operations + [newOperation]
+        )
     }
 
     /// Create a new session marked as ended
@@ -229,7 +234,8 @@ public struct UsageSession: Sendable, Codable {
             id: self.id,
             startTime: self.startTime,
             endTime: Date(),
-            operations: self.operations)
+            operations: self.operations
+        )
     }
 }
 
@@ -446,7 +452,8 @@ public struct UsageReport: Sendable {
             for (provider, usage) in self.providerBreakdown.sorted(by: { $0.value.cost > $1.value.cost }) {
                 lines
                     .append(
-                        "  \(provider): \(usage.operations) ops, \(usage.tokens) tokens, $\(String(format: "%.4f", usage.cost))")
+                        "  \(provider): \(usage.operations) ops, \(usage.tokens) tokens, $\(String(format: "%.4f", usage.cost))"
+                    )
             }
             lines.append("")
         }
@@ -456,7 +463,8 @@ public struct UsageReport: Sendable {
             for (model, usage) in self.modelBreakdown.sorted(by: { $0.value.cost > $1.value.cost }) {
                 lines
                     .append(
-                        "  \(model): \(usage.operations) ops, \(usage.tokens) tokens, $\(String(format: "%.4f", usage.cost))")
+                        "  \(model): \(usage.operations) ops, \(usage.tokens) tokens, $\(String(format: "%.4f", usage.cost))"
+                    )
             }
             lines.append("")
         }
@@ -467,7 +475,8 @@ public struct UsageReport: Sendable {
                 let displayName = OperationType(rawValue: operation)?.displayName ?? operation
                 lines
                     .append(
-                        "  \(displayName): \(usage.operations) ops, \(usage.tokens) tokens, $\(String(format: "%.4f", usage.cost))")
+                        "  \(displayName): \(usage.operations) ops, \(usage.tokens) tokens, $\(String(format: "%.4f", usage.cost))"
+                    )
             }
         }
 

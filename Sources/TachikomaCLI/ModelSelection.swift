@@ -67,9 +67,9 @@ public struct ModelSelector {
         case "gpt-4o-mini", "gpt4o-mini", "gpt4omini":
             return .gpt4oMini
         case "gpt-4.1", "gpt4.1", "gpt41":
-            return .gpt4_1
+            return .gpt41
         case "gpt-4.1-mini", "gpt4.1-mini", "gpt41mini":
-            return .gpt4_1Mini
+            return .gpt41Mini
         case "o3":
             return .o3
         case "o3-mini", "o3mini":
@@ -80,7 +80,7 @@ public struct ModelSelector {
             return .o4Mini
         // Shortcuts
         case "gpt", "gpt4", "gpt-4":
-            return .gpt4_1 // Default to latest GPT-4 variant
+            return .gpt41 // Default to latest GPT-4 variant
         case "openai":
             return .gpt4o // Default OpenAI model
         default:
@@ -104,20 +104,20 @@ public struct ModelSelector {
         case "claude-sonnet-4-20250514-thinking":
             return .sonnet4Thinking
         case "claude-3-7-sonnet":
-            return .sonnet3_7
+            return .sonnet37
         case "claude-3-5-haiku":
-            return .haiku3_5
+            return .haiku35
         case "claude-3-5-sonnet":
-            return .sonnet3_5
+            return .sonnet35
         case "claude-3-5-opus":
-            return .opus3_5
+            return .opus35
         // Shortcuts
         case "claude", "claude-opus", "opus":
             return .opus4 // Default to best Claude model
         case "claude-sonnet", "sonnet":
             return .sonnet4
         case "claude-haiku", "haiku":
-            return .haiku3_5
+            return .haiku35
         case "anthropic":
             return .opus4 // Default Anthropic model
         default:
@@ -135,7 +135,7 @@ public struct ModelSelector {
         case "grok-4", "grok4":
             return .grok4
         case "grok-4-0709":
-            return .grok4_0709
+            return .grok40709
         case "grok-4-latest":
             return .grok4Latest
         case "grok-3", "grok3":
@@ -147,11 +147,11 @@ public struct ModelSelector {
         case "grok-3-mini-fast":
             return .grok3MiniFast
         case "grok-2-1212":
-            return .grok2_1212
+            return .grok21212
         case "grok-2-vision-1212":
-            return .grok2Vision_1212
+            return .grok2Vision1212
         case "grok-2-image-1212":
-            return .grok2Image_1212
+            return .grok2Image1212
         case "grok-beta":
             return .grokBeta
         case "grok-vision-beta":
@@ -269,7 +269,8 @@ public struct ModelSelector {
             supportsTools: model.supportsTools,
             supportsStreaming: model.supportsStreaming,
             provider: model.providerName,
-            modelId: model.modelId)
+            modelId: model.modelId
+        )
     }
 }
 
@@ -312,19 +313,23 @@ public func getAllAvailableModels() -> String {
 
     output += formatModelList(
         title: "OpenAI",
-        models: ModelSelector.availableModels(for: "openai"))
+        models: ModelSelector.availableModels(for: "openai")
+    )
 
     output += formatModelList(
         title: "Anthropic",
-        models: ModelSelector.availableModels(for: "anthropic"))
+        models: ModelSelector.availableModels(for: "anthropic")
+    )
 
     output += formatModelList(
         title: "Grok (xAI)",
-        models: ModelSelector.availableModels(for: "grok"))
+        models: ModelSelector.availableModels(for: "grok")
+    )
 
     output += formatModelList(
         title: "Ollama",
-        models: ModelSelector.availableModels(for: "ollama"))
+        models: ModelSelector.availableModels(for: "ollama")
+    )
 
     output += "\nShortcuts:\n"
     output += "  • claude, claude-opus, opus → claude-opus-4-20250514\n"
