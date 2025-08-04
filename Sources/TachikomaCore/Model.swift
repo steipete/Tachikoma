@@ -4,7 +4,7 @@ import Foundation
 
 /// Language model selection following AI SDK patterns
 @available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
-public enum LanguageModel: Sendable, CustomStringConvertible {
+public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
     // Provider-specific models
     case openai(OpenAI)
     case anthropic(Anthropic)
@@ -769,6 +769,90 @@ public enum LanguageModel: Sendable, CustomStringConvertible {
 
     /// Default Llama model
     public static let llama: LanguageModel = .ollama(.llama33)
+}
+
+// MARK: - Hashable Conformance
+
+extension LanguageModel {
+    public func hash(into hasher: inout Hasher) {
+        switch self {
+        case let .openai(model):
+            hasher.combine("openai")
+            hasher.combine(model)
+        case let .anthropic(model):
+            hasher.combine("anthropic")
+            hasher.combine(model)
+        case let .google(model):
+            hasher.combine("google")
+            hasher.combine(model)
+        case let .mistral(model):
+            hasher.combine("mistral")
+            hasher.combine(model)
+        case let .groq(model):
+            hasher.combine("groq")
+            hasher.combine(model)
+        case let .grok(model):
+            hasher.combine("grok")
+            hasher.combine(model)
+        case let .ollama(model):
+            hasher.combine("ollama")
+            hasher.combine(model)
+        case let .openRouter(modelId):
+            hasher.combine("openRouter")
+            hasher.combine(modelId)
+        case let .together(modelId):
+            hasher.combine("together")
+            hasher.combine(modelId)
+        case let .replicate(modelId):
+            hasher.combine("replicate")
+            hasher.combine(modelId)
+        case let .openaiCompatible(modelId, baseURL):
+            hasher.combine("openaiCompatible")
+            hasher.combine(modelId)
+            hasher.combine(baseURL)
+        case let .anthropicCompatible(modelId, baseURL):
+            hasher.combine("anthropicCompatible")
+            hasher.combine(modelId)
+            hasher.combine(baseURL)
+        case let .custom(provider):
+            hasher.combine("custom")
+            hasher.combine(provider.modelId)
+            hasher.combine(provider.baseURL)
+        }
+    }
+    
+    public static func == (lhs: LanguageModel, rhs: LanguageModel) -> Bool {
+        switch (lhs, rhs) {
+        case let (.openai(lhsModel), .openai(rhsModel)):
+            return lhsModel == rhsModel
+        case let (.anthropic(lhsModel), .anthropic(rhsModel)):
+            return lhsModel == rhsModel
+        case let (.google(lhsModel), .google(rhsModel)):
+            return lhsModel == rhsModel
+        case let (.mistral(lhsModel), .mistral(rhsModel)):
+            return lhsModel == rhsModel
+        case let (.groq(lhsModel), .groq(rhsModel)):
+            return lhsModel == rhsModel
+        case let (.grok(lhsModel), .grok(rhsModel)):
+            return lhsModel == rhsModel
+        case let (.ollama(lhsModel), .ollama(rhsModel)):
+            return lhsModel == rhsModel
+        case let (.openRouter(lhsId), .openRouter(rhsId)):
+            return lhsId == rhsId
+        case let (.together(lhsId), .together(rhsId)):
+            return lhsId == rhsId
+        case let (.replicate(lhsId), .replicate(rhsId)):
+            return lhsId == rhsId
+        case let (.openaiCompatible(lhsId, lhsURL), .openaiCompatible(rhsId, rhsURL)):
+            return lhsId == rhsId && lhsURL == rhsURL
+        case let (.anthropicCompatible(lhsId, lhsURL), .anthropicCompatible(rhsId, rhsURL)):
+            return lhsId == rhsId && lhsURL == rhsURL
+        case let (.custom(lhsProvider), .custom(rhsProvider)):
+            return lhsProvider.modelId == rhsProvider.modelId && lhsProvider.baseURL == rhsProvider.baseURL
+        default:
+            return false
+        }
+    }
 }
 
 // MARK: - Model Provider Protocol

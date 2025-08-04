@@ -350,6 +350,11 @@ public final class AbortSignal: @unchecked Sendable {
         self._cancelled = true
     }
 
+    /// Initialize a new abort signal
+    public init() {
+        // Empty initializer - all properties have default values
+    }
+
     /// Create an abort signal that cancels after a timeout
     public static func timeout(_ timeInterval: TimeInterval) -> AbortSignal {
         let signal = AbortSignal()

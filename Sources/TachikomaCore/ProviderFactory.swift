@@ -1486,10 +1486,22 @@ public final class AnthropicProvider: ModelProvider {
             case .assistant:
                 let content = message.content.compactMap { part -> AnthropicContent? in
                     if case let .text(text) = part {
-                        return .text(AnthropicContent.TextContent(type: "text", text: text))
+                        // Skip empty text content (Anthropic requires non-empty text blocks)
+                        if !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                            return .text(AnthropicContent.TextContent(type: "text", text: text))
+                        }
                     }
                     return nil
                 }
+                
+                // Skip empty assistant messages (Anthropic doesn't allow them except as final message)
+                if content.isEmpty {
+                    if ProcessInfo.processInfo.arguments.contains("--verbose") || ProcessInfo.processInfo.arguments.contains("-v") {
+                        print("DEBUG ProviderFactory: Skipping empty assistant message for Anthropic")
+                    }
+                    return nil
+                }
+                
                 return AnthropicMessage(role: "assistant", content: content)
 
             case .tool:
@@ -1798,11 +1810,25 @@ public final class GrokProvider: ModelProvider {
     }
 
     public func generateText(request: ProviderRequest) async throws -> ProviderResponse {
-        throw TachikomaError.unsupportedOperation("Grok provider not yet implemented")
+        // Grok uses OpenAI-compatible API format - delegate to shared implementation
+        return try await OpenAICompatibleHelper.generateText(
+            request: request,
+            modelId: self.modelId,
+            baseURL: self.baseURL!,
+            apiKey: self.apiKey!,
+            providerName: "Grok"
+        )
     }
 
     public func streamText(request: ProviderRequest) async throws -> AsyncThrowingStream<TextStreamDelta, Error> {
-        throw TachikomaError.unsupportedOperation("Grok streaming not yet implemented")
+        // Grok uses OpenAI-compatible API format - delegate to shared implementation
+        return try await OpenAICompatibleHelper.streamText(
+            request: request,
+            modelId: self.modelId,
+            baseURL: self.baseURL!,
+            apiKey: self.apiKey!,
+            providerName: "Grok"
+        )
     }
 }
 

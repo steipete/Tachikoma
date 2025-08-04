@@ -184,6 +184,16 @@ public struct ToolArguments: Sendable {
     public subscript(key: String) -> ToolArgument? {
         self.arguments[key]
     }
+    
+    /// All argument keys in this tool call
+    public var keys: [String] {
+        Array(self.arguments.keys)
+    }
+    
+    /// All arguments as a dictionary
+    public var allArguments: [String: ToolArgument] {
+        self.arguments
+    }
 
     public func get<T>(_ key: String, as type: T.Type) throws -> T {
         guard let value = arguments[key] else {
