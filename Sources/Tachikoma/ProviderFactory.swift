@@ -835,7 +835,7 @@ struct OpenAICompatibleHelper {
         }
 
         // Convert request to OpenAI-compatible format
-        let openAIRequest = try OpenAIChatRequest(
+        let openAIRequest = OpenAIChatRequest(
             model: modelId,
             messages: try convertMessages(request.messages),
             temperature: request.settings.temperature,
@@ -927,7 +927,7 @@ struct OpenAICompatibleHelper {
         }
 
         // Convert request to OpenAI-compatible format with streaming enabled
-        let openAIRequest = try OpenAIChatRequest(
+        let openAIRequest = OpenAIChatRequest(
             model: modelId,
             messages: try convertMessages(request.messages),
             temperature: request.settings.temperature,
