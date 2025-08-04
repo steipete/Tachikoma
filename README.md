@@ -13,6 +13,8 @@
 **A Modern Swift AI SDK that makes AI integration feel natural**
 
 Named after the spider-tank AI from Ghost in the Shell, **Tachikoma** provides an intelligent, adaptable interface for AI services with a completely modern Swift-native API.
+
+> **✨ Simplified Architecture**: Tachikoma now uses a **single unified module** instead of multiple separate modules. Just `import Tachikoma` and access all functionality - no more complex module management!
 </div>
 
 ## Quick Start
@@ -20,9 +22,7 @@ Named after the spider-tank AI from Ghost in the Shell, **Tachikoma** provides a
 ### Basic Setup
 
 ```swift
-import Tachikoma  // Imports all modules
-// Or import individually:
-// import TachikomaCore, TachikomaBuilders
+import Tachikoma  // Single unified module
 
 // Simple text generation
 let answer = try await generate("What is 2+2?", using: .openai(.gpt4o))
@@ -235,12 +235,14 @@ let result = try await generateText(
 
 ### Package Structure
 
-Tachikoma is organized into focused, composable modules:
+Tachikoma is a unified single module containing all functionality:
 
-- **`TachikomaCore`** - Core generation functions, model system, conversation management, provider interfaces
-- **`TachikomaBuilders`** - Tool system, ToolKit protocol, example implementations, helper functions
-- **`TachikomaCLI`** - Command-line utilities, model parsing, configuration management
-- **`Tachikoma`** - Umbrella module that re-exports all functionality for convenience
+- **`Tachikoma`** - Complete AI SDK with all features in one module:
+  - Core generation functions and model system
+  - Tool system with ToolKit protocol and examples  
+  - Command-line utilities and model parsing
+  - Conversation management and provider interfaces
+  - Audio functions and usage tracking
 
 ### Core Components
 
@@ -390,14 +392,14 @@ public struct ProviderFactory {
 
 | Component | File Location | Lines | Purpose |
 |-----------|---------------|-------|----------|
-| **Model System** | `Sources/TachikomaCore/Model.swift` | 1-875 | Type-safe model enums, capabilities, provider selection |
-| **Generation** | `Sources/TachikomaCore/Generation.swift` | 18-569 | Core async generation functions, streaming, image analysis |
-| **Tool System** | `Sources/TachikomaCore/Tool.swift` | - | Tool protocol, execution, input/output handling |
-| **ToolKit Builders** | `Sources/TachikomaBuilders/ToolKit.swift` | 1-285 | ToolKit protocol, result builders, example implementations |
-| **Conversation** | `Sources/TachikomaCore/Conversation.swift` | - | Multi-turn conversation management, SwiftUI integration |
-| **Provider Factory** | `Sources/TachikomaCore/ProviderFactory.swift` | - | Provider instantiation, capability mapping |
-| **Usage Tracking** | `Sources/TachikomaCore/UsageTracking.swift` | - | Token usage, cost tracking, session management |
-| **Model Selection** | `Sources/TachikomaCLI/ModelSelection.swift` | - | Command-line model parsing, string matching |
+| **Model System** | `Sources/Tachikoma/Model.swift` | 1-875 | Type-safe model enums, capabilities, provider selection |
+| **Generation** | `Sources/Tachikoma/Generation.swift` | 18-569 | Core async generation functions, streaming, image analysis |
+| **Tool System** | `Sources/Tachikoma/Tool.swift` | - | Tool protocol, execution, input/output handling |
+| **ToolKit Builders** | `Sources/Tachikoma/ToolKit.swift` | 1-285 | ToolKit protocol, result builders, example implementations |
+| **Conversation** | `Sources/Tachikoma/Conversation.swift` | - | Multi-turn conversation management, SwiftUI integration |
+| **Provider Factory** | `Sources/Tachikoma/ProviderFactory.swift` | - | Provider instantiation, capability mapping |
+| **Usage Tracking** | `Sources/Tachikoma/UsageTracking.swift` | - | Token usage, cost tracking, session management |
+| **Model Selection** | `Sources/Tachikoma/ModelSelection.swift` | - | Command-line model parsing, string matching |
 
 ## Installation & Usage
 
@@ -414,10 +416,7 @@ targets: [
     .target(
         name: "YourTarget",
         dependencies: [
-            .product(name: "Tachikoma", package: "Tachikoma"),  // All modules
-            // Or import individually:
-            // .product(name: "TachikomaCore", package: "Tachikoma"),
-            // .product(name: "TachikomaBuilders", package: "Tachikoma"),
+            .product(name: "Tachikoma", package: "Tachikoma"),  // Single unified module
         ]
     )
 ]
@@ -608,21 +607,11 @@ print(result.text)  // AI will use the tools to calculate and convert
 ## Build & Test
 
 ```bash
-# Build all modules
+# Build the package
 swift build
 
-# Run tests with specific module
-swift test --product TachikomaCoreTests
-swift test --product TachikomaBuildersTests
-swift test --product TachikomaTests
-
-# Run all tests
+# Run tests
 swift test
-
-# Build specific module
-swift build --product TachikomaCore
-swift build --product TachikomaBuilders
-swift build --product Tachikoma
 
 # Build in release mode
 swift build -c release
@@ -734,7 +723,7 @@ let response = try await generate("Hello", using: customModel)
 See the following files for complete working examples:
 
 - **`Tests/TachikomaTests/MinimalModernAPITests.swift`** - Model construction, tool creation, conversation management
-- **`Sources/TachikomaBuilders/ToolKit.swift`** - WeatherToolKit and MathToolKit implementations (lines 125-224)
+- **`Sources/Tachikoma/ToolKit.swift`** - WeatherToolKit and MathToolKit implementations (lines 125-224)
 - **`Examples/TachikomaExamples.swift`** - Advanced usage patterns and real-world scenarios
 - **`Examples/DemoScript.swift`** - Interactive demo script
 
