@@ -13,11 +13,11 @@ public final class OpenRouterProvider: ModelProvider {
     public let apiKey: String?
     public let capabilities: ModelCapabilities
 
-    public init(modelId: String) throws {
+    public init(modelId: String, configuration: TachikomaConfiguration) throws {
         self.modelId = modelId
-        self.baseURL = "https://openrouter.ai/api/v1"
+        self.baseURL = configuration.getBaseURL(for: .custom("openrouter")) ?? "https://openrouter.ai/api/v1"
 
-        if let key = ProcessInfo.processInfo.environment["OPENROUTER_API_KEY"] {
+        if let key = configuration.getAPIKey(for: .custom("openrouter")) {
             self.apiKey = key
         } else {
             throw TachikomaError.authenticationFailed("OPENROUTER_API_KEY not found")

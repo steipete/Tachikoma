@@ -16,13 +16,13 @@ public final class AnthropicProvider: ModelProvider {
 
     private let model: LanguageModel.Anthropic
 
-    public init(model: LanguageModel.Anthropic) throws {
+    public init(model: LanguageModel.Anthropic, configuration: TachikomaConfiguration) throws {
         self.model = model
         self.modelId = model.modelId
-        self.baseURL = "https://api.anthropic.com"
+        self.baseURL = configuration.getBaseURL(for: .anthropic) ?? "https://api.anthropic.com"
 
         // Get API key from configuration system (environment or credentials)
-        if let key = TachikomaConfiguration.shared.getAPIKey(for: "anthropic") {
+        if let key = configuration.getAPIKey(for: .anthropic) {
             self.apiKey = key
         } else {
             throw TachikomaError.authenticationFailed("ANTHROPIC_API_KEY not found")
@@ -321,19 +321,21 @@ public final class OllamaProvider: ModelProvider {
 
     private let model: LanguageModel.Ollama
 
-    public init(model: LanguageModel.Ollama) throws {
+    public init(model: LanguageModel.Ollama, configuration: TachikomaConfiguration) throws {
         self.model = model
         self.modelId = model.modelId
         
-        // Get base URL from environment or use default
-        if let customURL = ProcessInfo.processInfo.environment["PEEKABOO_OLLAMA_BASE_URL"] {
+        // Get base URL from configuration or environment or use default
+        if let configURL = configuration.getBaseURL(for: .ollama) {
+            self.baseURL = configURL
+        } else if let customURL = ProcessInfo.processInfo.environment["PEEKABOO_OLLAMA_BASE_URL"] {
             self.baseURL = customURL
         } else {
             self.baseURL = "http://localhost:11434"
         }
         
-        // Ollama doesn't require an API key for local usage
-        self.apiKey = nil
+        // Ollama doesn't typically require an API key for local usage, but allow configuration
+        self.apiKey = configuration.getAPIKey(for: .ollama)
 
         self.capabilities = ModelCapabilities(
             supportsVision: model.supportsVision,

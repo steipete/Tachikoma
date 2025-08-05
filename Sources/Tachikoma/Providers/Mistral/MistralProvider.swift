@@ -15,12 +15,12 @@ public final class MistralProvider: ModelProvider {
 
     private let model: LanguageModel.Mistral
 
-    public init(model: LanguageModel.Mistral) throws {
+    public init(model: LanguageModel.Mistral, configuration: TachikomaConfiguration) throws {
         self.model = model
         self.modelId = model.rawValue
-        self.baseURL = "https://api.mistral.ai/v1"
+        self.baseURL = configuration.getBaseURL(for: .mistral) ?? "https://api.mistral.ai/v1"
 
-        if let key = ProcessInfo.processInfo.environment["MISTRAL_API_KEY"] {
+        if let key = configuration.getAPIKey(for: .mistral) {
             self.apiKey = key
         } else {
             throw TachikomaError.authenticationFailed("MISTRAL_API_KEY not found")

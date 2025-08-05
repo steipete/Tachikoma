@@ -23,9 +23,10 @@ struct ProviderIntegrationTests {
         }
         
         let model = Model.openai(.gpt4oMini)
-        let _ = try ProviderFactory.createProvider(for: model)
+        let config = TachikomaConfiguration()
+        let _ = try ProviderFactory.createProvider(for: model, configuration: config)
         
-        let response = try await generate(TestConfig.shortMessage, using: model, maxTokens: 50, temperature: 0.0)
+        let response = try await generate(TestConfig.shortMessage, using: model, maxTokens: 50, temperature: 0.0, configuration: config)
         
         #expect(response.lowercased().contains("hello"))
         #expect(response.contains("Tachikoma"))
@@ -39,7 +40,8 @@ struct ProviderIntegrationTests {
         }
         
         let model = Model.openai(.gpt4oMini)
-        let provider = try ProviderFactory.createProvider(for: model)
+        let config = TachikomaConfiguration()
+        let provider = try ProviderFactory.createProvider(for: model, configuration: config)
         
         let tool = SimpleTool(
             name: "get_weather",
@@ -81,7 +83,8 @@ struct ProviderIntegrationTests {
         }
         
         let model = Model.openai(.gpt4oMini)
-        let provider = try ProviderFactory.createProvider(for: model)
+        let config = TachikomaConfiguration()
+        let provider = try ProviderFactory.createProvider(for: model, configuration: config)
         
         let request = ProviderRequest(
             messages: [
@@ -143,7 +146,8 @@ struct ProviderIntegrationTests {
         }
         
         let model = Model.anthropic(.haiku35)
-        let provider = try ProviderFactory.createProvider(for: model)
+        let config = TachikomaConfiguration()
+        let provider = try ProviderFactory.createProvider(for: model, configuration: config)
         
         let tool = SimpleTool(
             name: "calculate",
@@ -275,7 +279,8 @@ struct ProviderIntegrationTests {
         }
         
         let model = Model.openai(.gpt4o)
-        let provider = try ProviderFactory.createProvider(for: model)
+        let config = TachikomaConfiguration()
+        let provider = try ProviderFactory.createProvider(for: model, configuration: config)
         
         // Create a simple base64 encoded 1x1 red pixel PNG
         let redPixelPNG = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg=="

@@ -29,10 +29,11 @@ public func transcribe(
     timestampGranularities: [TimestampGranularity] = [],
     responseFormat: TranscriptionResponseFormat = .verbose,
     abortSignal: AbortSignal? = nil,
-    headers: [String: String] = [:]
+    headers: [String: String] = [:],
+    configuration: TachikomaConfiguration = TachikomaConfiguration()
 ) async throws
 -> TranscriptionResult {
-    let provider = try TranscriptionProviderFactory.createProvider(for: model)
+    let provider = try TranscriptionProviderFactory.createProvider(for: model, configuration: configuration)
 
     let request = TranscriptionRequest(
         audio: audio,
@@ -79,10 +80,11 @@ public func generateSpeech(
     format: AudioFormat = .mp3,
     instructions: String? = nil,
     abortSignal: AbortSignal? = nil,
-    headers: [String: String] = [:]
+    headers: [String: String] = [:],
+    configuration: TachikomaConfiguration = TachikomaConfiguration()
 ) async throws
 -> SpeechResult {
-    let provider = try SpeechProviderFactory.createProvider(for: model)
+    let provider = try SpeechProviderFactory.createProvider(for: model, configuration: configuration)
 
     let request = SpeechRequest(
         text: text,
@@ -112,13 +114,15 @@ public func generateSpeech(
 @available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
 public func transcribe(
     _ audio: AudioData,
-    language: String? = nil
+    language: String? = nil,
+    configuration: TachikomaConfiguration = TachikomaConfiguration()
 ) async throws
 -> String {
     let result = try await transcribe(
         audio,
         using: .default,
-        language: language
+        language: language,
+        configuration: configuration
     )
     return result.text
 }
@@ -133,11 +137,12 @@ public func transcribe(
 public func transcribe(
     contentsOf url: URL,
     using model: TranscriptionModel = .default,
-    language: String? = nil
+    language: String? = nil,
+    configuration: TachikomaConfiguration = TachikomaConfiguration()
 ) async throws
 -> String {
     let audio = try AudioData(contentsOf: url)
-    let result = try await transcribe(audio, using: model, language: language)
+    let result = try await transcribe(audio, using: model, language: language, configuration: configuration)
     return result.text
 }
 
@@ -152,13 +157,15 @@ public func transcribe(
 @available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
 public func generateSpeech(
     _ text: String,
-    voice: VoiceOption = .alloy
+    voice: VoiceOption = .alloy,
+    configuration: TachikomaConfiguration = TachikomaConfiguration()
 ) async throws
 -> AudioData {
     let result = try await generateSpeech(
         text,
         using: .default,
-        voice: voice
+        voice: voice,
+        configuration: configuration
     )
     return result.audioData
 }
@@ -175,14 +182,16 @@ public func generateSpeech(
     using model: SpeechModel = .default,
     voice: VoiceOption = .alloy,
     speed: Double = 1.0,
-    format: AudioFormat = .mp3
+    format: AudioFormat = .mp3,
+    configuration: TachikomaConfiguration = TachikomaConfiguration()
 ) async throws {
     let result = try await generateSpeech(
         text,
         using: model,
         voice: voice,
         speed: speed,
-        format: format
+        format: format,
+        configuration: configuration
     )
     try result.audioData.write(to: url)
 }
@@ -203,7 +212,8 @@ public func transcribeBatch(
     _ audioURLs: [URL],
     using model: TranscriptionModel,
     language: String? = nil,
-    concurrency: Int = 3
+    concurrency: Int = 3,
+    configuration: TachikomaConfiguration = TachikomaConfiguration()
 ) async throws
 -> [TranscriptionResult] {
     try await withThrowingTaskGroup(
@@ -218,7 +228,7 @@ public func transcribeBatch(
                 defer { Task { await semaphore.signal() } }
 
                 let audio = try AudioData(contentsOf: url)
-                let result = try await transcribe(audio, using: model, language: language)
+                let result = try await transcribe(audio, using: model, language: language, configuration: configuration)
                 return (index, result)
             }
         }
@@ -248,7 +258,8 @@ public func generateSpeechBatch(
     _ texts: [String],
     using model: SpeechModel,
     voice: VoiceOption = .alloy,
-    concurrency: Int = 3
+    concurrency: Int = 3,
+    configuration: TachikomaConfiguration = TachikomaConfiguration()
 ) async throws
 -> [SpeechResult] {
     try await withThrowingTaskGroup(of: (Int, SpeechResult).self, returning: [SpeechResult].self) { group in
@@ -259,7 +270,7 @@ public func generateSpeechBatch(
                 await semaphore.wait()
                 defer { Task { await semaphore.signal() } }
 
-                let result = try await generateSpeech(text, using: model, voice: voice)
+                let result = try await generateSpeech(text, using: model, voice: voice, configuration: configuration)
                 return (index, result)
             }
         }
@@ -350,15 +361,15 @@ public func availableSpeechModels() -> [SpeechModel] {
 
 /// Get capabilities for a transcription model
 @available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
-public func capabilities(for model: TranscriptionModel) throws -> TranscriptionCapabilities {
-    let provider = try TranscriptionProviderFactory.createProvider(for: model)
+public func capabilities(for model: TranscriptionModel, configuration: TachikomaConfiguration = TachikomaConfiguration()) throws -> TranscriptionCapabilities {
+    let provider = try TranscriptionProviderFactory.createProvider(for: model, configuration: configuration)
     return provider.capabilities
 }
 
 /// Get capabilities for a speech model
 @available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
-public func capabilities(for model: SpeechModel) throws -> SpeechCapabilities {
-    let provider = try SpeechProviderFactory.createProvider(for: model)
+public func capabilities(for model: SpeechModel, configuration: TachikomaConfiguration = TachikomaConfiguration()) throws -> SpeechCapabilities {
+    let provider = try SpeechProviderFactory.createProvider(for: model, configuration: configuration)
     return provider.capabilities
 }
 

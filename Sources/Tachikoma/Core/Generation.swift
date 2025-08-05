@@ -21,10 +21,11 @@ public func generateText(
     messages: [ModelMessage],
     tools: [SimpleTool]? = nil,
     settings: GenerationSettings = .default,
-    maxSteps: Int = 1
+    maxSteps: Int = 1,
+    configuration: TachikomaConfiguration = TachikomaConfiguration()
 ) async throws
 -> GenerateTextResult {
-    let provider = try ProviderFactory.createProvider(for: model)
+    let provider = try ProviderFactory.createProvider(for: model, configuration: configuration)
 
     var currentMessages = messages
     var allSteps: [GenerationStep] = []
@@ -177,10 +178,11 @@ public func streamText(
     messages: [ModelMessage],
     tools: [SimpleTool]? = nil,
     settings: GenerationSettings = .default,
-    maxSteps: Int = 1
+    maxSteps: Int = 1,
+    configuration: TachikomaConfiguration = TachikomaConfiguration()
 ) async throws
 -> StreamTextResult {
-    let provider = try ProviderFactory.createProvider(for: model)
+    let provider = try ProviderFactory.createProvider(for: model, configuration: configuration)
 
     let request = ProviderRequest(
         messages: messages,
@@ -258,10 +260,11 @@ public func generateObject<T: Codable & Sendable>(
     model: LanguageModel,
     messages: [ModelMessage],
     schema: T.Type,
-    settings: GenerationSettings = .default
+    settings: GenerationSettings = .default,
+    configuration: TachikomaConfiguration = TachikomaConfiguration()
 ) async throws
 -> GenerateObjectResult<T> {
-    let provider = try ProviderFactory.createProvider(for: model)
+    let provider = try ProviderFactory.createProvider(for: model, configuration: configuration)
 
     let request = ProviderRequest(
         messages: messages,
@@ -312,7 +315,8 @@ public func generate(
     using model: LanguageModel = .default,
     system: String? = nil,
     maxTokens: Int? = nil,
-    temperature: Double? = nil
+    temperature: Double? = nil,
+    configuration: TachikomaConfiguration = TachikomaConfiguration()
 ) async throws
 -> String {
     var messages: [ModelMessage] = []
@@ -331,7 +335,8 @@ public func generate(
     let result = try await generateText(
         model: model,
         messages: messages,
-        settings: settings
+        settings: settings,
+        configuration: configuration
     )
 
     return result.text
@@ -342,7 +347,8 @@ public func generate(
 public func analyze(
     image: ImageInput,
     prompt: String,
-    using model: Model? = nil
+    using model: Model? = nil,
+    configuration: TachikomaConfiguration = TachikomaConfiguration()
 ) async throws
 -> String {
     // Determine the model to use
@@ -401,7 +407,8 @@ public func analyze(
     let result = try await generateText(
         model: selectedModel,
         messages: messages,
-        settings: .default
+        settings: .default,
+        configuration: configuration
     )
 
     // Additional tracking for image analysis (the generateText call above already tracks usage)
@@ -428,7 +435,8 @@ public func stream(
     using model: LanguageModel = .default,
     system: String? = nil,
     maxTokens: Int? = nil,
-    temperature: Double? = nil
+    temperature: Double? = nil,
+    configuration: TachikomaConfiguration = TachikomaConfiguration()
 ) async throws
 -> AsyncThrowingStream<TextStreamDelta, Error> {
     var messages: [ModelMessage] = []
@@ -447,7 +455,8 @@ public func stream(
     let result = try await streamText(
         model: model,
         messages: messages,
-        settings: settings
+        settings: settings,
+        configuration: configuration
     )
 
     return result.textStream

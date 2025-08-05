@@ -438,14 +438,88 @@ export X_AI_API_KEY="xai-..."
 # or
 export XAI_API_KEY="xai-..."
 
-# Google AI
-export GOOGLE_AI_API_KEY="AIza..."
+# Groq
+export GROQ_API_KEY="gsk_..."
 
 # Mistral
 export MISTRAL_API_KEY="..."
 
-# For Ollama (runs locally)
-# No API key needed - just ensure Ollama is running on localhost:11434
+# Google AI
+export GOOGLE_API_KEY="AIza..."
+
+# Ollama (runs locally)
+export OLLAMA_API_KEY="optional-token"  # Usually not needed
+
+# Custom base URLs (optional)
+export OPENAI_BASE_URL="https://api.custom.com/v1"
+export ANTHROPIC_BASE_URL="https://api.custom.com"
+export OLLAMA_BASE_URL="http://localhost:11434"
+```
+
+#### Automatic Environment Variable Loading
+
+Tachikoma automatically loads API keys from environment variables when the SDK initializes. The configuration system uses a **hierarchical priority**:
+
+1. **Explicitly configured keys** (via `configuration.setAPIKey()`)
+2. **Environment variables** (loaded automatically on startup)
+3. **Credentials file** (`~/.tachikoma/credentials`)
+
+```swift
+import Tachikoma
+
+// Keys are loaded automatically from environment variables
+// No manual configuration needed if environment variables are set
+
+// Check what's available
+let config = TachikomaConfiguration() // Loads from environment by default
+
+// These will return environment keys if available
+print("OpenAI available: \(config.hasAPIKey(for: .openai))")
+print("Anthropic available: \(config.hasAPIKey(for: .anthropic))")
+print("Grok available: \(config.hasAPIKey(for: .grok))")
+
+// Check specifically for environment vs configured keys
+print("OpenAI from env: \(config.hasEnvironmentAPIKey(for: .openai))")
+print("OpenAI configured: \(config.hasConfiguredAPIKey(for: .openai))")
+```
+
+#### Provider Type-Safety
+
+The SDK now uses a type-safe `Provider` enum instead of strings:
+
+```swift
+// ✅ Type-safe provider API
+let config = TachikomaConfiguration()
+config.setAPIKey("sk-...", for: .openai)
+config.setAPIKey("sk-ant-...", for: .anthropic)
+config.setAPIKey("xai-...", for: .grok)
+
+// ✅ All standard providers supported
+let providers: [Provider] = [
+    .openai,     // OPENAI_API_KEY
+    .anthropic,  // ANTHROPIC_API_KEY
+    .grok,       // X_AI_API_KEY or XAI_API_KEY
+    .groq,       // GROQ_API_KEY
+    .mistral,    // MISTRAL_API_KEY
+    .google,     // GOOGLE_API_KEY
+    .ollama,     // OLLAMA_API_KEY (optional)
+    .custom("my-provider")  // Custom provider ID
+]
+```
+
+#### Alternative Environment Variables
+
+Some providers support multiple environment variable names:
+
+```swift
+// Grok supports both naming conventions
+export X_AI_API_KEY="xai-..."    # Primary
+export XAI_API_KEY="xai-..."     # Alternative
+
+// The SDK automatically checks both
+let provider = Provider.grok
+print(provider.environmentVariable)            // "X_AI_API_KEY"
+print(provider.alternativeEnvironmentVariables) // ["XAI_API_KEY"]
 ```
 
 ### Basic Usage Examples

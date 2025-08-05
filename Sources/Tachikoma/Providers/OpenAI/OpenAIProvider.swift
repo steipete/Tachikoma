@@ -15,13 +15,13 @@ public final class OpenAIProvider: ModelProvider {
 
     private let model: LanguageModel.OpenAI
 
-    public init(model: LanguageModel.OpenAI) throws {
+    public init(model: LanguageModel.OpenAI, configuration: TachikomaConfiguration) throws {
         self.model = model
         self.modelId = model.modelId
-        self.baseURL = "https://api.openai.com/v1"
+        self.baseURL = configuration.getBaseURL(for: .openai) ?? "https://api.openai.com/v1"
 
         // Get API key from configuration system (environment or credentials)
-        if let key = TachikomaConfiguration.shared.getAPIKey(for: "openai") {
+        if let key = configuration.getAPIKey(for: .openai) {
             self.apiKey = key
         } else {
             throw TachikomaError.authenticationFailed("OPENAI_API_KEY not found")

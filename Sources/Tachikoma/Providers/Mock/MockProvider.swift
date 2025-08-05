@@ -103,6 +103,8 @@ public final class MockProvider: ModelProvider {
                 return "2+2 equals 4."
             } else if prompt.contains("Hello world") {
                 return "Hello! How can I help you today?"
+            } else if prompt.contains("What do you see?") {
+                return "I can see a test image that appears to be encoded in base64 format."
             } else {
                 return "I'm Claude, an AI assistant created by Anthropic. I'm here to help with a variety of tasks."
             }

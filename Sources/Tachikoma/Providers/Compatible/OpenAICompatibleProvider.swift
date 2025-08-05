@@ -13,12 +13,14 @@ public final class OpenAICompatibleProvider: ModelProvider {
     public let apiKey: String?
     public let capabilities: ModelCapabilities
 
-    public init(modelId: String, baseURL: String) throws {
+    public init(modelId: String, baseURL: String, configuration: TachikomaConfiguration) throws {
         self.modelId = modelId
         self.baseURL = baseURL
 
-        // Try common environment variable patterns
-        if
+        // Try to get API key from configuration, otherwise try common environment variable patterns
+        if let key = configuration.getAPIKey(for: .custom("openai_compatible")) {
+            self.apiKey = key
+        } else if
             let key = ProcessInfo.processInfo.environment["OPENAI_COMPATIBLE_API_KEY"] ??
                 ProcessInfo.processInfo.environment["API_KEY"]
         {

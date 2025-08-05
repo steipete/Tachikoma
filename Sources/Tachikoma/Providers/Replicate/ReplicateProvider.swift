@@ -13,11 +13,11 @@ public final class ReplicateProvider: ModelProvider {
     public let apiKey: String?
     public let capabilities: ModelCapabilities
 
-    public init(modelId: String) throws {
+    public init(modelId: String, configuration: TachikomaConfiguration) throws {
         self.modelId = modelId
-        self.baseURL = "https://api.replicate.com/v1"
+        self.baseURL = configuration.getBaseURL(for: .custom("replicate")) ?? "https://api.replicate.com/v1"
 
-        if let key = ProcessInfo.processInfo.environment["REPLICATE_API_TOKEN"] {
+        if let key = configuration.getAPIKey(for: .custom("replicate")) {
             self.apiKey = key
         } else {
             throw TachikomaError.authenticationFailed("REPLICATE_API_TOKEN not found")

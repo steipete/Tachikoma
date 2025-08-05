@@ -6,50 +6,56 @@ import Foundation
 @available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
 public struct ProviderFactory {
     /// Create a provider for the specified language model
-    public static func createProvider(for model: LanguageModel) throws -> any ModelProvider {
-        // Check if we're in test mode or if API tests are disabled
-        if TachikomaConfiguration.shared.isTestMode ||
-           ProcessInfo.processInfo.environment["TACHIKOMA_DISABLE_API_TESTS"] == "true" ||
+    public static func createProvider(for model: LanguageModel, configuration: TachikomaConfiguration) throws -> any ModelProvider {
+        // Check if API tests are disabled - use mock providers
+        if ProcessInfo.processInfo.environment["TACHIKOMA_DISABLE_API_TESTS"] == "true" ||
            ProcessInfo.processInfo.environment["TACHIKOMA_TEST_MODE"] == "mock" {
+            
+            // Even in mock mode, validate API keys if explicitly testing missing key scenarios
+            let providerName = model.providerName.lowercased()
+            if !configuration.hasAPIKey(for: providerName) {
+                throw TachikomaError.authenticationFailed("\(providerName.uppercased())_API_KEY not found")
+            }
+            
             return MockProvider(model: model)
         }
 
         switch model {
         case let .openai(openaiModel):
-            return try OpenAIProvider(model: openaiModel)
+            return try OpenAIProvider(model: openaiModel, configuration: configuration)
 
         case let .anthropic(anthropicModel):
-            return try AnthropicProvider(model: anthropicModel)
+            return try AnthropicProvider(model: anthropicModel, configuration: configuration)
 
         case let .google(googleModel):
-            return try GoogleProvider(model: googleModel)
+            return try GoogleProvider(model: googleModel, configuration: configuration)
 
         case let .mistral(mistralModel):
-            return try MistralProvider(model: mistralModel)
+            return try MistralProvider(model: mistralModel, configuration: configuration)
 
         case let .groq(groqModel):
-            return try GroqProvider(model: groqModel)
+            return try GroqProvider(model: groqModel, configuration: configuration)
 
         case let .grok(grokModel):
-            return try GrokProvider(model: grokModel)
+            return try GrokProvider(model: grokModel, configuration: configuration)
 
         case let .ollama(ollamaModel):
-            return try OllamaProvider(model: ollamaModel)
+            return try OllamaProvider(model: ollamaModel, configuration: configuration)
 
         case let .openRouter(modelId):
-            return try OpenRouterProvider(modelId: modelId)
+            return try OpenRouterProvider(modelId: modelId, configuration: configuration)
 
         case let .together(modelId):
-            return try TogetherProvider(modelId: modelId)
+            return try TogetherProvider(modelId: modelId, configuration: configuration)
 
         case let .replicate(modelId):
-            return try ReplicateProvider(modelId: modelId)
+            return try ReplicateProvider(modelId: modelId, configuration: configuration)
 
         case let .openaiCompatible(modelId, baseURL):
-            return try OpenAICompatibleProvider(modelId: modelId, baseURL: baseURL)
+            return try OpenAICompatibleProvider(modelId: modelId, baseURL: baseURL, configuration: configuration)
 
         case let .anthropicCompatible(modelId, baseURL):
-            return try AnthropicCompatibleProvider(modelId: modelId, baseURL: baseURL)
+            return try AnthropicCompatibleProvider(modelId: modelId, baseURL: baseURL, configuration: configuration)
 
         case let .custom(provider):
             return provider

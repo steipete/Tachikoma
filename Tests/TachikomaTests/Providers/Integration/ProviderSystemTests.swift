@@ -8,9 +8,9 @@ struct ProviderSystemTests {
 
     @Test("Provider Factory - OpenAI Provider Creation")
     func providerFactoryOpenAI() async throws {
-        try await TestHelpers.withTestEnvironment(apiKeys: ["openai": "test-key"]) {
+        try await TestHelpers.withTestConfiguration(apiKeys: ["openai": "test-key"]) { config in
             let model = Model.openai(.gpt4o)
-            let provider = try ProviderFactory.createProvider(for: model)
+            let provider = try ProviderFactory.createProvider(for: model, configuration: config)
 
             #expect(provider.modelId == "gpt-4o")
             #expect(provider.capabilities.supportsVision == true)
@@ -21,9 +21,9 @@ struct ProviderSystemTests {
 
     @Test("Provider Factory - Anthropic Provider Creation")
     func providerFactoryAnthropic() async throws {
-        try await TestHelpers.withTestEnvironment(apiKeys: ["anthropic": "test-key"]) {
+        try await TestHelpers.withTestConfiguration(apiKeys: ["anthropic": "test-key"]) { config in
             let model = Model.anthropic(.opus4)
-            let provider = try ProviderFactory.createProvider(for: model)
+            let provider = try ProviderFactory.createProvider(for: model, configuration: config)
 
             #expect(provider.modelId == "claude-opus-4-20250514")
             #expect(provider.capabilities.supportsVision == true)
@@ -34,9 +34,9 @@ struct ProviderSystemTests {
 
     @Test("Provider Factory - Grok Provider Creation")
     func providerFactoryGrok() async throws {
-        try await TestHelpers.withTestEnvironment(apiKeys: ["grok": "test-key"]) {
+        try await TestHelpers.withTestConfiguration(apiKeys: ["grok": "test-key"]) { config in
             let model = Model.grok(.grok4)
-            let provider = try ProviderFactory.createProvider(for: model)
+            let provider = try ProviderFactory.createProvider(for: model, configuration: config)
 
             #expect(provider.modelId == "grok-4")
             #expect(provider.capabilities.supportsTools == true)
@@ -47,8 +47,9 @@ struct ProviderSystemTests {
     @Test("Provider Factory - Ollama Provider Creation")
     func providerFactoryOllama() async throws {
         // No API key needed for Ollama
+        let config = TachikomaConfiguration(loadFromEnvironment: false)
         let model = Model.ollama(.llama33)
-        let provider = try ProviderFactory.createProvider(for: model)
+        let provider = try ProviderFactory.createProvider(for: model, configuration: config)
 
         #expect(provider.modelId == "llama3.3")
         #expect(provider.capabilities.supportsTools == true)
@@ -57,16 +58,16 @@ struct ProviderSystemTests {
 
     @Test("Provider Factory - Missing API Key Error")
     func providerFactoryMissingAPIKey() async throws {
-        try await TestHelpers.withNoAPIKeys {
+        await TestHelpers.withEmptyTestConfiguration { config in
             // Test the actual provider constructors directly since ProviderFactory
             // uses MockProvider in test mode to avoid hitting real APIs
             
             #expect(throws: TachikomaError.self) {
-                try OpenAIProvider(model: .gpt4o)
+                try OpenAIProvider(model: .gpt4o, configuration: config)
             }
 
             #expect(throws: TachikomaError.self) {
-                try AnthropicProvider(model: .opus4)
+                try AnthropicProvider(model: .opus4, configuration: config)
             }
         }
     }

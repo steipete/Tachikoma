@@ -13,11 +13,14 @@ public final class AnthropicCompatibleProvider: ModelProvider {
     public let apiKey: String?
     public let capabilities: ModelCapabilities
 
-    public init(modelId: String, baseURL: String) throws {
+    public init(modelId: String, baseURL: String, configuration: TachikomaConfiguration) throws {
         self.modelId = modelId
         self.baseURL = baseURL
 
-        if
+        // Try to get API key from configuration, otherwise try common environment variable patterns
+        if let key = configuration.getAPIKey(for: .custom("anthropic_compatible")) {
+            self.apiKey = key
+        } else if
             let key = ProcessInfo.processInfo.environment["ANTHROPIC_COMPATIBLE_API_KEY"] ??
                 ProcessInfo.processInfo.environment["API_KEY"]
         {

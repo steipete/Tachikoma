@@ -15,12 +15,12 @@ public final class GroqProvider: ModelProvider {
 
     private let model: LanguageModel.Groq
 
-    public init(model: LanguageModel.Groq) throws {
+    public init(model: LanguageModel.Groq, configuration: TachikomaConfiguration) throws {
         self.model = model
         self.modelId = model.rawValue
-        self.baseURL = "https://api.groq.com/openai/v1"
+        self.baseURL = configuration.getBaseURL(for: .groq) ?? "https://api.groq.com/openai/v1"
 
-        if let key = ProcessInfo.processInfo.environment["GROQ_API_KEY"] {
+        if let key = configuration.getAPIKey(for: .groq) {
             self.apiKey = key
         } else {
             throw TachikomaError.authenticationFailed("GROQ_API_KEY not found")

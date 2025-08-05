@@ -15,12 +15,12 @@ public final class GoogleProvider: ModelProvider {
 
     private let model: LanguageModel.Google
 
-    public init(model: LanguageModel.Google) throws {
+    public init(model: LanguageModel.Google, configuration: TachikomaConfiguration) throws {
         self.model = model
         self.modelId = model.rawValue
-        self.baseURL = "https://generativelanguage.googleapis.com/v1beta"
+        self.baseURL = configuration.getBaseURL(for: .google) ?? "https://generativelanguage.googleapis.com/v1beta"
 
-        if let key = ProcessInfo.processInfo.environment["GOOGLE_API_KEY"] {
+        if let key = configuration.getAPIKey(for: .google) {
             self.apiKey = key
         } else {
             throw TachikomaError.authenticationFailed("GOOGLE_API_KEY not found")

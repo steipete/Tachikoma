@@ -1,66 +1,77 @@
 import Foundation
 @testable import Tachikoma
 
-/// Test helper functions for configuring Tachikoma in test environments
+/// Test helper functions for creating configured Tachikoma instances in test environments
 enum TestHelpers {
-    /// Configure test environment with specific API keys
-    /// This replaces the need for setenv() calls in tests
-    static func configureTestEnvironment(apiKeys: [String: String]) {
-        TachikomaConfiguration.shared.setTestMode(true, overrides: apiKeys)
-    }
-
-    /// Reset test environment back to normal configuration
-    static func resetTestEnvironment() {
-        TachikomaConfiguration.shared.setTestMode(false)
-    }
-
-    /// Execute a test block with specific API key overrides
-    /// Automatically resets the environment after the test
-    static func withTestEnvironment<T>(
-        apiKeys: [String: String],
-        _ body: () async throws -> T
-    ) async rethrows
-    -> T {
-        self.configureTestEnvironment(apiKeys: apiKeys)
-        defer { resetTestEnvironment() }
-        return try await body()
+    /// Create a test configuration with specific API keys
+    static func createTestConfiguration(apiKeys: [String: String] = [:]) -> TachikomaConfiguration {
+        let config = TachikomaConfiguration(loadFromEnvironment: false)
+        for (provider, key) in apiKeys {
+            config.setAPIKey(key, for: provider)
+        }
+        return config
     }
 
     /// Standard test API keys for consistent testing
     static let standardTestKeys: [String: String] = [
         "openai": "test-key",
-        "anthropic": "test-key",
+        "anthropic": "test-key", 
         "grok": "test-key",
         "groq": "test-key",
         "mistral": "test-key",
         "google": "test-key",
     ]
 
-    /// Execute a test with standard test API keys
-    static func withStandardTestKeys<T>(
-        _ body: () async throws -> T
-    ) async rethrows
-    -> T {
-        try await self.withTestEnvironment(apiKeys: self.standardTestKeys, body)
+    /// Create a configuration with standard test API keys
+    static func createStandardTestConfiguration() -> TachikomaConfiguration {
+        createTestConfiguration(apiKeys: standardTestKeys)
     }
 
-    /// Execute a test with no API keys (for testing missing key scenarios)
-    static func withNoAPIKeys<T>(
-        _ body: () async throws -> T
-    ) async rethrows
-    -> T {
-        try await self.withTestEnvironment(apiKeys: [:], body)
+    /// Create a configuration with no API keys (for testing missing key scenarios)
+    static func createEmptyTestConfiguration() -> TachikomaConfiguration {
+        createTestConfiguration(apiKeys: [:])
     }
 
-    /// Execute a test with specific API keys present and others missing
-    static func withSelectiveAPIKeys<T>(
-        present: [String],
-        _ body: () async throws -> T
-    ) async rethrows
-    -> T {
+    /// Create a configuration with specific API keys present and others missing
+    static func createSelectiveTestConfiguration(present: [String]) -> TachikomaConfiguration {
         let keys = present.reduce(into: [String: String]()) { result, provider in
             result[provider] = "test-key"
         }
-        return try await self.withTestEnvironment(apiKeys: keys, body)
+        return createTestConfiguration(apiKeys: keys)
+    }
+
+    /// Execute a test block with a specific configuration
+    /// Returns both the result and the configuration used
+    static func withTestConfiguration<T>(
+        apiKeys: [String: String] = [:],
+        _ body: (TachikomaConfiguration) async throws -> T
+    ) async rethrows -> T {
+        let config = createTestConfiguration(apiKeys: apiKeys)
+        return try await body(config)
+    }
+
+    /// Execute a test with standard test API keys
+    static func withStandardTestConfiguration<T>(
+        _ body: (TachikomaConfiguration) async throws -> T
+    ) async rethrows -> T {
+        let config = createStandardTestConfiguration()
+        return try await body(config)
+    }
+
+    /// Execute a test with no API keys (for testing missing key scenarios) 
+    static func withEmptyTestConfiguration<T>(
+        _ body: (TachikomaConfiguration) async throws -> T
+    ) async rethrows -> T {
+        let config = createEmptyTestConfiguration()
+        return try await body(config)
+    }
+
+    /// Execute a test with specific API keys present and others missing
+    static func withSelectiveTestConfiguration<T>(
+        present: [String],
+        _ body: (TachikomaConfiguration) async throws -> T
+    ) async rethrows -> T {
+        let config = createSelectiveTestConfiguration(present: present)
+        return try await body(config)
     }
 }
