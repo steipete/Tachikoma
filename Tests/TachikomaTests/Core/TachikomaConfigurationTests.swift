@@ -366,6 +366,142 @@ struct TachikomaConfigurationTests {
             // Clean up
             TachikomaConfiguration.default = nil
         }
+        
+        @Test("Generation functions with different configurations")
+        func generationFunctionsWithConfigs() async throws {
+            // Clear any existing default
+            TachikomaConfiguration.default = nil
+            
+            // Set a default config
+            let defaultConfig = TachikomaConfiguration(loadFromEnvironment: false)
+            defaultConfig.setAPIKey("default-key", for: .openai)
+            TachikomaConfiguration.default = defaultConfig
+            
+            // Create explicit config
+            let explicitConfig = TachikomaConfiguration(loadFromEnvironment: false)
+            explicitConfig.setAPIKey("explicit-key", for: .openai)
+            
+            // Test that functions compile with different configs
+            _ = {
+                Task {
+                    // Uses default (.current)
+                    _ = try await generateText(
+                        model: .openai(.gpt4o),
+                        messages: [.user("Test")]
+                    )
+                    
+                    // Uses explicit
+                    _ = try await generateText(
+                        model: .openai(.gpt4o),
+                        messages: [.user("Test")],
+                        configuration: explicitConfig
+                    )
+                    
+                    // Stream functions
+                    _ = try await streamText(
+                        model: .openai(.gpt4o),
+                        messages: [.user("Test")]
+                    )
+                    
+                    _ = try await streamText(
+                        model: .openai(.gpt4o),
+                        messages: [.user("Test")],
+                        configuration: explicitConfig
+                    )
+                    
+                    // Convenience functions
+                    _ = try await generate("Test", using: .openai(.gpt4o))
+                    _ = try await generate("Test", using: .openai(.gpt4o), configuration: explicitConfig)
+                    
+                    _ = try await stream("Test", using: .openai(.gpt4o))
+                    _ = try await stream("Test", using: .openai(.gpt4o), configuration: explicitConfig)
+                }
+            }
+            
+            // Clean up
+            TachikomaConfiguration.default = nil
+        }
+        
+        @Test("Conversation uses provided configuration")
+        func conversationUsesProvidedConfig() async throws {
+            // Clear any existing default
+            TachikomaConfiguration.default = nil
+            
+            // Create different configs
+            let config1 = TachikomaConfiguration(loadFromEnvironment: false)
+            config1.setAPIKey("config1-key", for: .anthropic)
+            
+            let config2 = TachikomaConfiguration(loadFromEnvironment: false)
+            config2.setAPIKey("config2-key", for: .anthropic)
+            
+            TachikomaConfiguration.default = config1
+            
+            // Create conversations
+            let conv1 = Conversation() // Should use current (which is config1)
+            let conv2 = Conversation(configuration: config2) // Should use config2
+            
+            // Verify they maintain their configs
+            #expect(conv1.configuration === config1)
+            #expect(conv2.configuration === config2)
+            
+            // Change default shouldn't affect existing conversations
+            TachikomaConfiguration.default = nil
+            #expect(conv1.configuration === config1) // Still using config1
+            #expect(conv2.configuration === config2) // Still using config2
+            
+            // New conversation should use auto instance now
+            let conv3 = Conversation()
+            #expect(conv3.configuration === TachikomaConfiguration.current)
+            
+            // Clean up
+            TachikomaConfiguration.default = nil
+        }
+        
+        @Test("Thread safety stress test")
+        func threadSafetyStressTest() async throws {
+            // Clear any existing default
+            TachikomaConfiguration.default = nil
+            
+            // Stress test with many concurrent operations
+            await withTaskGroup(of: Void.self) { group in
+                // Writers
+                for i in 0..<100 {
+                    group.addTask {
+                        let config = TachikomaConfiguration(loadFromEnvironment: false)
+                        config.setAPIKey("key-\(i)", for: .openai)
+                        TachikomaConfiguration.default = config
+                    }
+                }
+                
+                // Readers
+                for _ in 0..<100 {
+                    group.addTask {
+                        _ = TachikomaConfiguration.current
+                        _ = TachikomaConfiguration.default
+                        _ = TachikomaConfiguration.resolve()
+                    }
+                }
+                
+                // Resolvers with different inputs
+                for i in 0..<100 {
+                    group.addTask {
+                        if i % 2 == 0 {
+                            _ = TachikomaConfiguration.resolve(nil)
+                        } else {
+                            let config = TachikomaConfiguration(loadFromEnvironment: false)
+                            _ = TachikomaConfiguration.resolve(config)
+                        }
+                    }
+                }
+            }
+            
+            // Should not crash and should have valid state
+            let final = TachikomaConfiguration.current
+            #expect(final != nil) // Should have a valid config
+            
+            // Clean up
+            TachikomaConfiguration.default = nil
+        }
     }
     
     @Suite("Instance Isolation Tests")

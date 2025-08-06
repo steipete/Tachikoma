@@ -7,7 +7,9 @@ import Foundation
 public final class Conversation: @unchecked Sendable {
     private let lock = NSLock()
     private var _messages: [ConversationMessage] = []
-    private let configuration: TachikomaConfiguration
+    
+    /// The configuration used by this conversation
+    public let configuration: TachikomaConfiguration
 
     public var messages: [ConversationMessage] {
         self.lock.lock()
