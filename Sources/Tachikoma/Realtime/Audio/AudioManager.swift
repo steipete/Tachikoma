@@ -3,6 +3,7 @@
 //  Tachikoma
 //
 
+#if canImport(AVFoundation)
 import Foundation
 @preconcurrency import AVFoundation
 
@@ -363,3 +364,5 @@ extension TachikomaError {
         .authenticationFailed("Permission denied: \(message)")
     }
 }
+
+#endif // canImport(AVFoundation)

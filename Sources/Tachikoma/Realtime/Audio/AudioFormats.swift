@@ -3,6 +3,7 @@
 //  Tachikoma
 //
 
+#if canImport(AVFoundation)
 import Foundation
 @preconcurrency import AVFoundation
 
@@ -299,3 +300,5 @@ public final class VoiceActivityDetector: @unchecked Sendable {
         lastVoiceTime = nil
     }
 }
+
+#endif // canImport(AVFoundation)

@@ -3,6 +3,7 @@
 //  Tachikoma
 //
 
+#if canImport(AVFoundation)
 import Foundation
 @preconcurrency import AVFoundation
 
@@ -333,3 +334,5 @@ private final class AudioPipelineAdapter: AudioStreamPipelineDelegate {
         // This would be connected to the audioLevelContinuation
     }
 }
+
+#endif // canImport(AVFoundation)

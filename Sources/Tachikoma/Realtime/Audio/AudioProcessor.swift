@@ -3,6 +3,7 @@
 //  Tachikoma
 //
 
+#if canImport(AVFoundation)
 import Foundation
 @preconcurrency import AVFoundation
 
@@ -365,3 +366,5 @@ extension TachikomaError {
         .invalidConfiguration("Audio processing failed: \(message)")
     }
 }
+
+#endif // canImport(AVFoundation)
