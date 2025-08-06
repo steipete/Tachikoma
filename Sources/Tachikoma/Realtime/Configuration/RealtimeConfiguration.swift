@@ -168,7 +168,7 @@ public struct EnhancedSessionConfiguration: Sendable, Codable {
     /// Response modalities to use
     public var modalities: ResponseModality?
     
-    public enum ToolChoice: Sendable, Codable {
+    public enum ToolChoice: Sendable, Codable, Equatable {
         case auto
         case none
         case required

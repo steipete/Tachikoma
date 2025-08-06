@@ -112,13 +112,21 @@ struct AdvancedFeaturesTests {
         let none = EnhancedSessionConfiguration.ToolChoice.none
         let noneData = try encoder.encode(none)
         let noneDecoded = try decoder.decode(EnhancedSessionConfiguration.ToolChoice.self, from: noneData)
-        #expect(noneDecoded == .none)
+        if case .none = noneDecoded {
+            // Expected
+        } else {
+            Issue.record("Expected .none")
+        }
         
         // Required
         let required = EnhancedSessionConfiguration.ToolChoice.required
         let requiredData = try encoder.encode(required)
         let requiredDecoded = try decoder.decode(EnhancedSessionConfiguration.ToolChoice.self, from: requiredData)
-        #expect(requiredDecoded == .required)
+        if case .required = requiredDecoded {
+            // Expected
+        } else {
+            Issue.record("Expected .required")
+        }
         
         // Function
         let function = EnhancedSessionConfiguration.ToolChoice.function(name: "myFunction")

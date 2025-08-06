@@ -68,8 +68,9 @@ struct MinimalModernAPITests {
         ])
         
         #expect(try args.stringValue("name") == "test")
-        #expect(try args.intValue("value") == 42)
-        #expect(args.stringValue("missing", default: "default") == "default")
+        #expect(try args.integerValue("value") == 42)
+        #expect(args.optionalStringValue("missing") == nil)
+        #expect(args.optionalStringValue("missing") ?? "default" == "default")
     }
 
     @Test("Built-in tools exist")
@@ -78,40 +79,6 @@ struct MinimalModernAPITests {
         #expect(weatherTool.name == "get_weather")
         #expect(timeTool.name == "get_current_time")
         #expect(calculatorTool.name == "calculate")
-    }
-}
-
-// MARK: - Test ToolKit Implementations
-
-@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
-struct WeatherToolKit: ToolKit {
-    var tools: [Tool<WeatherToolKit>] {
-        [
-            createTool(name: "get_weather", description: "Get current weather") { input, context in
-                let location = try input.stringValue("location")
-                return "Weather in \(location): 72°F, sunny"
-            },
-            createTool(name: "get_forecast", description: "Get weather forecast") { input, context in
-                let location = try input.stringValue("location")
-                return "Forecast for \(location): sunny week ahead"
-            }
-        ]
-    }
-}
-
-@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
-struct MathToolKit: ToolKit {
-    var tools: [Tool<MathToolKit>] {
-        [
-            createTool(name: "calculate", description: "Perform calculations") { input, context in
-                let _ = try input.stringValue("expression")
-                return "Result: 42"
-            },
-            createTool(name: "square", description: "Calculate square") { input, context in
-                let number = try input.intValue("number")
-                return "Square of \(number): \(number * number)"
-            }
-        ]
     }
 }
 

@@ -26,8 +26,8 @@ struct ToolSystemTests {
             ],
             required: ["a", "b"]
         ) { args in
-            let a = try args.intValue("a")
-            let b = try args.intValue("b")
+            let a = try args.integerValue("a")
+            let b = try args.integerValue("b")
             return AgentToolArgument.int(a + b)
         }
         
@@ -147,9 +147,9 @@ struct ToolSystemTests {
         ])
         
         #expect(try args.stringValue("string") == "hello")
-        #expect(try args.intValue("int") == 42)
-        #expect(try args.doubleValue("double") == 3.14)
-        #expect(try args.boolValue("bool") == true)
+        #expect(try args.integerValue("int") == 42)
+        #expect(try args.numberValue("double") == 3.14)
+        #expect(try args.booleanValue("bool") == true)
         
         // Test array access
         if case .array(let arr) = args["array"] {
