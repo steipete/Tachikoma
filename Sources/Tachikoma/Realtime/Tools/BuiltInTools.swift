@@ -159,7 +159,8 @@ public struct CalculatorTool: RealtimeExecutableTool {
             return "Error: Expression is required"
         }
         
-        // Use NSExpression for safe math evaluation
+        #if canImport(ObjectiveC)
+        // Use NSExpression for safe math evaluation (only available on Darwin platforms)
         // Basic sanitization
         let sanitized = expression
             .replacingOccurrences(of: "sqrt", with: "sqrt")
@@ -171,6 +172,11 @@ public struct CalculatorTool: RealtimeExecutableTool {
         } else {
             return "Error: Could not evaluate expression"
         }
+        #else
+        // Simple fallback for Linux - only handle basic operations
+        // This is a very basic implementation and should be replaced with a proper math parser
+        return "Error: Math evaluation not supported on this platform"
+        #endif
     }
     
     public init() {}

@@ -266,7 +266,10 @@ public struct WebSocketTransportFactory {
         let configuration = URLSessionConfiguration.default
         configuration.timeoutIntervalForRequest = 30
         configuration.timeoutIntervalForResource = 300
+        #if !os(Linux)
+        // waitsForConnectivity is not available on Linux
         configuration.waitsForConnectivity = false
+        #endif
         
         let session = URLSession(configuration: configuration)
         return WebSocketTransport(session: session)
