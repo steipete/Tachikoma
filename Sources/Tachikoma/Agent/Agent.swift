@@ -1,7 +1,7 @@
 import Foundation
 
 /// Modern AI agent integrated with the Tachikoma enum-based model system
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public final class Agent<Context>: @unchecked Sendable {
     /// Agent's unique identifier
     public let name: String
@@ -166,7 +166,7 @@ public final class Agent<Context>: @unchecked Sendable {
 }
 
 /// Response from an agent execution
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public struct AgentResponse: Sendable {
     public let text: String
     public let usage: Usage?
@@ -190,7 +190,7 @@ public struct AgentResponse: Sendable {
 }
 
 /// Session management for agents
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public final class AgentSessionManager: @unchecked Sendable {
     public static let shared = AgentSessionManager()
 
@@ -422,7 +422,7 @@ public final class AgentSessionManager: @unchecked Sendable {
 }
 
 /// Public session data for external consumption
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public struct AgentSession: Codable {
     public let id: String
     public let modelName: String
@@ -449,7 +449,7 @@ public struct AgentSession: Codable {
 }
 
 /// Internal session data structure
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 private struct AgentSessionData {
     let id: String
     let modelName: String
@@ -460,7 +460,7 @@ private struct AgentSessionData {
 }
 
 /// Session summary information
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public struct SessionSummary: Sendable, Codable {
     /// Unique session identifier
     public let id: String
@@ -503,7 +503,7 @@ public struct SessionSummary: Sendable, Codable {
 }
 
 /// Status of an agent session
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public enum SessionStatus: String, Codable, Sendable, CaseIterable {
     case active
     case completed

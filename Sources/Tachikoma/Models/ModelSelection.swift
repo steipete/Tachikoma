@@ -3,7 +3,7 @@ import Foundation
 // MARK: - CLI Model Selection
 
 /// Smart model parsing and selection for command-line interfaces
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public struct ModelSelector {
     /// Parse a model string with intelligent fallbacks and shortcuts
     public static func parseModel(_ modelString: String) throws -> Model {
@@ -275,7 +275,7 @@ public struct ModelSelector {
 
 // MARK: - CLI Helpers
 
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public struct ModelCapabilityInfo {
     public let supportsVision: Bool
     public let supportsTools: Bool
@@ -296,7 +296,7 @@ public struct ModelCapabilityInfo {
 }
 
 /// Format model list for CLI display
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public func formatModelList(title: String, models: [String]) -> String {
     var output = "\n\(title):\n"
     for model in models.sorted() {
@@ -306,7 +306,7 @@ public func formatModelList(title: String, models: [String]) -> String {
 }
 
 /// Get all available models for CLI help
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public func getAllAvailableModels() -> String {
     var output = "Available Models:\n"
 
@@ -346,7 +346,7 @@ public func getAllAvailableModels() -> String {
 
 // MARK: - Model Validation
 
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 extension ModelSelector {
     /// Validate that a model supports the required capabilities
     public static func validateModel(_ model: Model, requiresVision: Bool = false, requiresTools: Bool = false) throws {
@@ -376,7 +376,7 @@ extension ModelSelector {
     }
 }
 
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public enum UseCase {
     case coding
     case vision
@@ -385,7 +385,7 @@ public enum UseCase {
     case general
 }
 
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public enum ModelValidationError: Error, LocalizedError {
     case visionNotSupported(String)
     case toolsNotSupported(String)

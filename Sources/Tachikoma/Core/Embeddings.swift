@@ -8,7 +8,7 @@ import Foundation
 // MARK: - Embeddings API
 
 /// Generate embeddings for text or batch of texts
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public func generateEmbedding(
     model: EmbeddingModel,
     input: EmbeddingInput,
@@ -43,7 +43,7 @@ public func generateEmbedding(
 }
 
 /// Batch generate embeddings with concurrency control
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public func generateEmbeddingsBatch(
     model: EmbeddingModel,
     inputs: [EmbeddingInput],
@@ -83,7 +83,7 @@ public func generateEmbeddingsBatch(
 // MARK: - Embedding Types
 
 /// Embedding model selection
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public enum EmbeddingModel: Sendable {
     case openai(OpenAIEmbedding)
     case cohere(CohereEmbedding)
@@ -122,7 +122,7 @@ public enum EmbeddingModel: Sendable {
 }
 
 /// Input for embedding generation
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public enum EmbeddingInput: Sendable {
     case text(String)
     case texts([String])
@@ -141,7 +141,7 @@ public enum EmbeddingInput: Sendable {
 }
 
 /// Settings for embedding generation
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public struct EmbeddingSettings: Sendable, Codable {
     public let dimensions: Int?
     public let normalizeEmbeddings: Bool
@@ -167,7 +167,7 @@ public struct EmbeddingSettings: Sendable, Codable {
 }
 
 /// Result from embedding generation
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public struct EmbeddingResult: Sendable {
     public let embeddings: [[Double]]
     public let model: String
@@ -198,7 +198,7 @@ public struct EmbeddingResult: Sendable {
 }
 
 /// Metadata for embedding results
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public struct EmbeddingMetadata: Sendable, Codable {
     public let truncated: Bool
     public let normalizedL2: Bool
@@ -212,13 +212,13 @@ public struct EmbeddingMetadata: Sendable, Codable {
 // MARK: - Provider Protocol
 
 /// Protocol for embedding providers
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 protocol EmbeddingProvider: Sendable {
     func generateEmbedding(request: EmbeddingRequest) async throws -> EmbeddingResult
 }
 
 /// Request for embedding generation
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 struct EmbeddingRequest: Sendable {
     let input: EmbeddingInput
     let settings: EmbeddingSettings
@@ -226,7 +226,7 @@ struct EmbeddingRequest: Sendable {
 
 // MARK: - Provider Factory
 
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 struct EmbeddingProviderFactory {
     static func createProvider(
         for model: EmbeddingModel,
@@ -257,7 +257,7 @@ struct EmbeddingProviderFactory {
 
 // MARK: - Async Semaphore Helper
 
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 private actor EmbeddingAsyncSemaphore {
     private var value: Int
     private var waiters: [CheckedContinuation<Void, Never>] = []

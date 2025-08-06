@@ -15,7 +15,7 @@ import Foundation
 ///   - maxSteps: Maximum number of tool calling steps (default: 1)
 /// - Returns: Complete generation result with text, usage, and execution steps
 /// - Throws: TachikomaError for any failures
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public func generateText(
     model: LanguageModel,
     messages: [ModelMessage],
@@ -172,7 +172,7 @@ public func generateText(
 ///   - settings: Generation settings (temperature, maxTokens, etc.)
 ///   - maxSteps: Maximum number of tool calling steps (default: 1)
 /// - Returns: StreamTextResult with async sequence and metadata
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public func streamText(
     model: LanguageModel,
     messages: [ModelMessage],
@@ -255,7 +255,7 @@ public func streamText(
 ///   - schema: The expected output schema (Codable type)
 ///   - settings: Generation settings
 /// - Returns: GenerateObjectResult with parsed object
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public func generateObject<T: Codable & Sendable>(
     model: LanguageModel,
     messages: [ModelMessage],
@@ -296,7 +296,7 @@ public func generateObject<T: Codable & Sendable>(
 // MARK: - Convenience Functions
 
 /// Simple text generation from a prompt (convenience wrapper) - with Model enum
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public func generate(
     _ prompt: String,
     using model: Model? = nil,
@@ -309,7 +309,7 @@ public func generate(
 }
 
 /// Simple text generation from a prompt (convenience wrapper) - with LanguageModel enum
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public func generate(
     _ prompt: String,
     using model: LanguageModel = .default,
@@ -343,7 +343,7 @@ public func generate(
 }
 
 /// Analyze an image using an AI model
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public func analyze(
     image: ImageInput,
     prompt: String,
@@ -429,7 +429,7 @@ public func analyze(
 }
 
 /// Simple streaming from a prompt (convenience wrapper)
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public func stream(
     _ prompt: String,
     using model: LanguageModel = .default,
@@ -465,7 +465,7 @@ public func stream(
 // MARK: - Result Types
 
 /// Result from generateText function
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public struct GenerateTextResult: Sendable {
     public let text: String
     public let usage: Usage?
@@ -489,7 +489,7 @@ public struct GenerateTextResult: Sendable {
 }
 
 /// Result from streamText function
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public struct StreamTextResult: Sendable {
     public let textStream: AsyncThrowingStream<TextStreamDelta, Error>
     public let model: LanguageModel
@@ -507,7 +507,7 @@ public struct StreamTextResult: Sendable {
 }
 
 /// Result from generateObject function
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public struct GenerateObjectResult<T: Codable & Sendable>: Sendable {
     public let object: T
     public let usage: Usage?
@@ -523,7 +523,7 @@ public struct GenerateObjectResult<T: Codable & Sendable>: Sendable {
 }
 
 /// A single step in multi-step generation
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public struct GenerationStep: Sendable {
     public let stepIndex: Int
     public let text: String
@@ -550,7 +550,7 @@ public struct GenerationStep: Sendable {
 }
 
 /// A delta in streaming text generation
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public struct TextStreamDelta: Sendable {
     public let type: DeltaType
     public let content: String?

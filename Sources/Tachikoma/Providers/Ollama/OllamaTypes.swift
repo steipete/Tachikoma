@@ -59,15 +59,33 @@ struct OllamaToolCall: Codable {
             let container = try decoder.container(keyedBy: CodingKeys.self)
             self.name = try container.decode(String.self, forKey: .name)
 
-            // Decode arguments as generic dictionary
-            if
-                let data = try? container.decode(Data.self, forKey: .arguments),
-                let dict = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
-            {
+            // Try to decode arguments as direct JSON object using a nested container (GPT-OSS format)
+            if let nestedContainer = try? container.nestedContainer(keyedBy: AnyCodingKey.self, forKey: .arguments) {
+                self.arguments = try Self.decodeAnyDictionary(from: nestedContainer)
+            }
+            // Fallback: decode arguments as Data then parse (legacy format)
+            else if let data = try? container.decode(Data.self, forKey: .arguments),
+                    let dict = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
                 self.arguments = dict
             } else {
                 self.arguments = [:]
             }
+        }
+        
+        private static func decodeAnyDictionary(from container: KeyedDecodingContainer<AnyCodingKey>) throws -> [String: Any] {
+            var result: [String: Any] = [:]
+            for key in container.allKeys {
+                if let stringValue = try? container.decode(String.self, forKey: key) {
+                    result[key.stringValue] = stringValue
+                } else if let intValue = try? container.decode(Int.self, forKey: key) {
+                    result[key.stringValue] = intValue
+                } else if let doubleValue = try? container.decode(Double.self, forKey: key) {
+                    result[key.stringValue] = doubleValue
+                } else if let boolValue = try? container.decode(Bool.self, forKey: key) {
+                    result[key.stringValue] = boolValue
+                }
+            }
+            return result
         }
 
         func encode(to encoder: Encoder) throws {

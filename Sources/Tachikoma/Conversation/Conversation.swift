@@ -3,7 +3,7 @@ import Foundation
 // MARK: - Conversation Management
 
 /// A conversation with an AI model
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public final class Conversation: @unchecked Sendable {
     private let lock = NSLock()
     private var _messages: [ConversationMessage] = []
@@ -88,7 +88,7 @@ public final class Conversation: @unchecked Sendable {
 }
 
 /// A message in a conversation
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public struct ConversationMessage: Sendable, Codable, Equatable {
     public let id: String
     public let role: Role

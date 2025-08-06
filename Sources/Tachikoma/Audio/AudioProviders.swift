@@ -3,7 +3,7 @@ import Foundation
 // MARK: - Provider Protocols
 
 /// Protocol for transcription providers
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public protocol TranscriptionProvider: Sendable {
     var modelId: String { get }
     var capabilities: TranscriptionCapabilities { get }
@@ -12,7 +12,7 @@ public protocol TranscriptionProvider: Sendable {
 }
 
 /// Protocol for speech synthesis providers
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public protocol SpeechProvider: Sendable {
     var modelId: String { get }
     var capabilities: SpeechCapabilities { get }
@@ -23,7 +23,7 @@ public protocol SpeechProvider: Sendable {
 // MARK: - Capability Types
 
 /// Capabilities of a transcription provider
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public struct TranscriptionCapabilities: Sendable {
     public let supportedFormats: [AudioFormat]
     public let supportsTimestamps: Bool
@@ -59,7 +59,7 @@ public struct TranscriptionCapabilities: Sendable {
 }
 
 /// Capabilities of a speech synthesis provider
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public struct SpeechCapabilities: Sendable {
     public let supportedFormats: [AudioFormat]
     public let supportedVoices: [VoiceOption]
@@ -94,7 +94,7 @@ public struct SpeechCapabilities: Sendable {
 // MARK: - Provider Factories
 
 /// Factory for creating transcription providers
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public struct TranscriptionProviderFactory {
     /// Create a transcription provider for the specified model
     public static func createProvider(for model: TranscriptionModel, configuration: TachikomaConfiguration = TachikomaConfiguration()) throws -> any TranscriptionProvider {
@@ -131,7 +131,7 @@ public struct TranscriptionProviderFactory {
 }
 
 /// Factory for creating speech synthesis providers
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public struct SpeechProviderFactory {
     /// Create a speech provider for the specified model
     public static func createProvider(for model: SpeechModel, configuration: TachikomaConfiguration = TachikomaConfiguration()) throws -> any SpeechProvider {
@@ -164,7 +164,7 @@ public struct SpeechProviderFactory {
 // MARK: - Configuration Helper
 
 /// Configuration helper for audio providers
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public struct AudioConfiguration {
     /// Get API key for a specific provider
     public static func getAPIKey(for provider: String, configuration: TachikomaConfiguration? = nil) -> String? {
@@ -219,7 +219,7 @@ public struct AudioConfiguration {
 
 // These are placeholder implementations that need to be filled in with actual API calls
 
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public final class OpenAITranscriptionProvider: TranscriptionProvider {
     public let modelId: String
     public let capabilities: TranscriptionCapabilities
@@ -251,7 +251,7 @@ public final class OpenAITranscriptionProvider: TranscriptionProvider {
     // Implementation is in OpenAIAudioProvider.swift extension
 }
 
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public final class OpenAISpeechProvider: SpeechProvider {
     public let modelId: String
     public let capabilities: SpeechCapabilities
@@ -284,7 +284,7 @@ public final class OpenAISpeechProvider: SpeechProvider {
 
 // MARK: - Other Provider Stubs
 
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public final class GroqTranscriptionProvider: TranscriptionProvider {
     public let modelId: String
     public let capabilities: TranscriptionCapabilities
@@ -302,7 +302,7 @@ public final class GroqTranscriptionProvider: TranscriptionProvider {
     }
 }
 
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public final class DeepgramTranscriptionProvider: TranscriptionProvider {
     public let modelId: String
     public let capabilities: TranscriptionCapabilities
@@ -321,7 +321,7 @@ public final class DeepgramTranscriptionProvider: TranscriptionProvider {
     }
 }
 
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public final class AssemblyAITranscriptionProvider: TranscriptionProvider {
     public let modelId: String
     public let capabilities: TranscriptionCapabilities
@@ -340,7 +340,7 @@ public final class AssemblyAITranscriptionProvider: TranscriptionProvider {
     }
 }
 
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public final class ElevenLabsTranscriptionProvider: TranscriptionProvider {
     public let modelId: String
     public let capabilities: TranscriptionCapabilities
@@ -358,7 +358,7 @@ public final class ElevenLabsTranscriptionProvider: TranscriptionProvider {
     }
 }
 
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public final class RevAITranscriptionProvider: TranscriptionProvider {
     public let modelId: String
     public let capabilities: TranscriptionCapabilities
@@ -376,7 +376,7 @@ public final class RevAITranscriptionProvider: TranscriptionProvider {
     }
 }
 
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public final class AzureTranscriptionProvider: TranscriptionProvider {
     public let modelId: String
     public let capabilities: TranscriptionCapabilities
@@ -393,7 +393,7 @@ public final class AzureTranscriptionProvider: TranscriptionProvider {
     }
 }
 
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public final class LMNTSpeechProvider: SpeechProvider {
     public let modelId: String
     public let capabilities: SpeechCapabilities
@@ -411,7 +411,7 @@ public final class LMNTSpeechProvider: SpeechProvider {
     }
 }
 
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public final class HumeSpeechProvider: SpeechProvider {
     public let modelId: String
     public let capabilities: SpeechCapabilities
@@ -429,7 +429,7 @@ public final class HumeSpeechProvider: SpeechProvider {
     }
 }
 
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public final class ElevenLabsSpeechProvider: SpeechProvider {
     public let modelId: String
     public let capabilities: SpeechCapabilities
@@ -450,7 +450,7 @@ public final class ElevenLabsSpeechProvider: SpeechProvider {
 // MARK: - Mock Providers for Testing
 
 /// Mock transcription provider for testing
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public final class MockTranscriptionProvider: TranscriptionProvider {
     public let modelId: String
     public let capabilities: TranscriptionCapabilities
@@ -532,7 +532,7 @@ public final class MockTranscriptionProvider: TranscriptionProvider {
 }
 
 /// Mock speech provider for testing
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public final class MockSpeechProvider: SpeechProvider {
     public let modelId: String
     public let capabilities: SpeechCapabilities

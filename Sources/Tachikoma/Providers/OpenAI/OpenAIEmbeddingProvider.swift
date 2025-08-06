@@ -8,7 +8,7 @@ import Foundation
 import FoundationNetworking
 #endif
 
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 struct OpenAIEmbeddingProvider: EmbeddingProvider, ModelProvider {
     let model: EmbeddingModel.OpenAIEmbedding
     let apiKey: String?
@@ -92,7 +92,7 @@ struct OpenAIEmbeddingProvider: EmbeddingProvider, ModelProvider {
 }
 
 // Placeholder providers for other services
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 struct CohereEmbeddingProvider: EmbeddingProvider, ModelProvider {
     let model: EmbeddingModel.CohereEmbedding
     let apiKey: String?
@@ -115,7 +115,7 @@ struct CohereEmbeddingProvider: EmbeddingProvider, ModelProvider {
     }
 }
 
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 struct VoyageEmbeddingProvider: EmbeddingProvider, ModelProvider {
     let model: EmbeddingModel.VoyageEmbedding
     let apiKey: String?

@@ -3,7 +3,7 @@ import Foundation
 // MARK: - Usage Tracking and Cost Calculation
 
 /// Usage tracking and cost calculation system for Tachikoma AI SDK
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public final class UsageTracker: @unchecked Sendable {
     /// Shared usage tracker instance
     public static let shared = UsageTracker()
@@ -173,7 +173,7 @@ public final class UsageTracker: @unchecked Sendable {
 // MARK: - Usage Session
 
 /// Represents a single usage session
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public struct UsageSession: Sendable, Codable {
     public let id: String
     public let startTime: Date
@@ -242,7 +242,7 @@ public struct UsageSession: Sendable, Codable {
 // MARK: - Usage Operation
 
 /// Represents a single operation within a session
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public struct UsageOperation: Sendable, Codable {
     public let timestamp: Date
     public let modelId: String
@@ -267,7 +267,7 @@ public struct UsageOperation: Sendable, Codable {
 // MARK: - Operation Type
 
 /// Types of operations that can be tracked
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public enum OperationType: String, Sendable, Codable, CaseIterable {
     case textGeneration = "text_generation"
     case textStreaming = "text_streaming"
@@ -295,7 +295,7 @@ public enum OperationType: String, Sendable, Codable, CaseIterable {
 // MARK: - Total Usage
 
 /// Aggregated usage statistics across all sessions
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public struct TotalUsage: Sendable, Codable {
     public var totalSessions: Int = 0
     public var totalOperations: Int = 0
@@ -336,7 +336,7 @@ public struct TotalUsage: Sendable, Codable {
 
 // MARK: - Breakdown Structures
 
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public struct ProviderUsage: Sendable, Codable {
     public var operations: Int = 0
     public var tokens: Int = 0
@@ -349,7 +349,7 @@ public struct ProviderUsage: Sendable, Codable {
     }
 }
 
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public struct ModelUsage: Sendable, Codable {
     public var operations: Int = 0
     public var tokens: Int = 0
@@ -362,7 +362,7 @@ public struct ModelUsage: Sendable, Codable {
     }
 }
 
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public struct OperationUsage: Sendable, Codable {
     public var operations: Int = 0
     public var tokens: Int = 0
@@ -378,7 +378,7 @@ public struct OperationUsage: Sendable, Codable {
 // MARK: - Usage Report
 
 /// Comprehensive usage report for a specific time period
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public struct UsageReport: Sendable {
     public let startDate: Date
     public let endDate: Date
@@ -487,7 +487,7 @@ public struct UsageReport: Sendable {
 // MARK: - Model Cost Calculator
 
 /// Calculates costs for different AI models
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public struct ModelCostCalculator: Sendable {
     /// Calculate cost for a model usage
     public func calculateCost(for model: LanguageModel, usage: Usage) -> Usage.Cost {
@@ -513,6 +513,7 @@ public struct ModelCostCalculator: Sendable {
             case .gpt41Mini: (0.15, 0.60)
             case .gpt4o: (2.50, 10.00)
             case .gpt4oMini: (0.15, 0.60)
+            case .gpt4oRealtime: (5.00, 20.00) // Realtime API pricing estimate
             case .gpt4Turbo: (10.00, 30.00)
             case .gpt35Turbo: (0.50, 1.50)
             case .custom: (2.50, 10.00) // Default estimate

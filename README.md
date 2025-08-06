@@ -203,7 +203,7 @@ See [docs/openai-harmony.md](docs/openai-harmony.md) for detailed documentation.
 Fluent conversation API with SwiftUI integration:
 
 ```swift
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public final class Conversation: ObservableObject {
     @Published public private(set) var messages: [ConversationMessage] = []
     
@@ -406,7 +406,7 @@ public func createTool<Context>(
 Multi-turn conversations with SwiftUI support:
 
 ```swift
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public final class Conversation: ObservableObject, @unchecked Sendable {
     @Published public private(set) var messages: [ConversationMessage] = []
     
@@ -865,10 +865,10 @@ See the following files for complete working examples:
 
 - **Swift 6.0+** with strict concurrency enabled
 - **Platform Support**:
-  - macOS 14.0+ (Sonoma)
-  - iOS 17.0+
-  - watchOS 10.0+
-  - tvOS 17.0+
+  - macOS 13.0+ (Ventura)
+  - iOS 16.0+
+  - watchOS 9.0+
+  - tvOS 16.0+
   - Linux (Ubuntu 20.04+)
   - Windows 10+
 - **Concurrency**: Full `@Sendable` compliance throughout

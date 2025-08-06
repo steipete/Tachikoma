@@ -1,7 +1,7 @@
 import Foundation
 
 /// Modern model interface for AI providers integrated with the Tachikoma enum-based model system
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public protocol ModelInterface: Sendable {
     /// The language model this interface handles
     var languageModel: LanguageModel { get }
@@ -17,7 +17,7 @@ public protocol ModelInterface: Sendable {
 }
 
 /// Modern streaming types adapted from vendor/Tachikoma
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public enum StreamingDeltaType: Sendable, Codable {
     case textStart
     case textDelta
@@ -32,7 +32,7 @@ public enum StreamingDeltaType: Sendable, Codable {
 }
 
 /// Streaming delta for real-time responses
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public struct StreamingDelta: Sendable, Codable {
     public let type: StreamingDeltaType
     public let content: String?
@@ -56,7 +56,7 @@ public struct StreamingDelta: Sendable, Codable {
 }
 
 /// Model settings adapted to work with enum-based models
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public struct ModelSettings: Sendable, Codable {
     public let modelName: String
     public let maxTokens: Int?
@@ -110,7 +110,7 @@ public struct ModelSettings: Sendable, Codable {
 }
 
 /// Model request adapted to modern system
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public struct ModelRequest: Sendable {
     public let messages: [ModelMessage]
     public let settings: ModelSettings
@@ -139,7 +139,7 @@ public struct ModelRequest: Sendable {
 }
 
 /// Model response adapted to modern system
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public struct ModelResponse: Sendable {
     public let text: String
     public let finishReason: FinishReason?
@@ -173,7 +173,7 @@ public struct ModelResponse: Sendable {
 }
 
 /// Error handling adapted from vendor/Tachikoma
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public enum ModelError: Error, LocalizedError, Sendable {
     case invalidRequest(String)
     case authenticationFailed(String)

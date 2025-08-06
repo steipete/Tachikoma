@@ -70,7 +70,7 @@ struct OpenAISpeechRequest: Codable {
 
 // MARK: - OpenAI Provider Implementations
 
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 extension OpenAITranscriptionProvider {
     public func transcribe(request: TranscriptionRequest) async throws -> TranscriptionResult {
         try request.abortSignal?.throwIfCancelled()
@@ -221,7 +221,7 @@ extension OpenAITranscriptionProvider {
     }
 }
 
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 extension OpenAISpeechProvider {
     public func generateSpeech(request: SpeechRequest) async throws -> SpeechResult {
         try request.abortSignal?.throwIfCancelled()

@@ -8,7 +8,7 @@ import Foundation
 // MARK: - Model Provider Protocol
 
 /// Protocol for AI model providers
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public protocol ModelProvider: Sendable {
     var modelId: String { get }
     var baseURL: String? { get }
@@ -20,7 +20,7 @@ public protocol ModelProvider: Sendable {
 }
 
 /// Model capabilities
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public struct ModelCapabilities: Sendable {
     public let supportsVision: Bool
     public let supportsTools: Bool
@@ -55,7 +55,7 @@ public struct ModelCapabilities: Sendable {
 // MARK: - Provider Request/Response Types
 
 /// Request to a model provider
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public struct ProviderRequest: Sendable {
     public let messages: [ModelMessage]
     public let tools: [SimpleTool]?
@@ -81,7 +81,7 @@ public struct ProviderRequest: Sendable {
 }
 
 /// Response from a model provider
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public struct ProviderResponse: Sendable {
     public let text: String
     public let usage: Usage?

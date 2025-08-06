@@ -21,7 +21,7 @@ import Foundation
 /// // Custom providers
 /// config.setAPIKey("key", for: .custom("my-provider"))
 /// ```
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public enum Provider: Sendable, Hashable, Codable {
     /// OpenAI provider (GPT models, DALL-E, etc.)
     case openai
@@ -150,7 +150,7 @@ public enum Provider: Sendable, Hashable, Codable {
 
 // MARK: - Environment Variable Loading
 
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 extension Provider {
     /// Load API key from environment variables
     /// Checks primary environment variable first, then alternatives
@@ -182,7 +182,7 @@ extension Provider {
 
 // MARK: - Codable Implementation
 
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 extension Provider {
     public init(from decoder: Decoder) throws {
         let container = try decoder.singleValueContainer()

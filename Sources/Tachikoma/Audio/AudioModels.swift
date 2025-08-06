@@ -3,7 +3,7 @@ import Foundation
 // MARK: - Audio Model Types
 
 /// Transcription models for speech-to-text processing
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public enum TranscriptionModel: Sendable, CustomStringConvertible {
     // Provider-specific transcription models
     case openai(OpenAI)
@@ -187,7 +187,7 @@ public enum TranscriptionModel: Sendable, CustomStringConvertible {
 }
 
 /// Speech synthesis models for text-to-speech processing
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public enum SpeechModel: Sendable, CustomStringConvertible {
     // Provider-specific speech models
     case openai(OpenAI)

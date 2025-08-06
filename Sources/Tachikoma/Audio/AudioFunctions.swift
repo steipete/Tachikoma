@@ -20,7 +20,7 @@ import Foundation
 ///     timestampGranularities: [.word, .segment]
 /// )
 /// ```
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public func transcribe(
     _ audio: AudioData,
     using model: TranscriptionModel,
@@ -70,7 +70,7 @@ public func transcribe(
 ///     format: .wav
 /// )
 /// ```
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public func generateSpeech(
     _ text: String,
     using model: SpeechModel,
@@ -111,7 +111,7 @@ public func generateSpeech(
 /// let text = try await transcribe(audio, language: "en")
 /// print(text)
 /// ```
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public func transcribe(
     _ audio: AudioData,
     language: String? = nil,
@@ -133,7 +133,7 @@ public func transcribe(
 /// let text = try await transcribe(contentsOf: audioFileURL)
 /// print(text)
 /// ```
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public func transcribe(
     contentsOf url: URL,
     using model: TranscriptionModel = .default,
@@ -154,7 +154,7 @@ public func transcribe(
 /// let audioData = try await generateSpeech("Hello, world!", voice: .nova)
 /// try audioData.write(to: outputURL)
 /// ```
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public func generateSpeech(
     _ text: String,
     voice: VoiceOption = .alloy,
@@ -175,7 +175,7 @@ public func generateSpeech(
 /// ```swift
 /// try await generateSpeech("Hello, world!", to: outputURL, voice: .echo)
 /// ```
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public func generateSpeech(
     _ text: String,
     to url: URL,
@@ -207,7 +207,7 @@ public func generateSpeech(
 ///     print("\(url.lastPathComponent): \(result.text)")
 /// }
 /// ```
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public func transcribeBatch(
     _ audioURLs: [URL],
     using model: TranscriptionModel,
@@ -253,7 +253,7 @@ public func transcribeBatch(
 ///     try result.audioData.write(to: URL(fileURLWithPath: "\(text).mp3"))
 /// }
 /// ```
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public func generateSpeechBatch(
     _ texts: [String],
     using model: SpeechModel,
@@ -289,7 +289,7 @@ public func generateSpeechBatch(
 // MARK: - Provider Information
 
 /// Get available transcription models
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public func availableTranscriptionModels() -> [TranscriptionModel] {
     var models: [TranscriptionModel] = []
 
@@ -332,7 +332,7 @@ public func availableTranscriptionModels() -> [TranscriptionModel] {
 }
 
 /// Get available speech models
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public func availableSpeechModels() -> [SpeechModel] {
     var models: [SpeechModel] = []
 
@@ -360,14 +360,14 @@ public func availableSpeechModels() -> [SpeechModel] {
 }
 
 /// Get capabilities for a transcription model
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public func capabilities(for model: TranscriptionModel, configuration: TachikomaConfiguration = TachikomaConfiguration()) throws -> TranscriptionCapabilities {
     let provider = try TranscriptionProviderFactory.createProvider(for: model, configuration: configuration)
     return provider.capabilities
 }
 
 /// Get capabilities for a speech model
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public func capabilities(for model: SpeechModel, configuration: TachikomaConfiguration = TachikomaConfiguration()) throws -> SpeechCapabilities {
     let provider = try SpeechProviderFactory.createProvider(for: model, configuration: configuration)
     return provider.capabilities
@@ -376,7 +376,7 @@ public func capabilities(for model: SpeechModel, configuration: TachikomaConfigu
 // MARK: - Helper Types
 
 /// Simple semaphore for controlling concurrency
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 actor AsyncSemaphore {
     private var value: Int
     private var waiters: [CheckedContinuation<Void, Never>] = []

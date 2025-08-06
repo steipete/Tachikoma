@@ -8,7 +8,7 @@ import Foundation
 // MARK: - Retry Handler
 
 /// Policy for automatic retry with exponential backoff
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public struct RetryPolicy: Sendable {
     public let maxAttempts: Int
     public let baseDelay: TimeInterval
@@ -106,7 +106,7 @@ public struct RetryPolicy: Sendable {
 }
 
 /// Handles automatic retries with configurable policies
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public actor RetryHandler {
     private let policy: RetryPolicy
     
@@ -206,7 +206,7 @@ public actor RetryHandler {
 
 // MARK: - Integration with Generation
 
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 extension RetryHandler {
     /// Create a retry handler based on generation settings
     public static func from(settings: GenerationSettings) -> RetryHandler {

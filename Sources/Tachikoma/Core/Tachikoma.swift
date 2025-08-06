@@ -46,11 +46,11 @@ import Foundation
 // MARK: - Convenience API
 
 /// Default model for the entire SDK
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public let defaultModel: Model = .default
 
 /// Set the default model for all operations (placeholder - would use actor in real implementation)
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public func setDefaultModel(_ model: Model) {
     // In real implementation, would use actor or other thread-safe mechanism
     // For now, this is just a placeholder function
@@ -63,16 +63,16 @@ public let tachikomaVersion = "4.0.0"
 
 /// Minimum supported platform versions
 public enum PlatformSupport {
-    public static let macOS = "14.0"
-    public static let iOS = "17.0"
-    public static let watchOS = "10.0"
-    public static let tvOS = "17.0"
+    public static let macOS = "13.0"
+    public static let iOS = "16.0"
+    public static let watchOS = "9.0"
+    public static let tvOS = "16.0"
 }
 
 // MARK: - Legacy Compatibility
 
 /// Namespace for legacy API compatibility
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public enum Legacy {
     /// Legacy compatibility note
     @available(*, deprecated, message: "Use modern API with dependency injection instead")
@@ -94,7 +94,7 @@ public enum Legacy {
 // MARK: - Modern API Summary
 
 /// Summary of the modern Tachikoma API for documentation
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public enum ModernAPI {
     /// Core generation functions
     public enum Generation {
@@ -190,7 +190,7 @@ public enum ModernAPI {
 // MARK: - Migration Guide
 
 /// Migration guide from legacy API to modern API
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public enum MigrationGuide {
     /// Legacy: `Tachikoma.shared.getModel("gpt-4").getResponse(request)`
     /// Modern: `generate("Hello", using: .openai(.gpt4o))`
@@ -259,7 +259,7 @@ public enum MigrationGuide {
 }
 
 /// Check if migration is needed based on current usage
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public func checkMigrationNeeded() -> Bool {
     // In a real implementation, this could check for deprecated API usage
     false

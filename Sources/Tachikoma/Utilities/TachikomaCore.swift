@@ -14,7 +14,7 @@ public enum TachikomaCore {}
 // Since these are in the same module now, we can access them directly
 
 /// Check if the modern API is available
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public var modernAPIAvailable: Bool {
     true
 }

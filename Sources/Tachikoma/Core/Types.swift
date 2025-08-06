@@ -3,7 +3,7 @@ import Foundation
 // MARK: - AI SDK Core Types
 
 /// Error types for the modern Tachikoma API
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public enum TachikomaError: Error, LocalizedError, Sendable {
     case modelNotFound(String)
     case invalidConfiguration(String)
@@ -46,7 +46,7 @@ public enum TachikomaError: Error, LocalizedError, Sendable {
 // MARK: - Message Types
 
 /// A message in a conversation with an AI model
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public struct ModelMessage: Sendable, Codable, Equatable {
     public let id: String
     public let role: Role
@@ -118,7 +118,7 @@ public struct ModelMessage: Sendable, Codable, Equatable {
 // MARK: - Tool Types
 
 /// A tool call made by the AI model
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public struct ToolCall: Sendable, Codable, Equatable {
     public let id: String
     public let name: String
@@ -142,7 +142,7 @@ public struct ToolCall: Sendable, Codable, Equatable {
 }
 
 /// Result of executing a tool
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public struct ToolResult: Sendable, Codable, Equatable {
     public let toolCallId: String
     public let result: ToolArgument
@@ -164,7 +164,7 @@ public struct ToolResult: Sendable, Codable, Equatable {
 }
 
 /// Type-safe tool argument handling
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public enum ToolArgument: Sendable, Codable, Equatable {
     case null
     case bool(Bool)
@@ -247,7 +247,7 @@ public enum ToolArgument: Sendable, Codable, Equatable {
 // MARK: - Usage Statistics
 
 /// Token usage statistics for a generation
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public struct Usage: Sendable, Codable, Equatable {
     public let inputTokens: Int
     public let outputTokens: Int
@@ -277,7 +277,7 @@ public struct Usage: Sendable, Codable, Equatable {
 // MARK: - Finish Reason
 
 /// Reason why generation finished
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public enum FinishReason: String, Sendable, Codable, CaseIterable {
     case stop
     case length
@@ -291,7 +291,7 @@ public enum FinishReason: String, Sendable, Codable, CaseIterable {
 // MARK: - Image Input
 
 /// Input type for image analysis
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public enum ImageInput: Sendable {
     case base64(String)
     case url(String)
@@ -301,7 +301,7 @@ public enum ImageInput: Sendable {
 // MARK: - Generation Settings
 
 /// Settings for text generation
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public struct GenerationSettings: Sendable, Codable {
     public let maxTokens: Int?
     public let temperature: Double?
@@ -338,7 +338,7 @@ public struct GenerationSettings: Sendable, Codable {
 // MARK: - Multi-Channel Response Support
 
 /// Response channel for multi-channel outputs (inspired by OpenAI Harmony)
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public enum ResponseChannel: String, Sendable, Codable, CaseIterable {
     case thinking     // Chain of thought reasoning
     case analysis     // Deep analysis of the problem
@@ -347,7 +347,7 @@ public enum ResponseChannel: String, Sendable, Codable, CaseIterable {
 }
 
 /// Reasoning effort level for models that support it (o3, opus-4, etc.)
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public enum ReasoningEffort: String, Sendable, Codable, CaseIterable {
     case low
     case medium
@@ -355,7 +355,7 @@ public enum ReasoningEffort: String, Sendable, Codable, CaseIterable {
 }
 
 /// Metadata for messages (conversation context, etc.)
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public struct MessageMetadata: Sendable, Codable, Equatable {
     public let conversationId: String?
     public let turnId: String?

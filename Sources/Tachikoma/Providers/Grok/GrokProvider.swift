@@ -6,7 +6,7 @@
 import Foundation
 
 /// Provider for Grok (xAI) models
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public final class GrokProvider: ModelProvider {
     public let modelId: String
     public let baseURL: String?

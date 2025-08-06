@@ -3,7 +3,7 @@ import Foundation
 // MARK: - Modern Language Model System
 
 /// Language model selection following AI SDK patterns
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
     // Provider-specific models
     case openai(OpenAI)
@@ -41,6 +41,7 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
         // GPT-4o Series (Multimodal)
         case gpt4o
         case gpt4oMini
+        case gpt4oRealtime  // Realtime API support
 
         // Legacy support
         case gpt4Turbo
@@ -50,7 +51,7 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
         case custom(String)
 
         public static var allCases: [OpenAI] {
-            [.o3, .o3Mini, .o3Pro, .o4Mini, .gpt41, .gpt41Mini, .gpt4o, .gpt4oMini, .gpt4Turbo, .gpt35Turbo]
+            [.o3, .o3Mini, .o3Pro, .o4Mini, .gpt41, .gpt41Mini, .gpt4o, .gpt4oMini, .gpt4oRealtime, .gpt4Turbo, .gpt35Turbo]
         }
 
         public var modelId: String {
@@ -64,6 +65,7 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
             case .gpt41Mini: "gpt-4.1-mini"
             case .gpt4o: "gpt-4o"
             case .gpt4oMini: "gpt-4o-mini"
+            case .gpt4oRealtime: "gpt-4o-realtime-preview"
             case .gpt4Turbo: "gpt-4-turbo"
             case .gpt35Turbo: "gpt-3.5-turbo"
             }
@@ -71,14 +73,14 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
 
         public var supportsVision: Bool {
             switch self {
-            case .gpt4o, .gpt4oMini: true
+            case .gpt4o, .gpt4oMini, .gpt4oRealtime: true
             default: false
             }
         }
 
         public var supportsTools: Bool {
             switch self {
-            case .o3, .o3Mini, .o3Pro, .o4Mini, .gpt41, .gpt41Mini, .gpt4o, .gpt4oMini, .gpt4Turbo: true
+            case .o3, .o3Mini, .o3Pro, .o4Mini, .gpt41, .gpt41Mini, .gpt4o, .gpt4oMini, .gpt4oRealtime, .gpt4Turbo: true
             case .gpt35Turbo: true
             case .custom: true // Assume custom models support tools
             }
@@ -86,14 +88,23 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
 
         public var supportsAudioInput: Bool {
             switch self {
-            case .gpt4o, .gpt4oMini: true // GPT-4o models support native audio input
+            case .gpt4o, .gpt4oMini, .gpt4oRealtime: true // GPT-4o models support native audio input
             default: false
             }
         }
 
         public var supportsAudioOutput: Bool {
-            // OpenAI models can generate audio through TTS API, but not directly through chat
-            false
+            switch self {
+            case .gpt4oRealtime: true // Realtime API supports native audio output
+            default: false
+            }
+        }
+        
+        public var supportsRealtime: Bool {
+            switch self {
+            case .gpt4oRealtime: true
+            default: false
+            }
         }
 
         public var contextLength: Int {
@@ -101,7 +112,7 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
             case .o3, .o3Pro: 1_000_000
             case .o3Mini, .o4Mini: 128_000
             case .gpt41, .gpt41Mini: 1_000_000
-            case .gpt4o, .gpt4oMini: 128_000
+            case .gpt4o, .gpt4oMini, .gpt4oRealtime: 128_000
             case .gpt4Turbo: 128_000
             case .gpt35Turbo: 16_000
             case .custom: 128_000 // Default assumption
@@ -973,12 +984,12 @@ extension LanguageModel {
 // MARK: - Backward Compatibility
 
 /// Backward compatibility alias for LanguageModel
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public typealias Model = LanguageModel
 
 // MARK: - Convenience Properties
 
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 extension LanguageModel {
     /// GPT-OSS-120B via Ollama (default quantization)
     public static let gptOSS120B = LanguageModel.ollama(.gptOSS120BQ4)

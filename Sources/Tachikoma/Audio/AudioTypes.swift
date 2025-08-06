@@ -3,7 +3,7 @@ import Foundation
 // MARK: - Audio Data Types
 
 /// Audio data container with format and metadata information
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public struct AudioData: Sendable {
     public let data: Data
     public let format: AudioFormat
@@ -51,7 +51,7 @@ public struct AudioData: Sendable {
 }
 
 /// Supported audio formats
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public enum AudioFormat: String, CaseIterable, Sendable {
     case wav
     case mp3
@@ -86,7 +86,7 @@ public enum AudioFormat: String, CaseIterable, Sendable {
 }
 
 /// Voice options for speech synthesis
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public enum VoiceOption: Sendable, Hashable {
     // OpenAI voices
     case alloy
@@ -120,14 +120,14 @@ public enum VoiceOption: Sendable, Hashable {
 }
 
 /// Timestamp granularity for transcription
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public enum TimestampGranularity: String, CaseIterable, Sendable {
     case word
     case segment
 }
 
 /// Response format for transcription
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public enum TranscriptionResponseFormat: String, CaseIterable, Sendable {
     case json
     case text
@@ -139,7 +139,7 @@ public enum TranscriptionResponseFormat: String, CaseIterable, Sendable {
 // MARK: - Transcription Results
 
 /// Result of audio transcription
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public struct TranscriptionResult: Sendable {
     public let text: String
     public let language: String?
@@ -166,7 +166,7 @@ public struct TranscriptionResult: Sendable {
 }
 
 /// Individual segment in a transcription with timing information
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public struct TranscriptionSegment: Sendable {
     public let text: String
     public let start: TimeInterval
@@ -195,7 +195,7 @@ public struct TranscriptionSegment: Sendable {
 }
 
 /// Individual word in a transcription with precise timing
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public struct TranscriptionWord: Sendable {
     public let word: String
     public let start: TimeInterval
@@ -216,7 +216,7 @@ public struct TranscriptionWord: Sendable {
 }
 
 /// Usage information for transcription
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public struct TranscriptionUsage: Sendable {
     public let durationSeconds: TimeInterval
     public let cost: Double?
@@ -233,7 +233,7 @@ public struct TranscriptionUsage: Sendable {
 // MARK: - Speech Results
 
 /// Result of speech synthesis
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public struct SpeechResult: Sendable {
     public let audioData: AudioData
     public let usage: SpeechUsage?
@@ -251,7 +251,7 @@ public struct SpeechResult: Sendable {
 }
 
 /// Usage information for speech synthesis
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public struct SpeechUsage: Sendable {
     public let charactersProcessed: Int
     public let cost: Double?
@@ -268,7 +268,7 @@ public struct SpeechUsage: Sendable {
 // MARK: - Request Types
 
 /// Request for audio transcription
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public struct TranscriptionRequest: Sendable {
     public let audio: AudioData
     public let language: String?
@@ -298,7 +298,7 @@ public struct TranscriptionRequest: Sendable {
 }
 
 /// Request for speech synthesis
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public struct SpeechRequest: Sendable {
     public let text: String
     public let voice: VoiceOption
@@ -333,7 +333,7 @@ public struct SpeechRequest: Sendable {
 // MARK: - AbortSignal Support
 
 /// Simple abort signal implementation for cancelling audio operations
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public final class AbortSignal: @unchecked Sendable {
     private var _cancelled = false
     private let lock = NSLock()

@@ -6,7 +6,7 @@ import FoundationNetworking
 // MARK: - OpenAI-Compatible Helper
 
 /// Shared helper for OpenAI-compatible APIs (OpenAI, Grok, etc.)
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 struct OpenAICompatibleHelper {
     static func generateText(
         request: ProviderRequest,
@@ -38,7 +38,22 @@ struct OpenAICompatibleHelper {
         )
 
         let encoder = JSONEncoder()
+        encoder.outputFormatting = .prettyPrinted // For debugging
         urlRequest.httpBody = try encoder.encode(openAIRequest)
+        
+        // Debug: Log the request JSON for verbose mode
+        if ProcessInfo.processInfo.arguments.contains("--verbose") ||
+           ProcessInfo.processInfo.arguments.contains("-v") {
+            if let jsonString = String(data: urlRequest.httpBody ?? Data(), encoding: .utf8) {
+                // Find and log just the tools section to avoid massive output
+                if let toolsRange = jsonString.range(of: "\"tools\"") {
+                    let startIndex = toolsRange.lowerBound
+                    let endIndex = jsonString.index(startIndex, offsetBy: min(500, jsonString.distance(from: startIndex, to: jsonString.endIndex)))
+                    let toolsSubstring = String(jsonString[startIndex..<endIndex])
+                    print("DEBUG OpenAI Request Tools (first 500 chars): \(toolsSubstring)")
+                }
+            }
+        }
 
         let (data, response) = try await URLSession.shared.data(for: urlRequest)
 
@@ -268,7 +283,20 @@ struct OpenAICompatibleHelper {
         }
         
         parameters["properties"] = properties
-        parameters["required"] = tool.parameters.required
+        
+        // Only include required field if it's not empty
+        if !tool.parameters.required.isEmpty {
+            parameters["required"] = tool.parameters.required
+        }
+        
+        // Debug logging
+        if ProcessInfo.processInfo.arguments.contains("--verbose") ||
+           ProcessInfo.processInfo.arguments.contains("-v") {
+            print("DEBUG: Converting tool '\(tool.name)' with \(tool.parameters.properties.count) properties, \(tool.parameters.required.count) required")
+            if tool.parameters.required.isEmpty {
+                print("DEBUG: Omitting required field for '\(tool.name)' as it's empty")
+            }
+        }
         
         return OpenAITool(
             type: "function",

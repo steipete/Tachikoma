@@ -759,13 +759,13 @@ public struct RealtimeTool: Codable, Sendable {
     public let type: String
     public let name: String
     public let description: String
-    public let parameters: [String: Any]
+    public let parameters: ToolParameters  // Use the existing type-safe ToolParameters
     
     enum CodingKeys: String, CodingKey {
         case type, name, description, parameters
     }
     
-    public init(name: String, description: String, parameters: [String: Any]) {
+    public init(name: String, description: String, parameters: ToolParameters) {
         self.type = "function"
         self.name = name
         self.description = description
@@ -777,14 +777,7 @@ public struct RealtimeTool: Codable, Sendable {
         self.type = try container.decode(String.self, forKey: .type)
         self.name = try container.decode(String.self, forKey: .name)
         self.description = try container.decode(String.self, forKey: .description)
-        
-        // Decode parameters as JSON
-        if let data = try? container.decode(Data.self, forKey: .parameters),
-           let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
-            self.parameters = json
-        } else {
-            self.parameters = [:]
-        }
+        self.parameters = try container.decode(ToolParameters.self, forKey: .parameters)
     }
     
     public func encode(to encoder: Encoder) throws {
@@ -792,9 +785,6 @@ public struct RealtimeTool: Codable, Sendable {
         try container.encode(type, forKey: .type)
         try container.encode(name, forKey: .name)
         try container.encode(description, forKey: .description)
-        
-        // Encode parameters as JSON
-        let data = try JSONSerialization.data(withJSONObject: parameters)
-        try container.encode(data, forKey: .parameters)
+        try container.encode(parameters, forKey: .parameters)
     }
 }
