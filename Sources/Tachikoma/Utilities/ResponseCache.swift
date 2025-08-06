@@ -6,8 +6,6 @@
 import Foundation
 #if canImport(CryptoKit)
 import CryptoKit
-#else
-import Crypto  // swift-crypto package for Linux/Windows
 #endif
 
 // MARK: - Response Cache
@@ -116,7 +114,8 @@ struct CacheKey: Hashable, Sendable {
     let messageCount: Int
     
     init(from request: ProviderRequest) {
-        // Create a deterministic hash from request
+        #if canImport(CryptoKit)
+        // Create a deterministic hash from request using CryptoKit
         var hasher = SHA256()
         
         // Hash messages
@@ -140,6 +139,33 @@ struct CacheKey: Hashable, Sendable {
         
         let digest = hasher.finalize()
         self.hash = digest.compactMap { String(format: "%02x", $0) }.joined()
+        #else
+        // Fallback for Linux - use a simple hash based on message content
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = .sortedKeys
+        
+        var hashString = ""
+        
+        // Hash messages
+        if let messagesData = try? encoder.encode(request.messages) {
+            hashString += String(data: messagesData, encoding: .utf8) ?? ""
+        }
+        
+        // Hash settings
+        if let settingsData = try? encoder.encode(request.settings) {
+            hashString += String(data: settingsData, encoding: .utf8) ?? ""
+        }
+        
+        // Hash tools (if present)
+        if let tools = request.tools {
+            let toolSignatures = tools.map { "\($0.name):\($0.namespace ?? ""):\($0.recipient ?? "")" }.joined(separator: ",")
+            hashString += toolSignatures
+        }
+        
+        // Simple hash using built-in hashValue
+        self.hash = String(hashString.hashValue)
+        #endif
+        
         self.model = nil // Will be set from provider
         self.messageCount = request.messages.count
     }
