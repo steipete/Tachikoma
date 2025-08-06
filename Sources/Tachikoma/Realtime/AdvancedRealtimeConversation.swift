@@ -3,6 +3,7 @@
 //  Tachikoma
 //
 
+#if canImport(Combine)
 import Foundation
 import Combine
 
@@ -437,3 +438,5 @@ extension ConversationState {
     static let reconnecting = ConversationState(rawValue: "reconnecting")!
     static let disconnecting = ConversationState(rawValue: "disconnecting")!
 }
+
+#endif // canImport(Combine)

@@ -3,7 +3,7 @@
 //  Tachikoma
 //
 
-#if canImport(SwiftUI)
+#if canImport(SwiftUI) && canImport(Combine)
 import SwiftUI
 import Combine
 
