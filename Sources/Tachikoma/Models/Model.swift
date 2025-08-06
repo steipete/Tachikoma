@@ -13,6 +13,7 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
     case groq(Groq)
     case grok(Grok)
     case ollama(Ollama)
+    case lmstudio(LMStudio)
 
     // Third-party aggregators
     case openRouter(modelId: String)
@@ -150,8 +151,8 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
         public var modelId: String {
             switch self {
             case let .custom(id): id
-            case .opus4: "claude-opus-4-20250514"
-            case .opus4Thinking: "claude-opus-4-20250514-thinking"
+            case .opus4: "claude-opus-4-1-20250813"
+            case .opus4Thinking: "claude-opus-4-1-20250813-thinking"
             case .sonnet4: "claude-sonnet-4-20250514"
             case .sonnet4Thinking: "claude-sonnet-4-20250514-thinking"
             case .sonnet37: "claude-3-7-sonnet"
@@ -380,6 +381,11 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
     }
 
     public enum Ollama: Sendable, Hashable, CaseIterable {
+        // GPT-OSS models
+        case gptOSS120B
+        case gptOSS120BQ4
+        case gptOSS120BQ5
+        
         // Recommended models for different use cases
         case llama33 // Best overall
         case llama32 // Good alternative
@@ -418,6 +424,9 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
 
         public static var allCases: [Ollama] {
             [
+                .gptOSS120B,
+                .gptOSS120BQ4,
+                .gptOSS120BQ5,
                 .llama33,
                 .llama32,
                 .llama31,
@@ -449,6 +458,9 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
         public var modelId: String {
             switch self {
             case let .custom(id): id
+            case .gptOSS120B: "gpt-oss-120b"
+            case .gptOSS120BQ4: "gpt-oss-120b:q4_k_m"
+            case .gptOSS120BQ5: "gpt-oss-120b:q5_k_m"
             case .llama33: "llama3.3"
             case .llama32: "llama3.2"
             case .llama31: "llama3.1"
@@ -487,6 +499,7 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
 
         public var supportsTools: Bool {
             switch self {
+            case .gptOSS120B, .gptOSS120BQ4, .gptOSS120BQ5: true // GPT-OSS supports tools
             case .llava, .bakllava, .llama32Vision11b, .llama32Vision90b,
                  .qwen25vl7b, .qwen25vl32b: false // Vision models don't support tools
             case .llama33, .llama32, .llama31, .mistralNemo: true
@@ -504,6 +517,7 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
 
         public var contextLength: Int {
             switch self {
+            case .gptOSS120B, .gptOSS120BQ4, .gptOSS120BQ5: 128_000
             case .llama33, .llama32, .llama31: 128_000
             case .llava, .bakllava: 32_000
             case .llama32Vision11b: 128_000
@@ -527,6 +541,86 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
         }
     }
 
+    public enum LMStudio: Sendable, Hashable, CaseIterable {
+        // GPT-OSS models
+        case gptOSS120B
+        case gptOSS120BQ4
+        case gptOSS120BQ5
+        
+        // Common local models
+        case llama370B
+        case llama333B
+        case mixtral8x7B
+        case codeLlama34B
+        case mistral7B
+        case phi3Mini
+        
+        // Currently loaded model
+        case current
+        
+        // Custom model path
+        case custom(String)
+        
+        public static var allCases: [LMStudio] {
+            [
+                .gptOSS120B,
+                .gptOSS120BQ4,
+                .gptOSS120BQ5,
+                .llama370B,
+                .llama333B,
+                .mixtral8x7B,
+                .codeLlama34B,
+                .mistral7B,
+                .phi3Mini,
+                .current
+            ]
+        }
+        
+        public var modelId: String {
+            switch self {
+            case .gptOSS120B: "gpt-oss-120b"
+            case .gptOSS120BQ4: "gpt-oss-120b-q4_k_m"
+            case .gptOSS120BQ5: "gpt-oss-120b-q5_k_m"
+            case .llama370B: "llama-3-70b"
+            case .llama333B: "llama-3.3-70b"
+            case .mixtral8x7B: "mixtral-8x7b"
+            case .codeLlama34B: "codellama-34b"
+            case .mistral7B: "mistral-7b"
+            case .phi3Mini: "phi-3-mini"
+            case .current: "current"
+            case .custom(let id): id
+            }
+        }
+        
+        public var supportsVision: Bool {
+            switch self {
+            case .gptOSS120B, .gptOSS120BQ4, .gptOSS120BQ5: false
+            case .llama370B, .llama333B: false
+            default: false
+            }
+        }
+        
+        public var supportsTools: Bool {
+            switch self {
+            case .current, .custom: true // Assume support
+            default: true // Most modern models support tools
+            }
+        }
+        
+        public var contextLength: Int {
+            switch self {
+            case .gptOSS120B, .gptOSS120BQ4, .gptOSS120BQ5: 128_000
+            case .llama370B, .llama333B: 128_000
+            case .mixtral8x7B: 32_000
+            case .codeLlama34B: 16_000
+            case .mistral7B: 32_000
+            case .phi3Mini: 4096
+            case .current: 16_000 // Conservative default
+            case .custom: 16_000
+            }
+        }
+    }
+
     // MARK: - Model Properties
 
     public var description: String {
@@ -545,6 +639,8 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
             "Grok/\(model.modelId)"
         case let .ollama(model):
             "Ollama/\(model.modelId)"
+        case let .lmstudio(model):
+            "LMStudio/\(model.modelId)"
         case let .openRouter(modelId):
             "OpenRouter/\(modelId)"
         case let .together(modelId):
@@ -575,6 +671,8 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
         case let .grok(model):
             model.modelId
         case let .ollama(model):
+            model.modelId
+        case let .lmstudio(model):
             model.modelId
         case let .openRouter(modelId):
             modelId
@@ -607,6 +705,8 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
             model.supportsVision
         case let .ollama(model):
             model.supportsVision
+        case let .lmstudio(model):
+            model.supportsVision
         case .openRouter, .together, .replicate:
             false // Unknown, assume no vision support
         case .openaiCompatible, .anthropicCompatible:
@@ -632,6 +732,8 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
             model.supportsAudioInput
         case let .ollama(model):
             model.supportsAudioInput
+        case .lmstudio:
+            false // LMStudio doesn't support audio input
         case .openRouter, .together, .replicate:
             false // Unknown, assume no audio input support
         case .openaiCompatible, .anthropicCompatible:
@@ -657,6 +759,8 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
             model.supportsAudioOutput
         case let .ollama(model):
             model.supportsAudioOutput
+        case .lmstudio:
+            false // LMStudio doesn't support audio output
         case .openRouter, .together, .replicate:
             false // Unknown, assume no audio output support
         case .openaiCompatible, .anthropicCompatible:
@@ -682,6 +786,8 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
             model.supportsTools
         case let .ollama(model):
             model.supportsTools
+        case let .lmstudio(model):
+            model.supportsTools
         case .openRouter, .together, .replicate:
             true // Most aggregator models support tools
         case .openaiCompatible, .anthropicCompatible:
@@ -706,6 +812,8 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
         case let .grok(model):
             model.contextLength
         case let .ollama(model):
+            model.contextLength
+        case let .lmstudio(model):
             model.contextLength
         case .openRouter, .together, .replicate:
             128_000 // Common default
@@ -737,6 +845,8 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
             "Grok"
         case .ollama:
             "Ollama"
+        case .lmstudio:
+            "LMStudio"
         case .openRouter:
             "OpenRouter"
         case .together:
@@ -797,6 +907,9 @@ extension LanguageModel {
         case let .ollama(model):
             hasher.combine("ollama")
             hasher.combine(model)
+        case let .lmstudio(model):
+            hasher.combine("lmstudio")
+            hasher.combine(model)
         case let .openRouter(modelId):
             hasher.combine("openRouter")
             hasher.combine(modelId)
@@ -837,6 +950,8 @@ extension LanguageModel {
             return lhsModel == rhsModel
         case let (.ollama(lhsModel), .ollama(rhsModel)):
             return lhsModel == rhsModel
+        case let (.lmstudio(lhsModel), .lmstudio(rhsModel)):
+            return lhsModel == rhsModel
         case let (.openRouter(lhsId), .openRouter(rhsId)):
             return lhsId == rhsId
         case let (.together(lhsId), .together(rhsId)):
@@ -860,3 +975,14 @@ extension LanguageModel {
 /// Backward compatibility alias for LanguageModel
 @available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
 public typealias Model = LanguageModel
+
+// MARK: - Convenience Properties
+
+@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+extension LanguageModel {
+    /// GPT-OSS-120B via Ollama (default quantization)
+    public static let gptOSS120B = LanguageModel.ollama(.gptOSS120BQ4)
+    
+    /// GPT-OSS-120B via LMStudio (default quantization)
+    public static let gptOSS120B_LMStudio = LanguageModel.lmstudio(.gptOSS120BQ4)
+}

@@ -147,7 +147,7 @@ struct GenerationTests {
 
     @Test("Analyze Function - Non-Vision Model Error")
     func analyzeFunctionNonVisionError() async {
-        await TestHelpers.withTestConfiguration(apiKeys: ["openai": "test-key"]) { config in
+        _ = await TestHelpers.withTestConfiguration(apiKeys: ["openai": "test-key"]) { config in
             // GPT-4.1 doesn't support vision
             await #expect(throws: TachikomaError.self) {
                 try await analyze(
@@ -180,7 +180,7 @@ struct GenerationTests {
 
     @Test("Generate Function - Missing API Key")
     func generateFunctionMissingAPIKey() async {
-        await TestHelpers.withEmptyTestConfiguration { config in
+        _ = await TestHelpers.withEmptyTestConfiguration { config in
             await #expect(throws: TachikomaError.self) {
                 try await generate("Test", using: .openai(.gpt4o), configuration: config)
             }
@@ -205,7 +205,7 @@ struct GenerationTests {
     @Test("Generate Function - With Empty ToolKit")
     func generateFunctionWithEmptyToolKit() async throws {
         try await TestHelpers.withTestConfiguration(apiKeys: ["openai": "test-key"]) { config in
-            let toolkit = EmptyToolKit()
+            _ = EmptyToolKit()
 
             // Note: The generate function with tools parameter doesn't exist yet
             // This would need to be implemented or use generateText directly
@@ -233,7 +233,7 @@ struct GenerationTests {
                 }
             }
 
-            let toolkit = TestToolKit()
+            _ = TestToolKit()
 
             // Note: The generate function with tools parameter doesn't exist yet
             // This would need to be implemented or use generateText directly

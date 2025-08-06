@@ -28,17 +28,23 @@ public struct SimpleTool: Sendable {
     public let name: String
     public let description: String
     public let parameters: ToolParameters
+    public let namespace: String?
+    public let recipient: String?
     public let execute: @Sendable (ToolArguments) async throws -> ToolArgument
 
     public init(
         name: String,
         description: String,
         parameters: ToolParameters,
+        namespace: String? = nil,
+        recipient: String? = nil,
         execute: @escaping @Sendable (ToolArguments) async throws -> ToolArgument
     ) {
         self.name = name
         self.description = description
         self.parameters = parameters
+        self.namespace = namespace
+        self.recipient = recipient
         self.execute = execute
     }
 }

@@ -50,7 +50,7 @@ let response = try await generateText(
 Models use hierarchical enums with provider-specific sub-enums:
 ```swift
 .openai(.gpt4o, .gpt41, .o3)
-.anthropic(.opus4, .sonnet4, .haiku35)
+.anthropic(.opus4, .sonnet4, .haiku35) // opus4 is now Opus 4.1
 .grok(.grok4, .grok2Vision)
 .ollama(.llama3)
 ```
@@ -94,7 +94,7 @@ OPENAI_API_KEY=sk-... swift test --filter "OpenAIProviderTests"
 
 ### Provider Details
 - **OpenAI**: Dual API support (Chat Completions + Responses API for o3/o4)
-- **Anthropic**: Native implementation, default model is Claude Opus 4
+- **Anthropic**: Native implementation, default model is Claude Opus 4.1
 - **Ollama**: Requires longer timeouts (5+ minutes) for model loading
 
 ### Environment Variables

@@ -108,7 +108,7 @@ struct ProviderIntegrationTests {
             case .done:
                 receivedDone = true
                 break
-            case .toolCallStart, .toolCallDelta, .toolCallEnd, .toolResult, .stepStart, .stepEnd, .error:
+            case .channelStart, .channelEnd, .toolCallStart, .toolCallDelta, .toolCallEnd, .toolResult, .stepStart, .stepEnd, .error:
                 // Ignore other delta types for this test
                 break
             }

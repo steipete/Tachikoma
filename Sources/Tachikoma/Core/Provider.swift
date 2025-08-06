@@ -44,6 +44,9 @@ public enum Provider: Sendable, Hashable, Codable {
     /// Ollama provider (local model hosting)
     case ollama
     
+    /// LMStudio provider (local model hosting with GUI)
+    case lmstudio
+    
     /// Custom provider with user-defined identifier
     case custom(String)
     
@@ -57,6 +60,7 @@ public enum Provider: Sendable, Hashable, Codable {
         case .mistral: return "mistral"
         case .google: return "google"
         case .ollama: return "ollama"
+        case .lmstudio: return "lmstudio"
         case .custom(let id): return id
         }
     }
@@ -71,6 +75,7 @@ public enum Provider: Sendable, Hashable, Codable {
         case .mistral: return "Mistral"
         case .google: return "Google"
         case .ollama: return "Ollama"
+        case .lmstudio: return "LMStudio"
         case .custom(let id): return id.capitalized
         }
     }
@@ -85,6 +90,7 @@ public enum Provider: Sendable, Hashable, Codable {
         case .mistral: return "MISTRAL_API_KEY"
         case .google: return "GOOGLE_API_KEY"
         case .ollama: return "OLLAMA_API_KEY"
+        case .lmstudio: return "" // LMStudio doesn't need API keys
         case .custom: return "" // Custom providers manage their own env vars
         }
     }
@@ -107,6 +113,7 @@ public enum Provider: Sendable, Hashable, Codable {
         case .mistral: return "https://api.mistral.ai/v1"
         case .google: return "https://generativelanguage.googleapis.com/v1beta"
         case .ollama: return "http://localhost:11434"
+        case .lmstudio: return "http://localhost:1234/v1"
         case .custom: return nil
         }
     }
@@ -115,6 +122,7 @@ public enum Provider: Sendable, Hashable, Codable {
     public var requiresAPIKey: Bool {
         switch self {
         case .ollama: return false // Ollama typically doesn't require API key
+        case .lmstudio: return false // LMStudio doesn't require API key
         case .custom: return true // Assume custom providers need keys
         default: return true
         }

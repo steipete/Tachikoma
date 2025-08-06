@@ -52,6 +52,8 @@ public struct ModelMessage: Sendable, Codable, Equatable {
     public let role: Role
     public let content: [ContentPart]
     public let timestamp: Date
+    public let channel: ResponseChannel?
+    public let metadata: MessageMetadata?
 
     public enum Role: String, Sendable, Codable, CaseIterable {
         case system
@@ -77,11 +79,20 @@ public struct ModelMessage: Sendable, Codable, Equatable {
         }
     }
 
-    public init(id: String = UUID().uuidString, role: Role, content: [ContentPart], timestamp: Date = Date()) {
+    public init(
+        id: String = UUID().uuidString,
+        role: Role,
+        content: [ContentPart],
+        timestamp: Date = Date(),
+        channel: ResponseChannel? = nil,
+        metadata: MessageMetadata? = nil
+    ) {
         self.id = id
         self.role = role
         self.content = content
         self.timestamp = timestamp
+        self.channel = channel
+        self.metadata = metadata
     }
 
     // Convenience initializers
@@ -112,11 +123,21 @@ public struct ToolCall: Sendable, Codable, Equatable {
     public let id: String
     public let name: String
     public let arguments: [String: ToolArgument]
+    public let namespace: String?
+    public let recipient: String?
 
-    public init(id: String = UUID().uuidString, name: String, arguments: [String: ToolArgument]) {
+    public init(
+        id: String = UUID().uuidString,
+        name: String,
+        arguments: [String: ToolArgument],
+        namespace: String? = nil,
+        recipient: String? = nil
+    ) {
         self.id = id
         self.name = name
         self.arguments = arguments
+        self.namespace = namespace
+        self.recipient = recipient
     }
 }
 
@@ -289,6 +310,7 @@ public struct GenerationSettings: Sendable, Codable {
     public let frequencyPenalty: Double?
     public let presencePenalty: Double?
     public let stopSequences: [String]?
+    public let reasoningEffort: ReasoningEffort?
 
     public init(
         maxTokens: Int? = nil,
@@ -297,7 +319,8 @@ public struct GenerationSettings: Sendable, Codable {
         topK: Int? = nil,
         frequencyPenalty: Double? = nil,
         presencePenalty: Double? = nil,
-        stopSequences: [String]? = nil
+        stopSequences: [String]? = nil,
+        reasoningEffort: ReasoningEffort? = nil
     ) {
         self.maxTokens = maxTokens
         self.temperature = temperature
@@ -306,7 +329,45 @@ public struct GenerationSettings: Sendable, Codable {
         self.frequencyPenalty = frequencyPenalty
         self.presencePenalty = presencePenalty
         self.stopSequences = stopSequences
+        self.reasoningEffort = reasoningEffort
     }
 
     public static let `default` = GenerationSettings()
+}
+
+// MARK: - Multi-Channel Response Support
+
+/// Response channel for multi-channel outputs (inspired by OpenAI Harmony)
+@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+public enum ResponseChannel: String, Sendable, Codable, CaseIterable {
+    case thinking     // Chain of thought reasoning
+    case analysis     // Deep analysis of the problem
+    case commentary   // Meta-commentary about the response
+    case final       // Final answer to the user
+}
+
+/// Reasoning effort level for models that support it (o3, opus-4, etc.)
+@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+public enum ReasoningEffort: String, Sendable, Codable, CaseIterable {
+    case low
+    case medium
+    case high
+}
+
+/// Metadata for messages (conversation context, etc.)
+@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+public struct MessageMetadata: Sendable, Codable, Equatable {
+    public let conversationId: String?
+    public let turnId: String?
+    public let customData: [String: String]?
+    
+    public init(
+        conversationId: String? = nil,
+        turnId: String? = nil,
+        customData: [String: String]? = nil
+    ) {
+        self.conversationId = conversationId
+        self.turnId = turnId
+        self.customData = customData
+    }
 }

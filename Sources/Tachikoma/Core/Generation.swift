@@ -554,11 +554,14 @@ public struct GenerationStep: Sendable {
 public struct TextStreamDelta: Sendable {
     public let type: DeltaType
     public let content: String?
+    public let channel: ResponseChannel?
     public let toolCall: ToolCall?
     public let toolResult: ToolResult?
 
-    public enum DeltaType: Sendable {
+    public enum DeltaType: Sendable, Equatable {
         case textDelta
+        case channelStart(ResponseChannel)
+        case channelEnd(ResponseChannel)
         case toolCallStart
         case toolCallDelta
         case toolCallEnd
@@ -569,9 +572,16 @@ public struct TextStreamDelta: Sendable {
         case error
     }
 
-    public init(type: DeltaType, content: String? = nil, toolCall: ToolCall? = nil, toolResult: ToolResult? = nil) {
+    public init(
+        type: DeltaType,
+        content: String? = nil,
+        channel: ResponseChannel? = nil,
+        toolCall: ToolCall? = nil,
+        toolResult: ToolResult? = nil
+    ) {
         self.type = type
         self.content = content
+        self.channel = channel
         self.toolCall = toolCall
         self.toolResult = toolResult
     }

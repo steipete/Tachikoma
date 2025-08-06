@@ -42,6 +42,13 @@ public struct ProviderFactory {
         case let .ollama(ollamaModel):
             return try OllamaProvider(model: ollamaModel, configuration: configuration)
 
+        case let .lmstudio(lmstudioModel):
+            // LMStudio doesn't need API key, just use default configuration
+            return LMStudioProvider(
+                baseURL: configuration.getBaseURL(for: "lmstudio") ?? "http://localhost:1234/v1",
+                modelId: lmstudioModel.modelId
+            )
+
         case let .openRouter(modelId):
             return try OpenRouterProvider(modelId: modelId, configuration: configuration)
 

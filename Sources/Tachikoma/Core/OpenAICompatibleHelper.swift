@@ -189,8 +189,6 @@ struct OpenAICompatibleHelper {
                         }
                     }
                     continuation.finish()
-                } catch {
-                    continuation.finish(throwing: error)
                 }
             }
         }
@@ -199,7 +197,7 @@ struct OpenAICompatibleHelper {
     // MARK: - Helper Methods
 
     private static func convertMessages(_ messages: [ModelMessage]) throws -> [OpenAIChatMessage] {
-        return try messages.map { message in
+        return messages.map { message in
             switch message.role {
             case .system:
                 return OpenAIChatMessage(role: "system", content: message.content.compactMap { part in

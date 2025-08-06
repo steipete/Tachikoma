@@ -17,7 +17,7 @@ struct DirectConfigTests {
         // Just test basic access without test helpers
         _ = config.configuredProviders
         
-        #expect(true) // If we get here, no infinite loop
+        #expect(Bool(true)) // If we get here, no infinite loop
     }
     
     @Test("Provider enum direct access")  

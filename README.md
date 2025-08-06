@@ -13,8 +13,6 @@
 **A Modern Swift AI SDK that makes AI integration feel natural**
 
 Named after the spider-tank AI from Ghost in the Shell, **Tachikoma** provides an intelligent, adaptable interface for AI services with a completely modern Swift-native API.
-
-> **✨ Simplified Architecture**: Tachikoma now uses a **single unified module** instead of multiple separate modules. Just `import Tachikoma` and access all functionality - no more complex module management!
 </div>
 
 ## Quick Start
@@ -145,7 +143,60 @@ func generateText(
     settings: GenerationSettings = .default,
     maxSteps: Int = 1
 ) async throws -> GenerateTextResult
+
+// Generate embeddings (NEW)
+func generateEmbedding(
+    model: EmbeddingModel,
+    input: EmbeddingInput,
+    settings: EmbeddingSettings = .default
+) async throws -> EmbeddingResult
 ```
+
+### OpenAI Harmony-Inspired Features ✨
+
+Enhanced capabilities inspired by OpenAI Harmony patterns:
+
+- **🎭 Multi-Channel Responses** - Separate thinking, analysis, and final answers
+- **🧠 Reasoning Effort Levels** - Control depth of reasoning (low/medium/high)
+- **🔄 Automatic Retry Handler** - Exponential backoff with smart rate limit handling
+- **🔧 Enhanced Tool System** - Namespace and recipient support for tool routing
+- **📊 Embeddings API** - Unified interface for OpenAI, Cohere, Voyage embeddings
+- **💾 Response Caching** - Intelligent caching to reduce API calls
+
+```swift
+// Multi-channel responses
+let result = try await generateText(
+    model: .openai(.o3),
+    messages: messages,
+    settings: GenerationSettings(reasoningEffort: .high)
+)
+
+for message in result.messages {
+    switch message.channel {
+    case .thinking: print("[Reasoning] \(message.content)")
+    case .final: print("[Answer] \(message.content)")
+    default: break
+    }
+}
+
+// Automatic retry with exponential backoff
+let retryHandler = RetryHandler(policy: .aggressive)
+let response = try await retryHandler.execute {
+    try await generateText(model: .openai(.gpt4o), messages: messages)
+}
+
+// Enhanced tools with namespaces
+let tool = SimpleTool(
+    name: "search",
+    description: "Search the web",
+    parameters: params,
+    namespace: "web",
+    recipient: "search-engine",
+    execute: { /* ... */ }
+)
+```
+
+See [docs/openai-harmony.md](docs/openai-harmony.md) for detailed documentation.
 
 ### Conversation Management
 
