@@ -202,13 +202,10 @@ struct GenerationTests {
 
     // MARK: - Tool Integration Tests
 
-    @Test("Generate Function - With Empty ToolKit")
-    func generateFunctionWithEmptyToolKit() async throws {
+    @Test("Generate Function - Without Tools")
+    func generateFunctionWithoutTools() async throws {
         try await TestHelpers.withTestConfiguration(apiKeys: ["openai": "test-key"]) { config in
-            _ = EmptyToolKit()
-
-            // Note: The generate function with tools parameter doesn't exist yet
-            // This would need to be implemented or use generateText directly
+            // Test generation without tools
             let result = try await generate(
                 "Hello",
                 using: .openai(.gpt4o),
@@ -219,31 +216,28 @@ struct GenerationTests {
         }
     }
 
-    @Test("Generate Function - With Custom ToolKit")
-    func generateFunctionWithCustomToolKit() async throws {
+    @Test("Generate Function - With Custom Tools")
+    func generateFunctionWithCustomTools() async throws {
         try await TestHelpers.withTestConfiguration(apiKeys: ["anthropic": "test-key"]) { config in
-            // Create a simple test toolkit
-            struct TestToolKit: ToolKit {
-                var tools: [Tool<TestToolKit>] {
-                    [
-                        Tool(name: "test_tool", description: "A test tool") { _, _ in
-                            .string("Tool executed")
-                        },
-                    ]
-                }
+            // Create a simple test tool
+            let testTool = createTool(
+                name: "test_tool",
+                description: "A test tool",
+                parameters: [],
+                required: []
+            ) { _ in
+                .string("Tool executed")
             }
 
-            _ = TestToolKit()
-
-            // Note: The generate function with tools parameter doesn't exist yet
-            // This would need to be implemented or use generateText directly
-            let result = try await generate(
-                "Use the test tool",
-                using: .anthropic(.sonnet4),
+            // Use generateText with tools
+            let result = try await generateText(
+                model: .anthropic(.sonnet4),
+                messages: [.user("Use the test tool")],
+                tools: [testTool],
                 configuration: config
             )
 
-            #expect(!result.isEmpty)
+            #expect(!result.text.isEmpty)
         }
     }
 

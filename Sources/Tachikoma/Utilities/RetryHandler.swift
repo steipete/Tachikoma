@@ -115,7 +115,7 @@ public actor RetryHandler {
     }
     
     /// Execute an async operation with automatic retry
-    public func execute<T>(
+    public func execute<T: Sendable>(
         operation: @Sendable () async throws -> T,
         onRetry: (@Sendable (Int, TimeInterval, Error) async -> Void)? = nil
     ) async throws -> T {

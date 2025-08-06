@@ -45,12 +45,14 @@ struct MinimalModernAPITests {
 
     // MARK: - Tool System Tests
 
-    @Test("Tool creation")
-    func toolCreation() {
-        let tool = Tool<String>(
+    @Test("AgentTool creation")
+    func agentToolCreation() {
+        let tool = createTool(
             name: "test_tool",
-            description: "A test tool"
-        ) { _, _ in
+            description: "A test tool",
+            parameters: [],
+            required: []
+        ) { _ in
             .string("Tool executed")
         }
 
@@ -58,46 +60,24 @@ struct MinimalModernAPITests {
         #expect(tool.description == "A test tool")
     }
 
-    @Test("ToolInput JSON parsing basic")
-    func toolInputBasic() throws {
-        let input = try ToolInput(jsonString: "{\"name\": \"test\"}")
-        #expect(try input.stringValue("name") == "test")
-
-        let emptyInput = try ToolInput(jsonString: "{}")
-        #expect(emptyInput.stringValue("missing", default: "default") == "default")
+    @Test("AgentToolArguments parsing")
+    func agentToolArgumentsParsing() throws {
+        let args = AgentToolArguments([
+            "name": .string("test"),
+            "value": .int(42)
+        ])
+        
+        #expect(try args.stringValue("name") == "test")
+        #expect(try args.intValue("value") == 42)
+        #expect(args.stringValue("missing", default: "default") == "default")
     }
 
-    @Test("ToolOutput basic functionality")
-    func toolOutputBasic() throws {
-        let output = ToolOutput.string("Hello")
-        #expect(try output.toJSONString() == "Hello")
-
-        let errorOutput = ToolOutput.error(message: "Error")
-        #expect(try errorOutput.toJSONString() == "Error: Error")
-    }
-
-    // MARK: - Empty ToolKit
-
-    @Test("EmptyToolKit")
-    func emptyToolKit() {
-        let toolkit = EmptyToolKit()
-        #expect(toolkit.tools.isEmpty)
-    }
-
-    // MARK: - Example ToolKits
-
-    @Test("WeatherToolKit basic structure")
-    func weatherToolKitStructure() {
-        let toolkit = WeatherToolKit()
-        #expect(toolkit.tools.count == 2)
-        #expect(toolkit.tools.contains { $0.name == "get_weather" })
-    }
-
-    @Test("MathToolKit basic structure")
-    func mathToolKitStructure() {
-        let toolkit = MathToolKit()
-        #expect(toolkit.tools.count == 2)
-        #expect(toolkit.tools.contains { $0.name == "calculate" })
+    @Test("Built-in tools exist")
+    func builtInToolsExist() {
+        // Test that built-in tools are available
+        #expect(weatherTool.name == "get_weather")
+        #expect(timeTool.name == "get_current_time")
+        #expect(calculatorTool.name == "calculate")
     }
 }
 
