@@ -499,21 +499,25 @@ struct RealtimeComprehensiveTests {
 // MARK: - Mock Transport for Testing
 
 @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
-actor MockWebSocketTransport: WebSocketTransport {
-    var isConnected = false
+actor MockWebSocketTransport {
+    private var _isConnected = false
     private var receiveContinuation: AsyncStream<Data>.Continuation?
     
+    var isConnected: Bool {
+        _isConnected
+    }
+    
     func connect(to url: URL) async throws {
-        isConnected = true
+        _isConnected = true
     }
     
     func disconnect() async {
-        isConnected = false
+        _isConnected = false
         receiveContinuation?.finish()
     }
     
     func send(_ data: Data) async throws {
-        guard isConnected else {
+        guard _isConnected else {
             throw TachikomaError.networkError(URLError(.notConnectedToInternet))
         }
     }
