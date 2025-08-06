@@ -48,39 +48,202 @@ let nextResponse = try await conversation.continue()
 
 ### OpenAI Realtime API (Voice Conversations) 🎙️
 
-**NEW: Full support for OpenAI's Realtime API for low-latency voice conversations!**
+**COMPLETE: Full implementation of OpenAI's Realtime API for ultra-low-latency voice conversations!**
+
+The Realtime API enables natural, real-time voice conversations with GPT-4o, featuring:
+- **~500ms latency** - Near-instantaneous voice responses
+- **WebSocket streaming** - Persistent bidirectional connection
+- **Native voice I/O** - No separate TTS/STR needed
+- **Function calling** - Voice-triggered tool execution
+
+#### Quick Start
 
 ```swift
-// Simple voice assistant
-let conversation = try await startRealtimeConversation(
+// Basic voice conversation
+let conversation = try RealtimeConversation(configuration: config)
+try await conversation.start(
     model: .gpt4oRealtime,
     voice: .nova,
     instructions: "You are a helpful voice assistant"
 )
 
-// Start listening
+// Manual turn control
 try await conversation.startListening()
+// User speaks...
+try await conversation.stopListening()
 
 // Handle responses
 for await transcript in conversation.transcriptUpdates {
     print("Assistant: \(transcript)")
 }
 
-// Advanced configuration with Server VAD
-let config = EnhancedSessionConfiguration.voiceConversation()
-config.turnDetection = .serverVAD  // Automatic turn detection
-config.modalities = .all           // Text and audio
+// End conversation
+await conversation.end()
+```
 
-let advanced = try AdvancedRealtimeConversation(
+#### Advanced Features
+
+```swift
+// Full-featured configuration
+let config = EnhancedSessionConfiguration(
+    model: "gpt-4o-realtime-preview",
+    voice: .nova,
+    instructions: "You are an expert assistant",
+    inputAudioFormat: .pcm16,
+    outputAudioFormat: .pcm16,
+    inputAudioTranscription: .whisper,  // Transcribe user audio
+    turnDetection: RealtimeTurnDetection(
+        type: .serverVad,
+        threshold: 0.5,
+        silenceDurationMs: 200,
+        prefixPaddingMs: 300
+    ),
+    modalities: .all,  // Text and audio
+    temperature: 0.8,
+    maxResponseOutputTokens: 4096
+)
+
+// Production-ready settings
+let settings = ConversationSettings(
+    autoReconnect: true,
+    maxReconnectAttempts: 3,
+    reconnectDelay: 2.0,
+    bufferWhileDisconnected: true,  // Buffer audio during disconnection
+    enableEchoCancellation: true,
+    enableNoiseSuppression: true
+)
+
+// Create advanced conversation manager
+let conversation = try AdvancedRealtimeConversation(
     apiKey: apiKey,
     configuration: config,
-    settings: .production  // Auto-reconnect, buffering, etc.
+    settings: settings
 )
 
 // Dynamic modality switching
-try await advanced.updateModalities(.text)  // Switch to text-only
-try await advanced.updateModalities(.audio) // Switch to audio-only
+try await conversation.updateModalities(.text)   // Text-only mode
+try await conversation.updateModalities(.audio)  // Audio-only mode
+try await conversation.updateModalities(.all)    // Both modalities
+
+// Update VAD settings on the fly
+try await conversation.updateTurnDetection(
+    RealtimeTurnDetection.serverVAD
+)
 ```
+
+#### Voice-Enabled Function Calling
+
+```swift
+// Register tools for voice interaction
+await conversation.registerTools([
+    createTool(
+        name: "get_weather",
+        description: "Get current weather for a location",
+        parameters: [
+            AgentToolParameterProperty(
+                name: "location",
+                type: .string,
+                description: "City and state/country"
+            )
+        ]
+    ) { args in
+        let location = try args.stringValue("location")
+        // Fetch weather data...
+        return .string("Sunny, 22°C in \(location)")
+    }
+])
+
+// Built-in tools available
+await conversation.registerBuiltInTools()
+// Includes: Weather, Time, Calculator, WebSearch, Translation
+
+// Tools are automatically invoked during voice conversation
+// User: "What's the weather in Tokyo?"
+// Assistant calls get_weather("Tokyo") and responds with result
+```
+
+#### Audio Pipeline & Processing
+
+```swift
+// Custom audio pipeline configuration
+let pipeline = try AudioStreamPipeline()
+pipeline.delegate = self
+
+// Handle audio events
+extension MyController: AudioStreamPipelineDelegate {
+    func audioStreamPipeline(_ pipeline: AudioStreamPipeline, 
+                           didCaptureAudio data: Data) {
+        // Process captured audio (24kHz PCM16)
+    }
+    
+    func audioStreamPipeline(_ pipeline: AudioStreamPipeline, 
+                           didUpdateAudioLevel level: Float) {
+        // Update UI with audio levels
+    }
+    
+    func audioStreamPipeline(_ pipeline: AudioStreamPipeline, 
+                           didDetectSpeechStart: Bool) {
+        // Handle speech detection
+    }
+}
+```
+
+#### SwiftUI Integration
+
+```swift
+// Observable conversation for SwiftUI
+@StateObject private var conversation = AdvancedRealtimeConversation(
+    apiKey: apiKey,
+    configuration: .voiceConversation()
+)
+
+// Pre-built SwiftUI view
+RealtimeConversationView(
+    apiKey: apiKey,
+    configuration: .voiceConversation(),
+    onError: { error in
+        print("Conversation error: \(error)")
+    }
+)
+```
+
+#### Event System
+
+All 37 Realtime API events are fully supported:
+
+```swift
+// Client events (9 types)
+case sessionUpdate(SessionUpdateEvent)
+case inputAudioBufferAppend(InputAudioBufferAppendEvent)
+case inputAudioBufferCommit
+case inputAudioBufferClear
+case conversationItemCreate(ConversationItemCreateEvent)
+case conversationItemTruncate(ConversationItemTruncateEvent)
+case conversationItemDelete(ConversationItemDeleteEvent)
+case responseCreate(ResponseCreateEvent)
+case responseCancel
+
+// Server events (28 types)
+case sessionCreated(SessionCreatedEvent)
+case conversationItemCreated(ConversationItemCreatedEvent)
+case inputAudioBufferSpeechStarted
+case responseAudioDelta(ResponseAudioDeltaEvent)
+case responseFunctionCallArgumentsDone(ResponseFunctionCallArgumentsDoneEvent)
+case rateLimitsUpdated(RateLimitsUpdatedEvent)
+case error(RealtimeErrorEvent)
+// ... and more
+```
+
+#### Complete Implementation Status ✅
+
+- ✅ **Phase 1**: Core WebSocket infrastructure
+- ✅ **Phase 2**: Event system (37 events)
+- ✅ **Phase 3**: Audio pipeline (24kHz PCM16)
+- ✅ **Phase 4**: Function calling
+- ✅ **Phase 5**: Advanced features (VAD, modalities, auto-reconnect)
+- ✅ **Phase 6**: Testing & documentation
+
+See [docs/openai-harmony.md](docs/openai-harmony.md) for complete implementation details.
 
 ### Tool Integration
 

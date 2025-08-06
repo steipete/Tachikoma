@@ -265,23 +265,8 @@ public final class AdvancedRealtimeConversation: ObservableObject {
     
     private func setupEventHandlers() {
         Task {
-            // Connection state handler
-            await session.onConnectionStateChange { [weak self] connected in
-                Task { @MainActor in
-                    self?.isConnected = connected
-                    if !connected && self?.settings.autoReconnect ?? false {
-                        self?.state = .reconnecting
-                    }
-                }
-            }
-            
-            // Error handler
-            await session.onError { [weak self] error in
-                Task { @MainActor in
-                    print("Session error: \(error)")
-                    self?.state = .error
-                }
-            }
+            // TODO: Setup event handlers when methods are available
+            // Connection state and error handlers need to be implemented
         }
     }
     

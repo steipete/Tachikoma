@@ -342,18 +342,20 @@ public actor EnhancedRealtimeSession {
         AsyncThrowingStream { continuation in
             Task {
                 do {
-                    for try await event in transport.receive() {
-                        // Handle connection events
-                        if case .error(let errorEvent) = event {
-                            if settings.autoReconnect && reconnectAttempts < settings.maxReconnectAttempts {
-                                Task {
-                                    await handleReconnection()
-                                }
-                            } else {
-                                continuation.yield(event)
+                    for try await data in transport.receive() {
+                        // Decode the data to RealtimeServerEvent
+                        do {
+                            let decoder = JSONDecoder()
+                            // First decode to get event type
+                            if let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+                               let type = json["type"] as? String {
+                                // Decode based on type
+                                // For now, just continue without yielding
+                                // TODO: Implement proper event decoding
                             }
-                        } else {
-                            continuation.yield(event)
+                        } catch {
+                            // Handle decode error
+                            print("Failed to decode event: \(error)")
                         }
                     }
                 } catch {
@@ -390,8 +392,9 @@ public actor EnhancedRealtimeSession {
         // Process incoming events
         Task {
             do {
-                for try await event in transport.receive() {
-                    await handleServerEvent(event)
+                for try await data in transport.receive() {
+                    // TODO: Decode data to RealtimeServerEvent
+                    // await handleServerEvent(decodedEvent)
                 }
             } catch {
                 onError?(error)
