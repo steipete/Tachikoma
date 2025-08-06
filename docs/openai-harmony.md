@@ -1,8 +1,8 @@
 # OpenAI Harmony (Realtime API) Integration for Tachikoma
 
-## Implementation Status: Phase 4 Complete ✅
+## Implementation Status: Phase 5 Complete ✅
 
-**Current Progress**: Function Calling complete, Audio Infrastructure complete, Core Infrastructure complete
+**Current Progress**: Advanced Features complete, Function Calling complete, Audio Infrastructure complete, Core Infrastructure complete
 
 ## Executive Summary
 Add full support for OpenAI's Realtime API ("Harmony") to enable low-latency, bidirectional voice conversations with GPT-4o, including real-time audio streaming, function calling, and session management through WebSocket connections.
@@ -107,6 +107,24 @@ let conversation = try await startRealtimeConversation(model: .openai(.gpt4oReal
 - **Timeout support**: Configurable timeouts for tool execution
 - **JSON argument parsing**: Convert JSON strings to typed arguments
 
+### Phase 5: Advanced Features ✅
+
+#### Files Created:
+- `Sources/Tachikoma/Realtime/Configuration/RealtimeConfiguration.swift` - Enhanced configuration with VAD and modalities
+- `Sources/Tachikoma/Realtime/RealtimeSessionEnhanced.swift` - Enhanced session with auto-reconnect and buffering
+- `Sources/Tachikoma/Realtime/AdvancedRealtimeConversation.swift` - Full-featured conversation manager
+- `Tests/TachikomaTests/Realtime/AdvancedFeaturesTests.swift` - Test suite for advanced features
+
+#### Key Features:
+- **Server VAD**: Configurable Voice Activity Detection with thresholds and timing
+- **Response Modalities**: Control text/audio/both response types dynamically
+- **Turn Detection**: Automatic turn-taking with server-side detection
+- **Input Transcription**: Optional Whisper transcription for input audio
+- **Tool Choice**: Auto/none/required/specific function selection
+- **Auto-Reconnect**: Automatic reconnection with exponential backoff
+- **Audio Buffering**: Buffer audio while disconnected for seamless recovery
+- **Conversation Settings**: Production/development presets with full customization
+
 ### Implementation Summary
 
 The OpenAI Realtime API (Harmony) integration for Tachikoma now has:
@@ -115,8 +133,9 @@ The OpenAI Realtime API (Harmony) integration for Tachikoma now has:
 2. **Full Audio Support**: Format conversion, capture/playback, VAD, streaming pipeline
 3. **Production-Ready API**: Enhanced conversation API with persistence, UI components
 4. **Function Calling**: Type-safe tool execution with built-in and custom tools
-5. **Type Safety Throughout**: No [String: Any], full Sendable conformance
-6. **Platform Support**: macOS 13.0+, iOS 16.0+, watchOS 9.0+, tvOS 16.0+
+5. **Advanced Features**: Server VAD, response modalities, turn management, auto-reconnect
+6. **Type Safety Throughout**: No [String: Any], full Sendable conformance
+7. **Platform Support**: macOS 13.0+, iOS 16.0+, watchOS 9.0+, tvOS 16.0+
 
 ### Usage Example
 

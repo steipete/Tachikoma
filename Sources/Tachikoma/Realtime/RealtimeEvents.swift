@@ -700,6 +700,29 @@ public struct RealtimeErrorEvent: Codable, Sendable {
     public let error: ResponseError
 }
 
+// MARK: - Client Event Extensions
+
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
+extension RealtimeClientEvent {
+    var type: String {
+        switch self {
+        case .sessionUpdate: return "session.update"
+        case .inputAudioBufferAppend: return "input_audio_buffer.append"
+        case .inputAudioBufferCommit: return "input_audio_buffer.commit"
+        case .inputAudioBufferClear: return "input_audio_buffer.clear"
+        case .conversationItemCreate: return "conversation.item.create"
+        case .conversationItemTruncate: return "conversation.item.truncate"
+        case .conversationItemDelete: return "conversation.item.delete"
+        case .responseCreate: return "response.create"
+        case .responseCancel: return "response.cancel"
+        }
+    }
+    
+    var eventId: String {
+        UUID().uuidString
+    }
+}
+
 // MARK: - Supporting Types
 
 @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
