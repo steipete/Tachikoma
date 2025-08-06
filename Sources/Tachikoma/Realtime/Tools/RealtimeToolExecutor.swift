@@ -30,7 +30,7 @@ public actor RealtimeToolExecutor {
         public let description: String
         public let version: String
         public let category: ToolCategory
-        public let parameters: ToolParameters
+        public let parameters: AgentToolParameters
         
         public enum ToolCategory: String, Sendable {
             case utility
@@ -45,7 +45,7 @@ public actor RealtimeToolExecutor {
             description: String,
             version: String = "1.0.0",
             category: ToolCategory = .custom,
-            parameters: ToolParameters
+            parameters: AgentToolParameters
         ) {
             self.name = name
             self.description = description
@@ -261,7 +261,7 @@ public actor RealtimeToolExecutor {
     
     private func parseArguments(
         _ jsonString: String,
-        for parameters: ToolParameters
+        for parameters: AgentToolParameters
     ) throws -> RealtimeToolArguments {
         guard let data = jsonString.data(using: .utf8) else {
             throw TachikomaError.invalidInput("Invalid JSON string")

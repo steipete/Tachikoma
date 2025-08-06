@@ -1,16 +1,16 @@
 //
-//  SimpleToolWrapper.swift
+//  AgentToolWrapper.swift
 //  Tachikoma
 //
 
 import Foundation
 
-// MARK: - SimpleTool to RealtimeExecutableTool Adapter
+// MARK: - AgentTool to RealtimeExecutableTool Adapter
 
-/// Wraps a SimpleTool to make it compatible with RealtimeExecutableTool
+/// Wraps an AgentTool to make it compatible with RealtimeExecutableTool
 @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
-public struct SimpleToolWrapper: RealtimeExecutableTool {
-    private let tool: SimpleTool
+public struct AgentToolWrapper: RealtimeExecutableTool {
+    private let tool: AgentTool
     
     public var metadata: RealtimeToolExecutor.ToolMetadata {
         RealtimeToolExecutor.ToolMetadata(
@@ -20,13 +20,13 @@ public struct SimpleToolWrapper: RealtimeExecutableTool {
         )
     }
     
-    public init(tool: SimpleTool) {
+    public init(tool: AgentTool) {
         self.tool = tool
     }
     
     public func execute(_ arguments: RealtimeToolArguments) async -> String {
-        // Convert RealtimeToolArgument to ToolArgument (from Types.swift)
-        var convertedArgs: [String: ToolArgument] = [:]
+        // Convert RealtimeToolArgument to AgentToolArgument (from Types.swift)
+        var convertedArgs: [String: AgentToolArgument] = [:]
         
         for (key, value) in arguments {
             switch value {
@@ -40,7 +40,7 @@ public struct SimpleToolWrapper: RealtimeExecutableTool {
                 convertedArgs[key] = .bool(bool)
             case .array(let arr):
                 // Convert array elements
-                let converted = arr.compactMap { element -> ToolArgument? in
+                let converted = arr.compactMap { element -> AgentToolArgument? in
                     switch element {
                     case .string(let s): return .string(s)
                     case .number(let n): return .double(n)
@@ -56,8 +56,8 @@ public struct SimpleToolWrapper: RealtimeExecutableTool {
                     do {
                         let json = try JSONSerialization.jsonObject(with: data)
                         if let dict = json as? [String: Any] {
-                            // Convert to nested ToolArgument structure
-                            var objectArgs: [String: ToolArgument] = [:]
+                            // Convert to nested AgentToolArgument structure
+                            var objectArgs: [String: AgentToolArgument] = [:]
                             for (k, v) in dict {
                                 objectArgs[k] = convertAnyToToolArgument(v)
                             }
@@ -78,7 +78,7 @@ public struct SimpleToolWrapper: RealtimeExecutableTool {
         
         // Execute the tool
         do {
-            let result = try await tool.execute(ToolArguments(convertedArgs))
+            let result = try await tool.execute(AgentToolArguments(convertedArgs))
             
             // Convert result to string
             switch result {
@@ -111,8 +111,8 @@ public struct SimpleToolWrapper: RealtimeExecutableTool {
         }
     }
     
-    // Helper function to convert Any to ToolArgument
-    private func convertAnyToToolArgument(_ value: Any) -> ToolArgument {
+    // Helper function to convert Any to AgentToolArgument
+    private func convertAnyToToolArgument(_ value: Any) -> AgentToolArgument {
         if value is NSNull {
             return .null
         } else if let bool = value as? Bool {
@@ -126,7 +126,7 @@ public struct SimpleToolWrapper: RealtimeExecutableTool {
         } else if let array = value as? [Any] {
             return .array(array.map(convertAnyToToolArgument))
         } else if let dict = value as? [String: Any] {
-            var objectArgs: [String: ToolArgument] = [:]
+            var objectArgs: [String: AgentToolArgument] = [:]
             for (k, v) in dict {
                 objectArgs[k] = convertAnyToToolArgument(v)
             }
@@ -136,8 +136,8 @@ public struct SimpleToolWrapper: RealtimeExecutableTool {
         }
     }
     
-    // Helper function to convert ToolArgument to Any
-    private func convertToolArgumentToAny(_ arg: ToolArgument) -> Any {
+    // Helper function to convert AgentToolArgument to Any
+    private func convertToolArgumentToAny(_ arg: AgentToolArgument) -> Any {
         switch arg {
         case .null:
             return NSNull()

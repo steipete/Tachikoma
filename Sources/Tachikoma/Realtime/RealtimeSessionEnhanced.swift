@@ -193,9 +193,9 @@ public actor EnhancedRealtimeSession {
         if let td = config.turnDetection {
             sessionConfig.turnDetection = TurnDetection(
                 type: td.type.rawValue,
-                threshold: td.threshold.map { Double($0) },
-                prefixPaddingMs: td.prefixPaddingMs,
-                silenceDurationMs: td.silenceDurationMs
+                threshold: td.threshold.map { Double($0) } ?? 0.5,
+                prefixPaddingMs: td.prefixPaddingMs ?? 300,
+                silenceDurationMs: td.silenceDurationMs ?? 200
             )
         }
         
@@ -225,14 +225,14 @@ public actor EnhancedRealtimeSession {
                 
                 // Send buffered audio
                 let bufferedEvent = RealtimeClientEvent.inputAudioBufferAppend(
-                    InputAudioBufferAppendEvent(audio: bufferedData.base64EncodedString())
+                    InputAudioBufferAppendEvent(audio: bufferedData)
                 )
                 try await sendEvent(bufferedEvent)
             }
             
             // Send current audio
             let event = RealtimeClientEvent.inputAudioBufferAppend(
-                InputAudioBufferAppendEvent(audio: data.base64EncodedString())
+                InputAudioBufferAppendEvent(audio: data)
             )
             try await sendEvent(event)
         } else if settings.bufferWhileDisconnected {
@@ -253,9 +253,7 @@ public actor EnhancedRealtimeSession {
     public func commitAudio() async throws {
         guard isConnected else { return }
         
-        let event = RealtimeClientEvent.inputAudioBufferCommit(
-            InputAudioBufferCommitEvent()
-        )
+        let event = RealtimeClientEvent.inputAudioBufferCommit
         try await sendEvent(event)
     }
     
@@ -266,9 +264,7 @@ public actor EnhancedRealtimeSession {
         
         guard isConnected else { return }
         
-        let event = RealtimeClientEvent.inputAudioBufferClear(
-            InputAudioBufferClearEvent()
-        )
+        let event = RealtimeClientEvent.inputAudioBufferClear
         try await sendEvent(event)
     }
     
@@ -285,7 +281,12 @@ public actor EnhancedRealtimeSession {
         }
         
         let event = RealtimeClientEvent.responseCreate(
-            ResponseCreateEvent(response: nil)
+            ResponseCreateEvent(
+                modalities: modalities?.toArray,
+                instructions: nil,
+                voice: nil,
+                temperature: nil
+            )
         )
         try await sendEvent(event)
     }
@@ -294,9 +295,7 @@ public actor EnhancedRealtimeSession {
     public func cancelResponse() async throws {
         guard isConnected else { return }
         
-        let event = RealtimeClientEvent.responseCancel(
-            ResponseCancelEvent()
-        )
+        let event = RealtimeClientEvent.responseCancel
         try await sendEvent(event)
     }
     
@@ -317,7 +316,11 @@ public actor EnhancedRealtimeSession {
         guard isConnected else { return }
         
         let event = RealtimeClientEvent.conversationItemTruncate(
-            ConversationItemTruncateEvent(itemId: itemId)
+            ConversationItemTruncateEvent(
+                itemId: itemId,
+                contentIndex: 0,
+                audioEndMs: 0
+            )
         )
         try await sendEvent(event)
     }

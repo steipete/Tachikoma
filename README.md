@@ -110,7 +110,7 @@ let toolkit = WeatherTools()
 let result = try await generateText(
     model: .claude,
     messages: [.user("What's the weather in Tokyo?")],
-    tools: toolkit.tools.map { $0.toSimpleTool() }
+    tools: toolkit.tools.map { $0.toAgentTool() }
 )
 print(result.text)
 ```
@@ -175,7 +175,7 @@ func analyze(
 func generateText(
     model: LanguageModel,
     messages: [ModelMessage],
-    tools: [SimpleTool]? = nil,
+    tools: [AgentTool]? = nil,
     settings: GenerationSettings = .default,
     maxSteps: Int = 1
 ) async throws -> GenerateTextResult
@@ -222,7 +222,7 @@ let response = try await retryHandler.execute {
 }
 
 // Enhanced tools with namespaces
-let tool = SimpleTool(
+let tool = AgentTool(
     name: "search",
     description: "Search the web",
     parameters: params,
@@ -302,7 +302,7 @@ let toolkit = MathToolKit()
 let result = try await generateText(
     model: .claude,
     messages: [.user("What is 15 * 23?")],
-    tools: toolkit.tools.map { $0.toSimpleTool() }
+    tools: toolkit.tools.map { $0.toAgentTool() }
 )
 ```
 
@@ -401,7 +401,7 @@ public func analyze(image: ImageInput, prompt: String, using model: Model? = nil
 public func generateText(
     model: LanguageModel,
     messages: [ModelMessage],
-    tools: [SimpleTool]? = nil,
+    tools: [AgentTool]? = nil,
     settings: GenerationSettings = .default,
     maxSteps: Int = 1
 ) async throws -> GenerateTextResult
@@ -409,7 +409,7 @@ public func generateText(
 public func streamText(
     model: LanguageModel,
     messages: [ModelMessage],
-    tools: [SimpleTool]? = nil,
+    tools: [AgentTool]? = nil,
     settings: GenerationSettings = .default,
     maxSteps: Int = 1
 ) async throws -> StreamTextResult
@@ -770,7 +770,7 @@ let calculator = CalculatorToolKit()
 let result = try await generateText(
     model: .claude,
     messages: [.user("What is 15 * 23 + 100? Also convert 50 USD to EUR.")],
-    tools: calculator.tools.map { $0.toSimpleTool() }
+    tools: calculator.tools.map { $0.toAgentTool() }
 )
 
 print(result.text)  // AI will use the tools to calculate and convert
@@ -824,7 +824,7 @@ Handle complex workflows with multiple tool calls:
 let result = try await generateText(
     model: .claude,
     messages: [.user("Research Swift 6 features, then write documentation")],
-    tools: researchTools.tools.map { $0.toSimpleTool() },
+    tools: researchTools.tools.map { $0.toAgentTool() },
     maxSteps: 5  // Allow multiple rounds of tool calling
 )
 

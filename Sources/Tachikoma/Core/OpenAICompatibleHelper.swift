@@ -95,21 +95,21 @@ struct OpenAICompatibleHelper {
         }()
 
         // Convert tool calls if present
-        let toolCalls = choice.message.toolCalls?.compactMap { openAIToolCall -> ToolCall? in
-            // Parse JSON string to dictionary and convert to ToolArgument format
+        let toolCalls = choice.message.toolCalls?.compactMap { openAIToolCall -> AgentToolCall? in
+            // Parse JSON string to dictionary and convert to AgentToolArgument format
             guard let data = openAIToolCall.function.arguments.data(using: .utf8),
                   let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
                 return nil
             }
             
-            var arguments: [String: ToolArgument] = [:]
+            var arguments: [String: AgentToolArgument] = [:]
             for (key, value) in json {
-                if let toolArg = try? ToolArgument.from(any: value) {
+                if let toolArg = try? AgentToolArgument.from(any: value) {
                     arguments[key] = toolArg
                 }
             }
             
-            return ToolCall(
+            return AgentToolCall(
                 id: openAIToolCall.id,
                 name: openAIToolCall.function.name,
                 arguments: arguments
@@ -261,8 +261,8 @@ struct OpenAICompatibleHelper {
         }
     }
 
-    private static func convertTool(_ tool: SimpleTool) throws -> OpenAITool {
-        // Convert ToolParameters to [String: Any]
+    private static func convertTool(_ tool: AgentTool) throws -> OpenAITool {
+        // Convert AgentToolParameters to [String: Any]
         var parameters: [String: Any] = [
             "type": tool.parameters.type
         ]

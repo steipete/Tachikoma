@@ -225,15 +225,15 @@ public enum MigrationGuide {
     /// Modern: @ToolKit result builder
     public static let tools = """
     // OLD (deprecated)
-    let toolDef = ToolDefinition(
+    let toolDef = AgentToolDefinition(
         type: .function,
-        function: FunctionDefinition(name: "weather", description: "Get weather", parameters: ...)
+        function: AgentFunctionDefinition(name: "weather", description: "Get weather", parameters: ...)
     )
     let tools = [toolDef]
     let request = ModelRequest(messages: messages, tools: tools, settings: .default)
 
     // NEW (modern)
-    @ToolKit
+    // @ToolKit
     struct MyTools {
         func getWeather(location: String) async throws -> String {
             return "Sunny, 22°C"

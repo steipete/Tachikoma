@@ -7,8 +7,8 @@ import Foundation
 
 // MARK: - Helper Types
 
-public typealias ToolMethod = @Sendable (ToolArguments) async throws -> ToolArgument
-public typealias ToolMethodCreator = @Sendable (String, String, ToolParameters, ToolMethod) -> SimpleTool
+public typealias ToolMethod = @Sendable (AgentToolArguments) async throws -> AgentToolArgument
+public typealias ToolMethodCreator = @Sendable (String, String, AgentToolParameters, ToolMethod) -> AgentTool
 
 /// Context that gets passed to tool execution
 public protocol ToolContext: Sendable {
@@ -17,28 +17,28 @@ public protocol ToolContext: Sendable {
 }
 
 // MARK: - Core Tool Argument Types
-// Note: ToolArgument is defined in Core/Types.swift and imported automatically
+// Note: AgentToolArgument is defined in Core/Types.swift and imported automatically
 
 // MARK: - Tool System
 
 // MARK: - Core Tool for API
 
-/// Core SimpleTool struct used by generation APIs
-public struct SimpleTool: Sendable {
+/// Core AgentTool struct used by generation APIs
+public struct AgentTool: Sendable {
     public let name: String
     public let description: String
-    public let parameters: ToolParameters
+    public let parameters: AgentToolParameters
     public let namespace: String?
     public let recipient: String?
-    public let execute: @Sendable (ToolArguments) async throws -> ToolArgument
+    public let execute: @Sendable (AgentToolArguments) async throws -> AgentToolArgument
 
     public init(
         name: String,
         description: String,
-        parameters: ToolParameters,
+        parameters: AgentToolParameters,
         namespace: String? = nil,
         recipient: String? = nil,
-        execute: @escaping @Sendable (ToolArguments) async throws -> ToolArgument
+        execute: @escaping @Sendable (AgentToolArguments) async throws -> AgentToolArgument
     ) {
         self.name = name
         self.description = description
@@ -50,14 +50,14 @@ public struct SimpleTool: Sendable {
 }
 
 /// Parameters for a tool definition
-public struct ToolParameters: Sendable, Codable {
+public struct AgentToolParameters: Sendable, Codable {
     public let type: String
-    public let properties: [String: ToolParameterProperty]
+    public let properties: [String: AgentToolParameterProperty]
     public let required: [String]
 
-    public init(properties: [ToolParameterProperty], required: [String] = []) {
+    public init(properties: [AgentToolParameterProperty], required: [String] = []) {
         self.type = "object"
-        var propsDict: [String: ToolParameterProperty] = [:]
+        var propsDict: [String: AgentToolParameterProperty] = [:]
         for prop in properties {
             propsDict[prop.name] = prop
         }
@@ -65,7 +65,7 @@ public struct ToolParameters: Sendable, Codable {
         self.required = required
     }
     
-    public init(properties: [String: ToolParameterProperty], required: [String] = []) {
+    public init(properties: [String: AgentToolParameterProperty], required: [String] = []) {
         self.type = "object"
         self.properties = properties
         self.required = required
@@ -73,7 +73,7 @@ public struct ToolParameters: Sendable, Codable {
 }
 
 /// Individual parameter property for a tool
-public struct ToolParameterProperty: Sendable, Codable {
+public struct AgentToolParameterProperty: Sendable, Codable {
     public let name: String
     public let type: ParameterType
     public let description: String
@@ -109,17 +109,17 @@ public struct ToolParameterProperty: Sendable, Codable {
 }
 
 /// Tool definition for external APIs
-public struct ToolDefinition: Sendable, Codable {
-    public let type: ToolType
-    public let function: FunctionDefinition
+public struct AgentToolDefinition: Sendable, Codable {
+    public let type: AgentToolType
+    public let function: AgentFunctionDefinition
 
-    public enum ToolType: String, Sendable, Codable {
+    public enum AgentToolType: String, Sendable, Codable {
         case function
     }
 
-    public init(name: String, description: String, parameters: ToolParameters) {
+    public init(name: String, description: String, parameters: AgentToolParameters) {
         self.type = .function
-        self.function = FunctionDefinition(
+        self.function = AgentFunctionDefinition(
             name: name,
             description: description,
             parameters: parameters
@@ -128,12 +128,12 @@ public struct ToolDefinition: Sendable, Codable {
 }
 
 /// Function definition within a tool
-public struct FunctionDefinition: Sendable, Codable {
+public struct AgentFunctionDefinition: Sendable, Codable {
     public let name: String
     public let description: String
-    public let parameters: ToolParameters
+    public let parameters: AgentToolParameters
 
-    public init(name: String, description: String, parameters: ToolParameters) {
+    public init(name: String, description: String, parameters: AgentToolParameters) {
         self.name = name
         self.description = description
         self.parameters = parameters
@@ -141,28 +141,28 @@ public struct FunctionDefinition: Sendable, Codable {
 }
 
 /// Arguments passed to tool execution
-public struct ToolArguments: Sendable {
-    private let arguments: [String: ToolArgument]
+public struct AgentToolArguments: Sendable {
+    private let arguments: [String: AgentToolArgument]
 
-    public init(_ arguments: [String: ToolArgument]) {
+    public init(_ arguments: [String: AgentToolArgument]) {
         self.arguments = arguments
     }
 
     public func stringValue(_ key: String) throws -> String {
         guard let argument = arguments[key] else {
-            throw ToolError.missingParameter(key)
+            throw AgentToolError.missingParameter(key)
         }
         switch argument {
         case .string(let value):
             return value
         default:
-            throw ToolError.invalidParameterType(key, expected: "string", actual: argument)
+            throw AgentToolError.invalidParameterType(key, expected: "string", actual: argument)
         }
     }
 
     public func numberValue(_ key: String) throws -> Double {
         guard let argument = arguments[key] else {
-            throw ToolError.missingParameter(key)
+            throw AgentToolError.missingParameter(key)
         }
         switch argument {
         case .double(let value):
@@ -170,13 +170,13 @@ public struct ToolArguments: Sendable {
         case .int(let value):
             return Double(value)
         default:
-            throw ToolError.invalidParameterType(key, expected: "number", actual: argument)
+            throw AgentToolError.invalidParameterType(key, expected: "number", actual: argument)
         }
     }
 
     public func integerValue(_ key: String) throws -> Int {
         guard let argument = arguments[key] else {
-            throw ToolError.missingParameter(key)
+            throw AgentToolError.missingParameter(key)
         }
         switch argument {
         case .int(let value):
@@ -184,43 +184,43 @@ public struct ToolArguments: Sendable {
         case .double(let value):
             return Int(value)
         default:
-            throw ToolError.invalidParameterType(key, expected: "integer", actual: argument)
+            throw AgentToolError.invalidParameterType(key, expected: "integer", actual: argument)
         }
     }
 
     public func booleanValue(_ key: String) throws -> Bool {
         guard let argument = arguments[key] else {
-            throw ToolError.missingParameter(key)
+            throw AgentToolError.missingParameter(key)
         }
         switch argument {
         case .bool(let value):
             return value
         default:
-            throw ToolError.invalidParameterType(key, expected: "boolean", actual: argument)
+            throw AgentToolError.invalidParameterType(key, expected: "boolean", actual: argument)
         }
     }
 
-    public func arrayValue<T>(_ key: String, transform: (ToolArgument) throws -> T) throws -> [T] {
+    public func arrayValue<T>(_ key: String, transform: (AgentToolArgument) throws -> T) throws -> [T] {
         guard let argument = arguments[key] else {
-            throw ToolError.missingParameter(key)
+            throw AgentToolError.missingParameter(key)
         }
         switch argument {
         case .array(let value):
             return try value.map(transform)
         default:
-            throw ToolError.invalidParameterType(key, expected: "array", actual: argument)
+            throw AgentToolError.invalidParameterType(key, expected: "array", actual: argument)
         }
     }
 
-    public func objectValue(_ key: String) throws -> [String: ToolArgument] {
+    public func objectValue(_ key: String) throws -> [String: AgentToolArgument] {
         guard let argument = arguments[key] else {
-            throw ToolError.missingParameter(key)
+            throw AgentToolError.missingParameter(key)
         }
         switch argument {
         case .object(let value):
             return value
         default:
-            throw ToolError.invalidParameterType(key, expected: "object", actual: argument)
+            throw AgentToolError.invalidParameterType(key, expected: "object", actual: argument)
         }
     }
 
@@ -268,23 +268,23 @@ public struct ToolArguments: Sendable {
         }
     }
 
-    public subscript(key: String) -> ToolArgument? {
+    public subscript(key: String) -> AgentToolArgument? {
         return arguments[key]
     }
 
-    public var keys: Dictionary<String, ToolArgument>.Keys {
+    public var keys: Dictionary<String, AgentToolArgument>.Keys {
         return arguments.keys
     }
 
-    public var values: Dictionary<String, ToolArgument>.Values {
+    public var values: Dictionary<String, AgentToolArgument>.Values {
         return arguments.values
     }
 }
 
 /// Errors that can occur during tool execution
-public enum ToolError: Error, LocalizedError, Sendable {
+public enum AgentToolError: Error, LocalizedError, Sendable {
     case missingParameter(String)
-    case invalidParameterType(String, expected: String, actual: ToolArgument)
+    case invalidParameterType(String, expected: String, actual: AgentToolArgument)
     case executionFailed(String)
     case invalidInput(String)
 

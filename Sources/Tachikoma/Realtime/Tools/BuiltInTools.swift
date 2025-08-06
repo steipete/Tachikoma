@@ -30,14 +30,14 @@ public struct WeatherTool: RealtimeExecutableTool {
             name: "getWeather",
             description: "Get current weather information for a location",
             category: .information,
-            parameters: ToolParameters(
+            parameters: AgentToolParameters(
                 properties: [
-                    "location": ToolParameterProperty(
+                    "location": AgentToolParameterProperty(
                         name: "location",
                         type: .string,
                         description: "The city and state/country, e.g. 'San Francisco, CA' or 'London, UK'"
                     ),
-                    "units": ToolParameterProperty(
+                    "units": AgentToolParameterProperty(
                         name: "units",
                         type: .string,
                         description: "Temperature units: 'celsius' or 'fahrenheit' (default: celsius)",
@@ -80,14 +80,14 @@ public struct TimeTool: RealtimeExecutableTool {
             name: "getCurrentTime",
             description: "Get the current time in a specific timezone",
             category: .information,
-            parameters: ToolParameters(
+            parameters: AgentToolParameters(
                 properties: [
-                    "timezone": ToolParameterProperty(
+                    "timezone": AgentToolParameterProperty(
                         name: "timezone",
                         type: .string,
                         description: "Timezone identifier (e.g., 'America/New_York', 'Europe/London'). Default is system timezone."
                     ),
-                    "format": ToolParameterProperty(
+                    "format": AgentToolParameterProperty(
                         name: "format",
                         type: .string,
                         description: "Time format: '12hour' or '24hour' (default: 24hour)",
@@ -141,9 +141,9 @@ public struct CalculatorTool: RealtimeExecutableTool {
             name: "calculate",
             description: "Perform mathematical calculations",
             category: .calculation,
-            parameters: ToolParameters(
+            parameters: AgentToolParameters(
                 properties: [
-                    "expression": ToolParameterProperty(
+                    "expression": AgentToolParameterProperty(
                         name: "expression",
                         type: .string,
                         description: "Mathematical expression to evaluate (e.g., '2 + 2', '10 * 5', 'sqrt(16)')"
@@ -185,14 +185,14 @@ public struct WebSearchTool: RealtimeExecutableTool {
             name: "webSearch",
             description: "Search the web for information",
             category: .information,
-            parameters: ToolParameters(
+            parameters: AgentToolParameters(
                 properties: [
-                    "query": ToolParameterProperty(
+                    "query": AgentToolParameterProperty(
                         name: "query",
                         type: .string,
                         description: "Search query"
                     ),
-                    "maxResults": ToolParameterProperty(
+                    "maxResults": AgentToolParameterProperty(
                         name: "maxResults",
                         type: .integer,
                         description: "Maximum number of results to return (default: 5)"
@@ -241,19 +241,19 @@ public struct TranslationTool: RealtimeExecutableTool {
             name: "translate",
             description: "Translate text between languages",
             category: .utility,
-            parameters: ToolParameters(
+            parameters: AgentToolParameters(
                 properties: [
-                    "text": ToolParameterProperty(
+                    "text": AgentToolParameterProperty(
                         name: "text",
                         type: .string,
                         description: "Text to translate"
                     ),
-                    "sourceLanguage": ToolParameterProperty(
+                    "sourceLanguage": AgentToolParameterProperty(
                         name: "sourceLanguage",
                         type: .string,
                         description: "Source language code (e.g., 'en', 'es', 'fr'). Auto-detect if not specified."
                     ),
-                    "targetLanguage": ToolParameterProperty(
+                    "targetLanguage": AgentToolParameterProperty(
                         name: "targetLanguage",
                         type: .string,
                         description: "Target language code (e.g., 'en', 'es', 'fr')"

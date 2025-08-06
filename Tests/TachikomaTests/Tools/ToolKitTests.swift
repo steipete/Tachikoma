@@ -120,26 +120,26 @@ struct ToolKitTests {
         #expect(try numberInput.doubleValue("int_as_double") == 10.0)
 
         // Error cases
-        #expect(throws: ToolError.self) {
+        #expect(throws: AgentToolError.self) {
             try emptyInput.stringValue("nonexistent")
         }
 
-        #expect(throws: ToolError.self) {
+        #expect(throws: AgentToolError.self) {
             try emptyInput.intValue("nonexistent")
         }
 
-        #expect(throws: ToolError.self) {
+        #expect(throws: AgentToolError.self) {
             try emptyInput.doubleValue("nonexistent")
         }
     }
 
     @Test("ToolInput Invalid JSON")
     func toolInputInvalidJSON() {
-        #expect(throws: ToolError.self) {
+        #expect(throws: AgentToolError.self) {
             try ToolInput(jsonString: "invalid json")
         }
 
-        #expect(throws: ToolError.self) {
+        #expect(throws: AgentToolError.self) {
             try ToolInput(jsonString: "{unclosed")
         }
     }
@@ -198,13 +198,13 @@ struct ToolKitTests {
 
     @Test("Tool Error Descriptions")
     func toolErrorDescriptions() {
-        let invalidInputError = ToolError.invalidInput("Bad parameter")
+        let invalidInputError = AgentToolError.invalidInput("Bad parameter")
         #expect(invalidInputError.errorDescription == "Invalid tool input: Bad parameter")
 
-        let executionError = ToolError.executionFailed("Network timeout")
+        let executionError = AgentToolError.executionFailed("Network timeout")
         #expect(executionError.errorDescription == "Tool execution failed: Network timeout")
 
-        let notFoundError = ToolError.toolNotFound("nonexistent_tool")
+        let notFoundError = AgentToolError.toolNotFound("nonexistent_tool")
         #expect(notFoundError.errorDescription == "Tool not found: nonexistent_tool")
     }
 }

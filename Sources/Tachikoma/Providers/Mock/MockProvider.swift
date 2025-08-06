@@ -48,9 +48,9 @@ public final class MockProvider: ModelProvider {
         let mockResponse = generateMockResponse(for: model, prompt: promptText, hasTools: request.tools?.isEmpty == false)
 
         // Handle tool calls if requested
-        var toolCalls: [ToolCall]?
+        var toolCalls: [AgentToolCall]?
         if let tools = request.tools, !tools.isEmpty, mockResponse.contains("tool_call") {
-            toolCalls = [ToolCall(
+            toolCalls = [AgentToolCall(
                 id: "mock_tool_call_123",
                 name: tools.first?.name ?? "mock_tool",
                 arguments: ["query": .string("mock query")]

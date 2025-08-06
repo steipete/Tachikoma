@@ -131,7 +131,7 @@ public final class AdvancedRealtimeConversation: ObservableObject {
     }
     
     /// Update turn detection settings
-    public func updateTurnDetection(_ turnDetection: EnhancedTurnDetection) async throws {
+    public func updateTurnDetection(_ turnDetection: RealtimeTurnDetection) async throws {
         var updatedConfig = configuration
         updatedConfig.turnDetection = turnDetection
         
@@ -165,7 +165,7 @@ public final class AdvancedRealtimeConversation: ObservableObject {
         turnStartTime = Date()
         
         // Start audio capture if available
-        await audioManager?.startCapture()
+        try? await audioManager?.startRecording()
         
         state = .listening
     }
@@ -178,7 +178,7 @@ public final class AdvancedRealtimeConversation: ObservableObject {
         turnActive = false
         
         // Stop audio capture
-        await audioManager?.stopCapture()
+        audioManager?.stopRecording()
         
         // Commit audio buffer
         try await session.commitAudio()
@@ -200,7 +200,7 @@ public final class AdvancedRealtimeConversation: ObservableObject {
         try await session.cancelResponse()
         
         // Stop audio playback if active
-        await audioManager?.stopPlayback()
+        audioManager?.stopPlayback()
         
         isSpeaking = false
         state = .ready
@@ -230,9 +230,9 @@ public final class AdvancedRealtimeConversation: ObservableObject {
     // MARK: - Tool Management
     
     /// Register tools for function calling
-    public func registerTools(_ tools: [SimpleTool]) async {
+    public func registerTools(_ tools: [AgentTool]) async {
         for tool in tools {
-            let wrapper = SimpleToolWrapper(tool: tool)
+            let wrapper = AgentToolWrapper(tool: tool)
             await toolRegistry.register(wrapper)
         }
     }
@@ -251,16 +251,10 @@ public final class AdvancedRealtimeConversation: ObservableObject {
     
     private func setupAudioPipeline() {
         do {
-            audioManager = try RealtimeAudioManager()
+            audioManager = RealtimeAudioManager()
             audioProcessor = try RealtimeAudioProcessor()
             
-            pipeline = AudioStreamPipeline(
-                audioManager: audioManager!,
-                processor: audioProcessor!,
-                enableVAD: configuration.turnDetection?.type == .serverVad,
-                enableEchoCancellation: settings.enableEchoCancellation,
-                enableNoiseSuppression: settings.enableNoiseSuppression
-            )
+            pipeline = try AudioStreamPipeline()
             
             // Set pipeline delegate
             pipeline?.delegate = self
@@ -294,7 +288,7 @@ public final class AdvancedRealtimeConversation: ObservableObject {
     private func startEventProcessing() {
         eventProcessingTask = Task {
             do {
-                for try await event in session.eventStream() {
+                for try await event in await session.eventStream() {
                     await handleServerEvent(event)
                 }
             } catch {
@@ -326,15 +320,15 @@ public final class AdvancedRealtimeConversation: ObservableObject {
             }
             
         // Input audio events
-        case .inputAudioBufferCommitted(let event):
-            print("Audio buffer committed: \(event.itemId)")
+        case .inputAudioBufferCommitted:
+            print("Audio buffer committed")
             
-        case .inputAudioBufferSpeechStarted(let event):
+        case .inputAudioBufferSpeechStarted:
             turnActive = true
             isListening = true
             state = .listening
             
-        case .inputAudioBufferSpeechStopped(let event):
+        case .inputAudioBufferSpeechStopped:
             turnActive = false
             isListening = false
             state = .processing
@@ -357,7 +351,8 @@ public final class AdvancedRealtimeConversation: ObservableObject {
             
             // Decode and play audio
             if let audioData = Data(base64Encoded: event.delta) {
-                await audioManager?.playAudioData(audioData)
+                // TODO: Implement audio playback
+                // audioManager?.playAudioData(audioData)
             }
             
         case .responseAudioDone(let event):
@@ -374,7 +369,7 @@ public final class AdvancedRealtimeConversation: ObservableObject {
             
         // Rate limit events
         case .rateLimitsUpdated(let event):
-            print("Rate limits updated: \(event.rateLimit)")
+            print("Rate limits updated")
             
         // Error events
         case .error(let event):

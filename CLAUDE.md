@@ -116,7 +116,7 @@ OPENAI_API_KEY=sk-... swift test --filter "OpenAIProviderTests"
   - Use proper structs/enums for data structures
   - Create specific types even for simple dictionaries
   - Only use `Any` when absolutely unavoidable (and document why)
-  - Example: Use `ToolParameters` instead of `[String: Any]` for tool definitions
+  - Example: Use `AgentToolParameters` instead of `[String: Any]` for tool definitions
 - **Swift-Native**: Global functions, enums, async/await
 - **Performance**: Streaming, lazy loading, minimal overhead
 - **Modern Swift**: Result builders, property wrappers, experimental features enabled

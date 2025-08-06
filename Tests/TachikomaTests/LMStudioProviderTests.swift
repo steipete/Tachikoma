@@ -139,12 +139,12 @@ struct LMStudioProviderTests {
                 .user("Hello!")
             ],
             tools: [
-                SimpleTool(
+                AgentTool(
                     name: "calculator",
                     description: "Perform calculations",
-                    parameters: ToolParameters(
+                    parameters: AgentToolParameters(
                         properties: [
-                            "expression": ToolParameterProperty(
+                            "expression": AgentToolParameterProperty(
                                 name: "expression",
                                 type: .string,
                                 description: "Mathematical expression"

@@ -20,7 +20,7 @@ struct OpenAIChatMessage: Codable {
     let role: String
     let content: Either<String, [OpenAIChatMessageContent]>?
     let toolCallId: String?
-    let toolCalls: [ToolCall]?
+    let toolCalls: [AgentToolCall]?
 
     enum CodingKeys: String, CodingKey {
         case role, content
@@ -28,7 +28,7 @@ struct OpenAIChatMessage: Codable {
         case toolCalls = "tool_calls"
     }
 
-    struct ToolCall: Codable {
+    struct AgentToolCall: Codable {
         let id: String
         let type: String
         let function: Function
@@ -53,7 +53,7 @@ struct OpenAIChatMessage: Codable {
         self.toolCalls = nil
     }
 
-    init(role: String, content: String? = nil, toolCalls: [ToolCall]?) {
+    init(role: String, content: String? = nil, toolCalls: [AgentToolCall]?) {
         self.role = role
         self.content = content.map { .left($0) }
         self.toolCallId = nil
@@ -151,7 +151,7 @@ struct OpenAIChatResponse: Codable {
     struct Message: Codable {
         let role: String
         let content: String?
-        let toolCalls: [ToolCall]?
+        let toolCalls: [AgentToolCall]?
 
         enum CodingKeys: String, CodingKey {
             case role, content
@@ -159,7 +159,7 @@ struct OpenAIChatResponse: Codable {
         }
     }
 
-    struct ToolCall: Codable {
+    struct AgentToolCall: Codable {
         let id: String
         let type: String
         let function: Function

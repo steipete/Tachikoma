@@ -110,12 +110,12 @@ func demonstrateEnhancedTools() async throws {
     print("\n=== Enhanced Tools Demo ===\n")
     
     // Create tools with namespaces
-    let calculatorTool = SimpleTool(
+    let calculatorTool = AgentTool(
         name: "calculate",
         description: "Perform mathematical calculations",
-        parameters: ToolParameters(
+        parameters: AgentToolParameters(
             properties: [
-                ToolParameterProperty(
+                AgentToolParameterProperty(
                     name: "expression",
                     type: .string,
                     description: "Mathematical expression to evaluate"
@@ -132,12 +132,12 @@ func demonstrateEnhancedTools() async throws {
         }
     )
     
-    let weatherTool = SimpleTool(
+    let weatherTool = AgentTool(
         name: "getWeather",
         description: "Get current weather",
-        parameters: ToolParameters(
+        parameters: AgentToolParameters(
             properties: [
-                ToolParameterProperty(
+                AgentToolParameterProperty(
                     name: "location",
                     type: .string,
                     description: "City name"
@@ -276,10 +276,10 @@ func demonstrateIntegratedFeatures() async throws {
     
     // Create enhanced tools
     let tools = [
-        SimpleTool(
+        AgentTool(
             name: "analyze",
             description: "Analyze data",
-            parameters: ToolParameters(properties: [], required: []),
+            parameters: AgentToolParameters(properties: [], required: []),
             namespace: "analytics",
             execute: { _ in .string("Analysis complete") }
         )
@@ -351,7 +351,7 @@ struct HarmonyFeaturesDemo {
 
 // MARK: - Helper Extensions
 
-extension ToolArgument {
+extension AgentToolArgument {
     var stringValue: String? {
         if case .string(let value) = self {
             return value

@@ -116,19 +116,19 @@ class SmartAssistant: ObservableObject {
             RealtimeTool(
                 name: "getCurrentTime",
                 description: "Get the current time",
-                parameters: ToolParameters(properties: [:], required: [])
+                parameters: AgentToolParameters(properties: [:], required: [])
             ),
             RealtimeTool(
                 name: "setReminder",
                 description: "Set a reminder",
-                parameters: ToolParameters(
+                parameters: AgentToolParameters(
                     properties: [
-                        "text": ToolParameterProperty(
+                        "text": AgentToolParameterProperty(
                             name: "text",
                             type: .string,
                             description: "Reminder text"
                         ),
-                        "time": ToolParameterProperty(
+                        "time": AgentToolParameterProperty(
                             name: "time",
                             type: .string,
                             description: "Time for reminder"
@@ -140,29 +140,29 @@ class SmartAssistant: ObservableObject {
         ]
     }
     
-    private func createCustomTools() -> [SimpleTool] {
+    private func createCustomTools() -> [AgentTool] {
         [
-            SimpleTool(
+            AgentTool(
                 name: "getCurrentTime",
                 description: "Get the current time",
-                parameters: ToolParameters(properties: [:], required: []),
+                parameters: AgentToolParameters(properties: [:], required: []),
                 execute: { _ in
                     let formatter = DateFormatter()
                     formatter.timeStyle = .medium
                     return .string(formatter.string(from: Date()))
                 }
             ),
-            SimpleTool(
+            AgentTool(
                 name: "setReminder",
                 description: "Set a reminder",
-                parameters: ToolParameters(
+                parameters: AgentToolParameters(
                     properties: [
-                        "text": ToolParameterProperty(
+                        "text": AgentToolParameterProperty(
                             name: "text",
                             type: .string,
                             description: "Reminder text"
                         ),
-                        "time": ToolParameterProperty(
+                        "time": AgentToolParameterProperty(
                             name: "time",
                             type: .string,
                             description: "Time for reminder"

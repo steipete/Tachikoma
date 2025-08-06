@@ -108,7 +108,7 @@ public final class EnhancedRealtimeConversation: ObservableObject {
         model: LanguageModel.OpenAI = .gpt4oRealtime,
         voice: RealtimeVoice = .nova,
         instructions: String? = nil,
-        tools: [SimpleTool]? = nil
+        tools: [AgentTool]? = nil
     ) async throws {
         connectionStatus = .connecting
         
@@ -331,9 +331,9 @@ extension EnhancedRealtimeConversation: AudioStreamPipelineDelegate {
 
 @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 private final class ToolExecutor {
-    private let tools: [SimpleTool]
+    private let tools: [AgentTool]
     
-    init(tools: [SimpleTool]) {
+    init(tools: [AgentTool]) {
         self.tools = tools
     }
     

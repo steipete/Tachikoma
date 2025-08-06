@@ -45,7 +45,7 @@ public final class RealtimeConversation {
     public func interrupt() async throws
     
     // Tool Management
-    public func registerTools(_ tools: [SimpleTool]) async
+    public func registerTools(_ tools: [AgentTool]) async
     public func registerBuiltInTools() async
     
     // Properties

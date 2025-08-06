@@ -16,12 +16,12 @@ class RealtimeVoiceAssistant {
         print("🎙️ Starting Realtime Voice Assistant...")
         
         // Define tools the assistant can use
-        let weatherTool = SimpleTool(
+        let weatherTool = AgentTool(
             name: "getWeather",
             description: "Get the current weather for a location",
-            parameters: ToolParameters(
+            parameters: AgentToolParameters(
                 properties: [
-                    "location": ToolParameterProperty(
+                    "location": AgentToolParameterProperty(
                         type: .string,
                         description: "The city and state, e.g. San Francisco, CA"
                     )
@@ -34,12 +34,12 @@ class RealtimeVoiceAssistant {
             }
         )
         
-        let calculatorTool = SimpleTool(
+        let calculatorTool = AgentTool(
             name: "calculate",
             description: "Perform mathematical calculations",
-            parameters: ToolParameters(
+            parameters: AgentToolParameters(
                 properties: [
-                    "expression": ToolParameterProperty(
+                    "expression": AgentToolParameterProperty(
                         type: .string,
                         description: "Mathematical expression to evaluate"
                     )
@@ -201,20 +201,20 @@ class AdvancedRealtimeDemo {
     func demonstrateFunctionCalling() async throws {
         print("🔧 Demonstrating Voice-Triggered Function Calling...")
         
-        let smartHomeTool = SimpleTool(
+        let smartHomeTool = AgentTool(
             name: "controlDevice",
             description: "Control smart home devices",
-            parameters: ToolParameters(
+            parameters: AgentToolParameters(
                 properties: [
-                    "device": ToolParameterProperty(
+                    "device": AgentToolParameterProperty(
                         type: .string,
                         description: "Device name (lights, thermostat, door)"
                     ),
-                    "action": ToolParameterProperty(
+                    "action": AgentToolParameterProperty(
                         type: .string,
                         description: "Action to perform (on, off, set)"
                     ),
-                    "value": ToolParameterProperty(
+                    "value": AgentToolParameterProperty(
                         type: .number,
                         description: "Optional value for the action"
                     )

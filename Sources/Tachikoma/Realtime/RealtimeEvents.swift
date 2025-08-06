@@ -700,28 +700,7 @@ public struct RealtimeErrorEvent: Codable, Sendable {
     public let error: ResponseError
 }
 
-// MARK: - Client Event Extensions
-
-@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
-extension RealtimeClientEvent {
-    var type: String {
-        switch self {
-        case .sessionUpdate: return "session.update"
-        case .inputAudioBufferAppend: return "input_audio_buffer.append"
-        case .inputAudioBufferCommit: return "input_audio_buffer.commit"
-        case .inputAudioBufferClear: return "input_audio_buffer.clear"
-        case .conversationItemCreate: return "conversation.item.create"
-        case .conversationItemTruncate: return "conversation.item.truncate"
-        case .conversationItemDelete: return "conversation.item.delete"
-        case .responseCreate: return "response.create"
-        case .responseCancel: return "response.cancel"
-        }
-    }
-    
-    var eventId: String {
-        UUID().uuidString
-    }
-}
+// MARK: - Client Event Extensions (already defined in enum)
 
 // MARK: - Supporting Types
 
@@ -782,13 +761,13 @@ public struct RealtimeTool: Codable, Sendable {
     public let type: String
     public let name: String
     public let description: String
-    public let parameters: ToolParameters  // Use the existing type-safe ToolParameters
+    public let parameters: AgentToolParameters  // Use the existing type-safe AgentToolParameters
     
     enum CodingKeys: String, CodingKey {
         case type, name, description, parameters
     }
     
-    public init(name: String, description: String, parameters: ToolParameters) {
+    public init(name: String, description: String, parameters: AgentToolParameters) {
         self.type = "function"
         self.name = name
         self.description = description
@@ -800,7 +779,7 @@ public struct RealtimeTool: Codable, Sendable {
         self.type = try container.decode(String.self, forKey: .type)
         self.name = try container.decode(String.self, forKey: .name)
         self.description = try container.decode(String.self, forKey: .description)
-        self.parameters = try container.decode(ToolParameters.self, forKey: .parameters)
+        self.parameters = try container.decode(AgentToolParameters.self, forKey: .parameters)
     }
     
     public func encode(to encoder: Encoder) throws {

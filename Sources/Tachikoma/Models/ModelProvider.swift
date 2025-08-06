@@ -58,7 +58,7 @@ public struct ModelCapabilities: Sendable {
 @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public struct ProviderRequest: Sendable {
     public let messages: [ModelMessage]
-    public let tools: [SimpleTool]?
+    public let tools: [AgentTool]?
     public let settings: GenerationSettings
     public let outputFormat: OutputFormat?
 
@@ -69,7 +69,7 @@ public struct ProviderRequest: Sendable {
 
     public init(
         messages: [ModelMessage],
-        tools: [SimpleTool]? = nil,
+        tools: [AgentTool]? = nil,
         settings: GenerationSettings = .default,
         outputFormat: OutputFormat? = nil
     ) {
@@ -86,13 +86,13 @@ public struct ProviderResponse: Sendable {
     public let text: String
     public let usage: Usage?
     public let finishReason: FinishReason?
-    public let toolCalls: [ToolCall]?
+    public let toolCalls: [AgentToolCall]?
 
     public init(
         text: String,
         usage: Usage? = nil,
         finishReason: FinishReason? = nil,
-        toolCalls: [ToolCall]? = nil
+        toolCalls: [AgentToolCall]? = nil
     ) {
         self.text = text
         self.usage = usage

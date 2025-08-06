@@ -262,18 +262,18 @@ struct ResponseCacheTests {
     
     @Test("CacheKey includes tools in hash")
     func testCacheKeyIncludesTools() {
-        let tool1 = SimpleTool(
+        let tool1 = AgentTool(
             name: "tool1",
             description: "First tool",
-            parameters: ToolParameters(properties: [], required: []),
+            parameters: AgentToolParameters(properties: [], required: []),
             namespace: "test",
             execute: { _ in .string("") }
         )
         
-        let tool2 = SimpleTool(
+        let tool2 = AgentTool(
             name: "tool2",
             description: "Second tool",
-            parameters: ToolParameters(properties: [], required: []),
+            parameters: AgentToolParameters(properties: [], required: []),
             namespace: "test",
             execute: { _ in .string("") }
         )

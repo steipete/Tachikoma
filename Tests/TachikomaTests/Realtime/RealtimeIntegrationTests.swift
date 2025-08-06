@@ -179,12 +179,12 @@ struct RealtimeIntegrationTests {
         }
         
         // Create a simple tool
-        let weatherTool = SimpleTool(
+        let weatherTool = AgentTool(
             name: "getWeather",
             description: "Get current weather",
-            parameters: ToolParameters(
+            parameters: AgentToolParameters(
                 properties: [
-                    "location": ToolParameterProperty(
+                    "location": AgentToolParameterProperty(
                         name: "location",
                         type: .string,
                         description: "City name"

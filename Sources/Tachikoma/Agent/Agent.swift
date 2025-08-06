@@ -10,7 +10,7 @@ public final class Agent<Context>: @unchecked Sendable {
     public let instructions: String
 
     /// Available tools for the agent
-    public private(set) var tools: [SimpleTool]
+    public private(set) var tools: [AgentTool]
 
     /// Language model used by this agent
     public var model: LanguageModel
@@ -28,7 +28,7 @@ public final class Agent<Context>: @unchecked Sendable {
         name: String,
         instructions: String,
         model: LanguageModel = .default,
-        tools: [SimpleTool] = [],
+        tools: [AgentTool] = [],
         settings: GenerationSettings = .default,
         context: Context
     ) {
@@ -45,7 +45,7 @@ public final class Agent<Context>: @unchecked Sendable {
     }
 
     /// Add a tool to the agent
-    public func addTool(_ tool: SimpleTool) {
+    public func addTool(_ tool: AgentTool) {
         self.tools.append(tool)
     }
 

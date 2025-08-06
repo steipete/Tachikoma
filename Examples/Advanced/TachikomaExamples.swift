@@ -251,8 +251,8 @@ extension TachikomaExamples {
             print("  • \(type(of: error)): \(error.errorDescription ?? "Unknown error")")
         }
 
-        // ToolError examples
-        let toolErrors: [ToolError] = [
+        // AgentToolError examples
+        let toolErrors: [AgentToolError] = [
             .toolNotFound("missing_tool"),
             .invalidInput("Invalid JSON format"),
             .executionFailed("Network timeout"),

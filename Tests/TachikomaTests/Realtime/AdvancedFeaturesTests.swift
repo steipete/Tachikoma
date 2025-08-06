@@ -13,7 +13,7 @@ struct AdvancedFeaturesTests {
     @Test("Turn Detection Configuration")
     func turnDetectionConfiguration() {
         // Test server VAD configuration
-        let serverVAD = EnhancedTurnDetection.serverVAD
+        let serverVAD = RealtimeTurnDetection.serverVAD
         #expect(serverVAD.type == .serverVad)
         #expect(serverVAD.threshold == 0.5)
         #expect(serverVAD.silenceDurationMs == 200)
@@ -21,7 +21,7 @@ struct AdvancedFeaturesTests {
         #expect(serverVAD.createResponse == true)
         
         // Test disabled configuration
-        let disabled = EnhancedTurnDetection.disabled
+        let disabled = RealtimeTurnDetection.disabled
         #expect(disabled.type == .none)
         #expect(disabled.threshold == nil)
         #expect(disabled.silenceDurationMs == nil)
@@ -88,7 +88,7 @@ struct AdvancedFeaturesTests {
             RealtimeTool(
                 name: "testTool",
                 description: "Test tool",
-                parameters: ToolParameters(properties: [:], required: [])
+                parameters: AgentToolParameters(properties: [:], required: [])
             )
         ]
         let toolsConfig = EnhancedSessionConfiguration.withTools(tools: tools)

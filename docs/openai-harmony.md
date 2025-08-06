@@ -94,7 +94,7 @@ let conversation = try await startRealtimeConversation(model: .openai(.gpt4oReal
 
 #### Files Created:
 - `Sources/Tachikoma/Realtime/Tools/RealtimeToolExecutor.swift` - Tool execution with timeout support
-- `Sources/Tachikoma/Realtime/Tools/SimpleToolWrapper.swift` - Adapter for SimpleTool compatibility
+- `Sources/Tachikoma/Realtime/Tools/AgentToolWrapper.swift` - Adapter for AgentTool compatibility
 - `Sources/Tachikoma/Realtime/Tools/BuiltInTools.swift` - Built-in tools (weather, time, calculator, web search, translation)
 - `Tests/TachikomaTests/Realtime/FunctionCallingTests.swift` - Comprehensive test suite
 
@@ -102,7 +102,7 @@ let conversation = try await startRealtimeConversation(model: .openai(.gpt4oReal
 - **Type-safe tool execution**: RealtimeToolArgument enum for strong typing
 - **Tool registry**: Dynamic tool registration and discovery
 - **Built-in tools**: Weather, time, calculator, web search, translation
-- **SimpleTool integration**: Seamless integration with existing tool system
+- **AgentTool integration**: Seamless integration with existing tool system
 - **Execution history**: Track all tool calls and results
 - **Timeout support**: Configurable timeouts for tool execution
 - **JSON argument parsing**: Convert JSON strings to typed arguments
@@ -270,7 +270,7 @@ public func startRealtimeConversation(
     model: LanguageModel.OpenAI = .gpt4oRealtime,
     voice: RealtimeVoice = .alloy,
     instructions: String? = nil,
-    tools: [SimpleTool]? = nil
+    tools: [AgentTool]? = nil
 ) async throws -> RealtimeConversation
 ```
 
@@ -286,8 +286,8 @@ public struct RealtimeTool: Sendable, Codable {
     public let description: String
     public let parameters: ToolParameters
     
-    // Convert from existing SimpleTool
-    public init(from simpleTool: SimpleTool)
+    // Convert from existing AgentTool
+    public init(from agentTool: AgentTool)
 }
 ```
 
@@ -466,7 +466,7 @@ The Realtime API is purely additive:
 
 1. **Existing code unchanged** - All current APIs continue working
 2. **New capabilities** - Voice conversations opt-in
-3. **Shared tools** - SimpleTool works with both APIs
+3. **Shared tools** - AgentTool works with both APIs
 4. **Unified configuration** - TachikomaConfiguration extended
 
 ## Future Enhancements

@@ -112,22 +112,22 @@ public final class AnthropicProvider: ModelProvider {
         }()
 
         // Convert tool calls if present
-        let toolCalls = anthropicResponse.content.compactMap { content -> ToolCall? in
+        let toolCalls = anthropicResponse.content.compactMap { content -> AgentToolCall? in
             switch content {
             case .text:
                 return nil
             case .toolUse(let toolUse):
-                // Convert input to ToolArgument dictionary
-                var arguments: [String: ToolArgument] = [:]
+                // Convert input to AgentToolArgument dictionary
+                var arguments: [String: AgentToolArgument] = [:]
                 if let inputDict = toolUse.input as? [String: Any] {
                     for (key, value) in inputDict {
-                        if let toolArg = try? ToolArgument.from(any: value) {
+                        if let toolArg = try? AgentToolArgument.from(any: value) {
                             arguments[key] = toolArg
                         }
                     }
                 }
                 
-                return ToolCall(
+                return AgentToolCall(
                     id: toolUse.id,
                     name: toolUse.name,
                     arguments: arguments
@@ -283,8 +283,8 @@ public final class AnthropicProvider: ModelProvider {
         return (systemMessage, anthropicMessages)
     }
 
-    private func convertToolToAnthropic(_ tool: SimpleTool) throws -> AnthropicTool {
-        // Convert ToolParameters to [String: Any]
+    private func convertToolToAnthropic(_ tool: AgentTool) throws -> AnthropicTool {
+        // Convert AgentToolParameters to [String: Any]
         var properties: [String: Any] = [:]
         for (key, prop) in tool.parameters.properties {
             var propDict: [String: Any] = [
@@ -424,18 +424,18 @@ public final class OllamaProvider: ModelProvider {
         let finishReason: FinishReason = ollamaResponse.done ? .stop : .other
 
         // Handle tool calls - Ollama might return them in different formats
-        var toolCalls: [ToolCall]? = nil
+        var toolCalls: [AgentToolCall]? = nil
         if let messageCalls = ollamaResponse.message.toolCalls {
             toolCalls = messageCalls.compactMap { ollamaCall in
-                // Convert arguments dictionary to ToolArgument format
-                var arguments: [String: ToolArgument] = [:]
+                // Convert arguments dictionary to AgentToolArgument format
+                var arguments: [String: AgentToolArgument] = [:]
                 for (key, value) in ollamaCall.function.arguments {
-                    if let toolArg = try? ToolArgument.from(any: value) {
+                    if let toolArg = try? AgentToolArgument.from(any: value) {
                         arguments[key] = toolArg
                     }
                 }
                 
-                return ToolCall(
+                return AgentToolCall(
                     id: "ollama_\(UUID().uuidString)",
                     name: ollamaCall.function.name,
                     arguments: arguments
@@ -449,15 +449,15 @@ public final class OllamaProvider: ModelProvider {
             if let data = text.data(using: .utf8),
                let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
                let functionName = json["function"] as? String {
-                // Convert arguments to ToolArgument format
-                var arguments: [String: ToolArgument] = [:]
+                // Convert arguments to AgentToolArgument format
+                var arguments: [String: AgentToolArgument] = [:]
                 for (key, value) in json {
-                    if key != "function", let toolArg = try? ToolArgument.from(any: value) {
+                    if key != "function", let toolArg = try? AgentToolArgument.from(any: value) {
                         arguments[key] = toolArg
                     }
                 }
                 
-                toolCalls = [ToolCall(
+                toolCalls = [AgentToolCall(
                     id: "ollama_\(UUID().uuidString)",
                     name: functionName,
                     arguments: arguments
@@ -562,8 +562,8 @@ public final class OllamaProvider: ModelProvider {
 
     // MARK: - Helper Methods
 
-    private func convertToolToOllama(_ tool: SimpleTool) throws -> OllamaTool {
-        // Convert ToolParameters to [String: Any]
+    private func convertToolToOllama(_ tool: AgentTool) throws -> OllamaTool {
+        // Convert AgentToolParameters to [String: Any]
         var properties: [String: Any] = [:]
         for (key, prop) in tool.parameters.properties {
             var propDict: [String: Any] = [

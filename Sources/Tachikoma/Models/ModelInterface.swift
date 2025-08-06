@@ -36,15 +36,15 @@ public enum StreamingDeltaType: Sendable, Codable {
 public struct StreamingDelta: Sendable, Codable {
     public let type: StreamingDeltaType
     public let content: String?
-    public let toolCall: ToolCall?
-    public let toolResult: ToolResult?
+    public let toolCall: AgentToolCall?
+    public let toolResult: AgentToolResult?
     public let error: String?
 
     public init(
         type: StreamingDeltaType,
         content: String? = nil,
-        toolCall: ToolCall? = nil,
-        toolResult: ToolResult? = nil,
+        toolCall: AgentToolCall? = nil,
+        toolResult: AgentToolResult? = nil,
         error: String? = nil
     ) {
         self.type = type
@@ -114,13 +114,13 @@ public struct ModelSettings: Sendable, Codable {
 public struct ModelRequest: Sendable {
     public let messages: [ModelMessage]
     public let settings: ModelSettings
-    public let tools: [SimpleTool]?
+    public let tools: [AgentTool]?
     public let stream: Bool
 
     public init(
         messages: [ModelMessage],
         settings: ModelSettings,
-        tools: [SimpleTool]? = nil,
+        tools: [AgentTool]? = nil,
         stream: Bool = false
     ) {
         self.messages = messages
@@ -144,14 +144,14 @@ public struct ModelResponse: Sendable {
     public let text: String
     public let finishReason: FinishReason?
     public let usage: Usage?
-    public let toolCalls: [ToolCall]?
+    public let toolCalls: [AgentToolCall]?
     public let model: String?
 
     public init(
         text: String,
         finishReason: FinishReason? = nil,
         usage: Usage? = nil,
-        toolCalls: [ToolCall]? = nil,
+        toolCalls: [AgentToolCall]? = nil,
         model: String? = nil
     ) {
         self.text = text

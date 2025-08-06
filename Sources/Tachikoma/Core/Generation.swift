@@ -19,7 +19,7 @@ import Foundation
 public func generateText(
     model: LanguageModel,
     messages: [ModelMessage],
-    tools: [SimpleTool]? = nil,
+    tools: [AgentTool]? = nil,
     settings: GenerationSettings = .default,
     maxSteps: Int = 1,
     configuration: TachikomaConfiguration = TachikomaConfiguration()
@@ -88,7 +88,7 @@ public func generateText(
             currentMessages.append(ModelMessage(role: .assistant, content: assistantContent))
 
             // Execute tools
-            var toolResults: [ToolResult] = []
+            var toolResults: [AgentToolResult] = []
             for toolCall in toolCalls {
                 if let tool = tools?.first(where: { $0.name == toolCall.name }) {
                     do {
@@ -105,8 +105,8 @@ public func generateText(
                             }
                         }
 
-                        let result = try await tool.execute(ToolArguments(toolCall.arguments))
-                        let toolResult = ToolResult.success(toolCallId: toolCall.id, result: result)
+                        let result = try await tool.execute(AgentToolArguments(toolCall.arguments))
+                        let toolResult = AgentToolResult.success(toolCallId: toolCall.id, result: result)
                         toolResults.append(toolResult)
 
                         // Add tool result message
@@ -115,7 +115,7 @@ public func generateText(
                             content: [.toolResult(toolResult)]
                         ))
                     } catch {
-                        let errorResult = ToolResult.error(toolCallId: toolCall.id, error: error.localizedDescription)
+                        let errorResult = AgentToolResult.error(toolCallId: toolCall.id, error: error.localizedDescription)
                         toolResults.append(errorResult)
 
                         currentMessages.append(ModelMessage(
@@ -176,7 +176,7 @@ public func generateText(
 public func streamText(
     model: LanguageModel,
     messages: [ModelMessage],
-    tools: [SimpleTool]? = nil,
+    tools: [AgentTool]? = nil,
     settings: GenerationSettings = .default,
     maxSteps: Int = 1,
     configuration: TachikomaConfiguration = TachikomaConfiguration()
@@ -301,7 +301,7 @@ public func generate(
     _ prompt: String,
     using model: Model? = nil,
     system: String? = nil,
-    tools: (any ToolKit)? = nil
+    tools: [AgentTool]? = nil
 ) async throws
 -> String {
     // For now, just return a mock response since we don't have provider implementations
@@ -527,16 +527,16 @@ public struct GenerateObjectResult<T: Codable & Sendable>: Sendable {
 public struct GenerationStep: Sendable {
     public let stepIndex: Int
     public let text: String
-    public let toolCalls: [ToolCall]
-    public let toolResults: [ToolResult]
+    public let toolCalls: [AgentToolCall]
+    public let toolResults: [AgentToolResult]
     public let usage: Usage?
     public let finishReason: FinishReason?
 
     public init(
         stepIndex: Int,
         text: String,
-        toolCalls: [ToolCall],
-        toolResults: [ToolResult],
+        toolCalls: [AgentToolCall],
+        toolResults: [AgentToolResult],
         usage: Usage?,
         finishReason: FinishReason?
     ) {
@@ -555,8 +555,8 @@ public struct TextStreamDelta: Sendable {
     public let type: DeltaType
     public let content: String?
     public let channel: ResponseChannel?
-    public let toolCall: ToolCall?
-    public let toolResult: ToolResult?
+    public let toolCall: AgentToolCall?
+    public let toolResult: AgentToolResult?
 
     public enum DeltaType: Sendable, Equatable {
         case textDelta
@@ -576,8 +576,8 @@ public struct TextStreamDelta: Sendable {
         type: DeltaType,
         content: String? = nil,
         channel: ResponseChannel? = nil,
-        toolCall: ToolCall? = nil,
-        toolResult: ToolResult? = nil
+        toolCall: AgentToolCall? = nil,
+        toolResult: AgentToolResult? = nil
     ) {
         self.type = type
         self.content = content

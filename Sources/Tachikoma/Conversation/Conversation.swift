@@ -61,7 +61,7 @@ public final class Conversation: @unchecked Sendable {
     }
 
     /// Continue the conversation with a model
-    public func continueConversation(using model: Model? = nil, tools: (any ToolKit)? = nil) async throws -> String {
+    public func continueConversation(using model: Model? = nil, tools: [AgentTool]? = nil) async throws -> String {
         // Convert conversation messages to model messages
         let modelMessages = self.messages.map { conversationMessage in
             ModelMessage(

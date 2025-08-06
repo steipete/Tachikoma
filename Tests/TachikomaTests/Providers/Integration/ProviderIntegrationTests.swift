@@ -43,12 +43,12 @@ struct ProviderIntegrationTests {
         let config = TachikomaConfiguration()
         let provider = try ProviderFactory.createProvider(for: model, configuration: config)
         
-        let tool = SimpleTool(
+        let tool = AgentTool(
             name: "get_weather",
             description: "Get the current weather for a location",
-            parameters: ToolParameters(
+            parameters: AgentToolParameters(
                 properties: [
-                    "location": ToolParameterProperty(
+                    "location": AgentToolParameterProperty(
                         name: "location",
                         type: .string,
                         description: "The city and state, e.g. San Francisco, CA"
@@ -149,12 +149,12 @@ struct ProviderIntegrationTests {
         let config = TachikomaConfiguration()
         let provider = try ProviderFactory.createProvider(for: model, configuration: config)
         
-        let tool = SimpleTool(
+        let tool = AgentTool(
             name: "calculate",
             description: "Perform basic arithmetic calculations",
-            parameters: ToolParameters(
+            parameters: AgentToolParameters(
                 properties: [
-                    "expression": ToolParameterProperty(
+                    "expression": AgentToolParameterProperty(
                         name: "expression",
                         type: .string,
                         description: "The arithmetic expression to evaluate"

@@ -22,7 +22,7 @@ The Vercel AI SDK provides these core patterns:
 - [x] LanguageModel enum with provider-specific sub-enums
 - [x] generateText() and streamText() function signatures
 - [x] Tool system with generic Tool<Context> pattern
-- [x] SimpleTool pattern for context-free tools
+- [x] AgentTool pattern for context-free tools
 - [x] Array parameter support in tools
 - [x] Swift 6.0 compliance and Sendable conformance
 

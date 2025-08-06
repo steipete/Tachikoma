@@ -335,7 +335,7 @@ public actor LMStudioProvider: ModelProvider, Sendable {
             },
             finishReason: mapFinishReason(choice.finish_reason),
             toolCalls: try choice.message.tool_calls?.map { toolCall in
-                ToolCall(
+                AgentToolCall(
                     id: toolCall.id,
                     name: toolCall.function.name,
                     arguments: try parseToolArguments(toolCall.function.arguments)
@@ -353,14 +353,14 @@ public actor LMStudioProvider: ModelProvider, Sendable {
         }
     }
     
-    private func parseToolArguments(_ json: String?) throws -> [String: ToolArgument] {
+    private func parseToolArguments(_ json: String?) throws -> [String: AgentToolArgument] {
         guard let json = json,
               let data = json.data(using: .utf8) else {
             return [:]
         }
         
         let dict = try JSONSerialization.jsonObject(with: data) as? [String: Any] ?? [:]
-        var args: [String: ToolArgument] = [:]
+        var args: [String: AgentToolArgument] = [:]
         
         for (key, value) in dict {
             if let string = value as? String {
@@ -487,9 +487,9 @@ private struct LMStudioResponse: Decodable {
         struct Message: Decodable {
             let role: String
             let content: String?
-            let tool_calls: [ToolCall]?
+            let tool_calls: [AgentToolCall]?
             
-            struct ToolCall: Decodable {
+            struct AgentToolCall: Decodable {
                 let id: String
                 let type: String
                 let function: Function
@@ -524,9 +524,9 @@ private struct LMStudioStreamChunk: Decodable {
         struct Delta: Decodable {
             let role: String?
             let content: String?
-            let tool_calls: [ToolCall]?
+            let tool_calls: [AgentToolCall]?
             
-            struct ToolCall: Decodable {
+            struct AgentToolCall: Decodable {
                 let index: Int?
                 let id: String?
                 let type: String?

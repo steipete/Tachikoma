@@ -221,10 +221,10 @@ public final class RealtimeConversation {
     }
     
     /// Register tools for function calling
-    public func registerTools(_ tools: [SimpleTool]) async {
-        // Convert SimpleTool to RealtimeExecutableTool wrapper
+    public func registerTools(_ tools: [AgentTool]) async {
+        // Convert AgentTool to RealtimeExecutableTool wrapper
         for tool in tools {
-            let wrapper = SimpleToolWrapper(tool: tool)
+            let wrapper = AgentToolWrapper(tool: tool)
             await toolRegistry.register(wrapper)
         }
     }
@@ -361,7 +361,7 @@ public func startRealtimeConversation(
     model: LanguageModel.OpenAI = .gpt4oRealtime,
     voice: RealtimeVoice = .alloy,
     instructions: String? = nil,
-    tools: [SimpleTool]? = nil,
+    tools: [AgentTool]? = nil,
     configuration: TachikomaConfiguration = TachikomaConfiguration()
 ) async throws -> RealtimeConversation {
     // Verify model supports realtime
@@ -379,7 +379,7 @@ public func startRealtimeConversation(
         await conversation.registerTools(tools)
     }
     
-    // Convert SimpleTool to RealtimeTool
+    // Convert AgentTool to RealtimeTool
     let realtimeTools = tools?.map { tool in
         RealtimeTool(
             name: tool.name,

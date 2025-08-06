@@ -12,6 +12,10 @@ public final class TachikomaConfiguration: @unchecked Sendable {
     private var _defaultSettings: GenerationSettings = .default
     private let _loadFromEnvironment: Bool
 
+    /// Shared default configuration instance that loads from environment on first access
+    /// This provides better performance than creating new instances for each API call
+    public static let shared: TachikomaConfiguration = TachikomaConfiguration()
+
     /// Create a new configuration instance
     public init(loadFromEnvironment: Bool = true) {
         self._loadFromEnvironment = loadFromEnvironment

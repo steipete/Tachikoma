@@ -10,27 +10,27 @@ import Foundation
 /// Result builder for declarative tool creation
 @resultBuilder
 public struct ToolBuilder {
-    public static func buildBlock(_ tools: SimpleTool...) -> [SimpleTool] {
+    public static func buildBlock(_ tools: AgentTool...) -> [AgentTool] {
         return tools
     }
 
-    public static func buildArray(_ tools: [SimpleTool]) -> [SimpleTool] {
+    public static func buildArray(_ tools: [AgentTool]) -> [AgentTool] {
         return tools
     }
 
-    public static func buildOptional(_ tool: SimpleTool?) -> [SimpleTool] {
+    public static func buildOptional(_ tool: AgentTool?) -> [AgentTool] {
         return tool.map { [$0] } ?? []
     }
 
-    public static func buildEither(first tool: SimpleTool) -> [SimpleTool] {
+    public static func buildEither(first tool: AgentTool) -> [AgentTool] {
         return [tool]
     }
 
-    public static func buildEither(second tool: SimpleTool) -> [SimpleTool] {
+    public static func buildEither(second tool: AgentTool) -> [AgentTool] {
         return [tool]
     }
 
-    public static func buildExpression(_ tool: SimpleTool) -> SimpleTool {
+    public static func buildExpression(_ tool: AgentTool) -> AgentTool {
         return tool
     }
 }
@@ -39,14 +39,14 @@ public struct ToolBuilder {
 public func createTool(
     name: String,
     description: String,
-    parameters: [ToolParameterProperty] = [],
+    parameters: [AgentToolParameterProperty] = [],
     required: [String] = [],
-    execute: @escaping @Sendable (ToolArguments) async throws -> ToolArgument
-) -> SimpleTool {
-    return SimpleTool(
+    execute: @escaping @Sendable (AgentToolArguments) async throws -> AgentToolArgument
+) -> AgentTool {
+    return AgentTool(
         name: name,
         description: description,
-        parameters: ToolParameters(properties: parameters, required: required),
+        parameters: AgentToolParameters(properties: parameters, required: required),
         execute: execute
     )
 }
@@ -58,12 +58,12 @@ public func stringTool(
     parameter: String,
     parameterDescription: String,
     execute: @escaping @Sendable (String) async throws -> String
-) -> SimpleTool {
+) -> AgentTool {
     return createTool(
         name: name,
         description: description,
         parameters: [
-            ToolParameterProperty(
+            AgentToolParameterProperty(
                 name: parameter,
                 type: .string,
                 description: parameterDescription
@@ -73,7 +73,7 @@ public func stringTool(
     ) { args in
         let value = try args.stringValue(parameter)
         let result = try await execute(value)
-        return .string(result)
+        return AgentToolArgument.string(result)
     }
 }
 
@@ -84,12 +84,12 @@ public func numberTool(
     parameter: String,
     parameterDescription: String,
     execute: @escaping @Sendable (Double) async throws -> Double
-) -> SimpleTool {
+) -> AgentTool {
     return createTool(
         name: name,
         description: description,
         parameters: [
-            ToolParameterProperty(
+            AgentToolParameterProperty(
                 name: parameter,
                 type: .number,
                 description: parameterDescription
@@ -99,7 +99,7 @@ public func numberTool(
     ) { args in
         let value = try args.numberValue(parameter)
         let result = try await execute(value)
-        return .double(result)
+        return AgentToolArgument.double(result)
     }
 }
 
@@ -110,12 +110,12 @@ public func booleanTool(
     parameter: String,
     parameterDescription: String,
     execute: @escaping @Sendable (Bool) async throws -> Bool
-) -> SimpleTool {
+) -> AgentTool {
     return createTool(
         name: name,
         description: description,
         parameters: [
-            ToolParameterProperty(
+            AgentToolParameterProperty(
                 name: parameter,
                 type: .boolean,
                 description: parameterDescription
@@ -125,7 +125,7 @@ public func booleanTool(
     ) { args in
         let value = try args.booleanValue(parameter)
         let result = try await execute(value)
-        return .bool(result)
+        return AgentToolArgument.bool(result)
     }
 }
 
@@ -134,7 +134,7 @@ public func noParamTool(
     name: String,
     description: String,
     execute: @escaping @Sendable () async throws -> String
-) -> SimpleTool {
+) -> AgentTool {
     return createTool(
         name: name,
         description: description,
@@ -142,7 +142,7 @@ public func noParamTool(
         required: []
     ) { _ in
         let result = try await execute()
-        return .string(result)
+        return AgentToolArgument.string(result)
     }
 }
 
@@ -153,9 +153,9 @@ public func multiStringTool(
     parameters: [(name: String, description: String)],
     required: [String] = [],
     execute: @escaping @Sendable ([String: String]) async throws -> String
-) -> SimpleTool {
+) -> AgentTool {
     let toolParams = parameters.map { (name, desc) in
-        ToolParameterProperty(name: name, type: .string, description: desc)
+        AgentToolParameterProperty(name: name, type: .string, description: desc)
     }
     
     return createTool(
@@ -171,6 +171,6 @@ public func multiStringTool(
             }
         }
         let result = try await execute(stringArgs)
-        return .string(result)
+        return AgentToolArgument.string(result)
     }
 }

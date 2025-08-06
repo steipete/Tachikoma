@@ -78,7 +78,7 @@ struct FunctionCallingTests {
                 RealtimeToolExecutor.ToolMetadata(
                     name: "slowTool",
                     description: "A tool that takes too long",
-                    parameters: ToolParameters(properties: [:], required: [])
+                    parameters: AgentToolParameters(properties: [:], required: [])
                 )
             }
             
@@ -105,15 +105,15 @@ struct FunctionCallingTests {
         }
     }
     
-    @Test("SimpleTool wrapper integration")
-    func simpleToolWrapper() async throws {
-        // Create a SimpleTool
-        let simpleTool = SimpleTool(
+    @Test("AgentTool wrapper integration")
+    func agentToolWrapper() async throws {
+        // Create an AgentTool
+        let agentTool = AgentTool(
             name: "testTool",
             description: "A test tool",
-            parameters: ToolParameters(
+            parameters: AgentToolParameters(
                 properties: [
-                    "input": ToolParameterProperty(
+                    "input": AgentToolParameterProperty(
                         name: "input",
                         type: .string,
                         description: "Test input"
@@ -128,7 +128,7 @@ struct FunctionCallingTests {
         )
         
         // Wrap it for Realtime API
-        let wrapper = SimpleToolWrapper(tool: simpleTool)
+        let wrapper = AgentToolWrapper(tool: agentTool)
         
         // Execute through wrapper
         let realtimeArgs: RealtimeToolArguments = [
@@ -149,9 +149,9 @@ struct FunctionCallingTests {
                 RealtimeToolExecutor.ToolMetadata(
                     name: "custom",
                     description: "Custom tool",
-                    parameters: ToolParameters(
+                    parameters: AgentToolParameters(
                         properties: [
-                            "message": ToolParameterProperty(
+                            "message": AgentToolParameterProperty(
                                 name: "message",
                                 type: .string,
                                 description: "Message to echo"
@@ -190,24 +190,24 @@ struct FunctionCallingTests {
                 RealtimeToolExecutor.ToolMetadata(
                     name: "testTool",
                     description: "Test tool",
-                    parameters: ToolParameters(
+                    parameters: AgentToolParameters(
                         properties: [
-                            "string": ToolParameterProperty(
+                            "string": AgentToolParameterProperty(
                                 name: "string",
                                 type: .string,
                                 description: "String param"
                             ),
-                            "number": ToolParameterProperty(
+                            "number": AgentToolParameterProperty(
                                 name: "number",
                                 type: .number,
                                 description: "Number param"
                             ),
-                            "bool": ToolParameterProperty(
+                            "bool": AgentToolParameterProperty(
                                 name: "bool",
                                 type: .boolean,
                                 description: "Boolean param"
                             ),
-                            "array": ToolParameterProperty(
+                            "array": AgentToolParameterProperty(
                                 name: "array",
                                 type: .array,
                                 description: "Array param"

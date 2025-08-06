@@ -142,7 +142,7 @@ extension MinimalModernAPITests {
 
     @Test("Tool error types")
     func toolErrorTypes() {
-        let toolError = ToolError.invalidInput("test")
+        let toolError = AgentToolError.invalidInput("test")
         #expect(toolError.errorDescription != nil)
 
         let tachikomaError = TachikomaError.modelNotFound("test")

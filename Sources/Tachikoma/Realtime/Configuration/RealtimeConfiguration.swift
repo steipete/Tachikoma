@@ -9,7 +9,7 @@ import Foundation
 
 /// Configuration for server-side Voice Activity Detection (VAD)
 @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
-public struct TurnDetection: Sendable, Codable {
+public struct RealtimeTurnDetection: Sendable, Codable {
     /// Type of turn detection
     public let type: TurnDetectionType
     
@@ -45,7 +45,7 @@ public struct TurnDetection: Sendable, Codable {
     }
     
     /// Default server VAD configuration
-    public static let serverVAD = TurnDetection(
+    public static let serverVAD = RealtimeTurnDetection(
         type: .serverVad,
         threshold: 0.5,
         silenceDurationMs: 200,
@@ -54,7 +54,7 @@ public struct TurnDetection: Sendable, Codable {
     )
     
     /// Disable turn detection
-    public static let disabled = TurnDetection(
+    public static let disabled = RealtimeTurnDetection(
         type: .none,
         threshold: nil,
         silenceDurationMs: nil,
@@ -142,16 +142,16 @@ public struct EnhancedSessionConfiguration: Sendable, Codable {
     public var instructions: String?
     
     /// Input audio format
-    public var inputAudioFormat: AudioFormat
+    public var inputAudioFormat: RealtimeAudioFormat
     
     /// Output audio format  
-    public var outputAudioFormat: AudioFormat
+    public var outputAudioFormat: RealtimeAudioFormat
     
     /// Input audio transcription configuration
     public var inputAudioTranscription: InputAudioTranscription?
     
     /// Turn detection configuration
-    public var turnDetection: TurnDetection?
+    public var turnDetection: RealtimeTurnDetection?
     
     /// Tools available for function calling
     public var tools: [RealtimeTool]?
@@ -218,7 +218,7 @@ public struct EnhancedSessionConfiguration: Sendable, Codable {
         inputAudioFormat: RealtimeAudioFormat = .pcm16,
         outputAudioFormat: RealtimeAudioFormat = .pcm16,
         inputAudioTranscription: InputAudioTranscription? = nil,
-        turnDetection: EnhancedTurnDetection? = nil,
+        turnDetection: RealtimeTurnDetection? = nil,
         tools: [RealtimeTool]? = nil,
         toolChoice: ToolChoice? = nil,
         temperature: Double? = 0.8,

@@ -65,8 +65,8 @@ public struct ModelMessage: Sendable, Codable, Equatable {
     public enum ContentPart: Sendable, Codable, Equatable {
         case text(String)
         case image(ImageContent)
-        case toolCall(ToolCall)
-        case toolResult(ToolResult)
+        case toolCall(AgentToolCall)
+        case toolResult(AgentToolResult)
 
         public struct ImageContent: Sendable, Codable, Equatable {
             public let data: String // base64 encoded
@@ -119,17 +119,17 @@ public struct ModelMessage: Sendable, Codable, Equatable {
 
 /// A tool call made by the AI model
 @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
-public struct ToolCall: Sendable, Codable, Equatable {
+public struct AgentToolCall: Sendable, Codable, Equatable {
     public let id: String
     public let name: String
-    public let arguments: [String: ToolArgument]
+    public let arguments: [String: AgentToolArgument]
     public let namespace: String?
     public let recipient: String?
 
     public init(
         id: String = UUID().uuidString,
         name: String,
-        arguments: [String: ToolArgument],
+        arguments: [String: AgentToolArgument],
         namespace: String? = nil,
         recipient: String? = nil
     ) {
@@ -143,36 +143,36 @@ public struct ToolCall: Sendable, Codable, Equatable {
 
 /// Result of executing a tool
 @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
-public struct ToolResult: Sendable, Codable, Equatable {
+public struct AgentToolResult: Sendable, Codable, Equatable {
     public let toolCallId: String
-    public let result: ToolArgument
+    public let result: AgentToolArgument
     public let isError: Bool
 
-    public init(toolCallId: String, result: ToolArgument, isError: Bool = false) {
+    public init(toolCallId: String, result: AgentToolArgument, isError: Bool = false) {
         self.toolCallId = toolCallId
         self.result = result
         self.isError = isError
     }
 
-    public static func success(toolCallId: String, result: ToolArgument) -> ToolResult {
-        ToolResult(toolCallId: toolCallId, result: result, isError: false)
+    public static func success(toolCallId: String, result: AgentToolArgument) -> AgentToolResult {
+        AgentToolResult(toolCallId: toolCallId, result: result, isError: false)
     }
 
-    public static func error(toolCallId: String, error: String) -> ToolResult {
-        ToolResult(toolCallId: toolCallId, result: .string(error), isError: true)
+    public static func error(toolCallId: String, error: String) -> AgentToolResult {
+        AgentToolResult(toolCallId: toolCallId, result: .string(error), isError: true)
     }
 }
 
 /// Type-safe tool argument handling
 @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
-public enum ToolArgument: Sendable, Codable, Equatable {
+public enum AgentToolArgument: Sendable, Codable, Equatable {
     case null
     case bool(Bool)
     case int(Int)
     case double(Double)
     case string(String)
-    case array([ToolArgument])
-    case object([String: ToolArgument])
+    case array([AgentToolArgument])
+    case object([String: AgentToolArgument])
 
     public init(from decoder: Decoder) throws {
         let container = try decoder.singleValueContainer()
@@ -187,12 +187,12 @@ public enum ToolArgument: Sendable, Codable, Equatable {
             self = .double(double)
         } else if let string = try? container.decode(String.self) {
             self = .string(string)
-        } else if let array = try? container.decode([ToolArgument].self) {
+        } else if let array = try? container.decode([AgentToolArgument].self) {
             self = .array(array)
-        } else if let object = try? container.decode([String: ToolArgument].self) {
+        } else if let object = try? container.decode([String: AgentToolArgument].self) {
             self = .object(object)
         } else {
-            throw DecodingError.dataCorruptedError(in: container, debugDescription: "Cannot decode ToolArgument")
+            throw DecodingError.dataCorruptedError(in: container, debugDescription: "Cannot decode AgentToolArgument")
         }
     }
 
@@ -217,8 +217,8 @@ public enum ToolArgument: Sendable, Codable, Equatable {
         }
     }
 
-    /// Create ToolArgument from any JSON-compatible value
-    public static func from(any value: Any) throws -> ToolArgument {
+    /// Create AgentToolArgument from any JSON-compatible value
+    public static func from(any value: Any) throws -> AgentToolArgument {
         if value is NSNull {
             return .null
         } else if let bool = value as? Bool {
@@ -230,12 +230,12 @@ public enum ToolArgument: Sendable, Codable, Equatable {
         } else if let string = value as? String {
             return .string(string)
         } else if let array = value as? [Any] {
-            let toolArgs = try array.map { try ToolArgument.from(any: $0) }
+            let toolArgs = try array.map { try AgentToolArgument.from(any: $0) }
             return .array(toolArgs)
         } else if let dict = value as? [String: Any] {
-            var toolDict: [String: ToolArgument] = [:]
+            var toolDict: [String: AgentToolArgument] = [:]
             for (key, val) in dict {
-                toolDict[key] = try ToolArgument.from(any: val)
+                toolDict[key] = try AgentToolArgument.from(any: val)
             }
             return .object(toolDict)
         } else {
