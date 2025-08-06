@@ -4,7 +4,7 @@ import Foundation
 
 /// Configuration manager for Tachikoma AI SDK
 /// Create instances for different contexts rather than using a global singleton
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public final class TachikomaConfiguration: @unchecked Sendable {
     private let lock = NSLock()
     private var _apiKeys: [String: String] = [:]
@@ -196,9 +196,16 @@ public final class TachikomaConfiguration: @unchecked Sendable {
 
     /// Load configuration from credentials file
     private func loadFromCredentials() {
+        #if os(Windows)
+        let homeDirectory = ProcessInfo.processInfo.environment["USERPROFILE"] ?? 
+                           (ProcessInfo.processInfo.environment["HOMEDRIVE"] ?? "" + 
+                            (ProcessInfo.processInfo.environment["HOMEPATH"] ?? ""))
+        guard !homeDirectory.isEmpty else { return }
+        #else
         guard let homeDirectory = ProcessInfo.processInfo.environment["HOME"] else {
             return
         }
+        #endif
 
         let credentialsPath = "\(homeDirectory)/.tachikoma/credentials"
         let credentialsURL = URL(fileURLWithPath: credentialsPath)
@@ -251,9 +258,18 @@ public final class TachikomaConfiguration: @unchecked Sendable {
 
     /// Save current configuration to credentials file
     public func saveCredentials() throws {
+        #if os(Windows)
+        let homeDirectory = ProcessInfo.processInfo.environment["USERPROFILE"] ?? 
+                           (ProcessInfo.processInfo.environment["HOMEDRIVE"] ?? "" + 
+                            (ProcessInfo.processInfo.environment["HOMEPATH"] ?? ""))
+        guard !homeDirectory.isEmpty else {
+            throw TachikomaError.invalidConfiguration("USERPROFILE directory not found")
+        }
+        #else
         guard let homeDirectory = ProcessInfo.processInfo.environment["HOME"] else {
             throw TachikomaError.invalidConfiguration("HOME directory not found")
         }
+        #endif
 
         let tachikomatDir = "\(homeDirectory)/.tachikoma"
         let credentialsPath = "\(tachikomatDir)/credentials"
@@ -280,8 +296,10 @@ public final class TachikomaConfiguration: @unchecked Sendable {
 
         try content.write(to: credentialsURL, atomically: true, encoding: .utf8)
 
-        // Set restrictive permissions (owner read/write only)
+        // Set restrictive permissions (owner read/write only) - not available on Windows
+        #if !os(Windows)
         try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: credentialsPath)
+        #endif
     }
 
 
@@ -320,7 +338,7 @@ public final class TachikomaConfiguration: @unchecked Sendable {
 
 // MARK: - Convenience Extensions
 
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 extension NSLock {
     /// Execute a closure while holding the lock
     func withLock<T>(_ body: () throws -> T) rethrows -> T {
@@ -332,7 +350,7 @@ extension NSLock {
 
 // MARK: - Provider Integration
 
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 extension ProviderFactory {
     /// Create a provider with configuration
     public static func createConfiguredProvider(for model: LanguageModel, configuration: TachikomaConfiguration) throws -> any ModelProvider {

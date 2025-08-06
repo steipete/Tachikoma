@@ -6,10 +6,10 @@ import PackageDescription
 let package = Package(
     name: "Tachikoma",
     platforms: [
-        .macOS(.v14),
-        .iOS(.v17),
-        .watchOS(.v10),
-        .tvOS(.v17),
+        .macOS(.v13),
+        .iOS(.v16),
+        .watchOS(.v9),
+        .tvOS(.v16),
     ],
     products: [
         // Unified Tachikoma library
@@ -19,6 +19,7 @@ let package = Package(
     ],
     dependencies: [
         .package(url: "https://github.com/apple/swift-log.git", from: "1.0.0"),
+        .package(url: "https://github.com/apple/swift-crypto.git", from: "3.0.0"),
     ],
     targets: [
         // Unified Tachikoma module with all functionality
@@ -26,6 +27,7 @@ let package = Package(
             name: "Tachikoma",
             dependencies: [
                 .product(name: "Logging", package: "swift-log"),
+                .product(name: "Crypto", package: "swift-crypto"),
             ],
             path: "Sources/Tachikoma",
             swiftSettings: commonSwiftSettings),

@@ -577,23 +577,25 @@ public struct LocalModelResponseParser {
     }
     
     private static func extractTag(_ text: String, _ tag: String) -> String? {
-        let pattern = "<\(tag)>(.*?)</\(tag)>"
+        let openTag = "<\(tag)>"
+        let closeTag = "</\(tag)>"
         
-        guard let regex = try? NSRegularExpression(pattern: pattern, options: [.dotMatchesLineSeparators]) else {
+        // Find the opening tag
+        guard let startRange = text.range(of: openTag) else {
             return nil
         }
         
-        let nsString = text as NSString
-        let matches = regex.matches(in: text, range: NSRange(location: 0, length: nsString.length))
-        
-        guard let match = matches.first else { return nil }
-        
-        if match.numberOfRanges >= 2 {
-            let contentRange = match.range(at: 1)
-            return nsString.substring(with: contentRange)
+        // Find the closing tag after the opening tag
+        let searchStart = startRange.upperBound
+        guard let endRange = text[searchStart...].range(of: closeTag) else {
+            return nil
         }
         
-        return nil
+        // Extract the content between tags
+        let contentStart = startRange.upperBound
+        let contentEnd = endRange.lowerBound
+        
+        return String(text[contentStart..<contentEnd])
     }
     
     private static func removeAllTags(_ text: String) -> String {

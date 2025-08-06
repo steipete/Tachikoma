@@ -4,12 +4,16 @@
 //
 
 import Foundation
+#if canImport(CryptoKit)
 import CryptoKit
+#else
+import Crypto  // swift-crypto package for Linux/Windows
+#endif
 
 // MARK: - Response Cache
 
 /// Thread-safe cache for AI model responses
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public actor ResponseCache {
     private var cache: [CacheKey: CachedResponse] = [:]
     private let maxSize: Int
@@ -105,7 +109,7 @@ public actor ResponseCache {
 
 // MARK: - Cache Types
 
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 struct CacheKey: Hashable, Sendable {
     let hash: String
     let model: String?
@@ -141,13 +145,13 @@ struct CacheKey: Hashable, Sendable {
     }
 }
 
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 struct CachedResponse: Sendable {
     let response: ProviderResponse
     let timestamp: Date
 }
 
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public struct CacheStatistics: Sendable {
     public let totalEntries: Int
     public let validEntries: Int
@@ -158,7 +162,7 @@ public struct CacheStatistics: Sendable {
 
 // MARK: - Cache-Aware Generation
 
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public extension TachikomaConfiguration {
     /// Global response cache (opt-in)
     static let sharedCache = ResponseCache()
@@ -177,7 +181,7 @@ public extension TachikomaConfiguration {
 
 // MARK: - Integration with Generation
 
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 extension ResponseCache {
     /// Wrap a provider with caching
     public func wrap<T: ModelProvider>(_ provider: T) -> CachedProvider<T> {
@@ -186,7 +190,7 @@ extension ResponseCache {
 }
 
 /// Provider wrapper that adds caching
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public struct CachedProvider<Base: ModelProvider>: ModelProvider {
     let provider: Base
     let cache: ResponseCache

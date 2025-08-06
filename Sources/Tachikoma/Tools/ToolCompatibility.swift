@@ -140,15 +140,18 @@ public func jsonValueToToolArgument(_ value: Any) -> ToolArgument {
 public struct Tool<Context: Sendable>: Sendable {
     public let name: String
     public let description: String
+    public let parameters: ToolParameters
     public let execute: @Sendable (ToolInput, Context) async throws -> ToolOutput
 
     public init(
         name: String,
         description: String,
+        parameters: ToolParameters = ToolParameters(properties: [], required: []),
         _ execute: @escaping @Sendable (ToolInput, Context) async throws -> ToolOutput
     ) {
         self.name = name
         self.description = description
+        self.parameters = parameters
         self.execute = execute
     }
 
@@ -157,7 +160,7 @@ public struct Tool<Context: Sendable>: Sendable {
         return SimpleTool(
             name: name,
             description: description,
-            parameters: ToolParameters(properties: [], required: []),
+            parameters: parameters,
             execute: { args in
                 let input = ToolInput(args)
                 let output = try await execute(input, context)
@@ -198,7 +201,7 @@ extension ToolKit where Context == Self {
 }
 
 /// Extension to convert ToolKit to provider tools
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 extension ToolKit {
     /// Convert tools to provider tool format
     public func toProviderTools() throws -> [ProviderTool] {
@@ -225,7 +228,7 @@ extension ToolKit {
 }
 
 /// Empty tool kit for testing
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public struct EmptyToolKit: ToolKit {
     public let tools: [Tool<EmptyToolKit>] = []
 
@@ -233,7 +236,7 @@ public struct EmptyToolKit: ToolKit {
 }
 
 /// Provider tool definition for compatibility
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public struct ProviderTool: Sendable {
     public let name: String
     public let description: String
@@ -407,7 +410,7 @@ public struct ToolInput: Sendable {
 }
 
 /// Tool output type for TachikomaBuilders compatibility
-@available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public enum ToolOutput: Sendable {
     case string(String)
     case int(Int)
@@ -569,29 +572,23 @@ public struct ParameterSchema {
 private func evaluateExpression(_ expression: String) throws -> Double {
     let cleanExpression = expression.trimmingCharacters(in: .whitespacesAndNewlines)
     
-    // Handle simple operations with regex pattern matching
-    let patterns = [
-        // Addition: "2 + 3"
-        (#"^(\d+\.?\d*)\s*\+\s*(\d+\.?\d*)$"#, { (a: Double, b: Double) in a + b }),
-        // Subtraction: "5 - 2"
-        (#"^(\d+\.?\d*)\s*-\s*(\d+\.?\d*)$"#, { (a: Double, b: Double) in a - b }),
-        // Multiplication: "4 * 6"
-        (#"^(\d+\.?\d*)\s*\*\s*(\d+\.?\d*)$"#, { (a: Double, b: Double) in a * b }),
-        // Division: "8 / 2"
-        (#"^(\d+\.?\d*)\s*/\s*(\d+\.?\d*)$"#, { (a: Double, b: Double) in a / b })
-    ]
+    // Parse simple binary operations using string manipulation
+    let operators = [("+", { (a: Double, b: Double) in a + b }),
+                     ("-", { (a: Double, b: Double) in a - b }),
+                     ("*", { (a: Double, b: Double) in a * b }),
+                     ("/", { (a: Double, b: Double) in a / b })]
     
-    for (pattern, operation) in patterns {
-        let regex = try NSRegularExpression(pattern: pattern)
-        let range = NSRange(cleanExpression.startIndex..., in: cleanExpression)
-        if let match = regex.firstMatch(in: cleanExpression, range: range) {
-            let firstRange = Range(match.range(at: 1), in: cleanExpression)!
-            let secondRange = Range(match.range(at: 2), in: cleanExpression)!
+    for (op, operation) in operators {
+        // Split by operator
+        let components = cleanExpression.split(separator: Character(op), maxSplits: 1)
+        if components.count == 2 {
+            let leftStr = components[0].trimmingCharacters(in: .whitespaces)
+            let rightStr = components[1].trimmingCharacters(in: .whitespaces)
             
-            let firstNumber = Double(cleanExpression[firstRange])!
-            let secondNumber = Double(cleanExpression[secondRange])!
-            
-            return operation(firstNumber, secondNumber)
+            // Check if both sides are valid numbers
+            if let leftNum = Double(leftStr), let rightNum = Double(rightStr) {
+                return operation(leftNum, rightNum)
+            }
         }
     }
     

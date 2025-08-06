@@ -1,0 +1,90 @@
+name: Cross-Platform CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test-macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode.app
+      
+      - name: Build
+        run: swift build
+      
+      - name: Run tests
+        run: swift test
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+
+  test-linux:
+    runs-on: ubuntu-latest
+    container: swift:6.0
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install dependencies
+        run: |
+          apt-get update
+          apt-get install -y libcurl4-openssl-dev libxml2-dev
+      
+      - name: Build
+        run: swift build
+      
+      - name: Run tests
+        run: swift test
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+
+  test-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Swift
+        uses: compnerd/gha-setup-swift@main
+        with:
+          swift-version: "6.0"
+      
+      - name: Install dependencies
+        run: |
+          # Windows may need additional setup for libxml2, curl, etc.
+          # These are typically bundled with Swift on Windows
+      
+      - name: Build
+        run: swift build
+      
+      - name: Run tests  
+        run: swift test
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+
+  # Optional: Build release artifacts
+  build-release:
+    needs: [test-macos, test-linux, test-windows]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Create release info
+        run: |
+          echo "✅ All platforms tested successfully" >> release-info.txt
+          echo "macOS ✅" >> release-info.txt
+          echo "Linux ✅" >> release-info.txt
+          echo "Windows ✅" >> release-info.txt
+      
+      - name: Upload release info
+        uses: actions/upload-artifact@v4
+        with:
+          name: cross-platform-validation
+          path: release-info.txt
