@@ -147,10 +147,11 @@ struct AnthropicInputSchema: Codable {
             case let boolValue as Bool:
                 try container.encode(boolValue, forKey: codingKey)
             case let arrayValue as [Any]:
-                // Encode arrays properly (this is complex, but for tool schemas we likely won't need complex arrays)
-                let jsonData = try JSONSerialization.data(withJSONObject: arrayValue)
-                let jsonString = String(data: jsonData, encoding: .utf8) ?? "[]"
-                try container.encode(jsonString, forKey: codingKey)
+                // Encode arrays properly as actual arrays, not JSON strings
+                var arrayContainer = container.nestedUnkeyedContainer(forKey: codingKey)
+                for element in arrayValue {
+                    try encodeAnyElement(element, to: &arrayContainer)
+                }
             case let dictValue as [String: Any]:
                 // Encode nested objects properly as nested containers
                 var nestedContainer = container.nestedContainer(keyedBy: AnyCodingKey.self, forKey: codingKey)
@@ -159,6 +160,32 @@ struct AnthropicInputSchema: Codable {
                 // Fallback: convert to string
                 try container.encode(String(describing: value), forKey: codingKey)
             }
+        }
+    }
+    
+    private func encodeAnyElement(_ value: Any, to container: inout UnkeyedEncodingContainer) throws {
+        switch value {
+        case let stringValue as String:
+            try container.encode(stringValue)
+        case let intValue as Int:
+            try container.encode(intValue)
+        case let doubleValue as Double:
+            try container.encode(doubleValue)
+        case let boolValue as Bool:
+            try container.encode(boolValue)
+        case let arrayValue as [Any]:
+            // Nested arrays
+            var nestedContainer = container.nestedUnkeyedContainer()
+            for element in arrayValue {
+                try encodeAnyElement(element, to: &nestedContainer)
+            }
+        case let dictValue as [String: Any]:
+            // Dictionary within array
+            var nestedContainer = container.nestedContainer(keyedBy: AnyCodingKey.self)
+            try encodeAnyDictionary(dictValue, to: &nestedContainer)
+        default:
+            // Fallback: convert to string
+            try container.encode(String(describing: value))
         }
     }
 }

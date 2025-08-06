@@ -211,6 +211,35 @@ struct OpenAICompatibleHelper {
 
     // MARK: - Helper Methods
 
+    private static func convertToolResultToString(_ result: AgentToolArgument) -> String {
+        switch result {
+        case .null:
+            return "null"
+        case .bool(let value):
+            return String(value)
+        case .int(let value):
+            return String(value)
+        case .double(let value):
+            return String(value)
+        case .string(let value):
+            return value
+        case .array(let array):
+            // Convert array to JSON string for complex results
+            if let data = try? JSONEncoder().encode(array),
+               let jsonString = String(data: data, encoding: .utf8) {
+                return jsonString
+            }
+            return "[]"
+        case .object(let dict):
+            // Convert object to JSON string for complex results
+            if let data = try? JSONEncoder().encode(dict),
+               let jsonString = String(data: data, encoding: .utf8) {
+                return jsonString
+            }
+            return "{}"
+        }
+    }
+
     private static func convertMessages(_ messages: [ModelMessage]) throws -> [OpenAIChatMessage] {
         return messages.map { message in
             switch message.role {
@@ -242,21 +271,58 @@ struct OpenAICompatibleHelper {
                     return OpenAIChatMessage(role: "user", content: content)
                 }
             case .assistant:
-                return OpenAIChatMessage(role: "assistant", content: message.content.compactMap { part in
-                    if case .text(let text) = part { return text }
+                // Check if this assistant message contains tool calls
+                let toolCalls = message.content.compactMap { part -> OpenAIChatMessage.AgentToolCall? in
+                    if case .toolCall(let toolCall) = part {
+                        // Convert AgentToolCall to OpenAI format
+                        // Convert arguments dictionary to JSON string
+                        let jsonData = try? JSONEncoder().encode(toolCall.arguments)
+                        let jsonString = jsonData.flatMap { String(data: $0, encoding: .utf8) } ?? "{}"
+                        
+                        return OpenAIChatMessage.AgentToolCall(
+                            id: toolCall.id,
+                            type: "function",
+                            function: OpenAIChatMessage.AgentToolCall.Function(
+                                name: toolCall.name,
+                                arguments: jsonString
+                            )
+                        )
+                    }
                     return nil
-                }.joined())
-            case .tool:
-                // Extract tool call ID from tool result
-                let toolCallId = message.content.compactMap { part in
-                    if case .toolResult(let result) = part { return result.toolCallId }
-                    return nil
-                }.first
+                }
                 
-                return OpenAIChatMessage(role: "tool", content: message.content.compactMap { part in
+                // Extract text content
+                let textContent = message.content.compactMap { part in
                     if case .text(let text) = part { return text }
                     return nil
-                }.joined(), toolCallId: toolCallId)
+                }.joined()
+                
+                // If we have tool calls, create a message with tool calls
+                if !toolCalls.isEmpty {
+                    return OpenAIChatMessage(role: "assistant", content: textContent.isEmpty ? nil : textContent, toolCalls: toolCalls)
+                } else {
+                    // Regular text message
+                    return OpenAIChatMessage(role: "assistant", content: textContent)
+                }
+            case .tool:
+                // Extract tool call ID and result content from tool result
+                var toolCallId: String?
+                var resultContent = ""
+                
+                for part in message.content {
+                    switch part {
+                    case .toolResult(let result):
+                        toolCallId = result.toolCallId
+                        // Convert the result to a string representation
+                        resultContent = convertToolResultToString(result.result)
+                    case .text(let text):
+                        resultContent = text
+                    default:
+                        break
+                    }
+                }
+                
+                return OpenAIChatMessage(role: "tool", content: resultContent, toolCallId: toolCallId)
             }
         }
     }

@@ -70,10 +70,11 @@ private func encodeAnyValueRecursive(
     case let boolValue as Bool:
         try container.encode(boolValue, forKey: key)
     case let arrayValue as [Any]:
-        // For arrays, we encode as JSON string for simplicity
-        let jsonData = try JSONSerialization.data(withJSONObject: arrayValue)
-        let jsonString = String(data: jsonData, encoding: .utf8) ?? "[]"
-        try container.encode(jsonString, forKey: key)
+        // Encode arrays properly as arrays, not as JSON strings
+        var arrayContainer = container.nestedUnkeyedContainer(forKey: key)
+        for element in arrayValue {
+            try encodeAnyElement(element, to: &arrayContainer)
+        }
     case let dictValue as [String: Any]:
         // For nested objects, create a nested container
         var nestedContainer = container.nestedContainer(keyedBy: DynamicCodingKey.self, forKey: key)
@@ -84,5 +85,38 @@ private func encodeAnyValueRecursive(
     default:
         // Fallback: convert to string
         try container.encode(String(describing: value), forKey: key)
+    }
+}
+
+/// Encode any element into an unkeyed container (for arrays)
+private func encodeAnyElement(
+    _ value: Any,
+    to container: inout UnkeyedEncodingContainer
+) throws {
+    switch value {
+    case let stringValue as String:
+        try container.encode(stringValue)
+    case let intValue as Int:
+        try container.encode(intValue)
+    case let doubleValue as Double:
+        try container.encode(doubleValue)
+    case let boolValue as Bool:
+        try container.encode(boolValue)
+    case let arrayValue as [Any]:
+        // Nested arrays
+        var nestedContainer = container.nestedUnkeyedContainer()
+        for element in arrayValue {
+            try encodeAnyElement(element, to: &nestedContainer)
+        }
+    case let dictValue as [String: Any]:
+        // Dictionary within array
+        var nestedContainer = container.nestedContainer(keyedBy: DynamicCodingKey.self)
+        for (key, val) in dictValue {
+            guard let codingKey = DynamicCodingKey(stringValue: key) else { continue }
+            try encodeAnyValueRecursive(val, to: &nestedContainer, forKey: codingKey)
+        }
+    default:
+        // Fallback: convert to string
+        try container.encode(String(describing: value))
     }
 }
