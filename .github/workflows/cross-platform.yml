@@ -7,8 +7,10 @@ on:
     branches: [main]
 
 jobs:
-  test-macos:
-    runs-on: macos-latest
+  # macOS testing - multiple versions
+  test-macos-14:
+    runs-on: macos-14  # Apple Silicon
+    name: macOS 14 (Sonoma)
     steps:
       - uses: actions/checkout@v4
       
@@ -24,8 +26,28 @@ jobs:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
 
-  test-linux:
-    runs-on: ubuntu-latest
+  test-macos-latest:
+    runs-on: macos-latest
+    name: macOS Latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode.app
+      
+      - name: Build
+        run: swift build
+      
+      - name: Run tests
+        run: swift test
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+
+  # Linux testing - Ubuntu 22.04 and 24.04
+  test-linux-ubuntu-22:
+    runs-on: ubuntu-22.04
+    name: Ubuntu 22.04 LTS
     container: swift:6.0
     steps:
       - uses: actions/checkout@v4
@@ -44,8 +66,31 @@ jobs:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
 
+  test-linux-ubuntu-24:
+    runs-on: ubuntu-24.04
+    name: Ubuntu 24.04 LTS
+    container: swift:6.0
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install dependencies
+        run: |
+          apt-get update
+          apt-get install -y libcurl4-openssl-dev libxml2-dev
+      
+      - name: Build
+        run: swift build
+      
+      - name: Run tests
+        run: swift test
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+
+  # Windows testing - latest only
   test-windows:
     runs-on: windows-latest
+    name: Windows Latest
     steps:
       - uses: actions/checkout@v4
       
@@ -56,8 +101,7 @@ jobs:
       
       - name: Install dependencies
         run: |
-          # Windows may need additional setup for libxml2, curl, etc.
-          # These are typically bundled with Swift on Windows
+          # Windows dependencies are typically bundled with Swift
       
       - name: Build
         run: swift build
@@ -70,7 +114,7 @@ jobs:
 
   # Optional: Build release artifacts
   build-release:
-    needs: [test-macos, test-linux, test-windows]
+    needs: [test-macos-14, test-macos-latest, test-linux-ubuntu-22, test-linux-ubuntu-24, test-windows]
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
     steps:
@@ -79,9 +123,15 @@ jobs:
       - name: Create release info
         run: |
           echo "✅ All platforms tested successfully" >> release-info.txt
-          echo "macOS ✅" >> release-info.txt
-          echo "Linux ✅" >> release-info.txt
-          echo "Windows ✅" >> release-info.txt
+          echo "" >> release-info.txt
+          echo "Tested Platforms:" >> release-info.txt
+          echo "• macOS 14 (Sonoma) ✅" >> release-info.txt
+          echo "• macOS Latest ✅" >> release-info.txt
+          echo "• Ubuntu 22.04 LTS ✅" >> release-info.txt
+          echo "• Ubuntu 24.04 LTS ✅" >> release-info.txt
+          echo "• Windows Latest ✅" >> release-info.txt
+          echo "" >> release-info.txt
+          echo "Total: 5 platform configurations tested in parallel" >> release-info.txt
       
       - name: Upload release info
         uses: actions/upload-artifact@v4
