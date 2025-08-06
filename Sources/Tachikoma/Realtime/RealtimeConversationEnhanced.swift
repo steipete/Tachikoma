@@ -3,6 +3,7 @@
 //  Tachikoma
 //
 
+#if canImport(AVFoundation)
 import Foundation
 @preconcurrency import AVFoundation
 
@@ -424,3 +425,5 @@ public extension EnhancedRealtimeConversation {
         }.joined(separator: "\n\n")
     }
 }
+
+#endif // canImport(AVFoundation)
