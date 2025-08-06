@@ -544,6 +544,7 @@ public struct ModelCostCalculator: Sendable {
         case .groq: (0.27, 0.27) // Groq has very low pricing
         case .grok: (2.00, 8.00)
         case .ollama: (0.00, 0.00) // Local inference
+        case .lmstudio: (0.00, 0.00) // Local inference
         case .openRouter, .together, .replicate: (1.00, 3.00) // Typical aggregator pricing
         case .openaiCompatible, .anthropicCompatible: (2.00, 6.00)
         case .custom: (2.00, 6.00)

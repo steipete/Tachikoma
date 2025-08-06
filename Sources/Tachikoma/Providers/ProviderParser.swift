@@ -243,6 +243,12 @@ public enum ProviderParser {
 
     private static func parseOllamaModel(_ modelString: String) -> LanguageModel? {
         switch modelString.lowercased() {
+        // GPT-OSS models
+        case "gpt-oss:120b", "gpt-oss-120b": .ollama(.gptOSS120B)
+        case "gpt-oss:120b:q4_k_m", "gpt-oss-120b:q4_k_m": .ollama(.gptOSS120BQ4)
+        case "gpt-oss:120b:q5_k_m", "gpt-oss-120b:q5_k_m": .ollama(.gptOSS120BQ5)
+        
+        // Llama models
         case "llama3.3", "llama3.3:latest": .ollama(.llama33)
         case "llama3.2", "llama3.2:latest": .ollama(.llama32)
         case "llama3.1", "llama3.1:latest": .ollama(.llama31)

@@ -44,8 +44,9 @@ public struct ProviderFactory {
 
         case let .lmstudio(lmstudioModel):
             // LMStudio doesn't need API key, just use default configuration
+            let baseURL = configuration.getBaseURL(for: "lmstudio") ?? "http://localhost:1234/v1"
             return LMStudioProvider(
-                baseURL: configuration.getBaseURL(for: "lmstudio") ?? "http://localhost:1234/v1",
+                baseURL: baseURL,
                 modelId: lmstudioModel.modelId
             )
 

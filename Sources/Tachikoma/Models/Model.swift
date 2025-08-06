@@ -458,9 +458,9 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
         public var modelId: String {
             switch self {
             case let .custom(id): id
-            case .gptOSS120B: "gpt-oss-120b"
-            case .gptOSS120BQ4: "gpt-oss-120b:q4_k_m"
-            case .gptOSS120BQ5: "gpt-oss-120b:q5_k_m"
+            case .gptOSS120B: "gpt-oss:120b"
+            case .gptOSS120BQ4: "gpt-oss:120b"
+            case .gptOSS120BQ5: "gpt-oss:120b"
             case .llama33: "llama3.3"
             case .llama32: "llama3.2"
             case .llama31: "llama3.1"

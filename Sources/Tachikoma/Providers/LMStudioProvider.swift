@@ -10,7 +10,12 @@ public actor LMStudioProvider: ModelProvider, Sendable {
     
     // MARK: - Properties
     
-    public let baseURL: String?
+    // Store the actual URL internally as non-optional
+    private let actualBaseURL: String
+    
+    // Expose as optional for protocol conformance, but it's never actually nil
+    public nonisolated var baseURL: String? { actualBaseURL }
+    
     public let apiKey: String?
     public let modelId: String
     public let capabilities: ModelCapabilities
@@ -26,7 +31,7 @@ public actor LMStudioProvider: ModelProvider, Sendable {
         modelId: String = "current",
         apiKey: String? = nil
     ) {
-        self.baseURL = baseURL
+        self.actualBaseURL = baseURL
         self.modelId = modelId
         self.apiKey = apiKey
         self.capabilities = ModelCapabilities(
@@ -71,7 +76,7 @@ public actor LMStudioProvider: ModelProvider, Sendable {
     }
     
     public func healthCheck() async throws -> HealthStatus {
-        let url = URL(string: "\(baseURL ?? "http://localhost:1234/v1")/models")!
+        let url = URL(string: "\(actualBaseURL)/models")!
         let (data, _) = try await session.data(from: url)
         
         // Parse models endpoint response
@@ -98,7 +103,7 @@ public actor LMStudioProvider: ModelProvider, Sendable {
     }
     
     public func listModels() async throws -> [Model] {
-        let url = URL(string: "\(baseURL ?? "http://localhost:1234/v1")/models")!
+        let url = URL(string: "\(actualBaseURL)/models")!
         let (data, _) = try await session.data(from: url)
         let response = try decoder.decode(ModelsResponse.self, from: data)
         return response.data
@@ -109,7 +114,7 @@ public actor LMStudioProvider: ModelProvider, Sendable {
     public func generateText(request: ProviderRequest) async throws -> ProviderResponse {
         let openAIRequest = try mapToOpenAIRequest(request)
         
-        var urlRequest = URLRequest(url: URL(string: "\(baseURL ?? "http://localhost:1234/v1")/chat/completions")!)
+        var urlRequest = URLRequest(url: URL(string: "\(actualBaseURL)/chat/completions")!)
         urlRequest.httpMethod = "POST"
         urlRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
         if let apiKey = apiKey {
@@ -128,7 +133,7 @@ public actor LMStudioProvider: ModelProvider, Sendable {
     public func streamText(request: ProviderRequest) async throws -> AsyncThrowingStream<TextStreamDelta, Error> {
         let openAIRequest = try mapToOpenAIRequest(request, streaming: true)
         
-        var urlRequest = URLRequest(url: URL(string: "\(baseURL ?? "http://localhost:1234/v1")/chat/completions")!)
+        var urlRequest = URLRequest(url: URL(string: "\(actualBaseURL)/chat/completions")!)
         urlRequest.httpMethod = "POST"
         urlRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
         if let apiKey = apiKey {
@@ -165,18 +170,12 @@ public actor LMStudioProvider: ModelProvider, Sendable {
                                 }
                             }
                             
-                            // Handle tool calls
+                            // Handle tool calls - emit as text for now
                             if let toolCalls = delta.tool_calls {
                                 for toolCall in toolCalls {
-                                    continuation.yield(.init(
-                                        type: .toolCall,
-                                        content: nil,
-                                        toolCall: ToolCall(
-                                            id: toolCall.id ?? "",
-                                            name: toolCall.function?.name ?? "",
-                                            arguments: try self.parseToolArguments(toolCall.function?.arguments)
-                                        )
-                                    ))
+                                    if let name = toolCall.function?.name {
+                                        continuation.yield(.init(type: .textDelta, content: "[Calling tool: \(name)]"))
+                                    }
                                 }
                             }
                         }
@@ -196,16 +195,15 @@ public actor LMStudioProvider: ModelProvider, Sendable {
         var messages: [[String: Any]] = []
         
         for message in request.messages {
-            var msg: [String: Any] = [
+            let msg: [String: Any] = [
                 "role": message.role.rawValue,
                 "content": message.content
             ]
             
             // Add metadata if present
-            if let metadata = message.metadata {
-                if let channel = metadata["channel"] as? String {
-                    msg["channel"] = channel
-                }
+            if message.metadata != nil {
+                // For now, we'll skip metadata as it's not directly mappable
+                // Future: Add channel support when LMStudio supports it
             }
             
             messages.append(msg)
@@ -218,28 +216,27 @@ public actor LMStudioProvider: ModelProvider, Sendable {
         ]
         
         // Map generation settings
-        if let settings = request.settings {
-            if let maxTokens = settings.maxTokens {
-                body["max_tokens"] = maxTokens
-            }
-            if let temperature = settings.temperature {
-                body["temperature"] = mapTemperatureForReasoningEffort(
-                    temperature,
-                    effort: settings.reasoningEffort
-                )
-            }
-            if let topP = settings.topP {
-                body["top_p"] = topP
-            }
-            if let stopSequences = settings.stopSequences {
-                body["stop"] = stopSequences
-            }
-            
-            // Map reasoning effort to LMStudio parameters
-            if let effort = settings.reasoningEffort {
-                let params = mapReasoningEffortToParams(effort)
-                body.merge(params) { _, new in new }
-            }
+        let settings = request.settings
+        if let maxTokens = settings.maxTokens {
+            body["max_tokens"] = maxTokens
+        }
+        if let temperature = settings.temperature {
+            body["temperature"] = mapTemperatureForReasoningEffort(
+                temperature,
+                effort: settings.reasoningEffort
+            )
+        }
+        if let topP = settings.topP {
+            body["top_p"] = topP
+        }
+        if let stopSequences = settings.stopSequences {
+            body["stop"] = stopSequences
+        }
+        
+        // Map reasoning effort to LMStudio parameters
+        if let effort = settings.reasoningEffort {
+            let params = mapReasoningEffortToParams(effort)
+            body.merge(params) { _, new in new }
         }
         
         // Add tools if present
@@ -250,7 +247,17 @@ public actor LMStudioProvider: ModelProvider, Sendable {
                     "function": [
                         "name": tool.name,
                         "description": tool.description,
-                        "parameters": tool.parameters.toJSON()
+                        "parameters": [
+                            "type": "object",
+                            "properties": tool.parameters.properties.reduce(into: [String: Any]()) { result, element in
+                                let (key, prop) = element
+                                result[key] = [
+                                    "type": prop.type.rawValue,
+                                    "description": prop.description
+                                ]
+                            },
+                            "required": tool.parameters.required
+                        ]
                     ]
                 ]
             }
@@ -306,7 +313,7 @@ public actor LMStudioProvider: ModelProvider, Sendable {
     
     private func mapFromOpenAIResponse(_ response: LMStudioResponse, request: ProviderRequest) throws -> ProviderResponse {
         guard let choice = response.choices.first else {
-            throw TachikomaError.invalidResponse("No choices in response")
+            throw TachikomaError.apiError("No choices in response")
         }
         
         let content = choice.message.content ?? ""
@@ -319,25 +326,21 @@ public actor LMStudioProvider: ModelProvider, Sendable {
         
         return ProviderResponse(
             text: finalText,
-            toolCalls: choice.message.tool_calls?.map { toolCall in
+            usage: response.usage.map { usage in
+                Usage(
+                    inputTokens: usage.prompt_tokens,
+                    outputTokens: usage.completion_tokens,
+                    cost: nil
+                )
+            },
+            finishReason: mapFinishReason(choice.finish_reason),
+            toolCalls: try choice.message.tool_calls?.map { toolCall in
                 ToolCall(
                     id: toolCall.id,
                     name: toolCall.function.name,
                     arguments: try parseToolArguments(toolCall.function.arguments)
                 )
-            },
-            usage: response.usage.map { usage in
-                Usage(
-                    inputTokens: usage.prompt_tokens,
-                    outputTokens: usage.completion_tokens,
-                    totalTokens: usage.total_tokens
-                )
-            },
-            finishReason: mapFinishReason(choice.finish_reason),
-            metadata: [
-                "channels": channels,
-                "model": response.model ?? modelId
-            ]
+            }
         )
     }
     
@@ -350,10 +353,10 @@ public actor LMStudioProvider: ModelProvider, Sendable {
         }
     }
     
-    private func parseToolArguments(_ json: String?) throws -> ToolArguments {
+    private func parseToolArguments(_ json: String?) throws -> [String: ToolArgument] {
         guard let json = json,
               let data = json.data(using: .utf8) else {
-            return ToolArguments([:])
+            return [:]
         }
         
         let dict = try JSONSerialization.jsonObject(with: data) as? [String: Any] ?? [:]
@@ -383,7 +386,7 @@ public actor LMStudioProvider: ModelProvider, Sendable {
             }
         }
         
-        return ToolArguments(args)
+        return args
     }
 }
 
@@ -393,10 +396,80 @@ private struct LMStudioRequest: Encodable {
     let body: [String: Any]
     
     func encode(to encoder: Encoder) throws {
-        var container = encoder.singleValueContainer()
-        try container.encode(body)
+        // Convert dictionary to JSON data and then to a temporary encodable structure
+        let data = try JSONSerialization.data(withJSONObject: body, options: [])
+        let json = try JSONSerialization.jsonObject(with: data, options: [])
+        
+        // Create a container and encode each key-value pair
+        var container = encoder.container(keyedBy: DynamicCodingKey.self)
+        if let dict = json as? [String: Any] {
+            for (key, value) in dict {
+                let codingKey = DynamicCodingKey(stringValue: key)!
+                try encodeValue(value, forKey: codingKey, container: &container)
+            }
+        }
+    }
+    
+    private func encodeValue(_ value: Any, forKey key: DynamicCodingKey, container: inout KeyedEncodingContainer<DynamicCodingKey>) throws {
+        switch value {
+        case let bool as Bool:
+            try container.encode(bool, forKey: key)
+        case let int as Int:
+            try container.encode(int, forKey: key)
+        case let double as Double:
+            try container.encode(double, forKey: key)
+        case let string as String:
+            try container.encode(string, forKey: key)
+        case let array as [Any]:
+            var nestedContainer = container.nestedUnkeyedContainer(forKey: key)
+            for item in array {
+                try encodeArrayValue(item, container: &nestedContainer)
+            }
+        case let dict as [String: Any]:
+            var nestedContainer = container.nestedContainer(keyedBy: DynamicCodingKey.self, forKey: key)
+            for (nestedKey, nestedValue) in dict {
+                let nestedCodingKey = DynamicCodingKey(stringValue: nestedKey)!
+                try encodeValue(nestedValue, forKey: nestedCodingKey, container: &nestedContainer)
+            }
+        case is NSNull:
+            try container.encodeNil(forKey: key)
+        default:
+            // Skip values we can't encode
+            break
+        }
+    }
+    
+    private func encodeArrayValue(_ value: Any, container: inout UnkeyedEncodingContainer) throws {
+        switch value {
+        case let bool as Bool:
+            try container.encode(bool)
+        case let int as Int:
+            try container.encode(int)
+        case let double as Double:
+            try container.encode(double)
+        case let string as String:
+            try container.encode(string)
+        case let array as [Any]:
+            var nestedContainer = container.nestedUnkeyedContainer()
+            for item in array {
+                try encodeArrayValue(item, container: &nestedContainer)
+            }
+        case let dict as [String: Any]:
+            var nestedContainer = container.nestedContainer(keyedBy: DynamicCodingKey.self)
+            for (nestedKey, nestedValue) in dict {
+                let nestedCodingKey = DynamicCodingKey(stringValue: nestedKey)!
+                try encodeValue(nestedValue, forKey: nestedCodingKey, container: &nestedContainer)
+            }
+        case is NSNull:
+            try container.encodeNil()
+        default:
+            // Skip values we can't encode
+            break
+        }
     }
 }
+
+// MARK: - OpenAI Format Types (continued)
 
 private struct LMStudioResponse: Decodable {
     let id: String
