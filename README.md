@@ -46,6 +46,42 @@ let nextResponse = try await conversation.continue()
 // Uses same model as previous call
 ```
 
+### OpenAI Realtime API (Voice Conversations) 🎙️
+
+**NEW: Full support for OpenAI's Realtime API for low-latency voice conversations!**
+
+```swift
+// Simple voice assistant
+let conversation = try await startRealtimeConversation(
+    model: .gpt4oRealtime,
+    voice: .nova,
+    instructions: "You are a helpful voice assistant"
+)
+
+// Start listening
+try await conversation.startListening()
+
+// Handle responses
+for await transcript in conversation.transcriptUpdates {
+    print("Assistant: \(transcript)")
+}
+
+// Advanced configuration with Server VAD
+let config = EnhancedSessionConfiguration.voiceConversation()
+config.turnDetection = .serverVAD  // Automatic turn detection
+config.modalities = .all           // Text and audio
+
+let advanced = try AdvancedRealtimeConversation(
+    apiKey: apiKey,
+    configuration: config,
+    settings: .production  // Auto-reconnect, buffering, etc.
+)
+
+// Dynamic modality switching
+try await advanced.updateModalities(.text)  // Switch to text-only
+try await advanced.updateModalities(.audio) // Switch to audio-only
+```
+
 ### Tool Integration
 
 ```swift
@@ -196,7 +232,18 @@ let tool = SimpleTool(
 )
 ```
 
-See [docs/openai-harmony.md](docs/openai-harmony.md) for detailed documentation.
+#### Realtime API Features
+
+- **🎙️ WebSocket Streaming** - Persistent connection for low-latency (~500ms) voice conversations
+- **🔊 Bidirectional Audio** - Real-time audio input and output with PCM16 format
+- **🎯 Server VAD** - Automatic Voice Activity Detection for natural turn-taking
+- **🔄 Dynamic Modalities** - Switch between text/audio/both during conversation
+- **🛠️ Voice-Triggered Tools** - Execute functions via voice commands
+- **🔁 Auto-Reconnect** - Automatic reconnection with exponential backoff
+- **💾 Audio Buffering** - Buffer audio during disconnection for seamless recovery
+- **📱 SwiftUI Ready** - Observable objects with @Published properties
+
+See [docs/openai-harmony.md](docs/openai-harmony.md) for complete Realtime API documentation.
 
 ### Conversation Management
 
