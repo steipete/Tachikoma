@@ -4,6 +4,9 @@
 //
 
 import Foundation
+#if canImport(FoundationNetworking)
+import FoundationNetworking
+#endif
 
 /// Provider for LMStudio local model server
 public actor LMStudioProvider: ModelProvider, Sendable {
