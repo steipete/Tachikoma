@@ -22,7 +22,7 @@ public func generateText(
     tools: [AgentTool]? = nil,
     settings: GenerationSettings = .default,
     maxSteps: Int = 1,
-    configuration: TachikomaConfiguration = TachikomaConfiguration()
+    configuration: TachikomaConfiguration = .current
 ) async throws
 -> GenerateTextResult {
     let provider = try ProviderFactory.createProvider(for: model, configuration: configuration)
@@ -179,7 +179,7 @@ public func streamText(
     tools: [AgentTool]? = nil,
     settings: GenerationSettings = .default,
     maxSteps: Int = 1,
-    configuration: TachikomaConfiguration = TachikomaConfiguration()
+    configuration: TachikomaConfiguration = .current
 ) async throws
 -> StreamTextResult {
     let provider = try ProviderFactory.createProvider(for: model, configuration: configuration)
@@ -261,7 +261,7 @@ public func generateObject<T: Codable & Sendable>(
     messages: [ModelMessage],
     schema: T.Type,
     settings: GenerationSettings = .default,
-    configuration: TachikomaConfiguration = TachikomaConfiguration()
+    configuration: TachikomaConfiguration = .current
 ) async throws
 -> GenerateObjectResult<T> {
     let provider = try ProviderFactory.createProvider(for: model, configuration: configuration)
@@ -316,7 +316,7 @@ public func generate(
     system: String? = nil,
     maxTokens: Int? = nil,
     temperature: Double? = nil,
-    configuration: TachikomaConfiguration = TachikomaConfiguration()
+    configuration: TachikomaConfiguration = .current
 ) async throws
 -> String {
     var messages: [ModelMessage] = []
@@ -348,7 +348,7 @@ public func analyze(
     image: ImageInput,
     prompt: String,
     using model: Model? = nil,
-    configuration: TachikomaConfiguration = TachikomaConfiguration()
+    configuration: TachikomaConfiguration = .current
 ) async throws
 -> String {
     // Determine the model to use
@@ -436,7 +436,7 @@ public func stream(
     system: String? = nil,
     maxTokens: Int? = nil,
     temperature: Double? = nil,
-    configuration: TachikomaConfiguration = TachikomaConfiguration()
+    configuration: TachikomaConfiguration = .current
 ) async throws
 -> AsyncThrowingStream<TextStreamDelta, Error> {
     var messages: [ModelMessage] = []

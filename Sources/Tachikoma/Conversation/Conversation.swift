@@ -7,6 +7,7 @@ import Foundation
 public final class Conversation: @unchecked Sendable {
     private let lock = NSLock()
     private var _messages: [ConversationMessage] = []
+    private let configuration: TachikomaConfiguration
 
     public var messages: [ConversationMessage] {
         self.lock.lock()
@@ -14,7 +15,9 @@ public final class Conversation: @unchecked Sendable {
         return self._messages
     }
 
-    public init() {}
+    public init(configuration: TachikomaConfiguration = .current) {
+        self.configuration = configuration
+    }
 
     /// Add a user message to the conversation
     public func addUserMessage(_ content: String) {
@@ -77,7 +80,8 @@ public final class Conversation: @unchecked Sendable {
             model: model ?? .default,
             messages: modelMessages,
             tools: [],
-            settings: .default
+            settings: .default,
+            configuration: self.configuration
         )
 
         // Add the response to the conversation
