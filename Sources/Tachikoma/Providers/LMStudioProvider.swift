@@ -147,6 +147,10 @@ public actor LMStudioProvider: ModelProvider, Sendable {
         return AsyncThrowingStream { continuation in
             Task {
                 do {
+                    #if canImport(FoundationNetworking)
+                    // Linux: URLSession.bytes is not available, use dataTask
+                    continuation.finish(throwing: TachikomaError.unsupportedOperation("Streaming not supported on Linux"))
+                    #else
                     let (bytes, _) = try await session.bytes(for: urlRequest)
                     
                     for try await line in bytes.lines {
@@ -185,6 +189,7 @@ public actor LMStudioProvider: ModelProvider, Sendable {
                     }
                     
                     continuation.finish()
+                    #endif
                 } catch {
                     continuation.finish(throwing: error)
                 }
