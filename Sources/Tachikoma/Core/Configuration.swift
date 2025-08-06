@@ -12,8 +12,19 @@ public final class TachikomaConfiguration: @unchecked Sendable {
     private var _defaultSettings: GenerationSettings = .default
     private let _loadFromEnvironment: Bool
 
+    /// Thread-safe storage for the default configuration
+    private static let defaultLock = NSLock()
+    private nonisolated(unsafe) static var _default: TachikomaConfiguration?
+    
     /// Optional default configuration set by the application
-    public static var `default`: TachikomaConfiguration?
+    public static var `default`: TachikomaConfiguration? {
+        get {
+            defaultLock.withLock { _default }
+        }
+        set {
+            defaultLock.withLock { _default = newValue }
+        }
+    }
     
     /// Singleton created once when needed (if no default is set)
     private static let autoInstance = TachikomaConfiguration()

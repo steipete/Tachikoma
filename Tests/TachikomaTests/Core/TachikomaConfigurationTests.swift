@@ -282,6 +282,92 @@ struct TachikomaConfigurationTests {
         }
     }
     
+    @Suite("Default Configuration Tests")
+    struct DefaultConfigurationTests {
+        
+        @Test("Default configuration usage")
+        func defaultConfigurationUsage() async throws {
+            // Clear any existing default
+            TachikomaConfiguration.default = nil
+            
+            // Current should return auto instance
+            let current1 = TachikomaConfiguration.current
+            let current2 = TachikomaConfiguration.current
+            #expect(current1 === current2) // Should be same instance
+            
+            // Set a default
+            let customDefault = TachikomaConfiguration(loadFromEnvironment: false)
+            customDefault.setAPIKey("custom-key", for: .openai)
+            TachikomaConfiguration.default = customDefault
+            
+            // Current should now return the custom default
+            #expect(TachikomaConfiguration.current === customDefault)
+            #expect(TachikomaConfiguration.current.getAPIKey(for: .openai) == "custom-key")
+            
+            // Clean up
+            TachikomaConfiguration.default = nil
+        }
+        
+        @Test("Resolve helper function")
+        func resolveHelperFunction() async throws {
+            // Clear any existing default
+            TachikomaConfiguration.default = nil
+            
+            // Test with no provided config and no default
+            let resolved1 = TachikomaConfiguration.resolve()
+            let resolved2 = TachikomaConfiguration.resolve()
+            #expect(resolved1 === resolved2) // Should be same auto instance
+            
+            // Set a default
+            let defaultConfig = TachikomaConfiguration(loadFromEnvironment: false)
+            defaultConfig.setAPIKey("default-key", for: .anthropic)
+            TachikomaConfiguration.default = defaultConfig
+            
+            // Resolve should return default
+            let resolved3 = TachikomaConfiguration.resolve()
+            #expect(resolved3 === defaultConfig)
+            
+            // Resolve with explicit config should override
+            let explicitConfig = TachikomaConfiguration(loadFromEnvironment: false)
+            explicitConfig.setAPIKey("explicit-key", for: .groq)
+            let resolved4 = TachikomaConfiguration.resolve(explicitConfig)
+            #expect(resolved4 === explicitConfig)
+            
+            // Clean up
+            TachikomaConfiguration.default = nil
+        }
+        
+        @Test("Auto instance is singleton")
+        func autoInstanceIsSingleton() async throws {
+            // Clear any existing default
+            TachikomaConfiguration.default = nil
+            
+            // Multiple accesses to current should return same auto instance
+            let instances = await withTaskGroup(of: TachikomaConfiguration.self) { group in
+                for _ in 0..<10 {
+                    group.addTask {
+                        TachikomaConfiguration.current
+                    }
+                }
+                
+                var results: [TachikomaConfiguration] = []
+                for await instance in group {
+                    results.append(instance)
+                }
+                return results
+            }
+            
+            // All should be the same instance
+            let first = instances.first!
+            for instance in instances {
+                #expect(instance === first)
+            }
+            
+            // Clean up
+            TachikomaConfiguration.default = nil
+        }
+    }
+    
     @Suite("Instance Isolation Tests")
     struct InstanceIsolationTests {
         
@@ -313,6 +399,37 @@ struct TachikomaConfigurationTests {
             config1.setAPIKey("new-key", for: .anthropic)
             #expect(config1.hasAPIKey(for: .anthropic))
             #expect(!config2.hasAPIKey(for: .anthropic))
+        }
+    }
+    
+    @Suite("Configuration Priority Tests")
+    struct ConfigurationPriorityTests {
+        
+        @Test("Configuration priority chain")
+        func configurationPriorityChain() async throws {
+            // Clear any existing default
+            TachikomaConfiguration.default = nil
+            
+            // Setup different configurations
+            let autoConfig = TachikomaConfiguration.current // Will be auto instance
+            let defaultConfig = TachikomaConfiguration(loadFromEnvironment: false)
+            defaultConfig.setAPIKey("default-key", for: .openai)
+            TachikomaConfiguration.default = defaultConfig
+            
+            let explicitConfig = TachikomaConfiguration(loadFromEnvironment: false)
+            explicitConfig.setAPIKey("explicit-key", for: .openai)
+            
+            // Test priority: explicit > default > auto
+            #expect(TachikomaConfiguration.resolve(explicitConfig).getAPIKey(for: .openai) == "explicit-key")
+            #expect(TachikomaConfiguration.resolve(nil).getAPIKey(for: .openai) == "default-key")
+            
+            // Remove default, should fall back to auto
+            TachikomaConfiguration.default = nil
+            let resolved = TachikomaConfiguration.resolve(nil)
+            #expect(resolved === autoConfig) // Should be the same auto instance created earlier
+            
+            // Clean up
+            TachikomaConfiguration.default = nil
         }
     }
 }
