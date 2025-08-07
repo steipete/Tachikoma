@@ -24,7 +24,7 @@ struct UIIntegrationTests {
                 )
             ],
             toolCalls: [
-                AgentToolCall(
+                try AgentToolCall(
                     id: "test-1",
                     name: "calculator",
                     arguments: ["expression": "2+2"]
@@ -68,7 +68,7 @@ struct UIIntegrationTests {
                     data: "base64data",
                     mimeType: "image/jpeg"
                 )),
-                .toolCall(AgentToolCall(
+                .toolCall(try AgentToolCall(
                     id: "calc-1",
                     name: "calculator",
                     arguments: ["result": 42]

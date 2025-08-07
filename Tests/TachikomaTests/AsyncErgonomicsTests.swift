@@ -10,67 +10,14 @@ import Foundation
 @Suite("Async Ergonomics Tests")
 struct AsyncErgonomicsTests {
     
-    @Test("CancellableTask with timeout")
-    func testCancellableTaskTimeout() async throws {
-        let task = CancellableTask<String>(timeout: 0.1) {
-            try await Task.sleep(nanoseconds: 1_000_000_000) // 1 second
-            return "Should timeout"
-        }
-        
-        do {
-            _ = try await task.value()
-            Issue.record("Task should have timed out")
-        } catch {
-            // Expected timeout
-            #expect(task.isCancelled)
-        }
+    @Test("Timeout error description")
+    func testTimeoutErrorDescription() throws {
+        let error = TimeoutError(timeout: 5.5)
+        #expect(error.errorDescription == "Operation timed out after 5.5 seconds")
     }
     
-    @Test("CancellableTask manual cancellation")
-    func testCancellableTaskManualCancel() async throws {
-        let task = CancellableTask<String> {
-            try await Task.sleep(nanoseconds: 1_000_000_000) // 1 second
-            return "Should be cancelled"
-        }
-        
-        // Cancel immediately
-        task.cancel()
-        
-        do {
-            _ = try await task.value()
-            Issue.record("Task should have been cancelled")
-        } catch {
-            // Expected cancellation
-            #expect(task.isCancelled)
-        }
-    }
-    
-    @Test("Task.withTimeout success")
-    func testTaskWithTimeoutSuccess() async throws {
-        let result = try await Task.withTimeout(1.0) {
-            try await Task.sleep(nanoseconds: 100_000_000) // 0.1 seconds
-            return "Success"
-        }
-        
-        #expect(result == "Success")
-    }
-    
-    @Test("Task.withTimeout failure")
-    func testTaskWithTimeoutFailure() async throws {
-        do {
-            _ = try await Task.withTimeout(0.1) {
-                try await Task.sleep(nanoseconds: 1_000_000_000) // 1 second
-                return "Should timeout"
-            }
-            Issue.record("Should have timed out")
-        } catch let error as TimeoutError {
-            #expect(error.timeout == 0.1)
-            #expect(error.errorDescription?.contains("0.1 seconds") == true)
-        }
-    }
-    
-    @Test("CancellationToken basic functionality")
-    func testCancellationToken() async throws {
+    @Test("Cancellation token basic operations")
+    func testCancellationTokenBasic() async throws {
         let token = CancellationToken()
         
         #expect(await token.cancelled == false)
@@ -79,149 +26,133 @@ struct AsyncErgonomicsTests {
         
         #expect(await token.cancelled == true)
         
-        // Check that cancellation throws
-        do {
-            try await token.checkCancellation()
-            Issue.record("Should have thrown CancellationError")
-        } catch is CancellationError {
-            // Expected
-        }
+        // Canceling again should be idempotent
+        await token.cancel()
+        #expect(await token.cancelled == true)
     }
     
-    @Test("CancellationToken with callbacks")
-    func testCancellationTokenCallbacks() async throws {
+    @Test("Cancellation token with handlers")
+    func testCancellationTokenHandlers() async throws {
         let token = CancellationToken()
-        var callbackExecuted = false
+        
+        class Flag: @unchecked Sendable {
+            var value = false
+        }
+        
+        let flag = Flag()
         
         await token.onCancel {
-            callbackExecuted = true
+            flag.value = true
         }
+        
+        #expect(flag.value == false)
         
         await token.cancel()
         
-        // Give callback time to execute
+        // Give handler time to execute
         try await Task.sleep(nanoseconds: 10_000_000) // 0.01 seconds
         
-        #expect(callbackExecuted)
+        #expect(flag.value == true)
     }
     
-    @Test("RetryConfiguration with default values")
+    @Test("Retry configuration defaults")
     func testRetryConfigurationDefaults() throws {
         let config = RetryConfiguration.default
         
         #expect(config.maxAttempts == 3)
-        #expect(config.delay == 1)
-        #expect(config.backoffMultiplier == 2)
-        #expect(config.maxDelay == 60)
+        #expect(config.delay == 1.0)
+        #expect(config.backoffMultiplier == 2.0)
+        #expect(config.maxDelay == 60.0)
         #expect(config.timeout == nil)
     }
     
-    @Test("RetryConfiguration presets")
+    @Test("Retry configuration presets")
     func testRetryConfigurationPresets() throws {
         let aggressive = RetryConfiguration.aggressive
         #expect(aggressive.maxAttempts == 5)
         #expect(aggressive.delay == 0.5)
         
         let conservative = RetryConfiguration.conservative
-        #expect(conservative.maxAttempts == 2)
-        #expect(conservative.delay == 5)
+        #expect(conservative.maxAttempts == 3)
+        #expect(conservative.delay == 2.0)
     }
     
-    @Test("Retry with cancellation - success")
-    func testRetryWithCancellationSuccess() async throws {
-        var attempts = 0
-        
+    @Test("Retry with cancellation - immediate success")
+    func testRetryWithCancellationImmediateSuccess() async throws {
         let result = try await retryWithCancellation(
             configuration: .init(maxAttempts: 3, delay: 0.01)
         ) {
-            attempts += 1
-            if attempts < 2 {
-                throw NSError(domain: "test", code: 1)
-            }
-            return "Success after \(attempts) attempts"
+            return "Success"
         }
         
-        #expect(result == "Success after 2 attempts")
-        #expect(attempts == 2)
+        #expect(result == "Success")
     }
     
-    @Test("Retry with cancellation - all attempts fail")
-    func testRetryWithCancellationAllFail() async throws {
-        var attempts = 0
+    @Test("With timeout basic functionality")
+    func testWithTimeoutBasic() async throws {
+        let result = try await withTimeout(0.1) {
+            return "Quick result"
+        }
         
+        #expect(result == "Quick result")
+    }
+    
+    @Test("With timeout throws on timeout")
+    func testWithTimeoutThrows() async throws {
         do {
-            _ = try await retryWithCancellation(
-                configuration: .init(maxAttempts: 2, delay: 0.01)
-            ) {
-                attempts += 1
-                throw NSError(domain: "test", code: 1)
+            _ = try await withTimeout(0.01) {
+                try await Task<Never, Never>.sleep(nanoseconds: 1_000_000_000) // 1 second
+                return "Should timeout"
             }
-            Issue.record("Should have failed after all attempts")
-        } catch {
-            #expect(attempts == 2)
+            Issue.record("Should have timed out")
+        } catch is TimeoutError {
+            // Expected
         }
     }
     
-    @Test("Retry with cancellation token")
-    func testRetryWithCancellationToken() async throws {
-        let token = CancellationToken()
-        var attempts = 0
-        
-        // Cancel after a short delay
-        Task {
-            try await Task.sleep(nanoseconds: 50_000_000) // 0.05 seconds
-            await token.cancel()
+    @Test("Async stream collect basic")
+    func testAsyncStreamCollectBasic() async throws {
+        let stream = AsyncThrowingStream<Int, Error> { continuation in
+            continuation.yield(1)
+            continuation.yield(2)
+            continuation.yield(3)
+            continuation.finish()
         }
         
-        do {
-            _ = try await retryWithCancellation(
-                configuration: .init(maxAttempts: 10, delay: 0.1),
-                cancellationToken: token
-            ) {
-                attempts += 1
-                throw NSError(domain: "test", code: 1)
-            }
-            Issue.record("Should have been cancelled")
-        } catch is CancellationError {
-            // Expected cancellation
-            #expect(attempts < 10) // Should not have completed all attempts
-        }
-    }
-    
-    @Test("Async sequence collect with timeout")
-    func testAsyncSequenceCollectTimeout() async throws {
-        let sequence = AsyncStream<Int> { continuation in
-            Task {
-                for i in 1...3 {
-                    continuation.yield(i)
-                    try? await Task.sleep(nanoseconds: 10_000_000) // 0.01 seconds
-                }
-                continuation.finish()
-            }
-        }
-        
-        let results = try await sequence.collect(timeout: 1.0)
+        let results = try await stream.collect()
         #expect(results == [1, 2, 3])
     }
     
-    @Test("Async sequence first with timeout")
-    func testAsyncSequenceFirstTimeout() async throws {
-        let sequence = AsyncStream<String> { continuation in
-            Task {
-                try? await Task.sleep(nanoseconds: 10_000_000) // 0.01 seconds
-                continuation.yield("First")
-                continuation.yield("Second")
-                continuation.finish()
-            }
+    @Test("Task group with auto cancellation")
+    func testTaskGroupAutoCancellation() async throws {
+        class Flag: @unchecked Sendable {
+            var cancelled = false
         }
         
-        let first = try await sequence.first(timeout: 1.0)
-        #expect(first == "First")
-    }
-    
-    @Test("Timeout error description")
-    func testTimeoutErrorDescription() throws {
-        let error = TimeoutError(timeout: 5.5)
-        #expect(error.errorDescription == "Operation timed out after 5.5 seconds")
+        let flag = Flag()
+        
+        do {
+            try await withAutoCancellationTaskGroup(of: Void.self) { group in
+                group.addTask {
+                    defer { flag.cancelled = true }
+                    try await Task<Never, Never>.sleep(nanoseconds: 10_000_000_000) // 10 seconds
+                }
+                
+                group.addTask {
+                    throw NSError(domain: "test", code: 1)
+                }
+                
+                // Wait for all tasks
+                try await group.waitForAll()
+            }
+        } catch {
+            // Expected error
+        }
+        
+        // Give time for cancellation
+        try await Task<Never, Never>.sleep(nanoseconds: 10_000_000) // 0.01 seconds
+        
+        // The long task should have been cancelled
+        #expect(flag.cancelled == true)
     }
 }

@@ -161,18 +161,22 @@ struct IntegrationTests {
             let capabilities = ModelCapabilities(
                 supportsVision: false,
                 supportsTools: false,
-                supportsStreaming: false, // No streaming support
-                supportsSystemRole: false, // No system messages
-                maxTokens: 2048,
-                contextWindow: 8192
+                supportsStreaming: false,
+                contextLength: 8192,
+                maxOutputTokens: 2048
             )
             
             func generateText(request: ProviderRequest) async throws -> ProviderResponse {
                 ProviderResponse(
-                    text: "Response for: \(request.messages.last?.content.first?.textContent ?? "")",
-                    toolCalls: nil,
+                    text: {
+                        if case .text(let text) = request.messages.last?.content.first {
+                            return "Response for: \(text)"
+                        }
+                        return "Response"
+                    }(),
                     usage: Usage(inputTokens: 10, outputTokens: 20),
-                    finishReason: .stop
+                    finishReason: .stop,
+                    toolCalls: nil
                 )
             }
             
@@ -183,7 +187,7 @@ struct IntegrationTests {
         
         // Wrap with feature parity
         let provider = LimitedProvider()
-        let enhanced = provider.withFeatureParity(configuration: .ollama)
+        let adapter = ProviderAdapter(provider: provider, configuration: .ollama)
         
         // Test that system messages are transformed
         let messages = [
@@ -191,12 +195,12 @@ struct IntegrationTests {
             ModelMessage.user("Hello")
         ]
         
-        let validated = try enhanced.validateMessages(messages)
+        let validated = try adapter.validateMessages(messages)
         #expect(validated[0].role == .user) // System message converted
         
         // Add caching
         let cache = EnhancedResponseCache(configuration: .aggressive)
-        let cached = cache.wrapProvider(enhanced)
+        let cached = await cache.wrapProvider(adapter)
         
         let request = ProviderRequest(
             messages: [.user("Test message")],

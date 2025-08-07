@@ -55,9 +55,9 @@ struct EnhancedResponseCacheTests {
         
         let response = ProviderResponse(
             text: "Test response",
-            toolCalls: nil,
             usage: Usage(inputTokens: 10, outputTokens: 20),
-            finishReason: .stop
+            finishReason: .stop,
+            toolCalls: nil
         )
         
         // Store in cache
@@ -82,9 +82,9 @@ struct EnhancedResponseCacheTests {
         
         let response = ProviderResponse(
             text: "Will expire",
-            toolCalls: nil,
             usage: nil,
-            finishReason: .stop
+            finishReason: .stop,
+            toolCalls: nil
         )
         
         // Store with very short TTL
@@ -111,9 +111,9 @@ struct EnhancedResponseCacheTests {
             
             let response = ProviderResponse(
                 text: "Response \(i)",
-                toolCalls: nil,
                 usage: nil,
-                finishReason: .stop
+                finishReason: .stop,
+                toolCalls: nil
             )
             
             await cache.store(response, for: request)
@@ -137,9 +137,9 @@ struct EnhancedResponseCacheTests {
         
         let response = ProviderResponse(
             text: "Old response",
-            toolCalls: nil,
             usage: nil,
-            finishReason: .stop
+            finishReason: .stop,
+            toolCalls: nil
         )
         
         await cache.store(response, for: request)
@@ -162,9 +162,9 @@ struct EnhancedResponseCacheTests {
         
         let response = ProviderResponse(
             text: "Stats response",
-            toolCalls: nil,
             usage: nil,
-            finishReason: .stop
+            finishReason: .stop,
+            toolCalls: nil
         )
         
         // Miss
@@ -191,11 +191,11 @@ struct EnhancedResponseCacheTests {
         let requests: [(ProviderRequest, ProviderResponse)] = [
             (
                 ProviderRequest(messages: [.user("Q1")], settings: .default),
-                ProviderResponse(text: "A1", toolCalls: nil, usage: nil, finishReason: .stop)
+                ProviderResponse(text: "A1", usage: nil, finishReason: .stop, toolCalls: nil)
             ),
             (
                 ProviderRequest(messages: [.user("Q2")], settings: .default),
-                ProviderResponse(text: "A2", toolCalls: nil, usage: nil, finishReason: .stop)
+                ProviderResponse(text: "A2", usage: nil, finishReason: .stop, toolCalls: nil)
             )
         ]
         
@@ -220,9 +220,9 @@ struct EnhancedResponseCacheTests {
         
         let response = ProviderResponse(
             text: "Will be cleared",
-            toolCalls: nil,
             usage: nil,
-            finishReason: .stop
+            finishReason: .stop,
+            toolCalls: nil
         )
         
         await cache.store(response, for: request)
@@ -259,9 +259,9 @@ struct EnhancedResponseCacheTests {
     func testCacheEntryExpiration() throws {
         let response = ProviderResponse(
             text: "Test",
-            toolCalls: nil,
             usage: nil,
-            finishReason: .stop
+            finishReason: .stop,
+            toolCalls: nil
         )
         
         let entry = CacheEntry(
@@ -271,7 +271,7 @@ struct EnhancedResponseCacheTests {
         )
         
         #expect(!entry.isExpired(ttl: 60))
-        #expect(entry.priority == .normal)
+        #expect(entry.priority == CachePriority.normal)
         
         // Record access
         entry.recordAccess()

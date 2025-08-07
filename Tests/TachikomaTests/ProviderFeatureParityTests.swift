@@ -20,9 +20,9 @@ struct ProviderFeatureParityTests {
         func generateText(request: ProviderRequest) async throws -> ProviderResponse {
             ProviderResponse(
                 text: "Mock response",
-                toolCalls: nil,
                 usage: Usage(inputTokens: 10, outputTokens: 20),
-                finishReason: .stop
+                finishReason: .stop,
+                toolCalls: nil
             )
         }
         
@@ -72,21 +72,20 @@ struct ProviderFeatureParityTests {
                 supportsVision: true,
                 supportsTools: true,
                 supportsStreaming: false,
-                supportsSystemRole: true,
-                maxTokens: 4096,
-                contextWindow: 128000
+                contextLength: 128000,
+                maxOutputTokens: 4096
             )
         )
         
         let adapter = ProviderAdapter(
             provider: provider,
-            configuration: .default
+            configuration: ProviderConfiguration()
         )
         
-        #expect(adapter.isFeatureSupported(.visionInputs))
-        #expect(adapter.isFeatureSupported(.toolCalling))
-        #expect(!adapter.isFeatureSupported(.streaming))
-        #expect(adapter.isFeatureSupported(.systemMessages))
+        #expect(adapter.isFeatureSupported(ProviderFeature.visionInputs))
+        #expect(adapter.isFeatureSupported(ProviderFeature.toolCalling))
+        #expect(!adapter.isFeatureSupported(ProviderFeature.streaming))
+        #expect(adapter.isFeatureSupported(ProviderFeature.systemMessages))
     }
     
     @Test("System message transformation")
@@ -96,9 +95,8 @@ struct ProviderFeatureParityTests {
                 supportsVision: false,
                 supportsTools: false,
                 supportsStreaming: false,
-                supportsSystemRole: false, // Doesn't support system role
-                maxTokens: 4096,
-                contextWindow: 128000
+                contextLength: 128000,
+                maxOutputTokens: 4096
             )
         )
         
@@ -116,7 +114,11 @@ struct ProviderFeatureParityTests {
         
         #expect(validated.count == 2)
         #expect(validated[0].role == .user) // System message converted to user
-        #expect(validated[0].content.first?.textContent?.contains("System:") == true)
+        if case .text(let text) = validated[0].content.first {
+            #expect(text.contains("System:"))
+        } else {
+            Issue.record("Expected text content")
+        }
         #expect(validated[1].role == .user)
     }
     
@@ -127,9 +129,8 @@ struct ProviderFeatureParityTests {
                 supportsVision: false,
                 supportsTools: false,
                 supportsStreaming: false,
-                supportsSystemRole: true,
-                maxTokens: 4096,
-                contextWindow: 128000
+                contextLength: 128000,
+                maxOutputTokens: 4096
             )
         )
         
@@ -158,15 +159,14 @@ struct ProviderFeatureParityTests {
                 supportsVision: false, // Doesn't support vision
                 supportsTools: false,
                 supportsStreaming: false,
-                supportsSystemRole: true,
-                maxTokens: 4096,
-                contextWindow: 128000
+                contextLength: 128000,
+                maxOutputTokens: 4096
             )
         )
         
         let adapter = ProviderAdapter(
             provider: provider,
-            configuration: .default
+            configuration: ProviderConfiguration()
         )
         
         let messages = [
@@ -186,7 +186,11 @@ struct ProviderFeatureParityTests {
         
         // Image content should be stripped
         #expect(validated[0].content.count == 1)
-        #expect(validated[0].content.first?.textContent == "Look at this image")
+        if case .text(let text) = validated[0].content.first {
+            #expect(text == "Look at this image")
+        } else {
+            Issue.record("Expected text content")
+        }
     }
     
     @Test("Tool limit enforcement")
@@ -196,9 +200,8 @@ struct ProviderFeatureParityTests {
                 supportsVision: false,
                 supportsTools: true,
                 supportsStreaming: false,
-                supportsSystemRole: true,
-                maxTokens: 4096,
-                contextWindow: 128000
+                contextLength: 128000,
+                maxOutputTokens: 4096
             )
         )
         
@@ -211,7 +214,7 @@ struct ProviderFeatureParityTests {
                 name: "tool\(i)",
                 description: "Tool \(i)",
                 parameters: AgentToolParameters(properties: [], required: [])
-            ) { _ in AnyAgentToolValue.null }
+            ) { _ in try AnyAgentToolValue(true) }
         }
         
         let request = ProviderRequest(
@@ -245,9 +248,8 @@ struct ProviderFeatureParityTests {
                 supportsVision: true,
                 supportsTools: true,
                 supportsStreaming: true,
-                supportsSystemRole: true,
-                maxTokens: 4096,
-                contextWindow: 128000
+                contextLength: 128000,
+                maxOutputTokens: 4096
             )
         )
         
