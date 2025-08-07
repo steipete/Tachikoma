@@ -288,7 +288,12 @@ extension AgentToolArguments {
         var dict: [String: Any] = [:]
         for key in self.keys {
             if let value = self[key] {
-                dict[key] = value.toJSON()
+                do {
+                    dict[key] = try value.toJSON()
+                } catch {
+                    // If conversion fails, skip this value
+                    continue
+                }
             }
         }
         return dict
