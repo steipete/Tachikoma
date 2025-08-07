@@ -302,7 +302,7 @@ public enum ImageInput: Sendable {
 
 /// Settings for text generation
 @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
-public struct GenerationSettings: Sendable, Codable {
+public struct GenerationSettings: Sendable {
     public let maxTokens: Int?
     public let temperature: Double?
     public let topP: Double?
@@ -311,6 +311,8 @@ public struct GenerationSettings: Sendable, Codable {
     public let presencePenalty: Double?
     public let stopSequences: [String]?
     public let reasoningEffort: ReasoningEffort?
+    public let stopConditions: (any StopCondition)?
+    public let seed: Int?
 
     public init(
         maxTokens: Int? = nil,
@@ -320,7 +322,9 @@ public struct GenerationSettings: Sendable, Codable {
         frequencyPenalty: Double? = nil,
         presencePenalty: Double? = nil,
         stopSequences: [String]? = nil,
-        reasoningEffort: ReasoningEffort? = nil
+        reasoningEffort: ReasoningEffort? = nil,
+        stopConditions: (any StopCondition)? = nil,
+        seed: Int? = nil
     ) {
         self.maxTokens = maxTokens
         self.temperature = temperature
@@ -330,9 +334,54 @@ public struct GenerationSettings: Sendable, Codable {
         self.presencePenalty = presencePenalty
         self.stopSequences = stopSequences
         self.reasoningEffort = reasoningEffort
+        self.stopConditions = stopConditions
+        self.seed = seed
     }
 
     public static let `default` = GenerationSettings()
+}
+
+// Manual Codable conformance excluding non-codable stopConditions
+extension GenerationSettings: Codable {
+    enum CodingKeys: String, CodingKey {
+        case maxTokens
+        case temperature
+        case topP
+        case topK
+        case frequencyPenalty
+        case presencePenalty
+        case stopSequences
+        case reasoningEffort
+        case seed
+    }
+    
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.maxTokens = try container.decodeIfPresent(Int.self, forKey: .maxTokens)
+        self.temperature = try container.decodeIfPresent(Double.self, forKey: .temperature)
+        self.topP = try container.decodeIfPresent(Double.self, forKey: .topP)
+        self.topK = try container.decodeIfPresent(Int.self, forKey: .topK)
+        self.frequencyPenalty = try container.decodeIfPresent(Double.self, forKey: .frequencyPenalty)
+        self.presencePenalty = try container.decodeIfPresent(Double.self, forKey: .presencePenalty)
+        self.stopSequences = try container.decodeIfPresent([String].self, forKey: .stopSequences)
+        self.reasoningEffort = try container.decodeIfPresent(ReasoningEffort.self, forKey: .reasoningEffort)
+        self.seed = try container.decodeIfPresent(Int.self, forKey: .seed)
+        self.stopConditions = nil // Can't decode function types
+    }
+    
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encodeIfPresent(maxTokens, forKey: .maxTokens)
+        try container.encodeIfPresent(temperature, forKey: .temperature)
+        try container.encodeIfPresent(topP, forKey: .topP)
+        try container.encodeIfPresent(topK, forKey: .topK)
+        try container.encodeIfPresent(frequencyPenalty, forKey: .frequencyPenalty)
+        try container.encodeIfPresent(presencePenalty, forKey: .presencePenalty)
+        try container.encodeIfPresent(stopSequences, forKey: .stopSequences)
+        try container.encodeIfPresent(reasoningEffort, forKey: .reasoningEffort)
+        try container.encodeIfPresent(seed, forKey: .seed)
+        // Don't encode stopConditions since it can't be serialized
+    }
 }
 
 // MARK: - Multi-Channel Response Support

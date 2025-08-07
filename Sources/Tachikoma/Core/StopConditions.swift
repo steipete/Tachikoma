@@ -5,336 +5,450 @@
 
 import Foundation
 
-// MARK: - Stop Conditions for Multi-Step Tool Execution
+// MARK: - Stop Conditions for Generation Control
 
-/// Protocol for defining when to stop multi-step tool execution
+/// Protocol for conditions that can stop generation
 @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public protocol StopCondition: Sendable {
-    /// Check if execution should stop based on current state
-    func shouldStop(step: Int, toolCalls: [AgentToolCall], results: [AgentToolResult]) async -> Bool
+    /// Check if generation should stop based on the current text
+    func shouldStop(text: String, delta: String?) async -> Bool
+    
+    /// Reset any internal state
+    func reset() async
 }
 
 // MARK: - Built-in Stop Conditions
 
-/// Stop after a specific number of steps
+/// Stop when a specific string is encountered
 @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
-public struct StepCountCondition: StopCondition {
-    public let maxSteps: Int
+public struct StringStopCondition: StopCondition {
+    private let stopString: String
+    private let caseSensitive: Bool
     
-    public init(maxSteps: Int) {
-        self.maxSteps = maxSteps
+    public init(_ stopString: String, caseSensitive: Bool = true) {
+        self.stopString = stopString
+        self.caseSensitive = caseSensitive
     }
     
-    public func shouldStop(step: Int, toolCalls: [AgentToolCall], results: [AgentToolResult]) async -> Bool {
-        step >= maxSteps
-    }
-}
-
-/// Stop when a specific tool is called
-@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
-public struct ToolCalledCondition: StopCondition {
-    public let toolName: String
-    
-    public init(toolName: String) {
-        self.toolName = toolName
-    }
-    
-    public func shouldStop(step: Int, toolCalls: [AgentToolCall], results: [AgentToolResult]) async -> Bool {
-        toolCalls.contains { $0.name == toolName }
-    }
-}
-
-/// Stop when a tool returns a specific result type
-@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
-public struct ResultTypeCondition: StopCondition {
-    public let checker: @Sendable (AgentToolResult) -> Bool
-    
-    public init(checker: @escaping @Sendable (AgentToolResult) -> Bool) {
-        self.checker = checker
-    }
-    
-    public func shouldStop(step: Int, toolCalls: [AgentToolCall], results: [AgentToolResult]) async -> Bool {
-        results.contains(where: checker)
-    }
-}
-
-/// Stop when an error occurs
-@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
-public struct ErrorCondition: StopCondition {
-    public init() {}
-    
-    public func shouldStop(step: Int, toolCalls: [AgentToolCall], results: [AgentToolResult]) async -> Bool {
-        results.contains { $0.isError }
-    }
-}
-
-/// Combine multiple conditions with AND logic
-@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
-public struct AndCondition: StopCondition {
-    public let conditions: [StopCondition]
-    
-    public init(_ conditions: StopCondition...) {
-        self.conditions = conditions
-    }
-    
-    public init(conditions: [StopCondition]) {
-        self.conditions = conditions
-    }
-    
-    public func shouldStop(step: Int, toolCalls: [AgentToolCall], results: [AgentToolResult]) async -> Bool {
-        for condition in conditions {
-            if !(await condition.shouldStop(step: step, toolCalls: toolCalls, results: results)) {
-                return false
-            }
+    public func shouldStop(text: String, delta: String?) async -> Bool {
+        if caseSensitive {
+            return text.contains(stopString) || (delta?.contains(stopString) ?? false)
+        } else {
+            return text.lowercased().contains(stopString.lowercased()) || 
+                   (delta?.lowercased().contains(stopString.lowercased()) ?? false)
         }
-        return true
+    }
+    
+    public func reset() async {}
+}
+
+/// Stop when a regex pattern is matched
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
+public struct RegexStopCondition: StopCondition {
+    private let pattern: String
+    private let regex: NSRegularExpression?
+    
+    public init(pattern: String) {
+        self.pattern = pattern
+        self.regex = try? NSRegularExpression(pattern: pattern, options: [])
+    }
+    
+    public func shouldStop(text: String, delta: String?) async -> Bool {
+        guard let regex else { return false }
+        
+        let range = NSRange(location: 0, length: text.utf16.count)
+        if regex.firstMatch(in: text, options: [], range: range) != nil {
+            return true
+        }
+        
+        if let delta {
+            let deltaRange = NSRange(location: 0, length: delta.utf16.count)
+            return regex.firstMatch(in: delta, options: [], range: deltaRange) != nil
+        }
+        
+        return false
+    }
+    
+    public func reset() async {}
+}
+
+/// Stop after a certain number of tokens
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
+public actor TokenCountStopCondition: StopCondition {
+    private let maxTokens: Int
+    private var currentTokens: Int = 0
+    
+    public init(maxTokens: Int) {
+        self.maxTokens = maxTokens
+    }
+    
+    public func shouldStop(text: String, delta: String?) async -> Bool {
+        // Approximate token counting (4 chars ≈ 1 token)
+        if let delta {
+            currentTokens += max(1, delta.count / 4)
+        } else {
+            currentTokens = max(1, text.count / 4)
+        }
+        return currentTokens >= maxTokens
+    }
+    
+    public func reset() async {
+        currentTokens = 0
     }
 }
 
-/// Combine multiple conditions with OR logic
+/// Stop after a certain duration
 @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
-public struct OrCondition: StopCondition {
-    public let conditions: [StopCondition]
+public actor TimeoutStopCondition: StopCondition {
+    private let timeout: TimeInterval
+    private var startTime: Date?
     
-    public init(_ conditions: StopCondition...) {
+    public init(timeout: TimeInterval) {
+        self.timeout = timeout
+    }
+    
+    public func shouldStop(text: String, delta: String?) async -> Bool {
+        if startTime == nil {
+            startTime = Date()
+        }
+        
+        guard let startTime else { return false }
+        return Date().timeIntervalSince(startTime) >= timeout
+    }
+    
+    public func reset() async {
+        startTime = nil
+    }
+}
+
+/// Stop when a custom predicate returns true
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
+public struct PredicateStopCondition: StopCondition {
+    private let predicate: @Sendable (String, String?) async -> Bool
+    
+    public init(predicate: @escaping @Sendable (String, String?) async -> Bool) {
+        self.predicate = predicate
+    }
+    
+    public func shouldStop(text: String, delta: String?) async -> Bool {
+        await predicate(text, delta)
+    }
+    
+    public func reset() async {}
+}
+
+// MARK: - Composite Stop Conditions
+
+/// Stop when any of the conditions are met
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
+public struct AnyStopCondition: StopCondition {
+    private let conditions: [any StopCondition]
+    
+    public init(_ conditions: [any StopCondition]) {
         self.conditions = conditions
     }
     
-    public init(conditions: [StopCondition]) {
+    public init(_ conditions: any StopCondition...) {
         self.conditions = conditions
     }
     
-    public func shouldStop(step: Int, toolCalls: [AgentToolCall], results: [AgentToolResult]) async -> Bool {
+    public func shouldStop(text: String, delta: String?) async -> Bool {
         for condition in conditions {
-            if await condition.shouldStop(step: step, toolCalls: toolCalls, results: results) {
+            if await condition.shouldStop(text: text, delta: delta) {
                 return true
             }
         }
         return false
     }
-}
-
-/// Custom condition with a closure
-@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
-public struct CustomCondition: StopCondition {
-    public let evaluator: @Sendable (Int, [AgentToolCall], [AgentToolResult]) async -> Bool
     
-    public init(evaluator: @escaping @Sendable (Int, [AgentToolCall], [AgentToolResult]) async -> Bool) {
-        self.evaluator = evaluator
-    }
-    
-    public func shouldStop(step: Int, toolCalls: [AgentToolCall], results: [AgentToolResult]) async -> Bool {
-        await evaluator(step, toolCalls, results)
+    public func reset() async {
+        for condition in conditions {
+            await condition.reset()
+        }
     }
 }
 
-// MARK: - Stop When Builder
-
-/// Fluent builder for creating stop conditions
+/// Stop when all conditions are met
 @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
-public struct StopWhen {
-    /// Stop after a specific number of steps
-    public static func stepCountIs(_ count: Int) -> StopCondition {
-        StepCountCondition(maxSteps: count)
+public struct AllStopCondition: StopCondition {
+    private let conditions: [any StopCondition]
+    
+    public init(_ conditions: [any StopCondition]) {
+        self.conditions = conditions
     }
     
-    /// Stop when a specific tool is called
-    public static func toolCalled(_ name: String) -> StopCondition {
-        ToolCalledCondition(toolName: name)
+    public init(_ conditions: any StopCondition...) {
+        self.conditions = conditions
     }
     
-    /// Stop when any error occurs
-    public static func errorOccurs() -> StopCondition {
-        ErrorCondition()
-    }
-    
-    /// Stop when a custom condition is met
-    public static func custom(
-        _ evaluator: @escaping @Sendable (Int, [AgentToolCall], [AgentToolResult]) async -> Bool
-    ) -> StopCondition {
-        CustomCondition(evaluator: evaluator)
-    }
-    
-    /// Stop when all conditions are met
-    public static func all(_ conditions: StopCondition...) -> StopCondition {
-        AndCondition(conditions: conditions)
-    }
-    
-    /// Stop when any condition is met
-    public static func any(_ conditions: StopCondition...) -> StopCondition {
-        OrCondition(conditions: conditions)
-    }
-    
-    /// Stop when a result contains a specific value
-    public static func resultContains(_ checker: @escaping @Sendable (AgentToolResult) -> Bool) -> StopCondition {
-        ResultTypeCondition(checker: checker)
-    }
-    
-    /// Stop when a result contains a string matching a pattern
-    public static func resultMatches(_ pattern: String) -> StopCondition {
-        ResultTypeCondition { result in
-            switch result.result {
-            case .string(let str):
-                return str.contains(pattern)
-            case .object(let dict):
-                // Check if any value in the object contains the pattern
-                for value in dict.values {
-                    if case .string(let str) = value, str.contains(pattern) {
-                        return true
-                    }
-                }
-                return false
-            default:
+    public func shouldStop(text: String, delta: String?) async -> Bool {
+        for condition in conditions {
+            if await !condition.shouldStop(text: text, delta: delta) {
                 return false
             }
         }
+        return true
     }
     
-    /// Never stop (only limited by max steps if provided)
-    public static func never() -> StopCondition {
-        CustomCondition { _, _, _ in false }
+    public func reset() async {
+        for condition in conditions {
+            await condition.reset()
+        }
     }
 }
 
-// MARK: - Enhanced Generation Functions with Stop Conditions
+// MARK: - Stateful Stop Conditions
 
+/// Stop when a pattern appears consecutively N times
 @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
-public func generateTextWithConditions(
-    model: LanguageModel,
-    messages: [ModelMessage],
-    tools: [AgentTool]? = nil,
-    settings: GenerationSettings = .default,
-    stopWhen: StopCondition = StopWhen.stepCountIs(1),
-    maxSteps: Int = 10, // Safety limit
-    configuration: TachikomaConfiguration = .current
-) async throws -> GenerateTextResult {
-    let provider = try ProviderFactory.createProvider(for: model, configuration: configuration)
+public actor ConsecutivePatternStopCondition: StopCondition {
+    private let pattern: String
+    private let requiredCount: Int
+    private var currentCount: Int = 0
+    private var lastText: String = ""
     
-    var currentMessages = messages
-    var allSteps: [GenerationStep] = []
-    var totalUsage = Usage(inputTokens: 0, outputTokens: 0)
-    var allToolCalls: [AgentToolCall] = []
-    var allToolResults: [AgentToolResult] = []
+    public init(pattern: String, count: Int) {
+        self.pattern = pattern
+        self.requiredCount = count
+    }
     
-    for stepIndex in 0..<maxSteps {
-        // Check stop condition before executing
-        if await stopWhen.shouldStop(step: stepIndex, toolCalls: allToolCalls, results: allToolResults) {
-            break
+    public func shouldStop(text: String, delta: String?) async -> Bool {
+        // Count new occurrences in the delta
+        if let delta {
+            let newOccurrences = delta.components(separatedBy: pattern).count - 1
+            currentCount += newOccurrences
+        } else {
+            // Full text check
+            let occurrences = text.components(separatedBy: pattern).count - 1
+            currentCount = occurrences
         }
         
-        let request = ProviderRequest(
-            messages: currentMessages,
-            tools: tools,
+        lastText = text
+        return currentCount >= requiredCount
+    }
+    
+    public func reset() async {
+        currentCount = 0
+        lastText = ""
+    }
+}
+
+/// Stop when the model starts repeating itself
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
+public actor RepetitionStopCondition: StopCondition {
+    private let windowSize: Int
+    private let threshold: Double
+    private var recentChunks: [String] = []
+    
+    public init(windowSize: Int = 50, threshold: Double = 0.8) {
+        self.windowSize = windowSize
+        self.threshold = threshold
+    }
+    
+    public func shouldStop(text: String, delta: String?) async -> Bool {
+        guard let delta, !delta.isEmpty else { return false }
+        
+        // Add new chunk
+        recentChunks.append(delta)
+        
+        // Keep only recent chunks
+        if recentChunks.count > 10 {
+            recentChunks.removeFirst()
+        }
+        
+        // Check for repetition
+        guard recentChunks.count >= 3 else { return false }
+        
+        // Simple repetition detection: check if recent chunks are similar
+        let lastChunk = recentChunks.last!
+        var similarCount = 0
+        
+        for i in 0..<(recentChunks.count - 1) {
+            if similarity(recentChunks[i], lastChunk) > threshold {
+                similarCount += 1
+            }
+        }
+        
+        // Stop if too many similar chunks
+        return Double(similarCount) / Double(recentChunks.count - 1) > 0.5
+    }
+    
+    private func similarity(_ s1: String, _ s2: String) -> Double {
+        guard !s1.isEmpty && !s2.isEmpty else { return 0 }
+        
+        // Simple character-based similarity
+        let commonChars = Set(s1).intersection(Set(s2)).count
+        let totalChars = Set(s1).union(Set(s2)).count
+        
+        return Double(commonChars) / Double(totalChars)
+    }
+    
+    public func reset() async {
+        recentChunks = []
+    }
+}
+
+// MARK: - Stop Condition Builder
+
+/// Builder for creating stop conditions fluently
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
+public struct StopConditionBuilder {
+    private var conditions: [any StopCondition] = []
+    
+    public init() {}
+    
+    /// Stop when a string is encountered
+    public func whenContains(_ text: String, caseSensitive: Bool = true) -> StopConditionBuilder {
+        var builder = self
+        builder.conditions.append(StringStopCondition(text, caseSensitive: caseSensitive))
+        return builder
+    }
+    
+    /// Stop when a regex pattern matches
+    public func whenMatches(_ pattern: String) -> StopConditionBuilder {
+        var builder = self
+        builder.conditions.append(RegexStopCondition(pattern: pattern))
+        return builder
+    }
+    
+    /// Stop after N tokens
+    public func afterTokens(_ count: Int) -> StopConditionBuilder {
+        var builder = self
+        builder.conditions.append(TokenCountStopCondition(maxTokens: count))
+        return builder
+    }
+    
+    /// Stop after a timeout
+    public func afterTime(_ seconds: TimeInterval) -> StopConditionBuilder {
+        var builder = self
+        builder.conditions.append(TimeoutStopCondition(timeout: seconds))
+        return builder
+    }
+    
+    /// Stop when custom predicate is true
+    public func when(_ predicate: @escaping @Sendable (String, String?) async -> Bool) -> StopConditionBuilder {
+        var builder = self
+        builder.conditions.append(PredicateStopCondition(predicate: predicate))
+        return builder
+    }
+    
+    /// Build the final condition
+    public func build() -> any StopCondition {
+        switch conditions.count {
+        case 0:
+            return NeverStopCondition()
+        case 1:
+            return conditions[0]
+        default:
+            return AnyStopCondition(conditions)
+        }
+    }
+}
+
+/// A condition that never stops (used as default)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
+public struct NeverStopCondition: StopCondition {
+    public init() {}
+    
+    public func shouldStop(text: String, delta: String?) async -> Bool {
+        false
+    }
+    
+    public func reset() async {}
+}
+
+// MARK: - Integration with Generation Functions
+
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
+public extension GenerationSettings {
+    /// Create settings with stop conditions
+    static func withStopConditions(
+        _ conditions: any StopCondition...,
+        maxTokens: Int? = nil,
+        temperature: Double? = nil,
+        topP: Double? = nil,
+        seed: Int? = nil
+    ) -> GenerationSettings {
+        GenerationSettings(
+            maxTokens: maxTokens,
+            temperature: temperature,
+            topP: topP,
+            stopConditions: conditions.isEmpty ? nil : AnyStopCondition(conditions),
+            seed: seed
+        )
+    }
+}
+
+// MARK: - Stream Extensions for Stop Conditions
+
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
+public extension AsyncThrowingStream where Element == TextStreamDelta {
+    /// Apply stop conditions to a text stream
+    func stopWhen(_ condition: any StopCondition) -> AsyncThrowingStream<Element, Error> {
+        AsyncThrowingStream<Element, Error> { continuation in
+            Task {
+                var accumulatedText = ""
+                await condition.reset()
+                
+                do {
+                    for try await delta in self {
+                        // Accumulate text
+                        if case .textDelta = delta.type, let content = delta.content {
+                            accumulatedText += content
+                            
+                            // Check stop condition
+                            if await condition.shouldStop(text: accumulatedText, delta: content) {
+                                // Yield the current delta then stop
+                                continuation.yield(delta)
+                                continuation.yield(TextStreamDelta(type: .done))
+                                continuation.finish()
+                                return
+                            }
+                        }
+                        
+                        // Continue streaming
+                        continuation.yield(delta)
+                        
+                        // Check for natural end
+                        if case .done = delta.type {
+                            continuation.finish()
+                            return
+                        }
+                    }
+                    continuation.finish()
+                } catch {
+                    continuation.finish(throwing: error)
+                }
+            }
+        }
+    }
+}
+
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
+public extension StreamTextResult {
+    /// Apply stop conditions to the stream
+    func stopWhen(_ condition: any StopCondition) -> StreamTextResult {
+        StreamTextResult(
+            stream: textStream.stopWhen(condition),
+            model: model,
             settings: settings
         )
-        
-        let response = try await provider.generateText(request: request)
-        
-        // Track usage
-        if let usage = response.usage {
-            let sessionId = "generation-\(UUID().uuidString)"
-            _ = UsageTracker.shared.startSession(sessionId)
-            
-            let operationType: OperationType = tools?.isEmpty == false ? .toolCall : .textGeneration
-            UsageTracker.shared.recordUsage(
-                sessionId: sessionId,
-                model: model,
-                usage: usage,
-                operation: operationType
-            )
-            _ = UsageTracker.shared.endSession(sessionId)
-            
-            totalUsage = Usage(
-                inputTokens: totalUsage.inputTokens + usage.inputTokens,
-                outputTokens: totalUsage.outputTokens + usage.outputTokens,
-                cost: usage.cost
-            )
-        }
-        
-        // Process tool calls
-        var stepToolResults: [AgentToolResult] = []
-        if let toolCalls = response.toolCalls, !toolCalls.isEmpty {
-            allToolCalls.append(contentsOf: toolCalls)
-            
-            // Execute tools
-            for toolCall in toolCalls {
-                if let tool = tools?.first(where: { $0.name == toolCall.name }) {
-                    do {
-                        let resultValue = try await tool.execute(AgentToolArguments(toolCall.arguments))
-                        let result = AgentToolResult(
-                            toolCallId: toolCall.id,
-                            result: resultValue,
-                            isError: false
-                        )
-                        stepToolResults.append(result)
-                        allToolResults.append(result)
-                    } catch {
-                        let errorResult = AgentToolResult(
-                            toolCallId: toolCall.id,
-                            result: .string("Error: \(error.localizedDescription)"),
-                            isError: true
-                        )
-                        stepToolResults.append(errorResult)
-                        allToolResults.append(errorResult)
-                    }
-                }
-            }
-            
-            // Add tool results to messages
-            currentMessages.append(contentsOf: stepToolResults.map { result in
-                ModelMessage(role: .tool, content: [.toolResult(result)])
-            })
-        }
-        
-        // Create step record
-        let step = GenerationStep(
-            stepIndex: stepIndex,
-            text: response.text,
-            toolCalls: response.toolCalls ?? [],
-            toolResults: stepToolResults,
-            usage: response.usage,
-            finishReason: response.finishReason
-        )
-        
-        allSteps.append(step)
-        
-        // Add assistant message
-        var assistantContent: [ModelMessage.ContentPart] = [.text(response.text)]
-        if let toolCalls = response.toolCalls {
-            assistantContent.append(contentsOf: toolCalls.map { .toolCall($0) })
-        }
-        currentMessages.append(ModelMessage(role: .assistant, content: assistantContent))
     }
     
-    // Return the complete result
-    let finalText = allSteps.map { $0.text }.joined()
-    return GenerateTextResult(
-        text: finalText,
-        usage: totalUsage,
-        finishReason: allSteps.last?.finishReason ?? .other,
-        steps: allSteps,
-        messages: currentMessages
-    )
-}
-
-// MARK: - Convenience Extensions
-
-@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
-public extension StopCondition {
-    /// Combine with another condition using OR logic
-    func or(_ other: StopCondition) -> StopCondition {
-        OrCondition(conditions: [self, other])
+    /// Convenience method for common stop patterns
+    func stopOnString(_ text: String, caseSensitive: Bool = true) -> StreamTextResult {
+        stopWhen(StringStopCondition(text, caseSensitive: caseSensitive))
     }
     
-    /// Combine with another condition using AND logic
-    func and(_ other: StopCondition) -> StopCondition {
-        AndCondition(conditions: [self, other])
+    func stopOnPattern(_ pattern: String) -> StreamTextResult {
+        stopWhen(RegexStopCondition(pattern: pattern))
     }
     
-    /// Negate the condition
-    func not() -> StopCondition {
-        CustomCondition { step, toolCalls, results in
-            !(await self.shouldStop(step: step, toolCalls: toolCalls, results: results))
-        }
+    func stopAfterTokens(_ count: Int) -> StreamTextResult {
+        stopWhen(TokenCountStopCondition(maxTokens: count))
+    }
+    
+    func stopAfterTime(_ seconds: TimeInterval) -> StreamTextResult {
+        stopWhen(TimeoutStopCondition(timeout: seconds))
     }
 }
