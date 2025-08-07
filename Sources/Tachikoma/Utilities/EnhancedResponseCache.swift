@@ -138,7 +138,7 @@ public actor EnhancedResponseCache {
     }
     
     /// Get cache statistics
-    public func getStatistics() -> CacheStatistics {
+    public func getStatistics() -> EnhancedCacheStatistics {
         return statistics.snapshot(
             currentEntries: cache.count,
             maxEntries: configuration.maxEntries
@@ -455,10 +455,10 @@ final class CacheStatisticsTracker: Sendable {
         evictions[reason, default: 0] += count
     }
     
-    func snapshot(currentEntries: Int, maxEntries: Int) -> CacheStatistics {
+    func snapshot(currentEntries: Int, maxEntries: Int) -> EnhancedCacheStatistics {
         let hitRate = hits + misses > 0 ? Double(hits) / Double(hits + misses) : 0
         
-        return CacheStatistics(
+        return EnhancedCacheStatistics(
             currentEntries: currentEntries,
             maxEntries: maxEntries,
             hits: hits,
@@ -481,7 +481,7 @@ public enum EvictionReason: String, Sendable {
 }
 
 @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
-public struct CacheStatistics: Sendable {
+public struct EnhancedCacheStatistics: Sendable {
     public let currentEntries: Int
     public let maxEntries: Int
     public let hits: Int

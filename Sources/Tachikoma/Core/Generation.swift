@@ -16,12 +16,14 @@ import Foundation
 /// - Returns: Complete generation result with text, usage, and execution steps
 /// - Throws: TachikomaError for any failures
 @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
+@discardableResult
 public func generateText(
     model: LanguageModel,
     messages: [ModelMessage],
     tools: [AgentTool]? = nil,
     settings: GenerationSettings = .default,
     maxSteps: Int = 1,
+    timeout: TimeInterval? = nil,
     configuration: TachikomaConfiguration = .current,
     sessionId: String? = nil
 ) async throws
@@ -39,7 +41,14 @@ public func generateText(
             settings: settings
         )
 
-        let response = try await provider.generateText(request: request)
+        let response: ProviderResponse
+        if let timeout = timeout {
+            response = try await Task.withTimeout(timeout) {
+                try await provider.generateText(request: request)
+            }
+        } else {
+            response = try await provider.generateText(request: request)
+        }
 
         // Track usage with proper session management
         if let usage = response.usage {
@@ -227,6 +236,7 @@ public func streamText(
     tools: [AgentTool]? = nil,
     settings: GenerationSettings = .default,
     maxSteps: Int = 1,
+    timeout: TimeInterval? = nil,
     configuration: TachikomaConfiguration = .current,
     sessionId: String? = nil
 ) async throws
@@ -239,7 +249,15 @@ public func streamText(
         settings: settings
     )
 
-    var stream = try await provider.streamText(request: request)
+    var stream: AsyncThrowingStream<TextStreamDelta, Error>
+    if let timeout = timeout {
+        // Wrap stream with timeout for initial connection
+        stream = try await Task.withTimeout(timeout) {
+            try await provider.streamText(request: request)
+        }
+    } else {
+        stream = try await provider.streamText(request: request)
+    }
     
     // Apply stop conditions if configured
     if let stopCondition = settings.stopConditions {
@@ -322,11 +340,13 @@ public func streamText(
 ///   - settings: Generation settings
 /// - Returns: GenerateObjectResult with parsed object
 @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
+@discardableResult
 public func generateObject<T: Codable & Sendable>(
     model: LanguageModel,
     messages: [ModelMessage],
     schema: T.Type,
     settings: GenerationSettings = .default,
+    timeout: TimeInterval? = nil,
     configuration: TachikomaConfiguration = .current
 ) async throws
 -> GenerateObjectResult<T> {
@@ -339,7 +359,14 @@ public func generateObject<T: Codable & Sendable>(
         outputFormat: .json
     )
 
-    let response = try await provider.generateText(request: request)
+    let response: ProviderResponse
+    if let timeout = timeout {
+        response = try await Task.withTimeout(timeout) {
+            try await provider.generateText(request: request)
+        }
+    } else {
+        response = try await provider.generateText(request: request)
+    }
 
     // Parse the JSON response into the expected type
     guard let jsonData = response.text.data(using: .utf8) else {
@@ -531,11 +558,13 @@ private func fixPartialJSON(_ json: String) -> String {
 
 /// Simple text generation from a prompt (convenience wrapper) - with Model enum
 @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
+@discardableResult
 public func generate(
     _ prompt: String,
     using model: Model? = nil,
     system: String? = nil,
-    tools: [AgentTool]? = nil
+    tools: [AgentTool]? = nil,
+    timeout: TimeInterval? = nil
 ) async throws
 -> String {
     // For now, just return a mock response since we don't have provider implementations
@@ -544,12 +573,14 @@ public func generate(
 
 /// Simple text generation from a prompt (convenience wrapper) - with LanguageModel enum
 @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
+@discardableResult
 public func generate(
     _ prompt: String,
     using model: LanguageModel = .default,
     system: String? = nil,
     maxTokens: Int? = nil,
     temperature: Double? = nil,
+    timeout: TimeInterval? = nil,
     configuration: TachikomaConfiguration = .current
 ) async throws
 -> String {
@@ -570,6 +601,7 @@ public func generate(
         model: model,
         messages: messages,
         settings: settings,
+        timeout: timeout,
         configuration: configuration
     )
 
