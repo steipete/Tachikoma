@@ -4,6 +4,7 @@
 //
 
 import Foundation
+import Tachikoma
 
 // MARK: - AgentTool to RealtimeExecutableTool Adapter
 

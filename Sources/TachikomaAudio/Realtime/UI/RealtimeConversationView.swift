@@ -18,7 +18,7 @@ public struct RealtimeConversationView: View {
     
     public init(
         apiKey: String? = nil,
-        configuration: EnhancedRealtimeConversation.ConversationConfiguration = .init()
+        configuration: RealtimeConversation.ConversationConfiguration = .init()
     ) {
         _viewModel = StateObject(wrappedValue: RealtimeConversationViewModel(
             apiKey: apiKey,
@@ -233,7 +233,7 @@ public struct RealtimeConversationView: View {
 
 @available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
 struct MessageBubble: View {
-    let message: EnhancedRealtimeConversation.ConversationMessage
+    let message: RealtimeConversation.ConversationMessage
     
     var body: some View {
         HStack {

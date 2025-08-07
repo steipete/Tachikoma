@@ -77,11 +77,11 @@ class SmartAssistant: ObservableObject {
     @Published var messages: [String] = []
     @Published var isProcessing = false
     
-    private var conversation: AdvancedRealtimeConversation?
+    private var conversation: RealtimeConversation?
     
     func initialize(apiKey: String) async throws {
         // Configure with tools
-        var config = EnhancedSessionConfiguration.withTools(
+        var config = SessionConfiguration.withTools(
             voice: .alloy,
             tools: createTools()
         )
@@ -93,7 +93,7 @@ class SmartAssistant: ObservableObject {
         // Production settings with auto-reconnect
         let settings = ConversationSettings.production
         
-        conversation = try AdvancedRealtimeConversation(
+        conversation = try RealtimeConversation(
             apiKey: apiKey,
             configuration: config,
             settings: settings
@@ -308,7 +308,7 @@ struct VoiceAssistantView: View {
 
 @available(macOS 14.0, iOS 17.0, *)
 class AudioStreamingExample {
-    private var conversation: EnhancedRealtimeConversation?
+    private var conversation: RealtimeConversation?
     private var audioManager: RealtimeAudioManager?
     private var audioProcessor: RealtimeAudioProcessor?
     
@@ -333,7 +333,7 @@ class AudioStreamingExample {
             localVADThreshold: 0.3
         )
         
-        conversation = try AdvancedRealtimeConversation(
+        conversation = try RealtimeConversation(
             apiKey: apiKey,
             configuration: config,
             settings: settings
@@ -374,7 +374,7 @@ class AudioStreamingExample {
 
 @available(macOS 14.0, iOS 17.0, *)
 class MultiTurnConversation {
-    private var conversation: AdvancedRealtimeConversation?
+    private var conversation: RealtimeConversation?
     
     func runConversation(apiKey: String) async throws {
         // Configure for multi-turn dialogue
@@ -391,7 +391,7 @@ class MultiTurnConversation {
             maxResponseOutputTokens: 500
         )
         
-        conversation = try AdvancedRealtimeConversation(
+        conversation = try RealtimeConversation(
             apiKey: apiKey,
             configuration: config
         )
@@ -430,7 +430,7 @@ class MultiTurnConversation {
 
 @available(macOS 14.0, iOS 17.0, *)
 class RobustConversation {
-    private var conversation: AdvancedRealtimeConversation?
+    private var conversation: RealtimeConversation?
     private var retryCount = 0
     private let maxRetries = 3
     
@@ -444,7 +444,7 @@ class RobustConversation {
         )
         
         do {
-            conversation = try AdvancedRealtimeConversation(
+            conversation = try RealtimeConversation(
                 apiKey: apiKey,
                 configuration: config,
                 settings: settings

@@ -21,7 +21,7 @@ public struct RealtimeAPIDemo {
         
         // 1. Create configuration
         print("\n1️⃣ Creating Configuration...")
-        let config = EnhancedSessionConfiguration(
+        let config = SessionConfiguration(
             model: "gpt-4o-realtime-preview",
             voice: .nova,
             instructions: "You are a helpful voice assistant",
@@ -122,8 +122,8 @@ public struct RealtimeAPIDemo {
     }
     
     /// Create a sample configuration for testing
-    public static func createSampleConfiguration() -> EnhancedSessionConfiguration {
-        return EnhancedSessionConfiguration.voiceConversation(
+    public static func createSampleConfiguration() -> SessionConfiguration {
+        return SessionConfiguration.voiceConversation(
             model: "gpt-4o-realtime-preview",
             voice: .nova
         )

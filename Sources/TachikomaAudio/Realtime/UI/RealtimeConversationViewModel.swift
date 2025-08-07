@@ -19,8 +19,8 @@ public final class RealtimeConversationViewModel: ObservableObject {
     @Published public var isRecording = false
     @Published public var isPlaying = false
     @Published public var audioLevel: Float = 0
-    @Published public var messages: [EnhancedRealtimeConversation.ConversationMessage] = []
-    @Published public var connectionStatus: EnhancedRealtimeConversation.ConnectionStatus = .disconnected
+    @Published public var messages: [RealtimeConversation.ConversationMessage] = []
+    @Published public var connectionStatus: RealtimeConversation.ConnectionStatus = .disconnected
     
     // Settings
     @Published public var selectedVoice: RealtimeVoice = .nova
@@ -32,9 +32,9 @@ public final class RealtimeConversationViewModel: ObservableObject {
     
     // MARK: - Private Properties
     
-    private var conversation: EnhancedRealtimeConversation?
+    private var conversation: RealtimeConversation?
     private let apiKey: String?
-    private let configuration: EnhancedRealtimeConversation.ConversationConfiguration
+    private let configuration: RealtimeConversation.ConversationConfiguration
     private var cancellables = Set<AnyCancellable>()
     private var initializationTask: Task<Void, Never>?
     
@@ -52,7 +52,7 @@ public final class RealtimeConversationViewModel: ObservableObject {
     
     public init(
         apiKey: String? = nil,
-        configuration: EnhancedRealtimeConversation.ConversationConfiguration = .init()
+        configuration: RealtimeConversation.ConversationConfiguration = .init()
     ) {
         self.apiKey = apiKey
         self.configuration = configuration
@@ -82,7 +82,7 @@ public final class RealtimeConversationViewModel: ObservableObject {
             config.autoReconnect = autoReconnect
             config.sessionPersistence = sessionPersistence
             
-            let conversation = try EnhancedRealtimeConversation(
+            let conversation = try RealtimeConversation(
                 apiKey: apiKey,
                 configuration: config
             )

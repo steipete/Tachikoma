@@ -139,7 +139,7 @@ public final class RealtimeSession {
             throw TachikomaError.invalidConfiguration("Not connected")
         }
         
-        let event = RealtimeClientEvent.sessionUpdate(SessionUpdateEvent(session: config))
+        let event = RealtimeClientEvent.sessionUpdate(SessionUpdateEvent(session: RealtimeSessionConfig(from: config)))
         try await sendEvent(event)
         
         // Update local configuration
@@ -350,11 +350,11 @@ public final class RealtimeSession {
             
         case "session.created":
             let event = try decoder.decode(SessionEventWrapper.self, from: data)
-            return .sessionCreated(SessionCreatedEvent(session: event.session))
+            return .sessionCreated(SessionCreatedEvent(session: RealtimeSessionConfig(from: event.session)))
             
         case "session.updated":
             let event = try decoder.decode(SessionEventWrapper.self, from: data)
-            return .sessionUpdated(SessionUpdatedEvent(session: event.session))
+            return .sessionUpdated(SessionUpdatedEvent(session: RealtimeSessionConfig(from: event.session)))
             
         case "conversation.created":
             return .conversationCreated

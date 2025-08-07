@@ -123,30 +123,39 @@ public enum RealtimeServerEvent: RealtimeEventProtocol {
 
 @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public struct SessionUpdateEvent: Codable, Sendable {
-    public let session: SessionConfiguration
+    public let session: RealtimeSessionConfig
     
-    public init(session: SessionConfiguration) {
+    public init(session: RealtimeSessionConfig) {
         self.session = session
     }
 }
 
 @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public struct SessionCreatedEvent: Codable, Sendable {
-    public let session: SessionConfiguration
+    public let session: RealtimeSessionConfig
 }
 
 @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public struct SessionUpdatedEvent: Codable, Sendable {
-    public let session: SessionConfiguration
+    public let session: RealtimeSessionConfig
 }
 
 @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
-public struct SessionConfiguration: Codable, Sendable {
+public struct RealtimeSessionConfig: Codable, Sendable {
     public var id: String?
     public var model: String?
     public var modalities: [String]?
     public var instructions: String?
     public var voice: RealtimeVoice?
+    
+    /// Convert from SessionConfiguration
+    public init(from config: SessionConfiguration) {
+        self.id = nil
+        self.model = config.model
+        self.modalities = config.modalities.rawValue.components(separatedBy: ",")
+        self.instructions = config.instructions
+        self.voice = config.voice
+    }
     public var inputAudioFormat: RealtimeAudioFormat?
     public var outputAudioFormat: RealtimeAudioFormat?
     public var inputAudioTranscription: TranscriptionConfig?

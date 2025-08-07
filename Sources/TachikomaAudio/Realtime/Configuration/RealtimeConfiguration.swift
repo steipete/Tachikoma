@@ -4,6 +4,7 @@
 //
 
 import Foundation
+import Tachikoma
 
 // MARK: - Turn Detection Configuration
 
@@ -129,9 +130,9 @@ public struct InputAudioTranscription: Sendable, Codable {
 
 // MARK: - Session Configuration
 
-/// Enhanced session configuration with all advanced options
+/// Session configuration with all options
 @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
-public struct EnhancedSessionConfiguration: Sendable, Codable {
+public struct SessionConfiguration: Sendable, Codable {
     /// Model to use (e.g., "gpt-4o-realtime-preview")
     public var model: String
     
@@ -243,8 +244,8 @@ public struct EnhancedSessionConfiguration: Sendable, Codable {
     public static func voiceConversation(
         model: String = "gpt-4o-realtime-preview",
         voice: RealtimeVoice = .alloy
-    ) -> EnhancedSessionConfiguration {
-        EnhancedSessionConfiguration(
+    ) -> SessionConfiguration {
+        SessionConfiguration(
             model: model,
             voice: voice,
             turnDetection: .serverVAD,
@@ -255,8 +256,8 @@ public struct EnhancedSessionConfiguration: Sendable, Codable {
     /// Create a configuration for text-only interactions
     public static func textOnly(
         model: String = "gpt-4o-realtime-preview"
-    ) -> EnhancedSessionConfiguration {
-        EnhancedSessionConfiguration(
+    ) -> SessionConfiguration {
+        SessionConfiguration(
             model: model,
             voice: .alloy,
             turnDetection: .disabled,
@@ -269,8 +270,8 @@ public struct EnhancedSessionConfiguration: Sendable, Codable {
         model: String = "gpt-4o-realtime-preview",
         voice: RealtimeVoice = .alloy,
         tools: [RealtimeTool]
-    ) -> EnhancedSessionConfiguration {
-        EnhancedSessionConfiguration(
+    ) -> SessionConfiguration {
+        SessionConfiguration(
             model: model,
             voice: voice,
             turnDetection: .serverVAD,

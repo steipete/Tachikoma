@@ -112,6 +112,11 @@ OPENAI_API_KEY=sk-... swift test --filter "OpenAIProviderTests"
 
 ## Development Philosophy
 
+- **No "Enhanced", "Advanced", "Modern" or Version Suffixes**: When refactoring, NEVER use names like "Enhanced", "Advanced", "Modern", "New", "V2", etc. Simply refactor the existing implementations in place. If we're doing a refactor, we want to replace the old implementation completely, not create parallel versions. Use the idiomatic name that the API should have.
+  - ❌ `EnhancedResponseCache` → ✅ `ResponseCache`
+  - ❌ `AdvancedRealtimeConversation` → ✅ `RealtimeConversation`
+  - ❌ `ModernAPI` → ✅ `API`
+  - ❌ `NewToolSystem` → ✅ `ToolSystem`
 - **Type Safety Above All**: ALWAYS prefer type-safe implementations over `[String: Any]` or type erasure
   - Use proper structs/enums for data structures
   - Create specific types even for simple dictionaries

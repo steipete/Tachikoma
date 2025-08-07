@@ -48,7 +48,7 @@ This demo shows the Realtime API configuration capabilities.
 📝 CONFIGURATION EXAMPLES:
 
 // Basic voice conversation
-let config = EnhancedSessionConfiguration.voiceConversation(
+let config = SessionConfiguration.voiceConversation(
     model: "gpt-4o-realtime-preview",
     voice: .nova
 )

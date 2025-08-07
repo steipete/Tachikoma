@@ -93,9 +93,9 @@ public enum Legacy {
 
 // MARK: - Modern API Summary
 
-/// Summary of the modern Tachikoma API for documentation
+/// Summary of the Tachikoma API for documentation
 @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
-public enum ModernAPI {
+public enum API {
     /// Core generation functions
     public enum Generation {
         /// Generate a response from a prompt

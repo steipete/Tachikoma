@@ -15,7 +15,7 @@ import TachikomaAudio
 class RealtimeVoiceAssistant {
     
     private let apiKey: String
-    private var conversation: AdvancedRealtimeConversation?
+    private var conversation: RealtimeConversation?
     
     init(apiKey: String) {
         self.apiKey = apiKey
@@ -82,7 +82,7 @@ class RealtimeVoiceAssistant {
         print("\n🎯 Starting Advanced Voice Conversation with Server VAD...")
         
         // Advanced configuration with all features
-        let config = EnhancedSessionConfiguration(
+        let config = SessionConfiguration(
             model: "gpt-4o-realtime-preview",
             voice: .nova,
             instructions: """
@@ -122,7 +122,7 @@ class RealtimeVoiceAssistant {
         )
         
         // Create advanced conversation
-        conversation = try AdvancedRealtimeConversation(
+        conversation = try RealtimeConversation(
             apiKey: apiKey,
             configuration: config,
             settings: settings
@@ -152,7 +152,7 @@ class RealtimeVoiceAssistant {
         print("\n🛠️ Starting Voice Conversation with Function Calling...")
         
         // Configuration with tools
-        let config = EnhancedSessionConfiguration.withTools(
+        let config = SessionConfiguration.withTools(
             model: "gpt-4o-realtime-preview",
             voice: .nova,
             tools: [
@@ -212,7 +212,7 @@ class RealtimeVoiceAssistant {
             ]
         )
         
-        conversation = try AdvancedRealtimeConversation(
+        conversation = try RealtimeConversation(
             apiKey: apiKey,
             configuration: config,
             settings: .production
@@ -315,8 +315,8 @@ class RealtimeVoiceAssistant {
     func dynamicModalitySwitching() async throws {
         print("\n🔄 Starting Dynamic Modality Switching Example...")
         
-        let config = EnhancedSessionConfiguration.voiceConversation()
-        conversation = try AdvancedRealtimeConversation(
+        let config = SessionConfiguration.voiceConversation()
+        conversation = try RealtimeConversation(
             apiKey: apiKey,
             configuration: config,
             settings: .production
@@ -356,8 +356,8 @@ class RealtimeVoiceAssistant {
     func conversationManagement() async throws {
         print("\n📚 Starting Conversation Management Example...")
         
-        let config = EnhancedSessionConfiguration.voiceConversation()
-        conversation = try AdvancedRealtimeConversation(
+        let config = SessionConfiguration.voiceConversation()
+        conversation = try RealtimeConversation(
             apiKey: apiKey,
             configuration: config,
             settings: .production
@@ -406,7 +406,7 @@ class RealtimeVoiceAssistant {
     func errorHandlingExample() async throws {
         print("\n⚠️ Starting Error Handling and Reconnection Example...")
         
-        let config = EnhancedSessionConfiguration.voiceConversation()
+        let config = SessionConfiguration.voiceConversation()
         
         // Settings with aggressive reconnection
         let settings = ConversationSettings(
@@ -417,7 +417,7 @@ class RealtimeVoiceAssistant {
             maxAudioBufferSize: 2 * 1024 * 1024  // 2MB buffer
         )
         
-        conversation = try AdvancedRealtimeConversation(
+        conversation = try RealtimeConversation(
             apiKey: apiKey,
             configuration: config,
             settings: settings

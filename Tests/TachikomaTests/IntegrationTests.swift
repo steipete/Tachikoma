@@ -199,7 +199,7 @@ struct IntegrationTests {
         #expect(validated[0].role == .user) // System message converted
         
         // Add caching
-        let cache = EnhancedResponseCache(configuration: .aggressive)
+        let cache = ResponseCache(configuration: .aggressive)
         let cached = await cache.wrapProvider(adapter)
         
         let request = ProviderRequest(

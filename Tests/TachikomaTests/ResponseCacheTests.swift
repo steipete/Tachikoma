@@ -1,5 +1,5 @@
 //
-//  EnhancedResponseCacheTests.swift
+//  ResponseCacheTests.swift
 //  TachikomaTests
 //
 
@@ -7,8 +7,8 @@ import Testing
 @testable import Tachikoma
 import Foundation
 
-@Suite("Enhanced Response Cache Tests")
-struct EnhancedResponseCacheTests {
+@Suite("Response Cache Tests")
+struct ResponseCacheTests {
     
     @Test("Cache configuration defaults")
     func testCacheConfigurationDefaults() throws {
@@ -46,7 +46,7 @@ struct EnhancedResponseCacheTests {
     
     @Test("Cache store and retrieve")
     func testCacheStoreAndRetrieve() async throws {
-        let cache = EnhancedResponseCache(configuration: .default)
+        let cache = ResponseCache(configuration: .default)
         
         let request = ProviderRequest(
             messages: [.user("Test message")],
@@ -73,7 +73,7 @@ struct EnhancedResponseCacheTests {
     
     @Test("Cache TTL expiration")
     func testCacheTTLExpiration() async throws {
-        let cache = EnhancedResponseCache(configuration: .default)
+        let cache = ResponseCache(configuration: .default)
         
         let request = ProviderRequest(
             messages: [.user("Expiring message")],
@@ -100,7 +100,7 @@ struct EnhancedResponseCacheTests {
     
     @Test("Cache invalidation by model")
     func testCacheInvalidationByModel() async throws {
-        let cache = EnhancedResponseCache(configuration: .default)
+        let cache = ResponseCache(configuration: .default)
         
         // Store multiple entries
         for i in 1...3 {
@@ -128,7 +128,7 @@ struct EnhancedResponseCacheTests {
     
     @Test("Cache invalidation by age")
     func testCacheInvalidationByAge() async throws {
-        let cache = EnhancedResponseCache(configuration: .default)
+        let cache = ResponseCache(configuration: .default)
         
         let request = ProviderRequest(
             messages: [.user("Old message")],
@@ -153,7 +153,7 @@ struct EnhancedResponseCacheTests {
     
     @Test("Cache statistics tracking")
     func testCacheStatisticsTracking() async throws {
-        let cache = EnhancedResponseCache(configuration: .default)
+        let cache = ResponseCache(configuration: .default)
         
         let request = ProviderRequest(
             messages: [.user("Stats test")],
@@ -186,7 +186,7 @@ struct EnhancedResponseCacheTests {
     
     @Test("Cache prewarm functionality")
     func testCachePrewarm() async throws {
-        let cache = EnhancedResponseCache(configuration: .default)
+        let cache = ResponseCache(configuration: .default)
         
         let requests: [(ProviderRequest, ProviderResponse)] = [
             (
@@ -211,7 +211,7 @@ struct EnhancedResponseCacheTests {
     
     @Test("Cache clear functionality")
     func testCacheClear() async throws {
-        let cache = EnhancedResponseCache(configuration: .default)
+        let cache = ResponseCache(configuration: .default)
         
         let request = ProviderRequest(
             messages: [.user("Clear test")],

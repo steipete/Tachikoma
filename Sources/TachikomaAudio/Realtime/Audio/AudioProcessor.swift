@@ -5,6 +5,7 @@
 
 #if canImport(AVFoundation)
 import Foundation
+import Tachikoma
 @preconcurrency import AVFoundation
 
 // MARK: - Audio Processor

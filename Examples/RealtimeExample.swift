@@ -149,10 +149,10 @@ func runRealtimeExample() async throws {
     try await assistant.start()
 }
 
-// MARK: - Advanced Features Demo
+// MARK: - Features Demo
 
 @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
-class AdvancedRealtimeDemo {
+class RealtimeDemo {
     
     func demonstrateServerVAD() async throws {
         print("🎯 Demonstrating Server Voice Activity Detection...")
