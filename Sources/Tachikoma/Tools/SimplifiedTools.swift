@@ -9,10 +9,10 @@ import Foundation
 
 /// Simplified tool builder following AI SDK patterns
 @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
-public struct ToolBuilder {
+public struct SimplifiedToolBuilder {
     
     /// Create a tool with simplified definition pattern
-    public static func tool<Input: Codable, Output: Codable>(
+    public static func tool<Input: Codable & Sendable, Output: Codable & Sendable>(
         _ name: String,
         description: String,
         inputSchema: Input.Type,
@@ -39,7 +39,7 @@ public struct ToolBuilder {
     }
     
     /// Create a tool with context support
-    public static func toolWithContext<Input: Codable, Output: Codable>(
+    public static func toolWithContext<Input: Codable & Sendable, Output: Codable & Sendable>(
         _ name: String,
         description: String,
         inputSchema: Input.Type,
@@ -299,11 +299,11 @@ extension AgentToolArguments {
 
 /*
 // Example 1: Simple tool with structured input
-struct CalculatorInput: Codable {
+struct CalculatorInput: Codable, Sendable {
     let expression: String
 }
 
-let calculator = ToolBuilder.tool(
+let calculator = SimplifiedToolBuilder.tool(
     "calculate",
     description: "Evaluate a mathematical expression",
     inputSchema: CalculatorInput.self
@@ -331,7 +331,7 @@ let weatherTool = AgentTool.create(
 }
 
 // Example 3: Simple tool without structured types
-let echoTool = ToolBuilder.simpleTool(
+let echoTool = SimplifiedToolBuilder.simpleTool(
     "echo",
     description: "Echo back the input message",
     parameters: ["message": "The message to echo"]

@@ -101,7 +101,7 @@ public enum ErrorCategory: String, Sendable {
     case network
     case tool
     case parsing
-    case internal
+    case `internal`
 }
 
 // MARK: - Error Details
@@ -289,7 +289,7 @@ public extension TachikomaError {
                 code: .serverError,
                 message: retryError.lastError?.localizedDescription ?? "Retry failed",
                 details: ErrorDetails(
-                    reason: "Failed after \(retryError.attemptCount) attempts"
+                    reason: "Failed after \(retryError.attempts) attempts"
                 ),
                 underlyingError: retryError.lastError
             )

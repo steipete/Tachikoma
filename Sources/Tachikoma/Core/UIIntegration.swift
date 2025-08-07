@@ -99,10 +99,19 @@ public extension Array where Element == UIMessage {
                 if attachment.type == .image {
                     if let data = attachment.data {
                         let base64 = data.base64EncodedString()
-                        let dataUrl = "data:\(attachment.mimeType);base64,\(base64)"
-                        contentParts.append(.image(dataUrl))
+                        let imageContent = ModelMessage.ContentPart.ImageContent(
+                            data: base64,
+                            mimeType: attachment.mimeType
+                        )
+                        contentParts.append(.image(imageContent))
                     } else if let url = attachment.url {
-                        contentParts.append(.image(url.absoluteString))
+                        // For URL-based images, encode the URL as data
+                        let urlString = url.absoluteString
+                        let imageContent = ModelMessage.ContentPart.ImageContent(
+                            data: urlString,
+                            mimeType: attachment.mimeType
+                        )
+                        contentParts.append(.image(imageContent))
                     }
                 }
             }
@@ -135,32 +144,26 @@ public extension Array where Element == ModelMessage {
                 switch part {
                 case .text(let text):
                     content += text
-                case .image(let url):
-                    if url.starts(with: "data:") {
-                        // Parse data URL
-                        let components = url.split(separator: ",", maxSplits: 1)
-                        if components.count == 2 {
-                            let metadata = String(components[0])
-                            let base64Data = String(components[1])
-                            
-                            if let data = Data(base64Encoded: base64Data) {
-                                let mimeType = metadata
-                                    .replacingOccurrences(of: "data:", with: "")
-                                    .replacingOccurrences(of: ";base64", with: "")
-                                
-                                attachments.append(UIAttachment(
-                                    type: .image,
-                                    data: data,
-                                    mimeType: mimeType
-                                ))
-                            }
+                case .image(let imageContent):
+                    // Check if it's base64 data or a URL
+                    if imageContent.data.starts(with: "http") {
+                        // It's a URL stored in the data field
+                        if let imageUrl = URL(string: imageContent.data) {
+                            attachments.append(UIAttachment(
+                                type: .image,
+                                url: imageUrl,
+                                mimeType: imageContent.mimeType
+                            ))
                         }
-                    } else if let imageUrl = URL(string: url) {
-                        attachments.append(UIAttachment(
-                            type: .image,
-                            url: imageUrl,
-                            mimeType: "image/jpeg"
-                        ))
+                    } else {
+                        // It's base64 data
+                        if let data = Data(base64Encoded: imageContent.data) {
+                            attachments.append(UIAttachment(
+                                type: .image,
+                                data: data,
+                                mimeType: imageContent.mimeType
+                            ))
+                        }
                     }
                 case .toolCall(let call):
                     toolCalls.append(call)
@@ -188,22 +191,23 @@ public extension StreamTextResult {
         AsyncStream { continuation in
             Task {
                 do {
-                    for try await event in self.stream {
-                        switch event {
-                        case .text(let text):
-                            continuation.yield(.text(text))
-                        case .toolCallStart(let id, let name):
-                            continuation.yield(.toolCallStart(id: id, name: name))
-                        case .toolCallArgument(let id, let argument):
-                            continuation.yield(.toolCallArgument(id: id, argument: argument))
-                        case .toolCallEnd(let id):
-                            continuation.yield(.toolCallEnd(id: id))
-                        case .finish:
+                    for try await delta in self.stream {
+                        switch delta.type {
+                        case .textDelta:
+                            if let content = delta.content {
+                                continuation.yield(.text(content))
+                            }
+                        case .toolCall:
+                            if let toolCall = delta.toolCall {
+                                continuation.yield(.toolCallStart(id: toolCall.id, name: toolCall.name))
+                                // Note: Arguments might come in separate events
+                            }
+                        case .done:
                             continuation.yield(.done)
                             continuation.finish()
-                        case .error(let error):
-                            continuation.yield(.error(error))
-                            continuation.finish()
+                        default:
+                            // Handle other event types as needed
+                            break
                         }
                     }
                 } catch {
@@ -219,10 +223,10 @@ public extension StreamTextResult {
         AsyncStream { continuation in
             Task {
                 do {
-                    for try await event in self.stream {
-                        if case .text(let text) = event {
-                            continuation.yield(text)
-                        } else if case .finish = event {
+                    for try await delta in self.stream {
+                        if delta.type == .textDelta, let content = delta.content {
+                            continuation.yield(content)
+                        } else if delta.type == .done {
                             continuation.finish()
                         }
                     }
@@ -236,9 +240,9 @@ public extension StreamTextResult {
     /// Collect all text from stream into a single string
     func collectText() async throws -> String {
         var result = ""
-        for try await event in self.stream {
-            if case .text(let text) = event {
-                result += text
+        for try await delta in self.stream {
+            if delta.type == .textDelta, let content = delta.content {
+                result += content
             }
         }
         return result
@@ -281,12 +285,14 @@ public struct UIStreamResponse: Sendable {
                 }
             case .toolCallEnd(let id):
                 if let tool = currentToolCall, tool.id == id {
+                    let args: [String: Any] = (try? JSONSerialization.jsonObject(
+                        with: tool.arguments.data(using: .utf8) ?? Data()
+                    ) as? [String: Any]) ?? [:]
+                    
                     toolCalls.append(AgentToolCall(
                         id: tool.id,
                         name: tool.name,
-                        arguments: try? JSONSerialization.jsonObject(
-                            with: tool.arguments.data(using: .utf8) ?? Data()
-                        ) as? [String: Any] ?? [:]
+                        arguments: args
                     ))
                     currentToolCall = nil
                 }

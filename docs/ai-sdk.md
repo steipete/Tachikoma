@@ -1,3 +1,5 @@
+This is the full AI SDK source code from VERCEL.
+
 ---
 title: RAG Agent
 description: Learn how to build a RAG Agent with the AI SDK and Next.js

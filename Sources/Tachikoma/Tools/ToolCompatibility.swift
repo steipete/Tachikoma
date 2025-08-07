@@ -93,6 +93,17 @@ public func toolParametersToJSON(_ parameters: AgentToolParameters) throws -> [S
             propSchema["enum"] = enumValues
         }
         
+        // Handle array items if present
+        if property.type == .array, let items = property.items {
+            var itemsSchema: [String: Any] = [
+                "type": items.type.rawValue
+            ]
+            if let itemEnumValues = items.enumValues {
+                itemsSchema["enum"] = itemEnumValues
+            }
+            propSchema["items"] = itemsSchema
+        }
+        
         properties[propertyName] = propSchema
     }
     
