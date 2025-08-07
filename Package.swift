@@ -70,6 +70,7 @@ let package = Package(
             name: "TachikomaTests",
             dependencies: [
                 "Tachikoma",
+                "TachikomaAudio",
                 .product(name: "Logging", package: "swift-log"),
             ],
             path: "Tests/TachikomaTests",
