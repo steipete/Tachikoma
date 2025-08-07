@@ -179,7 +179,7 @@ struct ToolSystemTests {
         }
         
         // Test wrong type
-        let wrongTypeArgs = AgentToolArguments(["value": .int(42)])
+        let wrongTypeArgs = AgentToolArguments(["value": AnyAgentToolValue(int: 42)])
         do {
             _ = try wrongTypeArgs.stringValue("value")
             Issue.record("Should have thrown error for wrong type")

@@ -229,7 +229,7 @@ struct StreamTransformTests {
         let stream = AsyncThrowingStream<TextStreamDelta, Error> { continuation in
             Task {
                 continuation.yield(TextStreamDelta(type: .textDelta, content: "Hello"))
-                continuation.yield(TextStreamDelta(type: .channelStart(.thinking)))
+                continuation.yield(TextStreamDelta(type: .reasoning, content: "Thinking..."))
                 continuation.yield(TextStreamDelta(type: .textDelta, content: "World"))
                 continuation.yield(TextStreamDelta(type: .done))
                 continuation.finish()
@@ -242,7 +242,7 @@ struct StreamTransformTests {
             settings: .default
         )
         
-        let filtered = result.filter { delta in
+        let filtered = result.stream.filter { delta in
             if case .textDelta = delta.type {
                 return true
             }

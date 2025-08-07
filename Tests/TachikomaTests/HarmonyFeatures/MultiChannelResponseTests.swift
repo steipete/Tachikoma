@@ -61,14 +61,16 @@ struct MultiChannelResponseTests {
     
     @Test("TextStreamDelta supports channel events")
     func testTextStreamDeltaChannelEvents() {
-        let startDelta = TextStreamDelta(
-            type: .channelStart(.thinking),
+        // Channel information is now passed via the channel property, not event types
+        let reasoningDelta = TextStreamDelta(
+            type: .reasoning,
+            content: "Analyzing the problem...",
             channel: .thinking
         )
         
-        let endDelta = TextStreamDelta(
-            type: .channelEnd(.thinking),
-            channel: .thinking
+        let doneDelta = TextStreamDelta(
+            type: .done,
+            channel: .final
         )
         
         let textDelta = TextStreamDelta(
@@ -77,17 +79,12 @@ struct MultiChannelResponseTests {
             channel: .thinking
         )
         
-        if case .channelStart(let channel) = startDelta.type {
-            #expect(channel == .thinking)
-        } else {
-            Issue.record("Expected channelStart type")
-        }
+        // Verify the event types and channels
+        #expect(reasoningDelta.type == .reasoning)
+        #expect(reasoningDelta.channel == .thinking)
         
-        if case .channelEnd(let channel) = endDelta.type {
-            #expect(channel == .thinking)
-        } else {
-            Issue.record("Expected channelEnd type")
-        }
+        #expect(doneDelta.type == .done)
+        #expect(doneDelta.channel == .final)
         
         #expect(textDelta.channel == .thinking)
         #expect(textDelta.content == "Reasoning about the problem")

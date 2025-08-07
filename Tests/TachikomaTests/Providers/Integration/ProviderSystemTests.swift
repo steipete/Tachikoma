@@ -164,11 +164,11 @@ struct ProviderSystemTests {
         #expect(completeToken.content == nil)
         #expect(completeToken.type == .done)
 
-        let errorToken = TextStreamDelta(type: .error, content: nil)
-        #expect(errorToken.type == .error)
+        let toolCallToken = TextStreamDelta(type: .toolCall, content: nil)
+        #expect(toolCallToken.type == .toolCall)
 
-        let toolToken = TextStreamDelta(type: .toolCallStart, content: nil)
-        #expect(toolToken.type == .toolCallStart)
+        let toolResultToken = TextStreamDelta(type: .toolResult, content: nil)
+        #expect(toolResultToken.type == .toolResult)
     }
 
     // MARK: - Usage Statistics Tests

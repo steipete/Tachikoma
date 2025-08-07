@@ -108,7 +108,7 @@ struct ProviderIntegrationTests {
             case .done:
                 receivedDone = true
                 break
-            case .channelStart, .channelEnd, .toolCallStart, .toolCallDelta, .toolCallEnd, .toolResult, .stepStart, .stepEnd, .error:
+            case .toolCall, .toolResult, .reasoning:
                 // Ignore other delta types for this test
                 break
             }
@@ -163,7 +163,7 @@ struct ProviderIntegrationTests {
                 required: ["expression"]
             )
         ) { args in
-            .string("59")
+            AnyAgentToolValue(string: "59")
         }
         
         let request = ProviderRequest(

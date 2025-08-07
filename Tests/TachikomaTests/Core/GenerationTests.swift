@@ -232,7 +232,7 @@ struct GenerationTests {
                 parameters: [],
                 required: []
             ) { _ in
-                .string("Tool executed")
+                AnyAgentToolValue(string: "Tool executed")
             }
 
             // Use generateText with tools

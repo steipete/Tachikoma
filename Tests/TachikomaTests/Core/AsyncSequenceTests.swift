@@ -30,7 +30,7 @@ struct AsyncSequenceTests {
         
         // Test AsyncSequence iteration
         var contents: [String] = []
-        for try await delta in result {
+        for try await delta in result.stream {
             if case .textDelta = delta.type, let content = delta.content {
                 contents.append(content)
             }
@@ -59,7 +59,7 @@ struct AsyncSequenceTests {
         
         // Test with for-await-in loop
         var count = 0
-        for try await _ in result {
+        for try await _ in result.stream {
             count += 1
         }
         #expect(count == 4) // 3 text deltas + 1 done
@@ -129,7 +129,7 @@ struct AsyncSequenceTests {
         )
         
         // Test with compactMap
-        let numbers = try await result.compactMap { delta -> Int? in
+        let numbers = try await result.stream.compactMap { delta -> Int? in
             guard case .textDelta = delta.type,
                   let content = delta.content,
                   let num = Int(content) else {
@@ -160,7 +160,7 @@ struct AsyncSequenceTests {
         
         var receivedError = false
         do {
-            for try await _ in result {
+            for try await _ in result.stream {
                 // Process deltas
             }
         } catch {
@@ -195,7 +195,7 @@ struct AsyncSequenceTests {
         // Start iteration and cancel after a few items
         let task = Task {
             var count = 0
-            for try await _ in result {
+            for try await _ in result.stream {
                 count += 1
                 if count >= 5 {
                     break // Early termination
@@ -213,10 +213,9 @@ struct AsyncSequenceTests {
         let testStream = AsyncThrowingStream<TextStreamDelta, Error> { continuation in
             Task {
                 continuation.yield(TextStreamDelta(type: .textDelta, content: "Hello"))
-                continuation.yield(TextStreamDelta(type: .channelStart(.thinking)))
+                continuation.yield(TextStreamDelta(type: .reasoning, content: "Thinking...", channel: .thinking))
                 continuation.yield(TextStreamDelta(type: .textDelta, content: " World", channel: .thinking))
-                continuation.yield(TextStreamDelta(type: .channelEnd(.thinking)))
-                continuation.yield(TextStreamDelta(type: .textDelta, content: " Done"))
+                continuation.yield(TextStreamDelta(type: .textDelta, content: " Done", channel: .final))
                 continuation.yield(TextStreamDelta(type: .done))
                 continuation.finish()
             }
