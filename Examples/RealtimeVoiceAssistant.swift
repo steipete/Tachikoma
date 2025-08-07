@@ -5,6 +5,7 @@
 
 import Foundation
 import Tachikoma
+import TachikomaAudio
 
 // MARK: - Complete Realtime API Example
 

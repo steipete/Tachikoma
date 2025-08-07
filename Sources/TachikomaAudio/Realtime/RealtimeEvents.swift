@@ -4,6 +4,7 @@
 //
 
 import Foundation
+import Tachikoma
 
 // MARK: - Event Protocol
 

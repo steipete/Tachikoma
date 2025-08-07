@@ -6,6 +6,7 @@
 #if canImport(AVFoundation)
 import Foundation
 @preconcurrency import AVFoundation
+import Tachikoma
 
 // MARK: - Audio Manager
 
@@ -356,13 +357,5 @@ extension RealtimeAudioManager {
     }
 }
 
-// MARK: - Error Extensions
-
-@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
-extension TachikomaError {
-    public static func permissionDenied(_ message: String) -> TachikomaError {
-        .authenticationFailed("Permission denied: \(message)")
-    }
-}
 
 #endif // canImport(AVFoundation)

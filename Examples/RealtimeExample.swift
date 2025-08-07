@@ -5,6 +5,7 @@
 
 import Foundation
 import Tachikoma
+import TachikomaAudio
 
 /// Example demonstrating the OpenAI Realtime API integration
 @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)

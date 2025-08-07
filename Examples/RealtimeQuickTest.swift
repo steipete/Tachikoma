@@ -5,6 +5,7 @@
 
 import Foundation
 import Tachikoma
+import TachikomaAudio
 
 // Quick test to verify Realtime API configuration
 

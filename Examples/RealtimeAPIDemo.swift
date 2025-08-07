@@ -4,6 +4,8 @@
 //
 
 import Foundation
+import Tachikoma
+import TachikomaAudio
 
 /// Demonstrates Realtime API usage with Tachikoma
 @available(macOS 14.0, iOS 17.0, *)

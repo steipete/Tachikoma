@@ -6,6 +6,7 @@
 import Foundation
 import SwiftUI
 import Tachikoma
+import TachikomaAudio
 
 // MARK: - Basic Voice Assistant
 
