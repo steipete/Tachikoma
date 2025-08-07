@@ -162,8 +162,8 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
         public var modelId: String {
             switch self {
             case let .custom(id): id
-            case .opus4: "claude-opus-4-1-20250813"
-            case .opus4Thinking: "claude-opus-4-1-20250813-thinking"
+            case .opus4: "claude-opus-4-1-20250805"
+            case .opus4Thinking: "claude-opus-4-1-20250805-thinking"
             case .sonnet4: "claude-sonnet-4-20250514"
             case .sonnet4Thinking: "claude-sonnet-4-20250514-thinking"
             case .sonnet37: "claude-3-7-sonnet"

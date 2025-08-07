@@ -25,7 +25,7 @@ struct ProviderSystemTests {
             let model = Model.anthropic(.opus4)
             let provider = try ProviderFactory.createProvider(for: model, configuration: config)
 
-            #expect(provider.modelId == "claude-opus-4-1-20250813")
+            #expect(provider.modelId == "claude-opus-4-1-20250805")
             #expect(provider.capabilities.supportsVision == true)
             #expect(provider.capabilities.supportsTools == true)
             #expect(provider.capabilities.supportsStreaming == true)

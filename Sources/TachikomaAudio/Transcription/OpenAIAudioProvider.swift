@@ -1,7 +1,20 @@
 import Foundation
+import Tachikoma  // For TachikomaError
 #if canImport(FoundationNetworking)
 import FoundationNetworking
 #endif
+
+// MARK: - OpenAI Error Response
+
+struct OpenAIErrorResponse: Codable {
+    let error: OpenAIErrorDetail
+}
+
+struct OpenAIErrorDetail: Codable {
+    let message: String
+    let type: String?
+    let code: String?
+}
 
 // MARK: - OpenAI Audio API Types
 

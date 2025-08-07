@@ -1,4 +1,5 @@
 import Foundation
+import Tachikoma  // For TachikomaError and TachikomaConfiguration
 
 // MARK: - Provider Protocols
 

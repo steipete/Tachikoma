@@ -259,22 +259,32 @@ public final class AnthropicProvider: ModelProvider {
                 }
                 anthropicMessages.append(AnthropicMessage(role: "user", content: content))
             case .assistant:
-                let content = [AnthropicContent.text(AnthropicContent.TextContent(
-                    type: "text",
-                    text: message.content.compactMap { part in
+                let textContent = message.content.compactMap { part in
                     if case .text(let text) = part { return text }
                     return nil
                 }.joined()
+                
+                // Skip empty assistant messages as Anthropic doesn't allow empty text blocks
+                guard !textContent.isEmpty else { continue }
+                
+                let content = [AnthropicContent.text(AnthropicContent.TextContent(
+                    type: "text",
+                    text: textContent
                 ))]
                 anthropicMessages.append(AnthropicMessage(role: "assistant", content: content))
             case .tool:
                 // Tool results go as user messages in Anthropic
-                let content = [AnthropicContent.text(AnthropicContent.TextContent(
-                    type: "text",
-                    text: message.content.compactMap { part in
+                let textContent = message.content.compactMap { part in
                     if case .text(let text) = part { return text }
                     return nil
                 }.joined()
+                
+                // Skip empty tool messages as Anthropic doesn't allow empty text blocks
+                guard !textContent.isEmpty else { continue }
+                
+                let content = [AnthropicContent.text(AnthropicContent.TextContent(
+                    type: "text",
+                    text: textContent
                 ))]
                 anthropicMessages.append(AnthropicMessage(role: "user", content: content))
             }

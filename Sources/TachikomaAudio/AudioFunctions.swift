@@ -1,4 +1,5 @@
 import Foundation
+import Tachikoma  // For TachikomaConfiguration and types
 
 // MARK: - Global Audio Functions
 

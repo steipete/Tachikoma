@@ -245,6 +245,46 @@ case error(RealtimeErrorEvent)
 
 See [docs/openai-harmony.md](docs/openai-harmony.md) for complete implementation details.
 
+### Audio Processing (TachikomaAudio) 🎵
+
+**Comprehensive audio capabilities in a dedicated module:**
+
+```swift
+import TachikomaAudio
+
+// Transcribe audio files
+let text = try await transcribe(contentsOf: audioURL)
+
+// With specific model and language
+let result = try await transcribe(
+    audioData,
+    using: .openai(.whisper1),
+    language: "en",
+    timestampGranularities: [.word, .segment]
+)
+
+// Generate speech from text
+let audioData = try await generateSpeech(
+    "Hello world",
+    using: .openai(.tts1HD),
+    voice: .nova,
+    speed: 1.2
+)
+
+// Record audio from microphone
+let recorder = AudioRecorder()
+try await recorder.startRecording()
+// ... user speaks ...
+let recording = try await recorder.stopRecording()
+let transcription = try await transcribe(recording)
+```
+
+#### Audio Providers
+
+- **Transcription**: OpenAI Whisper, Groq, Deepgram, ElevenLabs
+- **Speech Synthesis**: OpenAI TTS, ElevenLabs
+- **Recording**: Cross-platform AVFoundation support
+
 ### Tool Integration
 
 ```swift
@@ -496,14 +536,15 @@ let result = try await generateText(
 
 ### Package Structure
 
-Tachikoma is a unified single module containing all functionality:
+Tachikoma provides multiple modules for different functionality:
 
-- **`Tachikoma`** - Complete AI SDK with all features in one module:
-  - Core generation functions and model system
-  - Tool system with ToolKit protocol and examples  
-  - Command-line utilities and model parsing
-  - Conversation management and provider interfaces
-  - Audio functions and usage tracking
+- **`Tachikoma`** - Core AI SDK with generation, models, tools, and conversations
+- **`TachikomaMCP`** - Model Context Protocol (MCP) client and tool adapters
+- **`TachikomaAudio`** - Comprehensive audio processing module:
+  - Audio transcription (OpenAI Whisper, Groq, Deepgram)
+  - Speech synthesis (OpenAI TTS, ElevenLabs)
+  - Audio recording with AVFoundation
+  - Batch processing and convenience functions
 
 ### Core Components
 
@@ -677,7 +718,12 @@ targets: [
     .target(
         name: "YourTarget",
         dependencies: [
-            .product(name: "Tachikoma", package: "Tachikoma"),  // Single unified module
+            // Core AI functionality
+            .product(name: "Tachikoma", package: "Tachikoma"),
+            // Audio processing (optional)
+            .product(name: "TachikomaAudio", package: "Tachikoma"),
+            // MCP support (optional)
+            .product(name: "TachikomaMCP", package: "Tachikoma"),
         ]
     )
 ]

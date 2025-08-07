@@ -17,6 +17,11 @@ let package = Package(
             name: "Tachikoma",
             targets: ["Tachikoma"]),
         
+        // Audio processing module (transcription, TTS, recording)
+        .library(
+            name: "TachikomaAudio",
+            targets: ["TachikomaAudio"]),
+        
         // Optional MCP extension module
         .library(
             name: "TachikomaMCP",
@@ -36,6 +41,16 @@ let package = Package(
                 .product(name: "Crypto", package: "swift-crypto"),
             ],
             path: "Sources/Tachikoma",
+            swiftSettings: commonSwiftSettings),
+
+        // Audio processing module
+        .target(
+            name: "TachikomaAudio",
+            dependencies: [
+                "Tachikoma",  // For core types and utilities
+                .product(name: "Logging", package: "swift-log"),
+            ],
+            path: "Sources/TachikomaAudio",
             swiftSettings: commonSwiftSettings),
 
         // Optional MCP extension module
