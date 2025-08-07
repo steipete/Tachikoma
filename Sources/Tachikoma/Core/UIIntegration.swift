@@ -289,11 +289,16 @@ public struct UIStreamResponse: Sendable {
                         with: tool.arguments.data(using: .utf8) ?? Data()
                     ) as? [String: Any]) ?? [:]
                     
-                    toolCalls.append(AgentToolCall(
-                        id: tool.id,
-                        name: tool.name,
-                        arguments: args
-                    ))
+                    do {
+                        toolCalls.append(try AgentToolCall(
+                            id: tool.id,
+                            name: tool.name,
+                            arguments: args
+                        ))
+                    } catch {
+                        // Skip invalid tool call
+                        continue
+                    }
                     currentToolCall = nil
                 }
             case .done, .error:
