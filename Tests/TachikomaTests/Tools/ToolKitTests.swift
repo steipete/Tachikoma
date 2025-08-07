@@ -28,7 +28,7 @@ struct ToolSystemTests {
         ) { args in
             let a = try args.integerValue("a")
             let b = try args.integerValue("b")
-            return AgentToolArgument.int(a + b)
+            return AnyAgentToolValue(int: a + b)
         }
         
         #expect(addTool.name == "add")
@@ -55,16 +55,16 @@ struct ToolSystemTests {
             let expr = try args.stringValue("expression")
             // Simple evaluation for test
             if expr == "2 + 2" {
-                return AgentToolArgument.string("4")
+                return AnyAgentToolValue(string: "4")
             }
-            return AgentToolArgument.string("Unknown expression")
+            return AnyAgentToolValue(string: "Unknown expression")
         }
         
         // Test execution
-        let args = AgentToolArguments(["expression": .string("2 + 2")])
+        let args = AgentToolArguments(["expression": AnyAgentToolValue(string: "2 + 2")])
         let result = try await calculatorTool.execute(args)
         
-        if case .string(let value) = result {
+        if let value = result.stringValue {
             #expect(value == "4")
         } else {
             Issue.record("Expected string result")
@@ -86,7 +86,7 @@ struct ToolSystemTests {
         let args = AgentToolArguments([:])
         let result = try await timeTool.execute(args)
         
-        if case .string(let timeString) = result {
+        if let timeString = result.stringValue {
             #expect(!timeString.isEmpty)
         } else {
             Issue.record("Expected string result from time tool")
@@ -138,12 +138,12 @@ struct ToolSystemTests {
     @Test("Tool Arguments")
     func toolArguments() throws {
         let args = AgentToolArguments([
-            "string": .string("hello"),
-            "int": .int(42),
-            "double": .double(3.14),
-            "bool": .bool(true),
-            "array": .array([.string("a"), .string("b")]),
-            "object": .object(["nested": .string("value")])
+            "string": AnyAgentToolValue(string: "hello"),
+            "int": AnyAgentToolValue(int: 42),
+            "double": AnyAgentToolValue(double: 3.14),
+            "bool": AnyAgentToolValue(bool: true),
+            "array": AnyAgentToolValue(array: [AnyAgentToolValue(string: "a"), AnyAgentToolValue(string: "b")]),
+            "object": AnyAgentToolValue(object: ["nested": AnyAgentToolValue(string: "value")])
         ])
         
         #expect(try args.stringValue("string") == "hello")
@@ -152,15 +152,15 @@ struct ToolSystemTests {
         #expect(try args.booleanValue("bool") == true)
         
         // Test array access
-        if case .array(let arr) = args["array"] {
+        if let arr = args["array"]?.arrayValue {
             #expect(arr.count == 2)
         } else {
             Issue.record("Expected array")
         }
         
         // Test object access
-        if case .object(let obj) = args["object"] {
-            #expect(obj["nested"] == .string("value"))
+        if let obj = args["object"]?.objectValue {
+            #expect(obj["nested"]?.stringValue == "value")
         } else {
             Issue.record("Expected object")
         }

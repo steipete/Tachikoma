@@ -12,133 +12,129 @@ import MCP
 @Suite("Type Conversion Tests")
 struct TypeConversionTests {
     
-    @Test("AgentToolArgument to Any conversion")
-    func testAgentToolArgumentToAny() {
+    @Test("AnyAgentToolValue to JSON conversion")
+    func testAnyAgentToolValueToJSON() throws {
         // String
-        let stringArg = AgentToolArgument.string("hello")
-        let stringAny = stringArg.toAny()
-        #expect(stringAny as? String == "hello")
+        let stringVal = AnyAgentToolValue(string: "hello")
+        let stringJSON = try stringVal.toJSON()
+        #expect(stringJSON as? String == "hello")
         
         // Int
-        let intArg = AgentToolArgument.int(42)
-        let intAny = intArg.toAny()
-        #expect(intAny as? Int == 42)
+        let intVal = AnyAgentToolValue(int: 42)
+        let intJSON = try intVal.toJSON()
+        #expect(intJSON as? Int == 42)
         
         // Double
-        let doubleArg = AgentToolArgument.double(3.14)
-        let doubleAny = doubleArg.toAny()
-        #expect(doubleAny as? Double == 3.14)
+        let doubleVal = AnyAgentToolValue(double: 3.14)
+        let doubleJSON = try doubleVal.toJSON()
+        #expect(doubleJSON as? Double == 3.14)
         
         // Bool
-        let boolArg = AgentToolArgument.bool(true)
-        let boolAny = boolArg.toAny()
-        #expect(boolAny as? Bool == true)
+        let boolVal = AnyAgentToolValue(bool: true)
+        let boolJSON = try boolVal.toJSON()
+        #expect(boolJSON as? Bool == true)
         
         // Null
-        let nullArg = AgentToolArgument.null
-        let nullAny = nullArg.toAny()
-        #expect(nullAny is NSNull)
+        let nullVal = AnyAgentToolValue(null: ())
+        let nullJSON = try nullVal.toJSON()
+        #expect(nullJSON is NSNull)
         
         // Array
-        let arrayArg = AgentToolArgument.array([.string("a"), .int(1)])
-        let arrayAny = arrayArg.toAny() as? [Any]
-        #expect(arrayAny?.count == 2)
-        #expect(arrayAny?[0] as? String == "a")
-        #expect(arrayAny?[1] as? Int == 1)
+        let arrayVal = AnyAgentToolValue(array: [AnyAgentToolValue(string: "a"), AnyAgentToolValue(int: 1)])
+        let arrayJSON = try arrayVal.toJSON() as? [Any]
+        #expect(arrayJSON?.count == 2)
+        #expect(arrayJSON?[0] as? String == "a")
+        #expect(arrayJSON?[1] as? Int == 1)
         
         // Object
-        let objectArg = AgentToolArgument.object([
-            "name": .string("test"),
-            "count": .int(5)
+        let objectVal = AnyAgentToolValue(object: [
+            "name": AnyAgentToolValue(string: "test"),
+            "count": AnyAgentToolValue(int: 5)
         ])
-        let objectAny = objectArg.toAny() as? [String: Any]
-        #expect(objectAny?["name"] as? String == "test")
-        #expect(objectAny?["count"] as? Int == 5)
+        let objectJSON = try objectVal.toJSON() as? [String: Any]
+        #expect(objectJSON?["name"] as? String == "test")
+        #expect(objectJSON?["count"] as? Int == 5)
     }
     
-    @Test("Any to AgentToolArgument conversion")
-    func testAnyToAgentToolArgument() {
+    @Test("Any to AnyAgentToolValue conversion")
+    func testAnyToAnyAgentToolValue() throws {
         // String
-        let stringArg = AgentToolArgument.from("hello")
-        #expect(stringArg == .string("hello"))
+        let stringVal = AnyAgentToolValue.from("hello")
+        #expect(stringVal.stringValue == "hello")
         
         // Int
-        let intArg = AgentToolArgument.from(42)
-        #expect(intArg == .int(42))
+        let intVal = AnyAgentToolValue.from(42)
+        #expect(intVal.intValue == 42)
         
         // Double
-        let doubleArg = AgentToolArgument.from(3.14)
-        #expect(doubleArg == .double(3.14))
+        let doubleVal = AnyAgentToolValue.from(3.14)
+        #expect(doubleVal.doubleValue == 3.14)
         
         // Bool
-        let boolArg = AgentToolArgument.from(true)
-        #expect(boolArg == .bool(true))
+        let boolVal = AnyAgentToolValue.from(true)
+        #expect(boolVal.boolValue == true)
         
         // NSNull
-        let nullArg = AgentToolArgument.from(NSNull())
-        #expect(nullArg == .null)
+        let nullVal = AnyAgentToolValue.from(NSNull())
+        #expect(nullVal.isNull == true)
         
         // Array
         let array: [Any] = ["a", 1, true]
-        let arrayArg = AgentToolArgument.from(array)
-        if case let .array(elements) = arrayArg {
+        let arrayVal = AnyAgentToolValue.from(array)
+        if let elements = arrayVal.arrayValue {
             #expect(elements.count == 3)
-            #expect(elements[0] == .string("a"))
-            #expect(elements[1] == .int(1))
-            #expect(elements[2] == .bool(true))
+            #expect(elements[0].stringValue == "a")
+            #expect(elements[1].intValue == 1)
+            #expect(elements[2].boolValue == true)
         } else {
-            Issue.record("Expected array argument")
+            Issue.record("Expected array value")
         }
         
         // Dictionary
         let dict: [String: Any] = ["name": "test", "count": 5]
-        let objectArg = AgentToolArgument.from(dict)
-        if case let .object(properties) = objectArg {
-            #expect(properties["name"] == .string("test"))
-            #expect(properties["count"] == .int(5))
+        let objectVal = AnyAgentToolValue.from(dict)
+        if let properties = objectVal.objectValue {
+            #expect(properties["name"]?.stringValue == "test")
+            #expect(properties["count"]?.intValue == 5)
         } else {
-            Issue.record("Expected object argument")
+            Issue.record("Expected object value")
         }
         
         // Unsupported type (should convert to string)
-        let dateArg = AgentToolArgument.from(Date())
-        if case .string = dateArg {
-            // Success - converted to string representation
-        } else {
-            Issue.record("Expected string for unsupported type")
-        }
+        let dateVal = AnyAgentToolValue.from(Date())
+        #expect(dateVal.stringValue != nil)
     }
     
-    @Test("AgentToolArgument to Value conversion")
-    func testAgentToolArgumentToValue() {
+    @Test("AnyAgentToolValue to Value conversion")
+    func testAnyAgentToolValueToValue() {
         // String
-        let stringArg = AgentToolArgument.string("hello")
-        let stringValue = stringArg.toValue()
+        let stringVal = AnyAgentToolValue(string: "hello")
+        let stringValue = stringVal.toValue()
         #expect(stringValue == .string("hello"))
         
         // Int
-        let intArg = AgentToolArgument.int(42)
-        let intValue = intArg.toValue()
+        let intVal = AnyAgentToolValue(int: 42)
+        let intValue = intVal.toValue()
         #expect(intValue == .int(42))
         
         // Double
-        let doubleArg = AgentToolArgument.double(3.14)
-        let doubleValue = doubleArg.toValue()
+        let doubleVal = AnyAgentToolValue(double: 3.14)
+        let doubleValue = doubleVal.toValue()
         #expect(doubleValue == .double(3.14))
         
         // Bool
-        let boolArg = AgentToolArgument.bool(true)
-        let boolValue = boolArg.toValue()
+        let boolVal = AnyAgentToolValue(bool: true)
+        let boolValue = boolVal.toValue()
         #expect(boolValue == .bool(true))
         
         // Null
-        let nullArg = AgentToolArgument.null
-        let nullValue = nullArg.toValue()
+        let nullVal = AnyAgentToolValue(null: ())
+        let nullValue = nullVal.toValue()
         #expect(nullValue == .null)
         
         // Array
-        let arrayArg = AgentToolArgument.array([.string("a"), .int(1)])
-        let arrayValue = arrayArg.toValue()
+        let arrayVal = AnyAgentToolValue(array: [AnyAgentToolValue(string: "a"), AnyAgentToolValue(int: 1)])
+        let arrayValue = arrayVal.toValue()
         if case let .array(elements) = arrayValue {
             #expect(elements.count == 2)
             #expect(elements[0] == .string("a"))
@@ -148,11 +144,11 @@ struct TypeConversionTests {
         }
         
         // Object
-        let objectArg = AgentToolArgument.object([
-            "name": .string("test"),
-            "count": .int(5)
+        let objectVal = AnyAgentToolValue(object: [
+            "name": AnyAgentToolValue(string: "test"),
+            "count": AnyAgentToolValue(int: 5)
         ])
-        let objectValue = objectArg.toValue()
+        let objectValue = objectVal.toValue()
         if case let .object(properties) = objectValue {
             #expect(properties["name"] == .string("test"))
             #expect(properties["count"] == .int(5))
@@ -161,42 +157,42 @@ struct TypeConversionTests {
         }
     }
     
-    @Test("Value to AgentToolArgument conversion")
-    func testValueToAgentToolArgument() {
+    @Test("Value to AnyAgentToolValue conversion")
+    func testValueToAnyAgentToolValue() {
         // String
         let stringValue = Value.string("hello")
-        let stringArg = stringValue.toAgentToolArgument()
-        #expect(stringArg == .string("hello"))
+        let stringVal = stringValue.toAnyAgentToolValue()
+        #expect(stringVal.stringValue == "hello")
         
         // Int
         let intValue = Value.int(42)
-        let intArg = intValue.toAgentToolArgument()
-        #expect(intArg == .int(42))
+        let intVal = intValue.toAnyAgentToolValue()
+        #expect(intVal.intValue == 42)
         
         // Double
         let doubleValue = Value.double(3.14)
-        let doubleArg = doubleValue.toAgentToolArgument()
-        #expect(doubleArg == .double(3.14))
+        let doubleVal = doubleValue.toAnyAgentToolValue()
+        #expect(doubleVal.doubleValue == 3.14)
         
         // Bool
         let boolValue = Value.bool(true)
-        let boolArg = boolValue.toAgentToolArgument()
-        #expect(boolArg == .bool(true))
+        let boolVal = boolValue.toAnyAgentToolValue()
+        #expect(boolVal.boolValue == true)
         
         // Null
         let nullValue = Value.null
-        let nullArg = nullValue.toAgentToolArgument()
-        #expect(nullArg == .null)
+        let nullVal = nullValue.toAnyAgentToolValue()
+        #expect(nullVal.isNull == true)
         
         // Array
         let arrayValue = Value.array([.string("a"), .int(1)])
-        let arrayArg = arrayValue.toAgentToolArgument()
-        if case let .array(elements) = arrayArg {
+        let arrayVal = arrayValue.toAnyAgentToolValue()
+        if let elements = arrayVal.arrayValue {
             #expect(elements.count == 2)
-            #expect(elements[0] == .string("a"))
-            #expect(elements[1] == .int(1))
+            #expect(elements[0].stringValue == "a")
+            #expect(elements[1].intValue == 1)
         } else {
-            Issue.record("Expected array argument")
+            Issue.record("Expected array value")
         }
         
         // Object
@@ -204,22 +200,22 @@ struct TypeConversionTests {
             "name": .string("test"),
             "count": .int(5)
         ])
-        let objectArg = objectValue.toAgentToolArgument()
-        if case let .object(properties) = objectArg {
-            #expect(properties["name"] == .string("test"))
-            #expect(properties["count"] == .int(5))
+        let objectVal = objectValue.toAnyAgentToolValue()
+        if let properties = objectVal.objectValue {
+            #expect(properties["name"]?.stringValue == "test")
+            #expect(properties["count"]?.intValue == 5)
         } else {
-            Issue.record("Expected object argument")
+            Issue.record("Expected object value")
         }
     }
     
     @Test("ToolArguments initialization from AgentToolArguments")
-    func testToolArgumentsFromAgentToolArguments() {
+    func testToolArgumentsFromAgentToolArguments() throws {
         let agentArgs = AgentToolArguments([
-            "text": .string("hello"),
-            "number": .int(42),
-            "flag": .bool(true),
-            "nested": .object(["key": .string("value")])
+            "text": AnyAgentToolValue(string: "hello"),
+            "number": AnyAgentToolValue(int: 42),
+            "flag": AnyAgentToolValue(bool: true),
+            "nested": AnyAgentToolValue(object: ["key": AnyAgentToolValue(string: "value")])
         ])
         
         let toolArgs = ToolArguments(from: agentArgs)
@@ -237,23 +233,23 @@ struct TypeConversionTests {
         }
     }
     
-    @Test("ToolResponse to AgentToolArgument conversion via toAgentToolResult")
+    @Test("ToolResponse to AnyAgentToolValue conversion via toAgentToolResult")
     func testToolResponseToAgentToolResult() {
         // Text response
         let textResponse = ToolResponse.text("Success message")
         let textResult = textResponse.toAgentToolResult()
-        #expect(textResult == .string("Success message"))
+        #expect(textResult.stringValue == "Success message")
         
         // Error response
         let errorResponse = ToolResponse.error("Something went wrong")
         let errorResult = errorResponse.toAgentToolResult()
-        #expect(errorResult == .string("Error: Something went wrong"))
+        #expect(errorResult.stringValue == "Error: Something went wrong")
         
         // Image response
         let imageData = Data("fake image data".utf8)
         let imageResponse = ToolResponse.image(data: imageData, mimeType: "image/png")
         let imageResult = imageResponse.toAgentToolResult()
-        if case let .string(str) = imageResult {
+        if let str = imageResult.stringValue {
             #expect(str.contains("Image: image/png"))
         } else {
             Issue.record("Expected string result for image")
@@ -262,26 +258,26 @@ struct TypeConversionTests {
         // Empty response
         let emptyResponse = ToolResponse(content: [], isError: false)
         let emptyResult = emptyResponse.toAgentToolResult()
-        #expect(emptyResult == .string("Success"))
+        #expect(emptyResult.stringValue == "Success")
     }
     
-    @Test("ToolResponse to AgentToolArgument conversion")
-    func testToolResponseToAgentToolArgument() {
+    @Test("ToolResponse to AnyAgentToolValue conversion")
+    func testToolResponseToAnyAgentToolValue() {
         // Single text content
         let textResponse = ToolResponse.text("Hello")
-        let textArg = textResponse.toAgentToolArgument()
-        #expect(textArg == .string("Hello"))
+        let textVal = textResponse.toAnyAgentToolValue()
+        #expect(textVal.stringValue == "Hello")
         
         // Multiple content items
         let multiResponse = ToolResponse.multiContent([
             .text("Part 1"),
             .text("Part 2")
         ])
-        let multiArg = multiResponse.toAgentToolArgument()
-        if case let .array(elements) = multiArg {
+        let multiVal = multiResponse.toAnyAgentToolValue()
+        if let elements = multiVal.arrayValue {
             #expect(elements.count == 2)
-            #expect(elements[0] == .string("Part 1"))
-            #expect(elements[1] == .string("Part 2"))
+            #expect(elements[0].stringValue == "Part 1")
+            #expect(elements[1].stringValue == "Part 2")
         } else {
             Issue.record("Expected array for multiple content")
         }
@@ -290,11 +286,11 @@ struct TypeConversionTests {
         let imageResponse = ToolResponse(content: [
             .image(data: "base64data", mimeType: "image/png", metadata: nil)
         ])
-        let imageArg = imageResponse.toAgentToolArgument()
-        if case let .object(props) = imageArg {
-            #expect(props["type"] == .string("image"))
-            #expect(props["mimeType"] == .string("image/png"))
-            #expect(props["data"] == .string("base64data"))
+        let imageVal = imageResponse.toAnyAgentToolValue()
+        if let props = imageVal.objectValue {
+            #expect(props["type"]?.stringValue == "image")
+            #expect(props["mimeType"]?.stringValue == "image/png")
+            #expect(props["data"]?.stringValue == "base64data")
         } else {
             Issue.record("Expected object for image content")
         }
@@ -303,36 +299,36 @@ struct TypeConversionTests {
         let resourceResponse = ToolResponse(content: [
             .resource(uri: "https://example.com", mimeType: "text/html", text: "content")
         ])
-        let resourceArg = resourceResponse.toAgentToolArgument()
-        if case let .object(props) = resourceArg {
-            #expect(props["type"] == .string("resource"))
-            #expect(props["uri"] == .string("https://example.com"))
-            #expect(props["mimeType"] == .string("text/html"))
-            #expect(props["text"] == .string("content"))
+        let resourceVal = resourceResponse.toAnyAgentToolValue()
+        if let props = resourceVal.objectValue {
+            #expect(props["type"]?.stringValue == "resource")
+            #expect(props["uri"]?.stringValue == "https://example.com")
+            #expect(props["mimeType"]?.stringValue == "text/html")
+            #expect(props["text"]?.stringValue == "content")
         } else {
             Issue.record("Expected object for resource content")
         }
     }
     
     @Test("Round-trip conversions")
-    func testRoundTripConversions() {
-        // AgentToolArgument -> Value -> AgentToolArgument
-        let originalArg = AgentToolArgument.object([
-            "string": .string("test"),
-            "number": .int(123),
-            "float": .double(45.67),
-            "bool": .bool(false),
-            "null": .null,
-            "array": .array([.string("a"), .string("b")]),
-            "nested": .object(["key": .string("value")])
+    func testRoundTripConversions() throws {
+        // AnyAgentToolValue -> Value -> AnyAgentToolValue
+        let originalVal = AnyAgentToolValue(object: [
+            "string": AnyAgentToolValue(string: "test"),
+            "number": AnyAgentToolValue(int: 123),
+            "float": AnyAgentToolValue(double: 45.67),
+            "bool": AnyAgentToolValue(bool: false),
+            "null": AnyAgentToolValue(null: ()),
+            "array": AnyAgentToolValue(array: [AnyAgentToolValue(string: "a"), AnyAgentToolValue(string: "b")]),
+            "nested": AnyAgentToolValue(object: ["key": AnyAgentToolValue(string: "value")])
         ])
         
-        let value = originalArg.toValue()
-        let roundTripArg = value.toAgentToolArgument()
+        let value = originalVal.toValue()
+        let roundTripVal = value.toAnyAgentToolValue()
         
-        #expect(originalArg == roundTripArg)
+        #expect(originalVal == roundTripVal)
         
-        // Any -> AgentToolArgument -> Any
+        // Any -> AnyAgentToolValue -> Any
         let originalDict: [String: Any] = [
             "name": "test",
             "count": 42,
@@ -340,8 +336,8 @@ struct TypeConversionTests {
             "tags": ["swift", "testing"]
         ]
         
-        let argument = AgentToolArgument.from(originalDict)
-        let roundTripAny = argument.toAny()
+        let toolValue = AnyAgentToolValue.from(originalDict)
+        let roundTripAny = try toolValue.toJSON()
         
         if let dict = roundTripAny as? [String: Any] {
             #expect(dict["name"] as? String == "test")

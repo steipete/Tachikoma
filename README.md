@@ -285,37 +285,133 @@ let transcription = try await transcribe(recording)
 - **Speech Synthesis**: OpenAI TTS, ElevenLabs
 - **Recording**: Cross-platform AVFoundation support
 
-### Tool Integration
+### Tool Integration (Type-Safe Protocol System)
+
+Tachikoma provides a type-safe tool system that ensures compile-time safety and eliminates runtime errors:
 
 ```swift
-// Define tools using the ToolKit protocol
-struct WeatherTools: ToolKit {
-    var tools: [Tool<WeatherTools>] {
-        [
-            createTool(
-                name: "get_weather",
-                description: "Get current weather for a location"
-            ) { input, context in
-                let location = try input.stringValue("location")
-                return try await context.getWeather(location: location)
+// Type-safe tool using AgentToolProtocol
+struct WeatherTool: AgentToolProtocol {
+    struct Input: AgentToolValue {
+        let location: String
+        let units: String
+        
+        static var agentValueType: AgentValueType { .object }
+        
+        func toJSON() throws -> Any {
+            ["location": location, "units": units]
+        }
+        
+        static func fromJSON(_ json: Any) throws -> Input {
+            guard let dict = json as? [String: Any],
+                  let location = dict["location"] as? String,
+                  let units = dict["units"] as? String else {
+                throw TachikomaError.invalidInput("Invalid weather input")
             }
-        ]
+            return Input(location: location, units: units)
+        }
     }
     
-    func getWeather(location: String) async throws -> String {
+    struct Output: AgentToolValue {
+        let temperature: Double
+        let conditions: String
+        
+        static var agentValueType: AgentValueType { .object }
+        
+        func toJSON() throws -> Any {
+            ["temperature": temperature, "conditions": conditions]
+        }
+        
+        static func fromJSON(_ json: Any) throws -> Output {
+            guard let dict = json as? [String: Any],
+                  let temperature = dict["temperature"] as? Double,
+                  let conditions = dict["conditions"] as? String else {
+                throw TachikomaError.invalidInput("Invalid weather output")
+            }
+            return Output(temperature: temperature, conditions: conditions)
+        }
+    }
+    
+    var name: String { "get_weather" }
+    var description: String { "Get current weather for a location" }
+    var schema: AgentToolSchema {
+        AgentToolSchema(
+            properties: [
+                "location": AgentPropertySchema(type: .string, description: "City name"),
+                "units": AgentPropertySchema(type: .string, description: "Temperature units", enumValues: ["celsius", "fahrenheit"])
+            ],
+            required: ["location", "units"]
+        )
+    }
+    
+    func execute(_ input: Input, context: ToolExecutionContext) async throws -> Output {
         // Your weather API integration here
-        return "Sunny, 22°C in \(location)"
+        return Output(temperature: 22.5, conditions: "Sunny")
     }
 }
 
+// Use with type-erased wrapper for dynamic scenarios
+let weatherTool = WeatherTool()
+let anyTool = AnyAgentTool(weatherTool)
+
+// Or use the simpler AgentTool for backwards compatibility
+let simpleTool = AgentTool(
+    name: "get_weather",
+    description: "Get current weather",
+    parameters: AgentToolParameters(
+        properties: [
+            "location": AgentToolParameterProperty(
+                name: "location",
+                type: .string,
+                description: "City name"
+            )
+        ],
+        required: ["location"]
+    )
+) { args in
+    let location = try args.stringValue("location")
+    return AnyAgentToolValue(string: "Sunny, 22°C in \(location)")
+}
+
 // Use tools with AI models
-let toolkit = WeatherTools()
 let result = try await generateText(
     model: .claude,
     messages: [.user("What's the weather in Tokyo?")],
-    tools: toolkit.tools.map { $0.toAgentTool() }
+    tools: [simpleTool]
 )
 print(result.text)
+```
+
+#### AgentToolValue Protocol
+
+The new type-safe tool system is built on the `AgentToolValue` protocol:
+
+```swift
+// All standard types conform to AgentToolValue
+let stringValue = AnyAgentToolValue(string: "hello")
+let intValue = AnyAgentToolValue(int: 42)
+let doubleValue = AnyAgentToolValue(double: 3.14)
+let boolValue = AnyAgentToolValue(bool: true)
+let nullValue = AnyAgentToolValue(null: ())
+
+// Complex types are supported
+let arrayValue = AnyAgentToolValue(array: [
+    AnyAgentToolValue(string: "item1"),
+    AnyAgentToolValue(int: 2)
+])
+
+let objectValue = AnyAgentToolValue(object: [
+    "name": AnyAgentToolValue(string: "Alice"),
+    "age": AnyAgentToolValue(int: 30)
+])
+
+// Easy conversion from JSON
+let jsonValue = try AnyAgentToolValue.fromJSON(["key": "value", "count": 123])
+
+// Type-safe access
+if let str = jsonValue.objectValue?["key"]?.stringValue {
+    print(str) // "value"
+}
 ```
 
 ## Core Features
@@ -626,30 +722,50 @@ public func generateObject<T: Codable & Sendable>(
 ) async throws -> GenerateObjectResult<T>
 ```
 
-#### 3. Tool System (`Tool.swift`, `ToolKit.swift`)
+#### 3. Tool System (`ToolTypes.swift`, `ToolBuilder.swift`, `ToolKit.swift`)
 
-Type-safe function calling with structured tool definitions:
+Type-safe function calling with protocol-based tool definitions:
 
 ```swift
+// Protocol for type-safe tools
+public protocol AgentToolProtocol: Sendable {
+    associatedtype Input: AgentToolValue
+    associatedtype Output: AgentToolValue
+    
+    var name: String { get }
+    var description: String { get }
+    var schema: AgentToolSchema { get }
+    
+    func execute(_ input: Input, context: ToolExecutionContext) async throws -> Output
+}
+
+// Protocol for tool values with JSON conversion
+public protocol AgentToolValue: Sendable, Codable {
+    static var agentValueType: AgentValueType { get }
+    func toJSON() throws -> Any
+    static func fromJSON(_ json: Any) throws -> Self
+}
+
+// Type-erased wrapper for dynamic scenarios
+public struct AnyAgentToolValue: AgentToolValue {
+    // Wraps any AgentToolValue for runtime flexibility
+}
+
+// Backwards-compatible tool definition
+public struct AgentTool: Sendable {
+    public let name: String
+    public let description: String
+    public let parameters: AgentToolParameters
+    
+    public func execute(_ arguments: AgentToolArguments, 
+                       context: ToolExecutionContext? = nil) async throws -> AnyAgentToolValue
+}
+
 // Protocol for tool collections
 public protocol ToolKit: Sendable {
     associatedtype Context = Self
     var tools: [Tool<Context>] { get }
 }
-
-// Individual tool definition
-public struct Tool<Context>: Sendable {
-    public let name: String
-    public let description: String
-    public let execute: @Sendable (ToolInput, Context) async throws -> ToolOutput
-}
-
-// Helper functions for tool creation
-public func createTool<Context>(
-    name: String,
-    description: String,
-    _ handler: @escaping @Sendable (ToolInput, Context) async throws -> String
-) -> Tool<Context>
 ```
 
 #### 4. Conversation Management (`Conversation.swift`)

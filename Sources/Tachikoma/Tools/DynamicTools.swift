@@ -14,7 +14,7 @@ public protocol DynamicToolProvider: Sendable {
     func discoverTools() async throws -> [DynamicTool]
     
     /// Execute a tool by name with given arguments
-    func executeTool(name: String, arguments: AgentToolArguments) async throws -> AgentToolArgument
+    func executeTool(name: String, arguments: AgentToolArguments) async throws -> AnyAgentToolValue
 }
 
 /// A dynamically created tool with runtime schema
@@ -41,7 +41,7 @@ public struct DynamicTool: Sendable {
     }
     
     /// Convert to a static AgentTool with the provided executor
-    public func toAgentTool(executor: @escaping @Sendable (AgentToolArguments) async throws -> AgentToolArgument) -> AgentTool {
+    public func toAgentTool(executor: @escaping @Sendable (AgentToolArguments) async throws -> AnyAgentToolValue) -> AgentTool {
         AgentTool(
             name: name,
             description: description,
@@ -220,7 +220,7 @@ public final class Box<T: Codable & Sendable>: Codable, Sendable {
 public actor DynamicToolRegistry {
     private var providers: [String: DynamicToolProvider] = [:]
     private var tools: [String: DynamicTool] = [:]
-    private var executors: [String: @Sendable (AgentToolArguments) async throws -> AgentToolArgument] = [:]
+    private var executors: [String: @Sendable (AgentToolArguments) async throws -> AnyAgentToolValue] = [:]
     
     public init() {}
     
@@ -232,7 +232,7 @@ public actor DynamicToolRegistry {
     /// Register a single dynamic tool with executor
     public func registerTool(
         _ tool: DynamicTool,
-        executor: @escaping @Sendable (AgentToolArguments) async throws -> AgentToolArgument
+        executor: @escaping @Sendable (AgentToolArguments) async throws -> AnyAgentToolValue
     ) {
         tools[tool.name] = tool
         executors[tool.name] = executor
@@ -262,7 +262,7 @@ public actor DynamicToolRegistry {
     }
     
     /// Execute a tool by name
-    public func executeTool(name: String, arguments: AgentToolArguments) async throws -> AgentToolArgument {
+    public func executeTool(name: String, arguments: AgentToolArguments) async throws -> AnyAgentToolValue {
         guard let executor = executors[name] else {
             throw TachikomaError.toolCallFailed("Tool '\(name)' not found in registry")
         }
@@ -463,17 +463,17 @@ public struct MCPToolProvider: DynamicToolProvider {
         ]
     }
     
-    public func executeTool(name: String, arguments: AgentToolArguments) async throws -> AgentToolArgument {
+    public func executeTool(name: String, arguments: AgentToolArguments) async throws -> AnyAgentToolValue {
         // This would make an actual HTTP request to execute the tool
         // For now, return mock results
         switch name {
         case "search_web":
-            return .string("Mock search results for: \(arguments["query"] ?? .null)")
+            return AnyAgentToolValue(string: "Mock search results for: \(String(describing: arguments["query"]))")
         case "get_weather":
-            return .object([
-                "temperature": .double(72),
-                "condition": .string("Sunny"),
-                "location": arguments["location"] ?? .string("Unknown")
+            return AnyAgentToolValue(object: [
+                "temperature": AnyAgentToolValue(double: 72),
+                "condition": AnyAgentToolValue(string: "Sunny"),
+                "location": arguments["location"] ?? AnyAgentToolValue(string: "Unknown")
             ])
         default:
             throw TachikomaError.toolCallFailed("Unknown tool: \(name)")

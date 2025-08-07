@@ -121,3 +121,4 @@ OPENAI_API_KEY=sk-... swift test --filter "OpenAIProviderTests"
 - **Performance**: Streaming, lazy loading, minimal overhead
 - **Modern Swift**: Result builders, property wrappers, experimental features enabled
 - **Sendable Everywhere**: Maintain Sendable conformance for all public types
+- **No Cross-Reference Comments**: Never add comments like "// Note: X is now defined in Y". Simply remove duplicates without explanatory comments

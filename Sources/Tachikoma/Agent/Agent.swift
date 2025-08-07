@@ -88,7 +88,7 @@ public final class Agent<Context>: @unchecked Sendable {
         return AgentResponse(
             text: result.text,
             usage: result.usage,
-            finishReason: result.finishReason,
+            finishReason: result.finishReason ?? .other,
             steps: result.steps,
             conversationLength: self.conversation.messages.count
         )
@@ -114,7 +114,7 @@ public final class Agent<Context>: @unchecked Sendable {
                 do {
                     var assistantText = ""
 
-                    for try await delta in streamResult.textStream {
+                    for try await delta in streamResult.stream {
                         continuation.yield(delta)
 
                         // Collect assistant text

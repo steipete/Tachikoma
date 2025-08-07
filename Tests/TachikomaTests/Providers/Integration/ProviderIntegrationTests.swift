@@ -57,7 +57,7 @@ struct ProviderIntegrationTests {
                 required: ["location"]
             )
         ) { args in
-            .string("Weather: 72°F, sunny")
+            AnyAgentToolValue(string: "Weather: 72°F, sunny")
         }
         
         let request = ProviderRequest(

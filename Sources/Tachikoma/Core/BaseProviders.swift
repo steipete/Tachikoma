@@ -117,12 +117,16 @@ public final class AnthropicProvider: ModelProvider {
             case .text:
                 return nil
             case .toolUse(let toolUse):
-                // Convert input to AgentToolArgument dictionary
-                var arguments: [String: AgentToolArgument] = [:]
+                // Convert input to AnyAgentToolValue dictionary
+                var arguments: [String: AnyAgentToolValue] = [:]
                 if let inputDict = toolUse.input as? [String: Any] {
                     for (key, value) in inputDict {
-                        if let toolArg = try? AgentToolArgument.from(any: value) {
-                            arguments[key] = toolArg
+                        do {
+                            arguments[key] = try AnyAgentToolValue.fromJSON(value)
+                        } catch {
+                            // Log warning and skip arguments that can't be converted
+                            print("[WARNING] Failed to convert tool argument '\(key)': \(error)")
+                            continue
                         }
                     }
                 }
@@ -195,7 +199,7 @@ public final class AnthropicProvider: ModelProvider {
                             
                             if jsonString.trimmingCharacters(in: .whitespacesAndNewlines) == "[DONE]" ||
                                jsonString.contains("\"type\":\"message_stop\"") {
-                                continuation.yield(TextStreamDelta(type: .done))
+                                continuation.yield(TextStreamDelta.done())
                                 break
                             }
                             
@@ -206,7 +210,7 @@ public final class AnthropicProvider: ModelProvider {
                                 if let delta = chunk.delta {
                                     switch delta {
                                     case .textDelta(let text):
-                                        continuation.yield(TextStreamDelta(type: .textDelta, content: text))
+                                        continuation.yield(TextStreamDelta.text(text))
                                     case .other:
                                         break
                                     }
@@ -437,11 +441,15 @@ public final class OllamaProvider: ModelProvider {
         var toolCalls: [AgentToolCall]? = nil
         if let messageCalls = ollamaResponse.message.toolCalls {
             toolCalls = messageCalls.compactMap { ollamaCall in
-                // Convert arguments dictionary to AgentToolArgument format
-                var arguments: [String: AgentToolArgument] = [:]
+                // Convert arguments dictionary to AnyAgentToolValue format
+                var arguments: [String: AnyAgentToolValue] = [:]
                 for (key, value) in ollamaCall.function.arguments {
-                    if let toolArg = try? AgentToolArgument.from(any: value) {
-                        arguments[key] = toolArg
+                    do {
+                        arguments[key] = try AnyAgentToolValue.fromJSON(value)
+                    } catch {
+                        // Log warning and skip arguments that can't be converted
+                        print("[WARNING] Failed to convert tool argument '\(key)': \(error)")
+                        continue
                     }
                 }
                 
@@ -459,11 +467,17 @@ public final class OllamaProvider: ModelProvider {
             if let data = text.data(using: .utf8),
                let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
                let functionName = json["function"] as? String {
-                // Convert arguments to AgentToolArgument format
-                var arguments: [String: AgentToolArgument] = [:]
+                // Convert arguments to AnyAgentToolValue format
+                var arguments: [String: AnyAgentToolValue] = [:]
                 for (key, value) in json {
-                    if key != "function", let toolArg = try? AgentToolArgument.from(any: value) {
-                        arguments[key] = toolArg
+                    if key != "function" {
+                        do {
+                            arguments[key] = try AnyAgentToolValue.fromJSON(value)
+                        } catch {
+                            // Log warning and skip arguments that can't be converted
+                            print("[WARNING] Failed to convert tool argument '\(key)': \(error)")
+                            continue
+                        }
                     }
                 }
                 
@@ -550,11 +564,11 @@ public final class OllamaProvider: ModelProvider {
                             let chunk = try JSONDecoder().decode(OllamaStreamChunk.self, from: data)
                             
                             if let content = chunk.message.content, !content.isEmpty {
-                                continuation.yield(TextStreamDelta(type: .textDelta, content: content))
+                                continuation.yield(TextStreamDelta.text(content))
                             }
                             
                             if chunk.done {
-                                continuation.yield(TextStreamDelta(type: .done))
+                                continuation.yield(TextStreamDelta.done())
                                 break
                             }
                         } catch {

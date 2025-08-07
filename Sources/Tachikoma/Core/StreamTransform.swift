@@ -225,7 +225,7 @@ public extension StreamTextResult {
         _ predicate: @escaping @Sendable (TextStreamDelta) async -> Bool
     ) -> StreamTextResult {
         StreamTextResult(
-            stream: textStream.filter(predicate),
+            stream: stream.filter(predicate),
             model: model,
             settings: settings
         )
@@ -235,7 +235,7 @@ public extension StreamTextResult {
     func map<Output: Sendable>(
         _ mapper: @escaping @Sendable (TextStreamDelta) async throws -> Output
     ) -> AsyncThrowingStream<Output, Error> {
-        textStream.map(mapper)
+        stream.map(mapper)
     }
     
     /// Add side effects to text stream
@@ -243,7 +243,7 @@ public extension StreamTextResult {
         _ action: @escaping @Sendable (TextStreamDelta) async -> Void
     ) -> StreamTextResult {
         StreamTextResult(
-            stream: textStream.tap(action),
+            stream: stream.tap(action),
             model: model,
             settings: settings
         )
@@ -251,7 +251,7 @@ public extension StreamTextResult {
     
     /// Collect only text content from the stream
     func collectText() -> AsyncThrowingStream<String, Error> {
-        textStream
+        stream
             .filter { delta in
                 if case .textDelta = delta.type {
                     return delta.content != nil
@@ -266,7 +266,7 @@ public extension StreamTextResult {
     /// Collect complete text once stream is done
     func fullText() async throws -> String {
         var result = ""
-        for try await delta in textStream {
+        for try await delta in stream {
             if case .textDelta = delta.type, let content = delta.content {
                 result += content
             }

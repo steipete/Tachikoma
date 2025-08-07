@@ -54,7 +54,7 @@ public final class MockProvider: ModelProvider {
             toolCalls = [AgentToolCall(
                 id: "mock_tool_call_123",
                 name: tools.first?.name ?? "mock_tool",
-                arguments: ["query": .string("mock query")]
+                arguments: ["query": AnyAgentToolValue(string: "mock query")]
             ),]
         }
 

@@ -70,6 +70,18 @@ public struct RegexStopCondition: StopCondition {
     }
     
     public func reset() async {}
+    
+    /// Get the location of the first match in the text (for truncation)
+    public func matchLocation(in text: String) -> Range<String.Index>? {
+        guard let regex else { return nil }
+        
+        let range = NSRange(location: 0, length: text.utf16.count)
+        guard let match = regex.firstMatch(in: text, options: [], range: range) else {
+            return nil
+        }
+        
+        return Range(match.range, in: text)
+    }
 }
 
 /// Stop after a certain number of tokens
@@ -423,7 +435,7 @@ public extension AsyncThrowingStream where Element == TextStreamDelta {
                             if await condition.shouldStop(text: accumulatedText, delta: content) {
                                 // Yield the current delta then stop
                                 continuation.yield(delta)
-                                continuation.yield(TextStreamDelta(type: .done))
+                                continuation.yield(TextStreamDelta.done())
                                 continuation.finish()
                                 return
                             }
@@ -452,7 +464,7 @@ public extension StreamTextResult {
     /// Apply stop conditions to the stream
     func stopWhen(_ condition: any StopCondition) -> StreamTextResult {
         StreamTextResult(
-            stream: textStream.stopWhen(condition),
+            stream: stream.stopWhen(condition),
             model: model,
             settings: settings
         )

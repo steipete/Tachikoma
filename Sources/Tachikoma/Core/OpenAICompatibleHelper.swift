@@ -100,16 +100,20 @@ struct OpenAICompatibleHelper {
 
         // Convert tool calls if present
         let toolCalls = choice.message.toolCalls?.compactMap { openAIToolCall -> AgentToolCall? in
-            // Parse JSON string to dictionary and convert to AgentToolArgument format
+            // Parse JSON string to dictionary and convert to AnyAgentToolValue format
             guard let data = openAIToolCall.function.arguments.data(using: .utf8),
                   let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
                 return nil
             }
             
-            var arguments: [String: AgentToolArgument] = [:]
+            var arguments: [String: AnyAgentToolValue] = [:]
             for (key, value) in json {
-                if let toolArg = try? AgentToolArgument.from(any: value) {
-                    arguments[key] = toolArg
+                do {
+                    arguments[key] = try AnyAgentToolValue.fromJSON(value)
+                } catch {
+                    // Log warning and skip arguments that can't be converted
+                    print("[WARNING] Failed to convert tool argument '\(key)': \(error)")
+                    continue
                 }
             }
             
@@ -187,7 +191,7 @@ struct OpenAICompatibleHelper {
                             let jsonString = String(line.dropFirst(6))
                             
                             if jsonString.trimmingCharacters(in: .whitespacesAndNewlines) == "[DONE]" {
-                                continuation.yield(TextStreamDelta(type: .done))
+                                continuation.yield(TextStreamDelta.done())
                                 break
                             }
                             
@@ -197,11 +201,11 @@ struct OpenAICompatibleHelper {
                                 let chunk = try JSONDecoder().decode(OpenAIStreamChunk.self, from: data)
                                 if let choice = chunk.choices.first {
                                     if let content = choice.delta.content {
-                                        continuation.yield(TextStreamDelta(type: .textDelta, content: content))
+                                        continuation.yield(TextStreamDelta.text(content))
                                     }
                                     
                                     if choice.finishReason != nil {
-                                        continuation.yield(TextStreamDelta(type: .done))
+                                        continuation.yield(TextStreamDelta.done())
                                         break
                                     }
                                 }
@@ -241,32 +245,33 @@ struct OpenAICompatibleHelper {
         return []
     }
     
-    private static func convertToolResultToString(_ result: AgentToolArgument) -> String {
-        switch result {
-        case .null:
+    private static func convertToolResultToString(_ result: AnyAgentToolValue) -> String {
+        if result.isNull {
             return "null"
-        case .bool(let value):
+        } else if let value = result.boolValue {
             return String(value)
-        case .int(let value):
+        } else if let value = result.intValue {
             return String(value)
-        case .double(let value):
+        } else if let value = result.doubleValue {
             return String(value)
-        case .string(let value):
+        } else if let value = result.stringValue {
             return value
-        case .array(let array):
+        } else if let array = result.arrayValue {
             // Convert array to JSON string for complex results
             if let data = try? JSONEncoder().encode(array),
                let jsonString = String(data: data, encoding: .utf8) {
                 return jsonString
             }
             return "[]"
-        case .object(let dict):
+        } else if let dict = result.objectValue {
             // Convert object to JSON string for complex results
             if let data = try? JSONEncoder().encode(dict),
                let jsonString = String(data: data, encoding: .utf8) {
                 return jsonString
             }
             return "{}"
+        } else {
+            return "unknown"
         }
     }
 

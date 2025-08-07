@@ -266,7 +266,7 @@ struct ResponseCacheTests {
             description: "First tool",
             parameters: AgentToolParameters(properties: [], required: []),
             namespace: "test",
-            execute: { _ in .string("") }
+            execute: { _ in AnyAgentToolValue(string: "") }
         )
         
         let tool2 = AgentTool(
@@ -274,7 +274,7 @@ struct ResponseCacheTests {
             description: "Second tool",
             parameters: AgentToolParameters(properties: [], required: []),
             namespace: "test",
-            execute: { _ in .string("") }
+            execute: { _ in AnyAgentToolValue(string: "") }
         )
         
         let request1 = ProviderRequest(

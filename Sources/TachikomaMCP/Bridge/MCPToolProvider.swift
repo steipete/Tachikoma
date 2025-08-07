@@ -55,12 +55,12 @@ public final class MCPToolProvider: DynamicToolProvider {
     public func executeTool(
         name: String,
         arguments: AgentToolArguments
-    ) async throws -> AgentToolArgument {
+    ) async throws -> AnyAgentToolValue {
         // Convert arguments to MCP format
         var mcpArgs: [String: Any] = [:]
         for key in arguments.keys {
             if let value = arguments[key] {
-                mcpArgs[key] = convertToAny(value)
+                mcpArgs[key] = try value.toJSON()
             }
         }
         
@@ -70,8 +70,8 @@ public final class MCPToolProvider: DynamicToolProvider {
             arguments: mcpArgs
         )
         
-        // Convert response back to AgentToolArgument
-        return convertResponseToArgument(response)
+        // Convert response back to AnyAgentToolValue
+        return convertResponseToAnyAgentToolValue(response)
     }
     
     /// Get all available tools as AgentTools
@@ -151,26 +151,8 @@ public final class MCPToolProvider: DynamicToolProvider {
         )
     }
     
-    private func convertToAny(_ argument: AgentToolArgument) -> Any {
-        switch argument {
-        case .string(let str):
-            return str
-        case .int(let num):
-            return num
-        case .double(let num):
-            return num
-        case .bool(let bool):
-            return bool
-        case .array(let array):
-            return array.map { convertToAny($0) }
-        case .object(let dict):
-            return dict.mapValues { convertToAny($0) }
-        case .null:
-            return NSNull()
-        }
-    }
     
-    private func convertResponseToArgument(_ response: ToolResponse) -> AgentToolArgument {
+    private func convertResponseToAnyAgentToolValue(_ response: ToolResponse) -> AnyAgentToolValue {
         // If there's an error, return it as a string
         if response.isError {
             let errorMessage = response.content.compactMap { content -> String? in
@@ -180,49 +162,49 @@ public final class MCPToolProvider: DynamicToolProvider {
                 return nil
             }.joined(separator: "\n")
             
-            return .string("Error: \(errorMessage)")
+            return AnyAgentToolValue(string: "Error: \(errorMessage)")
         }
         
         // Convert content to appropriate format
         if response.content.count == 1 {
             // Single content item
-            return convertContentToArgument(response.content[0])
+            return convertContentToAnyAgentToolValue(response.content[0])
         } else if response.content.isEmpty {
             // No content
-            return .null
+            return AnyAgentToolValue(null: ())
         } else {
             // Multiple content items - return as array
-            return .array(response.content.map { convertContentToArgument($0) })
+            return AnyAgentToolValue(array: response.content.map { convertContentToAnyAgentToolValue($0) })
         }
     }
     
-    private func convertContentToArgument(_ content: MCP.Tool.Content) -> AgentToolArgument {
+    private func convertContentToAnyAgentToolValue(_ content: MCP.Tool.Content) -> AnyAgentToolValue {
         switch content {
         case .text(let text):
-            return .string(text)
+            return AnyAgentToolValue(string: text)
         case .image(let data, let mimeType, _):
-            return .object([
-                "type": .string("image"),
-                "mimeType": .string(mimeType),
-                "data": .string(data)
+            return AnyAgentToolValue(object: [
+                "type": AnyAgentToolValue(string: "image"),
+                "mimeType": AnyAgentToolValue(string: mimeType),
+                "data": AnyAgentToolValue(string: data)
             ])
         case .resource(let uri, let mimeType, let text):
-            var resourceDict: [String: AgentToolArgument] = [
-                "type": .string("resource"),
-                "uri": .string(uri),
-                "mimeType": .string(mimeType)
+            var resourceDict: [String: AnyAgentToolValue] = [
+                "type": AnyAgentToolValue(string: "resource"),
+                "uri": AnyAgentToolValue(string: uri),
+                "mimeType": AnyAgentToolValue(string: mimeType)
             ]
             if let text = text {
-                resourceDict["text"] = .string(text)
+                resourceDict["text"] = AnyAgentToolValue(string: text)
             } else {
-                resourceDict["text"] = .null
+                resourceDict["text"] = AnyAgentToolValue(null: ())
             }
-            return .object(resourceDict)
+            return AnyAgentToolValue(object: resourceDict)
         case .audio(let data, let mimeType):
-            return .object([
-                "type": .string("audio"),
-                "mimeType": .string(mimeType),
-                "data": .string(data)
+            return AnyAgentToolValue(object: [
+                "type": AnyAgentToolValue(string: "audio"),
+                "mimeType": AnyAgentToolValue(string: mimeType),
+                "data": AnyAgentToolValue(string: data)
             ])
         }
     }

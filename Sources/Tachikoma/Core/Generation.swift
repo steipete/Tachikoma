@@ -22,7 +22,8 @@ public func generateText(
     tools: [AgentTool]? = nil,
     settings: GenerationSettings = .default,
     maxSteps: Int = 1,
-    configuration: TachikomaConfiguration = .current
+    configuration: TachikomaConfiguration = .current,
+    sessionId: String? = nil
 ) async throws
 -> GenerateTextResult {
     let provider = try ProviderFactory.createProvider(for: model, configuration: configuration)
@@ -40,21 +41,27 @@ public func generateText(
 
         let response = try await provider.generateText(request: request)
 
-        // Track usage if we have a current session
+        // Track usage with proper session management
         if let usage = response.usage {
-            // For now, create a temporary session for tracking
-            // In a full implementation, this would use an existing session context
-            let sessionId = "generation-\(UUID().uuidString)"
-            _ = UsageTracker.shared.startSession(sessionId)
+            let actualSessionId = sessionId ?? "generation-\(UUID().uuidString)"
+            
+            // Start session if not already started
+            if sessionId == nil {
+                _ = UsageTracker.shared.startSession(actualSessionId)
+            }
 
             let operationType: OperationType = tools?.isEmpty == false ? .toolCall : .textGeneration
             UsageTracker.shared.recordUsage(
-                sessionId: sessionId,
+                sessionId: actualSessionId,
                 model: model,
                 usage: usage,
                 operation: operationType
             )
-            _ = UsageTracker.shared.endSession(sessionId)
+            
+            // Only end session if we created it
+            if sessionId == nil {
+                _ = UsageTracker.shared.endSession(actualSessionId)
+            }
         }
 
         // Update total usage
@@ -105,7 +112,19 @@ public func generateText(
                             }
                         }
 
-                        let result = try await tool.execute(AgentToolArguments(toolCall.arguments))
+                        // Create execution context with full conversation and model info
+                        let context = ToolExecutionContext(
+                            messages: currentMessages,
+                            model: model,
+                            settings: settings,
+                            sessionId: sessionId ?? "generation-\(UUID().uuidString)",
+                            stepIndex: stepIndex,
+                            metadata: ["toolCallId": toolCall.id]
+                        )
+                        
+                        // Convert arguments to AgentToolArguments
+                        let toolArguments = AgentToolArguments(toolCall.arguments)
+                        let result = try await tool.execute(toolArguments, context: context)
                         let toolResult = AgentToolResult.success(toolCallId: toolCall.id, result: result)
                         toolResults.append(toolResult)
 
@@ -169,7 +188,9 @@ public func generateText(
                 finalFinishReason = .length
             } else if let regexStop = stopCondition as? RegexStopCondition {
                 // For regex conditions, truncate at the first match
-                // We need to add a helper to RegexStopCondition to expose the match location
+                if let matchRange = regexStop.matchLocation(in: finalText) {
+                    finalText = String(finalText[..<matchRange.lowerBound])
+                }
                 finalFinishReason = .stop
             } else {
                 // For other conditions, just mark as stopped
@@ -206,7 +227,8 @@ public func streamText(
     tools: [AgentTool]? = nil,
     settings: GenerationSettings = .default,
     maxSteps: Int = 1,
-    configuration: TachikomaConfiguration = .current
+    configuration: TachikomaConfiguration = .current,
+    sessionId: String? = nil
 ) async throws
 -> StreamTextResult {
     let provider = try ProviderFactory.createProvider(for: model, configuration: configuration)
@@ -225,14 +247,17 @@ public func streamText(
         stream = stream.stopWhen(stopCondition)
     }
 
-    // Create a session for tracking streaming usage
-    let sessionId = "streaming-\(UUID().uuidString)"
-    _ = UsageTracker.shared.startSession(sessionId)
+    // Use provided session or create a new one for tracking streaming usage
+    let actualSessionId = sessionId ?? "streaming-\(UUID().uuidString)"
+    if sessionId == nil {
+        _ = UsageTracker.shared.startSession(actualSessionId)
+    }
 
     // Wrap the stream to track usage when it completes
     let capturedModel = model
-    let capturedSessionId = sessionId
+    let capturedSessionId = actualSessionId
     let capturedStream = stream
+    let shouldEndSession = sessionId == nil
     
     let trackedStream = AsyncThrowingStream<TextStreamDelta, Error> { continuation in
         Task {
@@ -262,13 +287,17 @@ public func streamText(
                             usage: usage,
                             operation: .textStreaming
                         )
-                        _ = UsageTracker.shared.endSession(capturedSessionId)
+                        if shouldEndSession {
+                            _ = UsageTracker.shared.endSession(capturedSessionId)
+                        }
                     }
                 }
 
                 continuation.finish()
             } catch {
-                _ = UsageTracker.shared.endSession(capturedSessionId)
+                if shouldEndSession {
+                    _ = UsageTracker.shared.endSession(capturedSessionId)
+                }
                 continuation.finish(throwing: error)
             }
         }
@@ -322,8 +351,7 @@ public func generateObject<T: Codable & Sendable>(
         return GenerateObjectResult(
             object: object,
             usage: response.usage,
-            finishReason: response.finishReason ?? .other,
-            rawText: response.text
+            finishReason: response.finishReason ?? .other
         )
     } catch {
         throw TachikomaError.invalidInput("Failed to parse response as \(T.self): \(error.localizedDescription)")
@@ -665,85 +693,10 @@ public func stream(
         configuration: configuration
     )
 
-    return result.textStream
+    return result.stream
 }
 
 // MARK: - Result Types
-
-/// Result from generateText function
-@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
-public struct GenerateTextResult: Sendable {
-    public let text: String
-    public let usage: Usage?
-    public let finishReason: FinishReason
-    public let steps: [GenerationStep]
-    public let messages: [ModelMessage]
-
-    public init(
-        text: String,
-        usage: Usage?,
-        finishReason: FinishReason,
-        steps: [GenerationStep],
-        messages: [ModelMessage]
-    ) {
-        self.text = text
-        self.usage = usage
-        self.finishReason = finishReason
-        self.steps = steps
-        self.messages = messages
-    }
-}
-
-/// Result from streamText function
-@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
-public struct StreamTextResult: Sendable {
-    public let textStream: AsyncThrowingStream<TextStreamDelta, Error>
-    public let model: LanguageModel
-    public let settings: GenerationSettings
-
-    public init(
-        stream: AsyncThrowingStream<TextStreamDelta, Error>,
-        model: LanguageModel,
-        settings: GenerationSettings
-    ) {
-        self.textStream = stream
-        self.model = model
-        self.settings = settings
-    }
-}
-
-// MARK: - AsyncSequence Conformance
-extension StreamTextResult: AsyncSequence {
-    public typealias Element = TextStreamDelta
-    
-    public struct AsyncIterator: AsyncIteratorProtocol {
-        var iterator: AsyncThrowingStream<TextStreamDelta, Error>.AsyncIterator
-        
-        public mutating func next() async throws -> TextStreamDelta? {
-            try await iterator.next()
-        }
-    }
-    
-    public func makeAsyncIterator() -> AsyncIterator {
-        AsyncIterator(iterator: textStream.makeAsyncIterator())
-    }
-}
-
-/// Result from generateObject function
-@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
-public struct GenerateObjectResult<T: Codable & Sendable>: Sendable {
-    public let object: T
-    public let usage: Usage?
-    public let finishReason: FinishReason
-    public let rawText: String
-
-    public init(object: T, usage: Usage?, finishReason: FinishReason, rawText: String) {
-        self.object = object
-        self.usage = usage
-        self.finishReason = finishReason
-        self.rawText = rawText
-    }
-}
 
 /// Result type for streaming object generation with partial updates
 @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
@@ -809,70 +762,5 @@ public struct ObjectStreamDelta<T: Codable & Sendable>: Sendable {
         self.object = object
         self.rawText = rawText
         self.error = error
-    }
-}
-
-/// A single step in multi-step generation
-@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
-public struct GenerationStep: Sendable {
-    public let stepIndex: Int
-    public let text: String
-    public let toolCalls: [AgentToolCall]
-    public let toolResults: [AgentToolResult]
-    public let usage: Usage?
-    public let finishReason: FinishReason?
-
-    public init(
-        stepIndex: Int,
-        text: String,
-        toolCalls: [AgentToolCall],
-        toolResults: [AgentToolResult],
-        usage: Usage?,
-        finishReason: FinishReason?
-    ) {
-        self.stepIndex = stepIndex
-        self.text = text
-        self.toolCalls = toolCalls
-        self.toolResults = toolResults
-        self.usage = usage
-        self.finishReason = finishReason
-    }
-}
-
-/// A delta in streaming text generation
-@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
-public struct TextStreamDelta: Sendable {
-    public let type: DeltaType
-    public let content: String?
-    public let channel: ResponseChannel?
-    public let toolCall: AgentToolCall?
-    public let toolResult: AgentToolResult?
-
-    public enum DeltaType: Sendable, Equatable {
-        case textDelta
-        case channelStart(ResponseChannel)
-        case channelEnd(ResponseChannel)
-        case toolCallStart
-        case toolCallDelta
-        case toolCallEnd
-        case toolResult
-        case stepStart
-        case stepEnd
-        case done
-        case error
-    }
-
-    public init(
-        type: DeltaType,
-        content: String? = nil,
-        channel: ResponseChannel? = nil,
-        toolCall: AgentToolCall? = nil,
-        toolResult: AgentToolResult? = nil
-    ) {
-        self.type = type
-        self.content = content
-        self.channel = channel
-        self.toolCall = toolCall
-        self.toolResult = toolResult
     }
 }

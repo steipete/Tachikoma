@@ -37,7 +37,7 @@ public let calculatorTool = createTool(
     
     // Basic math evaluation - cross-platform implementation
     let result = try evaluateExpression(expression)
-    return AgentToolArgument.string("Result: \(result)")
+    return AnyAgentToolValue(string: "Result: \(result)")
 }
 
 /// Built-in time tool
@@ -51,7 +51,7 @@ public let timeTool = createTool(
     formatter.dateStyle = .full
     formatter.timeStyle = .full
     let timeString = formatter.string(from: Date())
-    return AgentToolArgument.string(timeString)
+    return AnyAgentToolValue(string: timeString)
 }
 
 /// Built-in weather tool (mock implementation)
@@ -69,7 +69,7 @@ public let weatherTool = createTool(
 ) { args in
     let location = try args.stringValue("location")
     // This is a mock implementation - replace with real weather API
-    return AgentToolArgument.string("Weather in \(location): Sunny, 22°C")
+    return AnyAgentToolValue(string: "Weather in \(location): Sunny, 22°C")
 }
 
 // MARK: - Helper Functions
@@ -102,7 +102,7 @@ public func toolParametersToJSON(_ parameters: AgentToolParameters) throws -> [S
 
 /// Convert JSON arguments to AgentToolArguments
 public func jsonToToolArguments(_ json: [String: Any]) -> AgentToolArguments {
-    var arguments: [String: AgentToolArgument] = [:]
+    var arguments: [String: AnyAgentToolValue] = [:]
     
     for (key, value) in json {
         arguments[key] = jsonValueToToolArgument(value)
@@ -111,26 +111,13 @@ public func jsonToToolArguments(_ json: [String: Any]) -> AgentToolArguments {
     return AgentToolArguments(arguments)
 }
 
-/// Convert a JSON value to AgentToolArgument
-public func jsonValueToToolArgument(_ value: Any) -> AgentToolArgument {
-    if let string = value as? String {
-        return AgentToolArgument.string(string)
-    } else if let number = value as? Double {
-        return .double(number)
-    } else if let number = value as? Int {
-        return .int(number)
-    } else if let bool = value as? Bool {
-        return .bool(bool)
-    } else if let array = value as? [Any] {
-        return .array(array.map(jsonValueToToolArgument))
-    } else if let dict = value as? [String: Any] {
-        var objectArgs: [String: AgentToolArgument] = [:]
-        for (key, val) in dict {
-            objectArgs[key] = jsonValueToToolArgument(val)
-        }
-        return .object(objectArgs)
-    } else {
-        return AgentToolArgument.string(String(describing: value))
+/// Convert a JSON value to AnyAgentToolValue
+public func jsonValueToToolArgument(_ value: Any) -> AnyAgentToolValue {
+    do {
+        return try AnyAgentToolValue.fromJSON(value)
+    } catch {
+        // Fallback to string representation if conversion fails
+        return AnyAgentToolValue(string: String(describing: value))
     }
 }
 

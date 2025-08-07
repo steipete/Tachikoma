@@ -53,7 +53,7 @@ struct MinimalModernAPITests {
             parameters: [],
             required: []
         ) { _ in
-            .string("Tool executed")
+            AnyAgentToolValue(string: "Tool executed")
         }
 
         #expect(tool.name == "test_tool")
@@ -63,8 +63,8 @@ struct MinimalModernAPITests {
     @Test("AgentToolArguments parsing")
     func agentToolArgumentsParsing() throws {
         let args = AgentToolArguments([
-            "name": .string("test"),
-            "value": .int(42)
+            "name": AnyAgentToolValue(string: "test"),
+            "value": AnyAgentToolValue(int: 42)
         ])
         
         #expect(try args.stringValue("name") == "test")

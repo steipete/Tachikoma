@@ -26,52 +26,52 @@ public struct AgentToolWrapper: RealtimeExecutableTool {
     
     public func execute(_ arguments: RealtimeToolArguments) async -> String {
         // Convert RealtimeToolArgument to AgentToolArgument (from Types.swift)
-        var convertedArgs: [String: AgentToolArgument] = [:]
+        var convertedArgs: [String: AnyAgentToolValue] = [:]
         
         for (key, value) in arguments {
             switch value {
             case .string(let str):
-                convertedArgs[key] = .string(str)
+                convertedArgs[key] = AnyAgentToolValue(string: str)
             case .number(let num):
-                convertedArgs[key] = .double(num)
+                convertedArgs[key] = AnyAgentToolValue(double: num)
             case .integer(let int):
-                convertedArgs[key] = .int(int)
+                convertedArgs[key] = AnyAgentToolValue(int: int)
             case .boolean(let bool):
-                convertedArgs[key] = .bool(bool)
+                convertedArgs[key] = AnyAgentToolValue(bool: bool)
             case .array(let arr):
                 // Convert array elements
-                let converted = arr.compactMap { element -> AgentToolArgument? in
+                let converted = arr.compactMap { element -> AnyAgentToolValue? in
                     switch element {
-                    case .string(let s): return .string(s)
-                    case .number(let n): return .double(n)
-                    case .integer(let i): return .int(i)
-                    case .boolean(let b): return .bool(b)
+                    case .string(let s): return AnyAgentToolValue(string: s)
+                    case .number(let n): return AnyAgentToolValue(double: n)
+                    case .integer(let i): return AnyAgentToolValue(int: i)
+                    case .boolean(let b): return AnyAgentToolValue(bool: b)
                     default: return nil
                     }
                 }
-                convertedArgs[key] = .array(converted)
+                convertedArgs[key] = AnyAgentToolValue(array: converted)
             case .object(let jsonString):
                 // Parse JSON string to dictionary
                 if let data = jsonString.data(using: .utf8) {
                     do {
                         let json = try JSONSerialization.jsonObject(with: data)
                         if let dict = json as? [String: Any] {
-                            // Convert to nested AgentToolArgument structure
-                            var objectArgs: [String: AgentToolArgument] = [:]
+                            // Convert to nested AnyAgentToolValue structure
+                            var objectArgs: [String: AnyAgentToolValue] = [:]
                             for (k, v) in dict {
                                 objectArgs[k] = convertAnyToToolArgument(v)
                             }
-                            convertedArgs[key] = .object(objectArgs)
+                            convertedArgs[key] = AnyAgentToolValue(object: objectArgs)
                         } else {
                             // If not a dictionary, store as string
-                            convertedArgs[key] = .string(jsonString)
+                            convertedArgs[key] = AnyAgentToolValue(string: jsonString)
                         }
                     } catch {
                         // If parsing fails, store as string
-                        convertedArgs[key] = .string(jsonString)
+                        convertedArgs[key] = AnyAgentToolValue(string: jsonString)
                     }
                 } else {
-                    convertedArgs[key] = .string(jsonString)
+                    convertedArgs[key] = AnyAgentToolValue(string: jsonString)
                 }
             }
         }
@@ -81,16 +81,15 @@ public struct AgentToolWrapper: RealtimeExecutableTool {
             let result = try await tool.execute(AgentToolArguments(convertedArgs))
             
             // Convert result to string
-            switch result {
-            case .string(let text):
+            if let text = result.stringValue {
                 return text
-            case .int(let value):
+            } else if let value = result.intValue {
                 return String(value)
-            case .double(let value):
+            } else if let value = result.doubleValue {
                 return String(value)
-            case .bool(let value):
+            } else if let value = result.boolValue {
                 return String(value)
-            case .object(let dict):
+            } else if let dict = result.objectValue {
                 // Convert object to JSON string
                 var jsonDict: [String: Any] = [:]
                 for (k, v) in dict {
@@ -101,62 +100,35 @@ public struct AgentToolWrapper: RealtimeExecutableTool {
                     return jsonString
                 }
                 return "Object result"
-            case .array(let array):
+            } else if let array = result.arrayValue {
                 return "Array: \(array)"
-            case .null:
+            } else if result.isNull {
                 return "null"
+            } else {
+                return "Unknown result type"
             }
         } catch {
             return "Error executing tool: \(error)"
         }
     }
     
-    // Helper function to convert Any to AgentToolArgument
-    private func convertAnyToToolArgument(_ value: Any) -> AgentToolArgument {
-        if value is NSNull {
-            return .null
-        } else if let bool = value as? Bool {
-            return .bool(bool)
-        } else if let int = value as? Int {
-            return .int(int)
-        } else if let double = value as? Double {
-            return .double(double)
-        } else if let string = value as? String {
-            return .string(string)
-        } else if let array = value as? [Any] {
-            return .array(array.map(convertAnyToToolArgument))
-        } else if let dict = value as? [String: Any] {
-            var objectArgs: [String: AgentToolArgument] = [:]
-            for (k, v) in dict {
-                objectArgs[k] = convertAnyToToolArgument(v)
-            }
-            return .object(objectArgs)
-        } else {
-            return .string(String(describing: value))
+    // Helper function to convert Any to AnyAgentToolValue
+    private func convertAnyToToolArgument(_ value: Any) -> AnyAgentToolValue {
+        do {
+            return try AnyAgentToolValue.fromJSON(value)
+        } catch {
+            // Fallback to string representation if conversion fails
+            return AnyAgentToolValue(string: String(describing: value))
         }
     }
     
-    // Helper function to convert AgentToolArgument to Any
-    private func convertToolArgumentToAny(_ arg: AgentToolArgument) -> Any {
-        switch arg {
-        case .null:
-            return NSNull()
-        case .bool(let value):
-            return value
-        case .int(let value):
-            return value
-        case .double(let value):
-            return value
-        case .string(let value):
-            return value
-        case .array(let array):
-            return array.map(convertToolArgumentToAny)
-        case .object(let dict):
-            var result: [String: Any] = [:]
-            for (k, v) in dict {
-                result[k] = convertToolArgumentToAny(v)
-            }
-            return result
+    // Helper function to convert AnyAgentToolValue to Any
+    private func convertToolArgumentToAny(_ arg: AnyAgentToolValue) -> Any {
+        do {
+            return try arg.toJSON()
+        } catch {
+            // Fallback to string representation if conversion fails
+            return String(describing: arg)
         }
     }
 }

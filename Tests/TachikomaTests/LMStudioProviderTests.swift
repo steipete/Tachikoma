@@ -152,7 +152,7 @@ struct LMStudioProviderTests {
                         ],
                         required: ["expression"]
                     ),
-                    execute: { _ in .string("42") }
+                    execute: { _ in AnyAgentToolValue(string: "42") }
                 )
             ],
             settings: GenerationSettings(

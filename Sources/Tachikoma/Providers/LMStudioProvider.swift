@@ -171,9 +171,7 @@ public actor LMStudioProvider: ModelProvider, Sendable {
                                 let channels = LocalModelResponseParser.parseChanneledResponse(content)
                                 
                                 for (channel, text) in channels {
-                                    continuation.yield(.init(type: .channelStart(channel), content: nil))
-                                    continuation.yield(.init(type: .textDelta, content: text))
-                                    continuation.yield(.init(type: .channelEnd(channel), content: nil))
+                                    continuation.yield(TextStreamDelta.text(text, channel: channel))
                                 }
                             }
                             
@@ -181,7 +179,7 @@ public actor LMStudioProvider: ModelProvider, Sendable {
                             if let toolCalls = delta.tool_calls {
                                 for toolCall in toolCalls {
                                     if let name = toolCall.function?.name {
-                                        continuation.yield(.init(type: .textDelta, content: "[Calling tool: \(name)]"))
+                                        continuation.yield(TextStreamDelta.text("[Calling tool: \(name)]"))
                                     }
                                 }
                             }
@@ -361,37 +359,17 @@ public actor LMStudioProvider: ModelProvider, Sendable {
         }
     }
     
-    private func parseToolArguments(_ json: String?) throws -> [String: AgentToolArgument] {
+    private func parseToolArguments(_ json: String?) throws -> [String: AnyAgentToolValue] {
         guard let json = json,
               let data = json.data(using: .utf8) else {
             return [:]
         }
         
         let dict = try JSONSerialization.jsonObject(with: data) as? [String: Any] ?? [:]
-        var args: [String: AgentToolArgument] = [:]
+        var args: [String: AnyAgentToolValue] = [:]
         
         for (key, value) in dict {
-            if let string = value as? String {
-                args[key] = .string(string)
-            } else if let number = value as? Double {
-                args[key] = .double(number)
-            } else if let bool = value as? Bool {
-                args[key] = .bool(bool)
-            } else if let array = value as? [Any] {
-                args[key] = .array(array.compactMap { item in
-                    if let str = item as? String { return .string(str) }
-                    if let num = item as? Double { return .double(num) }
-                    if let bool = item as? Bool { return .bool(bool) }
-                    return nil
-                })
-            } else if let object = value as? [String: Any] {
-                args[key] = .object(object.compactMapValues { item in
-                    if let str = item as? String { return .string(str) }
-                    if let num = item as? Double { return .double(num) }
-                    if let bool = item as? Bool { return .bool(bool) }
-                    return nil
-                })
-            }
+            args[key] = try AnyAgentToolValue.fromJSON(value)
         }
         
         return args

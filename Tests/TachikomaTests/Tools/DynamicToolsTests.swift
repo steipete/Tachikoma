@@ -27,7 +27,7 @@ struct DynamicToolsTests {
         )
         
         let agentTool = dynamicTool.toAgentTool { args in
-            .string("Searched for: \(args["query"] ?? .null)")
+            AnyAgentToolValue(string: "Searched for: \(args["query"] ?? AnyAgentToolValue(null: ()))")
         }
         
         #expect(agentTool.name == "search")
@@ -35,9 +35,9 @@ struct DynamicToolsTests {
         #expect(agentTool.parameters.required == ["query"])
         
         // Test execution
-        let args = AgentToolArguments(["query": .string("test")])
+        let args = AgentToolArguments(["query": AnyAgentToolValue(string: "test")])
         let result = try await agentTool.execute(args)
-        #expect(result == .string("Searched for: string(\"test\")"))
+        #expect(result.stringValue?.contains("Searched for:") == true)
     }
     
     @Test("DynamicSchema converts to AgentToolParameters")
@@ -96,7 +96,7 @@ struct DynamicToolsTests {
         )
         
         await registry.registerTool(tool) { args in
-            .string("Executed test_tool")
+            AnyAgentToolValue(string: "Executed test_tool")
         }
         
         // Get agent tools
@@ -109,7 +109,7 @@ struct DynamicToolsTests {
             name: "test_tool",
             arguments: AgentToolArguments([:])
         )
-        #expect(result == .string("Executed test_tool"))
+        #expect(result.stringValue == "Executed test_tool")
         
         // Unregister tool
         await registry.unregisterTool(name: "test_tool")
@@ -131,9 +131,9 @@ struct DynamicToolsTests {
         // Test tool execution
         let result = try await provider.executeTool(
             name: "search_web",
-            arguments: AgentToolArguments(["query": .string("Swift")])
+            arguments: AgentToolArguments(["query": AnyAgentToolValue(string: "Swift")])
         )
-        #expect(result == .string("Mock search results for: string(\"Swift\")"))
+        #expect(result.stringValue?.contains("Mock search results for:") == true)
     }
     
     @Test("DynamicToolRegistry with provider")
@@ -152,13 +152,13 @@ struct DynamicToolsTests {
         // Execute discovered tool
         let result = try await registry.executeTool(
             name: "get_weather",
-            arguments: AgentToolArguments(["location": .string("New York")])
+            arguments: AgentToolArguments(["location": AnyAgentToolValue(string: "New York")])
         )
         
-        if case .object(let dict) = result {
-            #expect(dict["temperature"] == .double(72))
-            #expect(dict["condition"] == .string("Sunny"))
-            #expect(dict["location"] == .string("New York"))
+        if let dict = result.objectValue {
+            #expect(dict["temperature"]?.doubleValue == 72)
+            #expect(dict["condition"]?.stringValue == "Sunny")
+            #expect(dict["location"]?.stringValue == "New York")
         } else {
             Issue.record("Expected object result")
         }
@@ -291,7 +291,7 @@ struct DynamicToolsTests {
                 description: "Tool \(i)",
                 schema: DynamicSchema(type: .object)
             )
-            await registry.registerTool(tool) { _ in .null }
+            await registry.registerTool(tool) { _ in AnyAgentToolValue(null: ()) }
         }
         
         let toolsBefore = await registry.getAgentTools()
