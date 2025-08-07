@@ -175,32 +175,4 @@ private struct GoogleGenerateRequest: Encodable {
     }
 }
 
-// Helper to encode Any values
-private struct AnyEncodable: Encodable {
-    let value: Any
-    
-    init(_ value: Any) {
-        self.value = value
-    }
-    
-    func encode(to encoder: Encoder) throws {
-        var container = encoder.singleValueContainer()
-        
-        if let intValue = value as? Int {
-            try container.encode(intValue)
-        } else if let doubleValue = value as? Double {
-            try container.encode(doubleValue)
-        } else if let boolValue = value as? Bool {
-            try container.encode(boolValue)
-        } else if let stringValue = value as? String {
-            try container.encode(stringValue)
-        } else if let arrayValue = value as? [Any] {
-            try container.encode(arrayValue.map { AnyEncodable($0) })
-        } else if let dictValue = value as? [String: Any] {
-            try container.encode(dictValue.mapValues { AnyEncodable($0) })
-        } else {
-            try container.encodeNil()
-        }
-    }
-}
 

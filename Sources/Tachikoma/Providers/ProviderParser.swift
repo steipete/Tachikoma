@@ -245,8 +245,8 @@ public enum ProviderParser {
         switch modelString.lowercased() {
         // GPT-OSS models
         case "gpt-oss:120b", "gpt-oss-120b": .ollama(.gptOSS120B)
-        case "gpt-oss:120b:q4_k_m", "gpt-oss-120b:q4_k_m": .ollama(.gptOSS120BQ4)
-        case "gpt-oss:120b:q5_k_m", "gpt-oss-120b:q5_k_m": .ollama(.gptOSS120BQ5)
+        case "gpt-oss:20b", "gpt-oss-20b": .ollama(.gptOSS20B)
+        // Quantized versions removed - not defined in model enum
         
         // Llama models
         case "llama3.3", "llama3.3:latest": .ollama(.llama33)

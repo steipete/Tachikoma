@@ -9,7 +9,13 @@ public struct ProviderFactory {
     public static func createProvider(for model: LanguageModel, configuration: TachikomaConfiguration) throws -> any ModelProvider {
         switch model {
         case let .openai(openaiModel):
-            return try OpenAIProvider(model: openaiModel, configuration: configuration)
+            // Use Responses API for GPT-5 and reasoning models (o3, o4)
+            switch openaiModel {
+            case .gpt5, .gpt5Mini, .gpt5Nano, .o3, .o3Mini, .o3Pro, .o4Mini:
+                return try OpenAIResponsesProvider(model: openaiModel, configuration: configuration)
+            default:
+                return try OpenAIProvider(model: openaiModel, configuration: configuration)
+            }
 
         case let .anthropic(anthropicModel):
             return try AnthropicProvider(model: anthropicModel, configuration: configuration)
