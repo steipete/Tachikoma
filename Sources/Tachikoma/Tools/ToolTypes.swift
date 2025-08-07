@@ -170,24 +170,43 @@ public struct AgentToolParameters: Sendable, Codable {
     }
 }
 
+/// Items definition for array parameters
+public struct AgentToolParameterItems: Sendable, Codable {
+    public let type: AgentToolParameterProperty.ParameterType
+    public let enumValues: [String]?
+    
+    public init(type: AgentToolParameterProperty.ParameterType, enumValues: [String]? = nil) {
+        self.type = type
+        self.enumValues = enumValues
+    }
+    
+    private enum CodingKeys: String, CodingKey {
+        case type
+        case enumValues = "enum"
+    }
+}
+
 /// Individual parameter property for a tool
 public struct AgentToolParameterProperty: Sendable, Codable {
     public let name: String
     public let type: ParameterType
     public let description: String
     public let enumValues: [String]?
+    public let items: AgentToolParameterItems?
 
     public init(
         name: String,
         type: ParameterType,
         description: String,
         enumValues: [String]? = nil,
+        items: AgentToolParameterItems? = nil,
         required: Bool = false
     ) {
         self.name = name
         self.type = type
         self.description = description
         self.enumValues = enumValues
+        self.items = items
     }
 
     public enum ParameterType: String, Sendable, Codable {
@@ -203,6 +222,29 @@ public struct AgentToolParameterProperty: Sendable, Codable {
     private enum CodingKeys: String, CodingKey {
         case name, type, description
         case enumValues = "enum"
+        case items
+    }
+    
+    // Custom encoding to ensure items is always included for array types
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(name, forKey: .name)
+        try container.encode(type, forKey: .type)
+        try container.encode(description, forKey: .description)
+        try container.encodeIfPresent(enumValues, forKey: .enumValues)
+        
+        // Always encode items for array types, even if nil (use default string items)
+        if type == .array {
+            if let items = items {
+                try container.encode(items, forKey: .items)
+            } else {
+                // Default to string items if not specified
+                let defaultItems = AgentToolParameterItems(type: .string)
+                try container.encode(defaultItems, forKey: .items)
+            }
+        } else {
+            try container.encodeIfPresent(items, forKey: .items)
+        }
     }
 }
 
