@@ -293,6 +293,175 @@ public func generateObject<T: Codable & Sendable>(
     }
 }
 
+/// Stream structured objects using AI following the streamObject pattern
+///
+/// This function streams partial object updates as the AI generates structured data,
+/// allowing for real-time UI updates and progressive rendering.
+///
+/// - Parameters:
+///   - model: The language model to use
+///   - messages: Array of conversation messages
+///   - schema: The expected output schema (Codable type)
+///   - settings: Generation settings
+///   - configuration: Tachikoma configuration
+/// - Returns: StreamObjectResult with partial object stream
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
+public func streamObject<T: Codable & Sendable>(
+    model: LanguageModel,
+    messages: [ModelMessage],
+    schema: T.Type,
+    settings: GenerationSettings = .default,
+    configuration: TachikomaConfiguration = .current
+) async throws
+-> StreamObjectResult<T> {
+    let provider = try ProviderFactory.createProvider(for: model, configuration: configuration)
+    
+    // Create request with JSON output format
+    let request = ProviderRequest(
+        messages: messages,
+        tools: nil,
+        settings: settings,
+        outputFormat: .json
+    )
+    
+    // Get the text stream from the provider
+    let stream = try await provider.streamText(request: request)
+    
+    // Create a new stream that attempts to parse partial JSON objects
+    let objectStream = AsyncThrowingStream<ObjectStreamDelta<T>, Error> { continuation in
+        Task {
+            do {
+                var accumulatedText = ""
+                var lastValidObject: T?
+                var hasStarted = false
+                
+                for try await delta in stream {
+                    if case .textDelta = delta.type, let content = delta.content {
+                        accumulatedText += content
+                        
+                        // Signal stream start
+                        if !hasStarted {
+                            hasStarted = true
+                            continuation.yield(ObjectStreamDelta(type: .start))
+                        }
+                        
+                        // Attempt to parse the accumulated JSON
+                        if let jsonData = accumulatedText.data(using: .utf8) {
+                            // Try to parse as complete object
+                            if let object = try? JSONDecoder().decode(T.self, from: jsonData) {
+                                lastValidObject = object
+                                continuation.yield(ObjectStreamDelta(
+                                    type: .partial,
+                                    object: object,
+                                    rawText: accumulatedText
+                                ))
+                            } else if let partialObject = attemptPartialParse(T.self, from: accumulatedText) {
+                                // Attempt to parse as partial object
+                                lastValidObject = partialObject
+                                continuation.yield(ObjectStreamDelta(
+                                    type: .partial,
+                                    object: partialObject,
+                                    rawText: accumulatedText
+                                ))
+                            }
+                        }
+                    } else if case .done = delta.type {
+                        // Final parse attempt
+                        if let jsonData = accumulatedText.data(using: .utf8),
+                           let finalObject = try? JSONDecoder().decode(T.self, from: jsonData) {
+                            continuation.yield(ObjectStreamDelta(
+                                type: .complete,
+                                object: finalObject,
+                                rawText: accumulatedText
+                            ))
+                        } else if let lastValidObject {
+                            // If we have a last valid object, use it as complete
+                            continuation.yield(ObjectStreamDelta(
+                                type: .complete,
+                                object: lastValidObject,
+                                rawText: accumulatedText
+                            ))
+                        } else {
+                            throw TachikomaError.invalidInput(
+                                "Failed to parse complete object from stream"
+                            )
+                        }
+                        continuation.yield(ObjectStreamDelta(type: .done))
+                    }
+                }
+                
+                continuation.finish()
+            } catch {
+                continuation.finish(throwing: error)
+            }
+        }
+    }
+    
+    return StreamObjectResult(
+        objectStream: objectStream,
+        model: model,
+        settings: settings,
+        schema: schema
+    )
+}
+
+/// Attempt to parse a partial JSON object by fixing common issues
+private func attemptPartialParse<T: Codable>(_ type: T.Type, from json: String) -> T? {
+    // Try various strategies to parse partial JSON
+    let strategies = [
+        json,                                    // Original
+        json + "}",                             // Missing closing brace
+        json + "\"}",                           // Missing quote and brace
+        json + "]",                             // Missing closing bracket
+        json + "]}",                            // Missing bracket and brace
+        fixPartialJSON(json)                    // Custom fix attempt
+    ]
+    
+    for strategy in strategies {
+        if let data = strategy.data(using: .utf8),
+           let object = try? JSONDecoder().decode(T.self, from: data) {
+            return object
+        }
+    }
+    
+    return nil
+}
+
+/// Fix common issues in partial JSON
+private func fixPartialJSON(_ json: String) -> String {
+    var fixed = json.trimmingCharacters(in: .whitespacesAndNewlines)
+    
+    // Count brackets and braces
+    let openBraces = fixed.filter { $0 == "{" }.count
+    let closeBraces = fixed.filter { $0 == "}" }.count
+    let openBrackets = fixed.filter { $0 == "[" }.count
+    let closeBrackets = fixed.filter { $0 == "]" }.count
+    
+    // Add missing closing characters
+    if openBrackets > closeBrackets {
+        fixed += String(repeating: "]", count: openBrackets - closeBrackets)
+    }
+    if openBraces > closeBraces {
+        fixed += String(repeating: "}", count: openBraces - closeBraces)
+    }
+    
+    // Fix trailing comma
+    if fixed.hasSuffix(",") {
+        fixed.removeLast()
+    }
+    
+    // Ensure quotes are balanced for the last property
+    if let lastQuoteIndex = fixed.lastIndex(of: "\"") {
+        let afterQuote = String(fixed[fixed.index(after: lastQuoteIndex)...])
+        if afterQuote.contains(":") && !afterQuote.contains("\"") {
+            // Likely missing closing quote for string value
+            fixed += "\""
+        }
+    }
+    
+    return fixed
+}
+
 // MARK: - Convenience Functions
 
 /// Simple text generation from a prompt (convenience wrapper) - with Model enum
@@ -506,6 +675,23 @@ public struct StreamTextResult: Sendable {
     }
 }
 
+// MARK: - AsyncSequence Conformance
+extension StreamTextResult: AsyncSequence {
+    public typealias Element = TextStreamDelta
+    
+    public struct AsyncIterator: AsyncIteratorProtocol {
+        var iterator: AsyncThrowingStream<TextStreamDelta, Error>.AsyncIterator
+        
+        public mutating func next() async throws -> TextStreamDelta? {
+            try await iterator.next()
+        }
+    }
+    
+    public func makeAsyncIterator() -> AsyncIterator {
+        AsyncIterator(iterator: textStream.makeAsyncIterator())
+    }
+}
+
 /// Result from generateObject function
 @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public struct GenerateObjectResult<T: Codable & Sendable>: Sendable {
@@ -519,6 +705,73 @@ public struct GenerateObjectResult<T: Codable & Sendable>: Sendable {
         self.usage = usage
         self.finishReason = finishReason
         self.rawText = rawText
+    }
+}
+
+/// Result type for streaming object generation with partial updates
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
+public struct StreamObjectResult<T: Codable & Sendable>: Sendable {
+    public let objectStream: AsyncThrowingStream<ObjectStreamDelta<T>, Error>
+    public let model: LanguageModel
+    public let settings: GenerationSettings
+    public let schema: T.Type
+    
+    public init(
+        objectStream: AsyncThrowingStream<ObjectStreamDelta<T>, Error>,
+        model: LanguageModel,
+        settings: GenerationSettings,
+        schema: T.Type
+    ) {
+        self.objectStream = objectStream
+        self.model = model
+        self.settings = settings
+        self.schema = schema
+    }
+}
+
+// MARK: - AsyncSequence Conformance for StreamObjectResult
+extension StreamObjectResult: AsyncSequence {
+    public typealias Element = ObjectStreamDelta<T>
+    
+    public struct AsyncIterator: AsyncIteratorProtocol {
+        var iterator: AsyncThrowingStream<ObjectStreamDelta<T>, Error>.AsyncIterator
+        
+        public mutating func next() async throws -> ObjectStreamDelta<T>? {
+            try await iterator.next()
+        }
+    }
+    
+    public func makeAsyncIterator() -> AsyncIterator {
+        AsyncIterator(iterator: objectStream.makeAsyncIterator())
+    }
+}
+
+/// A delta in streaming object generation
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
+public struct ObjectStreamDelta<T: Codable & Sendable>: Sendable {
+    public let type: DeltaType
+    public let object: T?
+    public let rawText: String?
+    public let error: Error?
+    
+    public enum DeltaType: Sendable, Equatable {
+        case start          // Stream has started
+        case partial        // Partial object update
+        case complete       // Complete object received
+        case done          // Stream has finished
+        case error         // An error occurred
+    }
+    
+    public init(
+        type: DeltaType,
+        object: T? = nil,
+        rawText: String? = nil,
+        error: Error? = nil
+    ) {
+        self.type = type
+        self.object = object
+        self.rawText = rawText
+        self.error = error
     }
 }
 

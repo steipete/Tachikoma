@@ -38,7 +38,7 @@ struct ToolSystemTests {
     }
     
     @Test("Tool Execution")
-    async func toolExecution() async throws {
+    func toolExecution() async throws {
         // Create calculator tool
         let calculatorTool = createTool(
             name: "calculate",

@@ -9,10 +9,7 @@ public enum TranscriptionModel: Sendable, CustomStringConvertible {
     case openai(OpenAI)
     case groq(Groq)
     case deepgram(Deepgram)
-    case assemblyai(AssemblyAI)
     case elevenlabs(ElevenLabs)
-    case revai(RevAI)
-    case azure(Azure)
 
     // MARK: - Provider Sub-Enums
 
@@ -56,50 +53,12 @@ public enum TranscriptionModel: Sendable, CustomStringConvertible {
         public var supportsSummarization: Bool { true }
     }
 
-    public enum AssemblyAI: String, CaseIterable, Sendable {
-        case best
-        case nano
-
-        public var supportsTimestamps: Bool { true }
-        public var supportsLanguageDetection: Bool { true }
-        public var supportsSpeakerDiarization: Bool { true }
-    }
-
     public enum ElevenLabs: String, CaseIterable, Sendable {
         case scribeV1 = "scribe_v1"
         case scribeV1Experimental = "scribe_v1_experimental"
 
         public var supportsTimestamps: Bool { false }
         public var supportsLanguageDetection: Bool { true }
-    }
-
-    public enum RevAI: String, CaseIterable, Sendable {
-        case machine
-        case lowCost = "low_cost"
-        case fusion
-
-        public var supportsTimestamps: Bool { true }
-        public var supportsLanguageDetection: Bool { true }
-    }
-
-    public enum Azure: String, CaseIterable, Sendable {
-        case whisper1 = "whisper-1"
-        case gpt4oTranscribe = "gpt-4o-transcribe"
-        case gpt4oMiniTranscribe = "gpt-4o-mini-transcribe"
-
-        public var supportsTimestamps: Bool {
-            switch self {
-            case .whisper1: true
-            case .gpt4oTranscribe, .gpt4oMiniTranscribe: false
-            }
-        }
-
-        public var supportsLanguageDetection: Bool {
-            switch self {
-            case .whisper1: true
-            case .gpt4oTranscribe, .gpt4oMiniTranscribe: true
-            }
-        }
     }
 
     // MARK: - Model Properties
@@ -112,14 +71,8 @@ public enum TranscriptionModel: Sendable, CustomStringConvertible {
             "Groq/\(model.rawValue)"
         case let .deepgram(model):
             "Deepgram/\(model.rawValue)"
-        case let .assemblyai(model):
-            "AssemblyAI/\(model.rawValue)"
         case let .elevenlabs(model):
             "ElevenLabs/\(model.rawValue)"
-        case let .revai(model):
-            "RevAI/\(model.rawValue)"
-        case let .azure(model):
-            "Azure/\(model.rawValue)"
         }
     }
 
@@ -131,13 +84,7 @@ public enum TranscriptionModel: Sendable, CustomStringConvertible {
             model.rawValue
         case let .deepgram(model):
             model.rawValue
-        case let .assemblyai(model):
-            model.rawValue
         case let .elevenlabs(model):
-            model.rawValue
-        case let .revai(model):
-            model.rawValue
-        case let .azure(model):
             model.rawValue
         }
     }
@@ -147,10 +94,7 @@ public enum TranscriptionModel: Sendable, CustomStringConvertible {
         case .openai: "OpenAI"
         case .groq: "Groq"
         case .deepgram: "Deepgram"
-        case .assemblyai: "AssemblyAI"
         case .elevenlabs: "ElevenLabs"
-        case .revai: "RevAI"
-        case .azure: "Azure"
         }
     }
 
@@ -159,10 +103,7 @@ public enum TranscriptionModel: Sendable, CustomStringConvertible {
         case let .openai(model): model.supportsTimestamps
         case let .groq(model): model.supportsTimestamps
         case let .deepgram(model): model.supportsTimestamps
-        case let .assemblyai(model): model.supportsTimestamps
         case let .elevenlabs(model): model.supportsTimestamps
-        case let .revai(model): model.supportsTimestamps
-        case let .azure(model): model.supportsTimestamps
         }
     }
 
@@ -171,10 +112,7 @@ public enum TranscriptionModel: Sendable, CustomStringConvertible {
         case let .openai(model): model.supportsLanguageDetection
         case let .groq(model): model.supportsLanguageDetection
         case let .deepgram(model): model.supportsLanguageDetection
-        case let .assemblyai(model): model.supportsLanguageDetection
         case let .elevenlabs(model): model.supportsLanguageDetection
-        case let .revai(model): model.supportsLanguageDetection
-        case let .azure(model): model.supportsLanguageDetection
         }
     }
 
@@ -191,8 +129,6 @@ public enum TranscriptionModel: Sendable, CustomStringConvertible {
 public enum SpeechModel: Sendable, CustomStringConvertible {
     // Provider-specific speech models
     case openai(OpenAI)
-    case lmnt(LMNT)
-    case hume(Hume)
     case elevenlabs(ElevenLabs)
 
     // MARK: - Provider Sub-Enums
@@ -218,21 +154,6 @@ public enum SpeechModel: Sendable, CustomStringConvertible {
         }
     }
 
-    public enum LMNT: String, CaseIterable, Sendable {
-        case aurora
-        case blizzard
-
-        public var supportsLanguages: Bool { true }
-        public var supportedFormats: [AudioFormat] { [.wav, .mp3] }
-    }
-
-    public enum Hume: String, CaseIterable, Sendable {
-        case `default`
-
-        public var supportsEmotionalControl: Bool { true }
-        public var supportedFormats: [AudioFormat] { [.wav] }
-    }
-
     public enum ElevenLabs: String, CaseIterable, Sendable {
         case multilingualV1 = "eleven_multilingual_v1"
         case multilingualV2 = "eleven_multilingual_v2"
@@ -248,10 +169,6 @@ public enum SpeechModel: Sendable, CustomStringConvertible {
         switch self {
         case let .openai(model):
             "OpenAI/\(model.rawValue)"
-        case let .lmnt(model):
-            "LMNT/\(model.rawValue)"
-        case let .hume(model):
-            "Hume/\(model.rawValue)"
         case let .elevenlabs(model):
             "ElevenLabs/\(model.rawValue)"
         }
@@ -261,10 +178,6 @@ public enum SpeechModel: Sendable, CustomStringConvertible {
         switch self {
         case let .openai(model):
             model.rawValue
-        case let .lmnt(model):
-            model.rawValue
-        case let .hume(model):
-            model.rawValue
         case let .elevenlabs(model):
             model.rawValue
         }
@@ -273,8 +186,6 @@ public enum SpeechModel: Sendable, CustomStringConvertible {
     public var providerName: String {
         switch self {
         case .openai: "OpenAI"
-        case .lmnt: "LMNT"
-        case .hume: "Hume"
         case .elevenlabs: "ElevenLabs"
         }
     }
@@ -282,8 +193,6 @@ public enum SpeechModel: Sendable, CustomStringConvertible {
     public var supportedFormats: [AudioFormat] {
         switch self {
         case let .openai(model): model.supportedFormats
-        case let .lmnt(model): model.supportedFormats
-        case let .hume(model): model.supportedFormats
         case let .elevenlabs(model): model.supportedFormats
         }
     }

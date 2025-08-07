@@ -308,24 +308,9 @@ public func availableTranscriptionModels() -> [TranscriptionModel] {
         models.append(.deepgram(deepgramModel))
     }
 
-    // AssemblyAI models
-    for assemblyaiModel in TranscriptionModel.AssemblyAI.allCases {
-        models.append(.assemblyai(assemblyaiModel))
-    }
-
     // ElevenLabs models
     for elevenlabsModel in TranscriptionModel.ElevenLabs.allCases {
         models.append(.elevenlabs(elevenlabsModel))
-    }
-
-    // RevAI models
-    for revaiModel in TranscriptionModel.RevAI.allCases {
-        models.append(.revai(revaiModel))
-    }
-
-    // Azure models
-    for azureModel in TranscriptionModel.Azure.allCases {
-        models.append(.azure(azureModel))
     }
 
     return models
@@ -339,16 +324,6 @@ public func availableSpeechModels() -> [SpeechModel] {
     // OpenAI models
     for openaiModel in SpeechModel.OpenAI.allCases {
         models.append(.openai(openaiModel))
-    }
-
-    // LMNT models
-    for lmntModel in SpeechModel.LMNT.allCases {
-        models.append(.lmnt(lmntModel))
-    }
-
-    // Hume models
-    for humeModel in SpeechModel.Hume.allCases {
-        models.append(.hume(humeModel))
     }
 
     // ElevenLabs models

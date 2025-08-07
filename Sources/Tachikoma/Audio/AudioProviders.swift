@@ -118,14 +118,8 @@ public struct TranscriptionProviderFactory {
             return try GroqTranscriptionProvider(model: groqModel, configuration: configuration)
         case let .deepgram(deepgramModel):
             return try DeepgramTranscriptionProvider(model: deepgramModel, configuration: configuration)
-        case let .assemblyai(assemblyaiModel):
-            return try AssemblyAITranscriptionProvider(model: assemblyaiModel, configuration: configuration)
         case let .elevenlabs(elevenlabsModel):
             return try ElevenLabsTranscriptionProvider(model: elevenlabsModel, configuration: configuration)
-        case let .revai(revaiModel):
-            return try RevAITranscriptionProvider(model: revaiModel, configuration: configuration)
-        case let .azure(azureModel):
-            return try AzureTranscriptionProvider(model: azureModel, configuration: configuration)
         }
     }
 }
@@ -151,10 +145,6 @@ public struct SpeechProviderFactory {
         switch model {
         case let .openai(openaiModel):
             return try OpenAISpeechProvider(model: openaiModel, configuration: configuration)
-        case let .lmnt(lmntModel):
-            return try LMNTSpeechProvider(model: lmntModel, configuration: configuration)
-        case let .hume(humeModel):
-            return try HumeSpeechProvider(model: humeModel, configuration: configuration)
         case let .elevenlabs(elevenlabsModel):
             return try ElevenLabsSpeechProvider(model: elevenlabsModel, configuration: configuration)
         }
@@ -197,18 +187,8 @@ public struct AudioConfiguration {
             return ["GROQ_API_KEY"]
         case "deepgram":
             return ["DEEPGRAM_API_KEY", "DEEPGRAM_TOKEN"]
-        case "assemblyai":
-            return ["ASSEMBLYAI_API_KEY", "ASSEMBLY_AI_API_KEY"]
         case "elevenlabs":
             return ["ELEVENLABS_API_KEY", "ELEVEN_LABS_API_KEY"]
-        case "revai":
-            return ["REVAI_API_KEY", "REV_AI_API_KEY"]
-        case "azure":
-            return ["AZURE_OPENAI_API_KEY", "AZURE_API_KEY"]
-        case "lmnt":
-            return ["LMNT_API_KEY"]
-        case "hume":
-            return ["HUME_API_KEY"]
         default:
             return ["\(upperProvider)_API_KEY", "\(upperProvider)_TOKEN"]
         }
@@ -298,7 +278,99 @@ public final class GroqTranscriptionProvider: TranscriptionProvider {
     }
 
     public func transcribe(request: TranscriptionRequest) async throws -> TranscriptionResult {
-        throw TachikomaError.unsupportedOperation("Groq transcription not yet implemented")
+        // Groq uses OpenAI-compatible Whisper API
+        guard let apiKey = AudioConfiguration.getAPIKey(for: "groq", configuration: TachikomaConfiguration()) else {
+            throw TachikomaError.authenticationFailed("Groq API key not configured")
+        }
+        
+        let url = URL(string: "https://api.groq.com/openai/v1/audio/transcriptions")!
+        
+        var urlRequest = URLRequest(url: url)
+        urlRequest.httpMethod = "POST"
+        urlRequest.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+        
+        // Create multipart form data
+        let boundary = UUID().uuidString
+        urlRequest.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
+        
+        var formData = Data()
+        
+        // Add audio file
+        formData.append("--\(boundary)\r\n".data(using: .utf8)!)
+        formData.append("Content-Disposition: form-data; name=\"file\"; filename=\"audio.\(request.audio.format.rawValue)\"\r\n".data(using: .utf8)!)
+        formData.append("Content-Type: \(request.audio.format.mimeType)\r\n\r\n".data(using: .utf8)!)
+        formData.append(request.audio.data)
+        formData.append("\r\n".data(using: .utf8)!)
+        
+        // Add model
+        formData.append("--\(boundary)\r\n".data(using: .utf8)!)
+        formData.append("Content-Disposition: form-data; name=\"model\"\r\n\r\n".data(using: .utf8)!)
+        formData.append("\(modelId)\r\n".data(using: .utf8)!)
+        
+        // Add optional parameters
+        if let language = request.language {
+            formData.append("--\(boundary)\r\n".data(using: .utf8)!)
+            formData.append("Content-Disposition: form-data; name=\"language\"\r\n\r\n".data(using: .utf8)!)
+            formData.append("\(language)\r\n".data(using: .utf8)!)
+        }
+        
+        if let prompt = request.prompt {
+            formData.append("--\(boundary)\r\n".data(using: .utf8)!)
+            formData.append("Content-Disposition: form-data; name=\"prompt\"\r\n\r\n".data(using: .utf8)!)
+            formData.append("\(prompt)\r\n".data(using: .utf8)!)
+        }
+        
+        if !request.timestampGranularities.isEmpty {
+            for granularity in request.timestampGranularities {
+                formData.append("--\(boundary)\r\n".data(using: .utf8)!)
+                formData.append("Content-Disposition: form-data; name=\"timestamp_granularities[]\"\r\n\r\n".data(using: .utf8)!)
+                formData.append("\(granularity.rawValue)\r\n".data(using: .utf8)!)
+            }
+        }
+        
+        // Close boundary
+        formData.append("--\(boundary)--\r\n".data(using: .utf8)!)
+        
+        urlRequest.httpBody = formData
+        
+        let (data, response) = try await URLSession.shared.data(for: urlRequest)
+        
+        guard let httpResponse = response as? HTTPURLResponse,
+              (200...299).contains(httpResponse.statusCode) else {
+            let errorMessage = String(data: data, encoding: .utf8) ?? "Unknown error"
+            throw TachikomaError.apiError("Groq API error: \(errorMessage)")
+        }
+        
+        // Parse response
+        struct GroqResponse: Codable {
+            let text: String
+            let language: String?
+            let duration: Double?
+            let segments: [Segment]?
+            
+            struct Segment: Codable {
+                let id: Int
+                let start: Double
+                let end: Double
+                let text: String
+            }
+        }
+        
+        let groqResponse = try JSONDecoder().decode(GroqResponse.self, from: data)
+        
+        return TranscriptionResult(
+            text: groqResponse.text,
+            language: groqResponse.language,
+            duration: groqResponse.duration,
+            segments: groqResponse.segments?.map { segment in
+                TranscriptionSegment(
+                    text: segment.text,
+                    start: segment.start,
+                    end: segment.end,
+                    confidence: nil
+                )
+            }
+        )
     }
 }
 
@@ -317,28 +389,115 @@ public final class DeepgramTranscriptionProvider: TranscriptionProvider {
     }
 
     public func transcribe(request: TranscriptionRequest) async throws -> TranscriptionResult {
-        throw TachikomaError.unsupportedOperation("Deepgram transcription not yet implemented")
-    }
-}
-
-@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
-public final class AssemblyAITranscriptionProvider: TranscriptionProvider {
-    public let modelId: String
-    public let capabilities: TranscriptionCapabilities
-
-    public init(model: TranscriptionModel.AssemblyAI, configuration: TachikomaConfiguration) throws {
-        self.modelId = model.rawValue
-        self.capabilities = TranscriptionCapabilities(
-            supportsTimestamps: model.supportsTimestamps,
-            supportsLanguageDetection: model.supportsLanguageDetection,
-            supportsSpeakerDiarization: model.supportsSpeakerDiarization
+        guard let apiKey = AudioConfiguration.getAPIKey(for: "deepgram", configuration: TachikomaConfiguration()) else {
+            throw TachikomaError.authenticationFailed("Deepgram API key not configured")
+        }
+        
+        var urlComponents = URLComponents(string: "https://api.deepgram.com/v1/listen")!
+        urlComponents.queryItems = [
+            URLQueryItem(name: "model", value: modelId),
+            URLQueryItem(name: "punctuate", value: "true"),
+            URLQueryItem(name: "utterances", value: "true"),
+            URLQueryItem(name: "smart_format", value: "true")
+        ]
+        
+        if !request.timestampGranularities.isEmpty {
+            urlComponents.queryItems?.append(URLQueryItem(name: "timestamps", value: "true"))
+        }
+        
+        if let language = request.language {
+            urlComponents.queryItems?.append(URLQueryItem(name: "language", value: language))
+        }
+        
+        // Note: speakerDiarization and summarize are not available in current request model
+        // These would need to be added to TranscriptionRequest if needed
+        
+        guard let url = urlComponents.url else {
+            throw TachikomaError.invalidInput("Failed to construct Deepgram API URL")
+        }
+        
+        var urlRequest = URLRequest(url: url)
+        urlRequest.httpMethod = "POST"
+        urlRequest.setValue("Token \(apiKey)", forHTTPHeaderField: "Authorization")
+        urlRequest.setValue(request.audio.format.mimeType, forHTTPHeaderField: "Content-Type")
+        urlRequest.httpBody = request.audio.data
+        
+        let (data, response) = try await URLSession.shared.data(for: urlRequest)
+        
+        guard let httpResponse = response as? HTTPURLResponse,
+              (200...299).contains(httpResponse.statusCode) else {
+            let errorMessage = String(data: data, encoding: .utf8) ?? "Unknown error"
+            throw TachikomaError.apiError("Deepgram API error: \(errorMessage)")
+        }
+        
+        // Parse response
+        struct DeepgramResponse: Codable {
+            let results: Results
+            
+            struct Results: Codable {
+                let channels: [Channel]
+                let utterances: [Utterance]?
+                let summary: Summary?
+                
+                struct Channel: Codable {
+                    let alternatives: [Alternative]
+                    
+                    struct Alternative: Codable {
+                        let transcript: String
+                        let confidence: Double
+                        let words: [Word]?
+                        
+                        struct Word: Codable {
+                            let word: String
+                            let start: Double
+                            let end: Double
+                            let confidence: Double
+                        }
+                    }
+                }
+                
+                struct Utterance: Codable {
+                    let start: Double
+                    let end: Double
+                    let confidence: Double
+                    let transcript: String
+                    let speaker: Int?
+                }
+                
+                struct Summary: Codable {
+                    let short: String?
+                }
+            }
+        }
+        
+        let deepgramResponse = try JSONDecoder().decode(DeepgramResponse.self, from: data)
+        
+        guard let firstChannel = deepgramResponse.results.channels.first,
+              let bestAlternative = firstChannel.alternatives.first else {
+            throw TachikomaError.apiError("No transcription results from Deepgram")
+        }
+        
+        let segments: [TranscriptionSegment]? = deepgramResponse.results.utterances?.map { utterance in
+            TranscriptionSegment(
+                text: utterance.transcript,
+                start: utterance.start,
+                end: utterance.end,
+                confidence: utterance.confidence
+                // Note: Speaker diarization info (utterance.speaker) is not included in TranscriptionSegment
+            )
+        }
+        
+        return TranscriptionResult(
+            text: bestAlternative.transcript,
+            language: request.language,
+            duration: nil,
+            segments: segments
+            // Note: Confidence and summary from Deepgram are not included in current TranscriptionResult model
         )
     }
-
-    public func transcribe(request: TranscriptionRequest) async throws -> TranscriptionResult {
-        throw TachikomaError.unsupportedOperation("AssemblyAI transcription not yet implemented")
-    }
 }
+
+// Low-priority providers removed - not implementing AssemblyAI, RevAI, Azure, LMNT, Hume
 
 @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public final class ElevenLabsTranscriptionProvider: TranscriptionProvider {
@@ -354,78 +513,9 @@ public final class ElevenLabsTranscriptionProvider: TranscriptionProvider {
     }
 
     public func transcribe(request: TranscriptionRequest) async throws -> TranscriptionResult {
-        throw TachikomaError.unsupportedOperation("ElevenLabs transcription not yet implemented")
-    }
-}
-
-@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
-public final class RevAITranscriptionProvider: TranscriptionProvider {
-    public let modelId: String
-    public let capabilities: TranscriptionCapabilities
-
-    public init(model: TranscriptionModel.RevAI, configuration: TachikomaConfiguration) throws {
-        self.modelId = model.rawValue
-        self.capabilities = TranscriptionCapabilities(
-            supportsTimestamps: model.supportsTimestamps,
-            supportsLanguageDetection: model.supportsLanguageDetection
-        )
-    }
-
-    public func transcribe(request: TranscriptionRequest) async throws -> TranscriptionResult {
-        throw TachikomaError.unsupportedOperation("RevAI transcription not yet implemented")
-    }
-}
-
-@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
-public final class AzureTranscriptionProvider: TranscriptionProvider {
-    public let modelId: String
-    public let capabilities: TranscriptionCapabilities
-
-    public init(model: TranscriptionModel.Azure, configuration: TachikomaConfiguration) throws {
-        self.modelId = model.rawValue
-        self.capabilities = TranscriptionCapabilities(
-            supportsTimestamps: model.supportsTimestamps
-        )
-    }
-
-    public func transcribe(request: TranscriptionRequest) async throws -> TranscriptionResult {
-        throw TachikomaError.unsupportedOperation("Azure transcription not yet implemented")
-    }
-}
-
-@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
-public final class LMNTSpeechProvider: SpeechProvider {
-    public let modelId: String
-    public let capabilities: SpeechCapabilities
-
-    public init(model: SpeechModel.LMNT, configuration: TachikomaConfiguration) throws {
-        self.modelId = model.rawValue
-        self.capabilities = SpeechCapabilities(
-            supportedFormats: model.supportedFormats,
-            supportsLanguageSelection: model.supportsLanguages
-        )
-    }
-
-    public func generateSpeech(request: SpeechRequest) async throws -> SpeechResult {
-        throw TachikomaError.unsupportedOperation("LMNT speech generation not yet implemented")
-    }
-}
-
-@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
-public final class HumeSpeechProvider: SpeechProvider {
-    public let modelId: String
-    public let capabilities: SpeechCapabilities
-
-    public init(model: SpeechModel.Hume, configuration: TachikomaConfiguration) throws {
-        self.modelId = model.rawValue
-        self.capabilities = SpeechCapabilities(
-            supportedFormats: model.supportedFormats,
-            supportsEmotionalControl: model.supportsEmotionalControl
-        )
-    }
-
-    public func generateSpeech(request: SpeechRequest) async throws -> SpeechResult {
-        throw TachikomaError.unsupportedOperation("Hume speech generation not yet implemented")
+        // ElevenLabs doesn't have a transcription API yet
+        // This is a placeholder for future implementation
+        throw TachikomaError.unsupportedOperation("ElevenLabs transcription is not available - ElevenLabs only supports speech generation")
     }
 }
 
@@ -441,9 +531,82 @@ public final class ElevenLabsSpeechProvider: SpeechProvider {
             supportsVoiceInstructions: model.supportsVoiceCloning
         )
     }
+    
+    private func mapVoiceToElevenLabsId(_ voice: VoiceOption) -> String {
+        // Map standard voice options to ElevenLabs voice IDs
+        // These are default ElevenLabs voices
+        switch voice {
+        case .alloy:
+            return "21m00Tcm4TlvDq8ikWAM" // Rachel
+        case .echo:
+            return "AZnzlk1XvdvUeBnXmlld" // Domi
+        case .fable:
+            return "ThT5KcBeYPX3keUQqHPh" // Nicole
+        case .onyx:
+            return "pNInz6obpgDQGcFmaJgB" // Adam
+        case .nova:
+            return "MF3mGyEYCl7XYWbV9V6O" // Elli
+        case .shimmer:
+            return "LcfcDJNUP1GQjkzn1xUU" // Emily
+        default:
+            return "21m00Tcm4TlvDq8ikWAM" // Default to Rachel
+        }
+    }
 
     public func generateSpeech(request: SpeechRequest) async throws -> SpeechResult {
-        throw TachikomaError.unsupportedOperation("ElevenLabs speech generation not yet implemented")
+        guard let apiKey = AudioConfiguration.getAPIKey(for: "elevenlabs", configuration: TachikomaConfiguration()) else {
+            throw TachikomaError.authenticationFailed("ElevenLabs API key not configured")
+        }
+        
+        // Default voice if not specified - map VoiceOption to ElevenLabs voice ID
+        let voiceId = mapVoiceToElevenLabsId(request.voice)
+        let url = URL(string: "https://api.elevenlabs.io/v1/text-to-speech/\(voiceId)")!
+        
+        var urlRequest = URLRequest(url: url)
+        urlRequest.httpMethod = "POST"
+        urlRequest.setValue(apiKey, forHTTPHeaderField: "xi-api-key")
+        urlRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        
+        // Build request body
+        struct ElevenLabsRequest: Codable {
+            let text: String
+            let model_id: String
+            let voice_settings: VoiceSettings?
+            
+            struct VoiceSettings: Codable {
+                let stability: Double
+                let similarity_boost: Double
+                let style: Double?
+                let use_speaker_boost: Bool?
+            }
+        }
+        
+        let requestBody = ElevenLabsRequest(
+            text: request.text,
+            model_id: modelId,
+            voice_settings: ElevenLabsRequest.VoiceSettings(
+                stability: 0.5,
+                similarity_boost: 0.75,
+                style: nil,
+                use_speaker_boost: nil
+            )
+        )
+        
+        urlRequest.httpBody = try JSONEncoder().encode(requestBody)
+        
+        let (data, response) = try await URLSession.shared.data(for: urlRequest)
+        
+        guard let httpResponse = response as? HTTPURLResponse,
+              (200...299).contains(httpResponse.statusCode) else {
+            let errorMessage = String(data: data, encoding: .utf8) ?? "Unknown error"
+            throw TachikomaError.apiError("ElevenLabs API error: \(errorMessage)")
+        }
+        
+        // The response is raw audio data
+        return SpeechResult(
+            audioData: AudioData(data: data, format: .mp3),
+            usage: nil
+        )
     }
 }
 
