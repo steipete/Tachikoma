@@ -36,10 +36,24 @@ public final class GroqProvider: ModelProvider {
     }
 
     public func generateText(request: ProviderRequest) async throws -> ProviderResponse {
-        throw TachikomaError.unsupportedOperation("Groq provider not yet implemented")
+        // Groq uses OpenAI-compatible API format - delegate to shared implementation
+        return try await OpenAICompatibleHelper.generateText(
+            request: request,
+            modelId: self.modelId,
+            baseURL: self.baseURL!,
+            apiKey: self.apiKey!,
+            providerName: "Groq"
+        )
     }
 
     public func streamText(request: ProviderRequest) async throws -> AsyncThrowingStream<TextStreamDelta, Error> {
-        throw TachikomaError.unsupportedOperation("Groq streaming not yet implemented")
+        // Groq uses OpenAI-compatible API format - delegate to shared implementation
+        return try await OpenAICompatibleHelper.streamText(
+            request: request,
+            modelId: self.modelId,
+            baseURL: self.baseURL!,
+            apiKey: self.apiKey!,
+            providerName: "Groq"
+        )
     }
 }
