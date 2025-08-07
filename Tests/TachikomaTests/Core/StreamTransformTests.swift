@@ -13,10 +13,10 @@ struct StreamTransformTests {
     func testFilterTransform() async throws {
         let transform = FilterTransform<Int> { $0 % 2 == 0 }
         
-        #expect(await transform.transform(2) == 2)
-        #expect(await transform.transform(3) == nil)
-        #expect(await transform.transform(4) == 4)
-        #expect(await transform.transform(5) == nil)
+        #expect(try await transform.transform(2) == 2)
+        #expect(try await transform.transform(3) == nil)
+        #expect(try await transform.transform(4) == 4)
+        #expect(try await transform.transform(5) == nil)
     }
     
     @Test("MapTransform transforms elements")

@@ -35,7 +35,8 @@ struct DynamicToolsTests {
         #expect(agentTool.parameters.required == ["query"])
         
         // Test execution
-        let result = try await agentTool.execute(["query": .string("test")])
+        let args = AgentToolArguments(["query": .string("test")])
+        let result = try await agentTool.execute(args)
         #expect(result == .string("Searched for: string(\"test\")"))
     }
     
@@ -106,7 +107,7 @@ struct DynamicToolsTests {
         // Execute tool
         let result = try await registry.executeTool(
             name: "test_tool",
-            arguments: [:]
+            arguments: AgentToolArguments([:])
         )
         #expect(result == .string("Executed test_tool"))
         
@@ -130,7 +131,7 @@ struct DynamicToolsTests {
         // Test tool execution
         let result = try await provider.executeTool(
             name: "search_web",
-            arguments: ["query": .string("Swift")]
+            arguments: AgentToolArguments(["query": .string("Swift")])
         )
         #expect(result == .string("Mock search results for: string(\"Swift\")"))
     }
@@ -151,7 +152,7 @@ struct DynamicToolsTests {
         // Execute discovered tool
         let result = try await registry.executeTool(
             name: "get_weather",
-            arguments: ["location": .string("New York")]
+            arguments: AgentToolArguments(["location": .string("New York")])
         )
         
         if case .object(let dict) = result {
@@ -264,7 +265,7 @@ struct DynamicToolsTests {
         )
         
         // Box allows for indirect recursion
-        let boxedSchema = Box(nodeSchema)
+        let boxedSchema = Box(value: nodeSchema)
         #expect(boxedSchema.value.type == .object)
     }
     

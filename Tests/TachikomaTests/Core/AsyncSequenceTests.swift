@@ -204,7 +204,7 @@ struct AsyncSequenceTests {
             return count
         }
         
-        let count = await task.value
+        let count = await (try? task.value) ?? 0
         #expect(count == 5)
     }
     
