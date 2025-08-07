@@ -29,16 +29,12 @@ public actor EnhancedResponseCache {
     
     public init(configuration: CacheConfiguration = .default) {
         self.configuration = configuration
-        setupMemoryPressureHandling()
-        setupPeriodicCleanup()
-    }
-    
-    deinit {
-        cleanupTimer?.invalidate()
-        if let observer = memoryPressureObserver {
-            NotificationCenter.default.removeObserver(observer)
+        Task {
+            await setupMemoryPressureHandling()
+            await setupPeriodicCleanup()
         }
     }
+    
     
     // MARK: - Public Methods
     
@@ -384,7 +380,7 @@ public enum CachePriority: Int, Sendable, Comparable {
 // MARK: - Cache Entry
 
 @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
-final class CacheEntry: Sendable {
+final class CacheEntry: @unchecked Sendable {
     let response: ProviderResponse
     let createdAt: Date
     let ttl: TimeInterval?
@@ -428,7 +424,7 @@ final class CacheEntry: Sendable {
 // MARK: - Statistics Tracking
 
 @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
-final class CacheStatisticsTracker: Sendable {
+final class CacheStatisticsTracker: @unchecked Sendable {
     private var hits: Int = 0
     private var misses: Int = 0
     private var stores: Int = 0
@@ -546,7 +542,7 @@ public struct CacheAwareProvider<Base: ModelProvider>: ModelProvider {
     
     private func determinePriority(for request: ProviderRequest) -> CachePriority {
         // Higher priority for expensive requests
-        if let maxTokens = request.settings?.maxTokens, maxTokens > 2000 {
+        if let maxTokens = request.settings.maxTokens, maxTokens > 2000 {
             return .high
         }
         

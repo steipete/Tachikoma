@@ -509,6 +509,9 @@ public struct ModelCostCalculator: Sendable {
             case .o3Mini: (1.00, 4.00)
             case .o3Pro: (120.00, 480.00)
             case .o4Mini: (1.50, 6.00)
+            case .gpt5: (5.00, 20.00) // GPT-5 pricing estimate
+            case .gpt5Mini: (1.00, 4.00) // GPT-5 Mini pricing estimate
+            case .gpt5Nano: (0.50, 2.00) // GPT-5 Nano pricing estimate
             case .gpt41: (2.50, 10.00)
             case .gpt41Mini: (0.15, 0.60)
             case .gpt4o: (2.50, 10.00)
