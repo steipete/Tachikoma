@@ -1,5 +1,17 @@
 import Foundation
 
+extension FileManager {
+    var userDirectory: URL {
+        #if os(macOS)
+        return self.homeDirectoryForCurrentUser
+        #elseif os(iOS)
+        return self.urls(for: .documentDirectory, in: .userDomainMask).first ?? self.temporaryDirectory
+        #else
+        return self.temporaryDirectory
+        #endif
+    }
+}
+
 /// Modern AI agent integrated with the Tachikoma enum-based model system
 @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public final class Agent<Context>: @unchecked Sendable {
@@ -217,7 +229,7 @@ public final class AgentSessionManager: @unchecked Sendable {
 
     /// Get the sessions storage directory
     private func getSessionsDirectory() -> URL {
-        let url = fileManager.homeDirectoryForCurrentUser
+        let url = fileManager.userDirectory
             .appendingPathComponent(".peekaboo/agent_sessions")
 
         // Ensure the directory exists
