@@ -27,6 +27,9 @@ struct OpenAICompatibleHelper {
             urlRequest.setValue(value, forHTTPHeaderField: key)
         }
 
+        // Extract stop sequences from stop conditions
+        let stopSequences = Self.extractStopSequences(from: request.settings.stopConditions)
+        
         // Convert request to OpenAI-compatible format
         let openAIRequest = OpenAIChatRequest(
             model: modelId,
@@ -34,7 +37,8 @@ struct OpenAICompatibleHelper {
             temperature: request.settings.temperature,
             maxTokens: request.settings.maxTokens,
             tools: try request.tools?.compactMap { try convertTool($0) },
-            stream: false
+            stream: false,
+            stop: stopSequences.isEmpty ? nil : stopSequences
         )
 
         let encoder = JSONEncoder()
@@ -143,6 +147,9 @@ struct OpenAICompatibleHelper {
             urlRequest.setValue(value, forHTTPHeaderField: key)
         }
 
+        // Extract stop sequences from stop conditions
+        let stopSequences = Self.extractStopSequences(from: request.settings.stopConditions)
+        
         // Convert request to OpenAI-compatible format
         let openAIRequest = OpenAIChatRequest(
             model: modelId,
@@ -150,7 +157,8 @@ struct OpenAICompatibleHelper {
             temperature: request.settings.temperature,
             maxTokens: request.settings.maxTokens,
             tools: try request.tools?.compactMap { try convertTool($0) },
-            stream: true
+            stream: true,
+            stop: stopSequences.isEmpty ? nil : stopSequences
         )
 
         let encoder = JSONEncoder()
@@ -211,6 +219,28 @@ struct OpenAICompatibleHelper {
 
     // MARK: - Helper Methods
 
+    /// Extract native stop sequences from stop conditions
+    private static func extractStopSequences(from stopCondition: (any StopCondition)?) -> [String] {
+        guard let stopCondition else { return [] }
+        
+        // Check if it's a string stop condition
+        if let stringStop = stopCondition as? StringStopCondition {
+            return [stringStop.stopString]
+        }
+        
+        // Check if it's a composite condition
+        if let anyStop = stopCondition as? AnyStopCondition {
+            // Extract stop strings from all conditions
+            var sequences: [String] = []
+            // Note: We'd need to expose the conditions array in AnyStopCondition
+            // For now, we can't extract from composite conditions
+            return sequences
+        }
+        
+        // For other types of stop conditions, we can't extract native sequences
+        return []
+    }
+    
     private static func convertToolResultToString(_ result: AgentToolArgument) -> String {
         switch result {
         case .null:

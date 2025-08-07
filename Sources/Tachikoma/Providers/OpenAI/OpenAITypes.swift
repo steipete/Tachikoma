@@ -9,9 +9,10 @@ struct OpenAIChatRequest: Codable {
     let maxTokens: Int?
     let tools: [OpenAITool]?
     let stream: Bool?
+    let stop: [String]?  // Native stop sequences support
 
     enum CodingKeys: String, CodingKey {
-        case model, messages, temperature, tools, stream
+        case model, messages, temperature, tools, stream, stop
         case maxTokens = "max_tokens"
     }
 }

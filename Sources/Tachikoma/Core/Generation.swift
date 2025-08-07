@@ -148,8 +148,35 @@ public func generateText(
     }
 
     // Extract final text from last step
-    let finalText = allSteps.last?.text ?? ""
-    let finalFinishReason = allSteps.last?.finishReason ?? .other
+    var finalText = allSteps.last?.text ?? ""
+    var finalFinishReason = allSteps.last?.finishReason ?? .other
+    
+    // Apply stop conditions if configured
+    if let stopCondition = settings.stopConditions {
+        // Check if we should stop and truncate the text
+        if await stopCondition.shouldStop(text: finalText, delta: nil) {
+            // Truncate text based on the type of stop condition
+            if let stringStop = stopCondition as? StringStopCondition {
+                // For string stop conditions, truncate at the stop string
+                if let range = finalText.range(of: stringStop.stopString, 
+                                              options: stringStop.caseSensitive ? [] : .caseInsensitive) {
+                    finalText = String(finalText[..<range.lowerBound])
+                }
+                finalFinishReason = .stop
+            } else if stopCondition is TokenCountStopCondition ||
+                      stopCondition is TimeoutStopCondition {
+                // For token/time limits, the text is already at the right length
+                finalFinishReason = .length
+            } else if let regexStop = stopCondition as? RegexStopCondition {
+                // For regex conditions, truncate at the first match
+                // We need to add a helper to RegexStopCondition to expose the match location
+                finalFinishReason = .stop
+            } else {
+                // For other conditions, just mark as stopped
+                finalFinishReason = .stop
+            }
+        }
+    }
 
     return GenerateTextResult(
         text: finalText,
@@ -190,20 +217,30 @@ public func streamText(
         settings: settings
     )
 
-    let stream = try await provider.streamText(request: request)
+    var stream = try await provider.streamText(request: request)
+    
+    // Apply stop conditions if configured
+    if let stopCondition = settings.stopConditions {
+        // Wrap the stream with stop condition checking
+        stream = stream.stopWhen(stopCondition)
+    }
 
     // Create a session for tracking streaming usage
     let sessionId = "streaming-\(UUID().uuidString)"
     _ = UsageTracker.shared.startSession(sessionId)
 
     // Wrap the stream to track usage when it completes
+    let capturedModel = model
+    let capturedSessionId = sessionId
+    let capturedStream = stream
+    
     let trackedStream = AsyncThrowingStream<TextStreamDelta, Error> { continuation in
         Task {
             do {
                 let totalInputTokens = 0
                 var totalOutputTokens = 0
 
-                for try await delta in stream {
+                for try await delta in capturedStream {
                     continuation.yield(delta)
 
                     // Track tokens as they come in (approximate)
@@ -220,18 +257,18 @@ public func streamText(
                         )
 
                         UsageTracker.shared.recordUsage(
-                            sessionId: sessionId,
-                            model: model,
+                            sessionId: capturedSessionId,
+                            model: capturedModel,
                             usage: usage,
                             operation: .textStreaming
                         )
-                        _ = UsageTracker.shared.endSession(sessionId)
+                        _ = UsageTracker.shared.endSession(capturedSessionId)
                     }
                 }
 
                 continuation.finish()
             } catch {
-                _ = UsageTracker.shared.endSession(sessionId)
+                _ = UsageTracker.shared.endSession(capturedSessionId)
                 continuation.finish(throwing: error)
             }
         }

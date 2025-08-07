@@ -22,8 +22,8 @@ public protocol StopCondition: Sendable {
 /// Stop when a specific string is encountered
 @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public struct StringStopCondition: StopCondition {
-    private let stopString: String
-    private let caseSensitive: Bool
+    public let stopString: String
+    public let caseSensitive: Bool
     
     public init(_ stopString: String, caseSensitive: Bool = true) {
         self.stopString = stopString

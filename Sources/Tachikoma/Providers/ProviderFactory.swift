@@ -7,19 +7,6 @@ import Foundation
 public struct ProviderFactory {
     /// Create a provider for the specified language model
     public static func createProvider(for model: LanguageModel, configuration: TachikomaConfiguration) throws -> any ModelProvider {
-        // Check if API tests are disabled - use mock providers
-        if ProcessInfo.processInfo.environment["TACHIKOMA_DISABLE_API_TESTS"] == "true" ||
-           ProcessInfo.processInfo.environment["TACHIKOMA_TEST_MODE"] == "mock" {
-            
-            // Even in mock mode, validate API keys if explicitly testing missing key scenarios
-            let providerName = model.providerName.lowercased()
-            if !configuration.hasAPIKey(for: providerName) {
-                throw TachikomaError.authenticationFailed("\(providerName.uppercased())_API_KEY not found")
-            }
-            
-            return MockProvider(model: model)
-        }
-
         switch model {
         case let .openai(openaiModel):
             return try OpenAIProvider(model: openaiModel, configuration: configuration)
