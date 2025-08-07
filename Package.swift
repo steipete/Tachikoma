@@ -12,17 +12,23 @@ let package = Package(
         .tvOS(.v16),
     ],
     products: [
-        // Unified Tachikoma library
+        // Core Tachikoma library (lightweight, no MCP)
         .library(
             name: "Tachikoma",
             targets: ["Tachikoma"]),
+        
+        // Optional MCP extension module
+        .library(
+            name: "TachikomaMCP",
+            targets: ["TachikomaMCP"]),
     ],
     dependencies: [
         .package(url: "https://github.com/apple/swift-log.git", from: "1.0.0"),
         .package(url: "https://github.com/apple/swift-crypto.git", from: "3.0.0"),
+        .package(url: "https://github.com/modelcontextprotocol/swift-sdk.git", from: "0.9.0"),
     ],
     targets: [
-        // Unified Tachikoma module with all functionality
+        // Core Tachikoma module (no MCP dependencies)
         .target(
             name: "Tachikoma",
             dependencies: [
@@ -32,7 +38,19 @@ let package = Package(
             path: "Sources/Tachikoma",
             swiftSettings: commonSwiftSettings),
 
-        // Unified test target
+        // Optional MCP extension module
+        .target(
+            name: "TachikomaMCP",
+            dependencies: [
+                "Tachikoma",
+                .product(name: "Logging", package: "swift-log"),
+                .product(name: "MCP", package: "swift-sdk"),
+            ],
+            path: "Sources/TachikomaMCP",
+            exclude: ["README.md"],
+            swiftSettings: commonSwiftSettings),
+
+        // Core tests
         .testTarget(
             name: "TachikomaTests",
             dependencies: [
@@ -40,6 +58,16 @@ let package = Package(
                 .product(name: "Logging", package: "swift-log"),
             ],
             path: "Tests/TachikomaTests",
+            swiftSettings: commonSwiftSettings),
+
+        // MCP tests
+        .testTarget(
+            name: "TachikomaMCPTests",
+            dependencies: [
+                "TachikomaMCP",
+                .product(name: "Logging", package: "swift-log"),
+            ],
+            path: "Tests/TachikomaMCPTests",
             swiftSettings: commonSwiftSettings),
     ])
 
