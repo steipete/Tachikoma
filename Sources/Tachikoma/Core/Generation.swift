@@ -43,7 +43,7 @@ public func generateText(
 
         let response: ProviderResponse
         if let timeout = timeout {
-            response = try await Task.withTimeout(timeout) {
+            response = try await withTimeout(timeout) {
                 try await provider.generateText(request: request)
             }
         } else {
@@ -252,7 +252,7 @@ public func streamText(
     var stream: AsyncThrowingStream<TextStreamDelta, Error>
     if let timeout = timeout {
         // Wrap stream with timeout for initial connection
-        stream = try await Task.withTimeout(timeout) {
+        stream = try await withTimeout(timeout) {
             try await provider.streamText(request: request)
         }
     } else {
@@ -361,7 +361,7 @@ public func generateObject<T: Codable & Sendable>(
 
     let response: ProviderResponse
     if let timeout = timeout {
-        response = try await Task.withTimeout(timeout) {
+        response = try await withTimeout(timeout) {
             try await provider.generateText(request: request)
         }
     } else {

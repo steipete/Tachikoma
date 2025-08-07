@@ -180,7 +180,7 @@ public struct RecoverySuggestion: Sendable {
 }
 
 @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
-public enum RecoveryAction: Sendable {
+public enum RecoveryAction: Sendable, Equatable {
     case retry(after: TimeInterval)
     case validateAPIKey
     case regenerateAPIKey
