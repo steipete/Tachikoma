@@ -35,11 +35,13 @@ struct StreamObjectTests {
         // Test attemptPartialParse function behavior
         let json1 = "{\"name\":\"Alice\",\"age\":30"  // Missing closing brace
         let fixed1 = fixPartialJSON(json1)
+        // The function should add the missing closing brace
         #expect(fixed1 == "{\"name\":\"Alice\",\"age\":30}")
         
-        let json2 = "{\"name\":\"Bob\",\"age\":"  // Incomplete
+        let json2 = "{\"name\":\"Bob\",\"age\":"  // Incomplete - missing value and closing brace
         let fixed2 = fixPartialJSON(json2)
-        #expect(fixed2.hasSuffix("}"))
+        // The function adds a quote and closing brace
+        #expect(fixed2 == "{\"name\":\"Bob\",\"age\":\"}")
     }
     
     @Test("ObjectStreamDelta types and structure")

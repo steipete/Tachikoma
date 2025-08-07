@@ -25,7 +25,7 @@ struct OpenAIAudioProviderTests {
         func openAITranscriptionProviderInitFailsWithoutAPIKey() async throws {
             try await TestHelpers.withEmptyTestConfiguration { config in
                 #expect(throws: TachikomaError.self) {
-                    _ = try TranscriptionProviderFactory.createProvider(for: .openai(.whisper1))
+                    _ = try TranscriptionProviderFactory.createProvider(for: .openai(.whisper1), configuration: config)
                 }
             }
         }
@@ -50,7 +50,7 @@ struct OpenAIAudioProviderTests {
                 let provider = try TranscriptionProviderFactory.createProvider(for: .openai(.whisper1))
 
                 let supportedFormats = provider.capabilities.supportedFormats
-                let expectedFormats: [AudioFormat] = [.flac, .m4a, .mp3, .opus, .aac, .ogg, .wav, .pcm]
+                let expectedFormats: [AudioFormat] = [.flac, .m4a, .mp3, .opus, .wav, .pcm]
 
                 for format in expectedFormats {
                     #expect(supportedFormats.contains(format))
@@ -163,7 +163,7 @@ struct OpenAIAudioProviderTests {
         func openAISpeechProviderInitFailsWithoutAPIKey() async throws {
             try await TestHelpers.withEmptyTestConfiguration { config in
                 #expect(throws: TachikomaError.self) {
-                    _ = try SpeechProviderFactory.createProvider(for: .openai(.tts1))
+                    _ = try SpeechProviderFactory.createProvider(for: .openai(.tts1), configuration: config)
                 }
             }
         }

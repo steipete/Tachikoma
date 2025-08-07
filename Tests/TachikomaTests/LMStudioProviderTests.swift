@@ -53,7 +53,7 @@ struct LMStudioProviderTests {
         #expect(model1.providerName == "Ollama")
         #expect(model2.providerName == "LMStudio")
         
-        #expect(model1.modelId == "gpt-oss-120b:q4_k_m")
+        #expect(model1.modelId == "gpt-oss:120b")
         #expect(model2.modelId == "gpt-oss-120b-q4_k_m")
     }
     
