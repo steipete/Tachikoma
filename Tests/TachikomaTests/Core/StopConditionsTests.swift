@@ -192,15 +192,16 @@ struct StopConditionsTests {
     @Test("StopConditionBuilder creates correct conditions")
     func testStopConditionBuilder() async throws {
         let condition = StopConditionBuilder()
-            .stopOnString("END")
-            .stopAfterTokens(100)
+            .whenContains("END")
+            .afterTokens(100)
             .build()
         
         // Should create an AnyStopCondition with both conditions
         #expect(condition is AnyStopCondition)
         
         // Should stop when END is found
-        #expect(await condition.shouldStop(text: "Test END", delta: nil) == true)
+        let nilDelta: String? = nil
+        #expect(await condition.shouldStop(text: "Test END", delta: nilDelta) == true)
     }
     
     @Test("GenerationSettings with stop conditions factory")
@@ -221,7 +222,7 @@ struct StopConditionsTests {
     
     @Test("ConsecutivePatternStopCondition detects repeating patterns")
     func testConsecutivePatternStopCondition() async throws {
-        let condition = ConsecutivePatternStopCondition(pattern: "loop", maxConsecutive: 3)
+        let condition = ConsecutivePatternStopCondition(pattern: "loop", count: 3)
         
         await condition.reset()
         
@@ -238,9 +239,8 @@ struct StopConditionsTests {
     @Test("RepetitionStopCondition detects repeating content")
     func testRepetitionStopCondition() async throws {
         let condition = RepetitionStopCondition(
-            windowSize: 20,
-            similarityThreshold: 0.8,
-            maxRepetitions: 2
+            windowSize: 50,  // Increased to ensure we don't hit the window limit
+            threshold: 0.8
         )
         
         // Similar content should trigger after threshold
@@ -248,13 +248,15 @@ struct StopConditionsTests {
         
         await condition.reset()
         
-        // First time
-        #expect(await condition.shouldStop(text: repeatedText, delta: nil) == false)
+        let nilDelta: String? = nil
         
-        // Second similar content (depending on implementation)
+        // First time (no delta, nothing added to chunks)
+        #expect(await condition.shouldStop(text: repeatedText, delta: nilDelta) == false)
+        
+        // Second similar content (adds first chunk)
         #expect(await condition.shouldStop(text: repeatedText + repeatedText, delta: repeatedText) == false)
         
-        // Third time should trigger
+        // Third time should trigger (adds second identical chunk)
         #expect(await condition.shouldStop(
             text: repeatedText + repeatedText + repeatedText,
             delta: repeatedText
@@ -301,11 +303,11 @@ struct StopConditionsTests {
 private func createMockProvider(responseText: String) -> ModelProvider {
     // This would be a mock provider for testing
     // Implementation would depend on the testing infrastructure
-    MockProvider(responseText: responseText)
+    StopConditionTestMockProvider(responseText: responseText)
 }
 
 // Mock provider for testing (simplified)
-private struct MockProvider: ModelProvider {
+private struct StopConditionTestMockProvider: ModelProvider {
     let responseText: String
     
     var modelId: String { "mock-model" }

@@ -954,6 +954,80 @@ swift build -c release
 
 ## Advanced Features
 
+### Stop Conditions
+
+Control when generation should stop with flexible stop conditions:
+
+```swift
+// Stop on specific strings
+let response = try await generateText(
+    model: .openai(.gpt4o),
+    messages: [.user("Count to 10 then say END")],
+    settings: GenerationSettings(
+        stopConditions: StringStopCondition("END")
+    )
+)
+// Response will stop at "END"
+
+// Stop after token limit
+let limited = try await generateText(
+    model: .claude,
+    messages: [.user("Write a long story")],
+    settings: GenerationSettings(
+        stopConditions: TokenCountStopCondition(maxTokens: 100)
+    )
+)
+
+// Stop on regex patterns
+let patternStop = try await generateText(
+    model: .openai(.gpt4o),
+    messages: [.user("Generate code")],
+    settings: GenerationSettings(
+        stopConditions: RegexStopCondition(pattern: "// END OF CODE")
+    )
+)
+
+// Combine multiple conditions
+let settings = GenerationSettings.withStopConditions(
+    StringStopCondition("STOP", caseSensitive: false),
+    TokenCountStopCondition(maxTokens: 500),
+    TimeoutStopCondition(timeout: 30.0),
+    maxTokens: 1000,
+    temperature: 0.7
+)
+
+// With streaming
+let stream = try await streamText(
+    model: .claude,
+    messages: messages,
+    settings: GenerationSettings(
+        stopConditions: StringStopCondition("END")
+    )
+)
+
+// Or apply stop conditions to existing streams
+let stoppedStream = stream
+    .stopOnString("STOP")
+    .stopAfterTokens(500)
+    .stopAfterTime(30.0)
+
+// Custom stop conditions
+let customStop = PredicateStopCondition { text, delta in
+    // Stop when text contains both keywords
+    text.contains("COMPLETE") && text.contains("DONE")
+}
+
+// Builder pattern for complex conditions
+let complexCondition = StopConditionBuilder()
+    .whenContains("END")
+    .whenMatches("\\[DONE\\]")
+    .afterTokens(1000)
+    .afterTime(60.0)
+    .build()
+```
+
+Stop conditions work with both `generateText` and `streamText`, and are automatically passed to providers that support native stop sequences (like OpenAI's `stop` parameter).
+
 ### Usage Tracking
 
 Tachikoma automatically tracks token usage and costs across all operations:

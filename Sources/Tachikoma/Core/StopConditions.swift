@@ -84,9 +84,13 @@ public actor TokenCountStopCondition: StopCondition {
     
     public func shouldStop(text: String, delta: String?) async -> Bool {
         // Approximate token counting (4 chars ≈ 1 token)
-        if let delta {
-            currentTokens += max(1, delta.count / 4)
-        } else {
+        // This is a rough approximation that works for testing
+        if let delta, !delta.isEmpty {
+            // Count based on character count, with minimum of 1 token
+            let tokenEstimate = max(1, (delta.count + 3) / 4) // Round up by adding 3
+            currentTokens += tokenEstimate
+        } else if !text.isEmpty {
+            // For full text, recalculate from scratch
             currentTokens = max(1, text.count / 4)
         }
         return currentTokens >= maxTokens
@@ -251,36 +255,55 @@ public actor RepetitionStopCondition: StopCondition {
         // Add new chunk
         recentChunks.append(delta)
         
-        // Keep only recent chunks
-        if recentChunks.count > 10 {
+        // Keep only recent chunks (use windowSize for the window)
+        while recentChunks.joined().count > windowSize && recentChunks.count > 1 {
             recentChunks.removeFirst()
         }
         
         // Check for repetition
-        guard recentChunks.count >= 3 else { return false }
+        guard recentChunks.count >= 2 else { return false }
         
-        // Simple repetition detection: check if recent chunks are similar
+        // Check if the last chunk is exactly the same as any previous chunk
         let lastChunk = recentChunks.last!
-        var similarCount = 0
+        var exactMatchCount = 0
         
         for i in 0..<(recentChunks.count - 1) {
-            if similarity(recentChunks[i], lastChunk) > threshold {
+            if recentChunks[i] == lastChunk {
+                exactMatchCount += 1
+            }
+        }
+        
+        // For exact repetition: if we see the same chunk twice in a row, it's repetition
+        if exactMatchCount >= 1 {
+            return true
+        }
+        
+        // Also check for high similarity with flexible threshold
+        var similarCount = 0
+        for i in 0..<(recentChunks.count - 1) {
+            if similarity(recentChunks[i], lastChunk) >= threshold {
                 similarCount += 1
             }
         }
         
-        // Stop if too many similar chunks
-        return Double(similarCount) / Double(recentChunks.count - 1) > 0.5
+        // Stop if more than half of recent chunks are similar
+        return recentChunks.count >= 3 && Double(similarCount) / Double(recentChunks.count - 1) > 0.5
     }
     
     private func similarity(_ s1: String, _ s2: String) -> Double {
         guard !s1.isEmpty && !s2.isEmpty else { return 0 }
         
-        // Simple character-based similarity
-        let commonChars = Set(s1).intersection(Set(s2)).count
-        let totalChars = Set(s1).union(Set(s2)).count
+        // If strings are exactly the same, return 1.0
+        if s1 == s2 { return 1.0 }
         
-        return Double(commonChars) / Double(totalChars)
+        // Calculate Jaccard similarity based on characters
+        let set1 = Set(s1)
+        let set2 = Set(s2)
+        let intersection = set1.intersection(set2).count
+        let union = set1.union(set2).count
+        
+        guard union > 0 else { return 0 }
+        return Double(intersection) / Double(union)
     }
     
     public func reset() async {
