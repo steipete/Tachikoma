@@ -34,6 +34,11 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
         case o3Pro
         case o4Mini
 
+        // GPT-5 Series (August 2025)
+        case gpt5         // Best for coding and agentic tasks
+        case gpt5Mini     // Cost-optimized
+        case gpt5Nano     // Ultra-low latency
+
         // GPT-4.1 Series
         case gpt41
         case gpt41Mini
@@ -51,7 +56,7 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
         case custom(String)
 
         public static var allCases: [OpenAI] {
-            [.o3, .o3Mini, .o3Pro, .o4Mini, .gpt41, .gpt41Mini, .gpt4o, .gpt4oMini, .gpt4oRealtime, .gpt4Turbo, .gpt35Turbo]
+            [.o3, .o3Mini, .o3Pro, .o4Mini, .gpt5, .gpt5Mini, .gpt5Nano, .gpt41, .gpt41Mini, .gpt4o, .gpt4oMini, .gpt4oRealtime, .gpt4Turbo, .gpt35Turbo]
         }
 
         public var modelId: String {
@@ -61,6 +66,9 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
             case .o3Mini: "o3-mini"
             case .o3Pro: "o3-pro"
             case .o4Mini: "o4-mini"
+            case .gpt5: "gpt-5"
+            case .gpt5Mini: "gpt-5-mini"
+            case .gpt5Nano: "gpt-5-nano"
             case .gpt41: "gpt-4.1"
             case .gpt41Mini: "gpt-4.1-mini"
             case .gpt4o: "gpt-4o"
@@ -73,6 +81,7 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
 
         public var supportsVision: Bool {
             switch self {
+            case .gpt5, .gpt5Mini, .gpt5Nano: true  // GPT-5 supports multimodal
             case .gpt4o, .gpt4oMini, .gpt4oRealtime: true
             default: false
             }
@@ -80,7 +89,9 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
 
         public var supportsTools: Bool {
             switch self {
-            case .o3, .o3Mini, .o3Pro, .o4Mini, .gpt41, .gpt41Mini, .gpt4o, .gpt4oMini, .gpt4oRealtime, .gpt4Turbo: true
+            case .o3, .o3Mini, .o3Pro, .o4Mini: true
+            case .gpt5, .gpt5Mini, .gpt5Nano: true  // GPT-5 excels at tool calling
+            case .gpt41, .gpt41Mini, .gpt4o, .gpt4oMini, .gpt4oRealtime, .gpt4Turbo: true
             case .gpt35Turbo: true
             case .custom: true // Assume custom models support tools
             }
@@ -88,6 +99,7 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
 
         public var supportsAudioInput: Bool {
             switch self {
+            case .gpt5, .gpt5Mini, .gpt5Nano: true  // GPT-5 is fully multimodal
             case .gpt4o, .gpt4oMini, .gpt4oRealtime: true // GPT-4o models support native audio input
             default: false
             }
@@ -111,6 +123,7 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
             switch self {
             case .o3, .o3Pro: 1_000_000
             case .o3Mini, .o4Mini: 128_000
+            case .gpt5, .gpt5Mini, .gpt5Nano: 400_000  // 272k input + 128k output
             case .gpt41, .gpt41Mini: 1_000_000
             case .gpt4o, .gpt4oMini, .gpt4oRealtime: 128_000
             case .gpt4Turbo: 128_000
@@ -394,8 +407,7 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
     public enum Ollama: Sendable, Hashable, CaseIterable {
         // GPT-OSS models
         case gptOSS120B
-        case gptOSS120BQ4
-        case gptOSS120BQ5
+        case gptOSS20B
         
         // Recommended models for different use cases
         case llama33 // Best overall
@@ -436,8 +448,7 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
         public static var allCases: [Ollama] {
             [
                 .gptOSS120B,
-                .gptOSS120BQ4,
-                .gptOSS120BQ5,
+                .gptOSS20B,
                 .llama33,
                 .llama32,
                 .llama31,
@@ -470,8 +481,7 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
             switch self {
             case let .custom(id): id
             case .gptOSS120B: "gpt-oss:120b"
-            case .gptOSS120BQ4: "gpt-oss:120b"
-            case .gptOSS120BQ5: "gpt-oss:120b"
+            case .gptOSS20B: "gpt-oss:20b"
             case .llama33: "llama3.3"
             case .llama32: "llama3.2"
             case .llama31: "llama3.1"
@@ -510,7 +520,7 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
 
         public var supportsTools: Bool {
             switch self {
-            case .gptOSS120B, .gptOSS120BQ4, .gptOSS120BQ5: true // GPT-OSS supports tools
+            case .gptOSS120B, .gptOSS20B: true // GPT-OSS supports tools
             case .llava, .bakllava, .llama32Vision11b, .llama32Vision90b,
                  .qwen25vl7b, .qwen25vl32b: false // Vision models don't support tools
             case .llama33, .llama32, .llama31, .mistralNemo: true
@@ -528,7 +538,7 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
 
         public var contextLength: Int {
             switch self {
-            case .gptOSS120B, .gptOSS120BQ4, .gptOSS120BQ5: 128_000
+            case .gptOSS120B, .gptOSS20B: 128_000
             case .llama33, .llama32, .llama31: 128_000
             case .llava, .bakllava: 32_000
             case .llama32Vision11b: 128_000
@@ -555,8 +565,7 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
     public enum LMStudio: Sendable, Hashable, CaseIterable {
         // GPT-OSS models
         case gptOSS120B
-        case gptOSS120BQ4
-        case gptOSS120BQ5
+        case gptOSS20B
         
         // Common local models
         case llama370B
@@ -575,8 +584,7 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
         public static var allCases: [LMStudio] {
             [
                 .gptOSS120B,
-                .gptOSS120BQ4,
-                .gptOSS120BQ5,
+                .gptOSS20B,
                 .llama370B,
                 .llama333B,
                 .mixtral8x7B,
@@ -590,8 +598,7 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
         public var modelId: String {
             switch self {
             case .gptOSS120B: "gpt-oss-120b"
-            case .gptOSS120BQ4: "gpt-oss-120b-q4_k_m"
-            case .gptOSS120BQ5: "gpt-oss-120b-q5_k_m"
+            case .gptOSS20B: "gpt-oss-20b"
             case .llama370B: "llama-3-70b"
             case .llama333B: "llama-3.3-70b"
             case .mixtral8x7B: "mixtral-8x7b"
@@ -605,7 +612,7 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
         
         public var supportsVision: Bool {
             switch self {
-            case .gptOSS120B, .gptOSS120BQ4, .gptOSS120BQ5: false
+            case .gptOSS120B, .gptOSS20B: false
             case .llama370B, .llama333B: false
             default: false
             }
@@ -620,7 +627,7 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
         
         public var contextLength: Int {
             switch self {
-            case .gptOSS120B, .gptOSS120BQ4, .gptOSS120BQ5: 128_000
+            case .gptOSS120B, .gptOSS20B: 128_000
             case .llama370B, .llama333B: 128_000
             case .mixtral8x7B: 32_000
             case .codeLlama34B: 16_000
@@ -992,8 +999,8 @@ public typealias Model = LanguageModel
 @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 extension LanguageModel {
     /// GPT-OSS-120B via Ollama (default quantization)
-    public static let gptOSS120B = LanguageModel.ollama(.gptOSS120BQ4)
+    public static let gptOSS120B = LanguageModel.ollama(.gptOSS120B)
     
     /// GPT-OSS-120B via LMStudio (default quantization)
-    public static let gptOSS120B_LMStudio = LanguageModel.lmstudio(.gptOSS120BQ4)
+    public static let gptOSS120B_LMStudio = LanguageModel.lmstudio(.gptOSS120B)
 }

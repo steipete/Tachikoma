@@ -60,6 +60,13 @@ public struct ModelSelector {
 
     private static func parseOpenAIModel(_ input: String) -> Model.OpenAI? {
         switch input {
+        // GPT-5 models (latest)
+        case "gpt-5", "gpt5":
+            return .gpt5
+        case "gpt-5-mini", "gpt5-mini", "gpt5mini":
+            return .gpt5Mini
+        case "gpt-5-nano", "gpt5-nano", "gpt5nano":
+            return .gpt5Nano
         // Direct matches
         case "gpt-4o", "gpt4o":
             return .gpt4o
@@ -81,7 +88,7 @@ public struct ModelSelector {
         case "gpt", "gpt4", "gpt-4":
             return .gpt41 // Default to latest GPT-4 variant
         case "openai":
-            return .gpt4o // Default OpenAI model
+            return .gpt5 // Default to GPT-5 now
         default:
             // Check if it's an OpenAI model ID
             if input.hasPrefix("gpt") || input.hasPrefix("o3") || input.hasPrefix("o4") {
