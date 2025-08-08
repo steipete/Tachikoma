@@ -14,6 +14,8 @@ private actor StdioTransportState {
     var outputPipe: Pipe?
     var nextId: Int = 1
     var pendingRequests: [Int: CheckedContinuation<Data, Swift.Error>] = [:]
+    var timeoutTasks: [Int: Task<Void, Never>] = [:]
+    var requestTimeoutNs: UInt64 = 30_000_000_000 // default 30s
     
     func setProcess(_ process: Process?, input: Pipe?, output: Pipe?) {
         self.process = process
@@ -33,6 +35,21 @@ private actor StdioTransportState {
     
     func removePendingRequest(id: Int) -> CheckedContinuation<Data, Swift.Error>? {
         return pendingRequests.removeValue(forKey: id)
+    }
+    
+    func setRequestTimeout(seconds: TimeInterval) {
+        let ns = seconds > 0 ? seconds * 1_000_000_000 : 30_000_000_000
+        requestTimeoutNs = UInt64(ns)
+    }
+    
+    func addTimeoutTask(id: Int, task: Task<Void, Never>) {
+        timeoutTasks[id] = task
+    }
+    
+    func cancelTimeoutTask(id: Int) {
+        if let task = timeoutTasks.removeValue(forKey: id) {
+            task.cancel()
+        }
     }
     
     func cancelAllRequests() {
@@ -120,6 +137,7 @@ public final class StdioTransport: MCPTransport {
         }
         
         await state.setProcess(process, input: inputPipe, output: outputPipe)
+        await state.setRequestTimeout(seconds: config.timeout)
         
         // Start reading output
         startReadingOutput()
@@ -156,10 +174,21 @@ public final class StdioTransport: MCPTransport {
         }
         try await send(data)
         
-        // Wait for response
+        // Wait for response with timeout
         let responseData = try await withCheckedThrowingContinuation { continuation in
-            Task {
+            Task { @MainActor in
                 await state.addPendingRequest(id: id, continuation: continuation)
+                // Schedule timeout task
+                let timeoutTask = Task { [logger] in
+                    let ns = await state.requestTimeoutNs
+                    try? await Task.sleep(nanoseconds: ns)
+                    // On timeout, try to remove pending and resume throwing
+                    if let pending = await state.removePendingRequest(id: id) {
+                        logger.error("MCP stdio request timed out: method=\(method), id=\(id)")
+                        pending.resume(throwing: MCPError.executionFailed("Request timed out after \(ns / 1_000_000)ms"))
+                    }
+                }
+                await state.addTimeoutTask(id: id, task: timeoutTask)
             }
         }
         
@@ -275,6 +304,7 @@ public final class StdioTransport: MCPTransport {
                let id = response["id"] as? Int {
                 
                 if let continuation = await state.removePendingRequest(id: id) {
+                    await state.cancelTimeoutTask(id: id)
                     continuation.resume(returning: data)
                 }
             }
