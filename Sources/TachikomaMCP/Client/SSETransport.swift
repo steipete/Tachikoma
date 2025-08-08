@@ -129,6 +129,7 @@ public final class SSETransport: MCPTransport {
                 // Fire-and-forget POST to endpoint; responses arrive via SSE 'message'
                 Task { [logger] in
                     let endpoint = await state.getEndpoint()!
+                    logger.info("[SSE] POSTing to endpoint: \(endpoint.absoluteString) method=\(method) id=\(id)")
                     var request = URLRequest(url: endpoint)
                     request.httpMethod = "POST"
                     request.httpBody = postBody
@@ -137,9 +138,10 @@ public final class SSETransport: MCPTransport {
                     let headers = await state.headers
                     for (k, v) in headers { request.setValue(v, forHTTPHeaderField: k) }
                     do {
-                        let (_, resp) = try await urlSession.data(for: request)
+                        let (respData, resp) = try await urlSession.data(for: request)
                         if let http = resp as? HTTPURLResponse, http.statusCode >= 400 {
-                            logger.error("MCP SSE POST error: HTTP \(http.statusCode) for method=\(method), id=\(id)")
+                            let body = String(data: respData, encoding: .utf8) ?? "<non-utf8>"
+                            logger.error("MCP SSE POST error: HTTP \(http.statusCode) for method=\(method), id=\(id) body=\(body)")
                         } else {
                             logger.debug("MCP SSE POST sent: method=\(method), id=\(id)")
                         }
