@@ -125,7 +125,7 @@ public final class MCPClient: Sendable {
         
         // Initialize MCP handshake
         let initParams = InitializeParams(
-            protocolVersion: "2024-11-05",
+            protocolVersion: "2025-03-26",
             clientInfo: ClientInfo(name: "tachikoma-mcp-client", version: "1.0.0"),
             capabilities: ClientCapabilities()
         )
@@ -133,22 +133,21 @@ public final class MCPClient: Sendable {
         do {
             initResponse = try await transport.sendRequest(method: "initialize", params: initParams)
         } catch {
-            // Fallback: some servers expect snake_case field name
-            let fallbackParams = InitializeParamsSnake(
-                protocolVersion: "2024-11-05",
-                clientInfo: ClientInfo(name: "tachikoma-mcp-client", version: "1.0.0"),
-                capabilities: ClientCapabilities()
-            )
-            initResponse = try await transport.sendRequest(method: "initialize", params: fallbackParams)
+            // Fallback 1: Older protocol version
+            let oldParams = InitializeParams(protocolVersion: "2024-11-05", clientInfo: initParams.clientInfo, capabilities: initParams.capabilities)
+            do {
+                initResponse = try await transport.sendRequest(method: "initialize", params: oldParams)
+            } catch {
+                // Fallback 2: snake_case protocol_version with older version
+                let snake = InitializeParamsSnake(protocolVersion: oldParams.protocolVersion, clientInfo: initParams.clientInfo, capabilities: initParams.capabilities)
+                initResponse = try await transport.sendRequest(method: "initialize", params: snake)
+            }
         }
         
         logger.debug("Initialized MCP connection: \(initResponse)")
         
-        // Send initialized notification
-        try await transport.sendNotification(
-            method: "initialized",
-            params: InitializedParams(clientInfo: ClientInfo(name: "tachikoma-mcp-client", version: "1.0.0"))
-        )
+        // Send initialized notification (per spec name)
+        try await transport.sendNotification(method: "notifications/initialized", params: EmptyParams())
         
         // Discover tools
         await discoverTools()

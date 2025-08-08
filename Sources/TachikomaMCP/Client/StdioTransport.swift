@@ -164,16 +164,15 @@ public final class StdioTransport: MCPTransport {
     ) async throws -> R {
         let id = await state.getNextId()
         
-        // Create JSON-RPC request
-        let request = JSONRPCRequest(
-            jsonrpc: "2.0",
-            method: method,
-            params: params,
-            id: String(id)
-        )
-        
-        // Encode and send
-        let data = try JSONEncoder().encode(request)
+        // Create JSON-RPC request with canonical key order
+        var dict: [String: Any] = [:]
+        dict["jsonrpc"] = "2.0"
+        dict["method"] = method
+        let paramsData = try JSONEncoder().encode(params)
+        let paramsObj = try JSONSerialization.jsonObject(with: paramsData)
+        dict["params"] = paramsObj
+        dict["id"] = id
+        let data = try JSONSerialization.data(withJSONObject: dict)
         if method == "initialize", let json = String(data: data, encoding: .utf8) {
             logger.info("[MCP stdio] → initialize payload: \(json)")
         }
@@ -231,13 +230,12 @@ public final class StdioTransport: MCPTransport {
         guard let inputPipe = await state.getInputPipe() else {
             throw MCPError.notConnected
         }
-        // MCP stdio framing: Content-Length and Content-Type headers, blank line, then JSON payload
-        let header = "Content-Length: \(data.count)\r\nContent-Type: application/json; charset=utf-8\r\n\r\n"
+        // MCP stdio framing: Content-Length header and blank line, then JSON payload
+        let header = "Content-Length: \(data.count)\r\n\r\n"
         let headerData = header.data(using: .utf8)!
         try inputPipe.fileHandleForWriting.write(contentsOf: headerData)
         try inputPipe.fileHandleForWriting.write(contentsOf: data)
-        // Some servers are lenient and expect a trailing newline
-        try inputPipe.fileHandleForWriting.write(contentsOf: "\n".data(using: .utf8)!)
+        // No trailing newline (strict framing)
     }
     
     private func startReadingOutput() {
@@ -368,7 +366,7 @@ private struct JSONRPCRequest<P: Encodable>: Encodable {
     let jsonrpc: String
     let method: String
     let params: P
-    let id: String
+    let id: Int
 }
 
 private struct JSONRPCNotification<P: Encodable>: Encodable {
@@ -400,29 +398,4 @@ private enum JSONRPCID: Decodable {
 private struct JSONRPCError: Decodable {
     let code: Int
     let message: String
-    let data: AnyCodable?
-}
-
-// Simple AnyCodable for error data
-private struct AnyCodable: Decodable {
-    let value: Any
-    
-    init(from decoder: Decoder) throws {
-        let container = try decoder.singleValueContainer()
-        if let string = try? container.decode(String.self) {
-            value = string
-        } else if let int = try? container.decode(Int.self) {
-            value = int
-        } else if let double = try? container.decode(Double.self) {
-            value = double
-        } else if let bool = try? container.decode(Bool.self) {
-            value = bool
-        } else if let dict = try? container.decode([String: AnyCodable].self) {
-            value = dict.mapValues { $0.value }
-        } else if let array = try? container.decode([AnyCodable].self) {
-            value = array.map { $0.value }
-        } else {
-            value = NSNull()
-        }
-    }
 }

@@ -30,7 +30,8 @@ let package = Package(
     dependencies: [
         .package(url: "https://github.com/apple/swift-log.git", from: "1.0.0"),
         .package(url: "https://github.com/apple/swift-crypto.git", from: "3.0.0"),
-        .package(url: "https://github.com/modelcontextprotocol/swift-sdk.git", from: "0.9.0"),
+        // Use local fork of swift-sdk for SSE client transport
+        .package(path: "../../swift-sdk"),
     ],
     targets: [
         // Core Tachikoma module (no MCP dependencies)
