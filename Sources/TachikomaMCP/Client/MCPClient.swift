@@ -147,7 +147,7 @@ public final class MCPClient: Sendable {
         // Send initialized notification
         try await transport.sendNotification(
             method: "initialized",
-            params: EmptyParams()
+            params: InitializedParams(clientInfo: ClientInfo(name: "tachikoma-mcp-client", version: "1.0.0"))
         )
         
         // Discover tools
@@ -235,6 +235,11 @@ struct InitializeParams: Codable {
     let protocolVersion: String
     let clientInfo: ClientInfo
     let capabilities: ClientCapabilities
+    enum CodingKeys: String, CodingKey {
+        case protocolVersion = "protocolVersion"
+        case clientInfo
+        case capabilities
+    }
 }
 
 // Some servers use snake_case for protocol_version in initialize
@@ -273,6 +278,7 @@ struct ClientCapabilities: Codable {
 }
 
 struct EmptyParams: Codable {}
+struct InitializedParams: Codable { let clientInfo: ClientInfo }
 
 struct ToolsListResponse: Codable {
     let tools: [Tool]

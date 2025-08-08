@@ -88,7 +88,8 @@ public final class StdioTransport: MCPTransport {
         
         process.standardInput = inputPipe
         process.standardOutput = outputPipe
-        process.standardError = FileHandle.standardError
+        // Merge stderr into the same pipe so we don't miss frames emitted there
+        process.standardError = outputPipe
         
         // Parse command and arguments
         let components = config.command.split(separator: " ").map(String.init)
@@ -168,7 +169,7 @@ public final class StdioTransport: MCPTransport {
             jsonrpc: "2.0",
             method: method,
             params: params,
-            id: id
+            id: String(id)
         )
         
         // Encode and send
@@ -230,11 +231,13 @@ public final class StdioTransport: MCPTransport {
         guard let inputPipe = await state.getInputPipe() else {
             throw MCPError.notConnected
         }
-        // MCP stdio framing: Content-Length header and blank line, then JSON payload
-        let header = "Content-Length: \(data.count)\r\n\r\n"
+        // MCP stdio framing: Content-Length and Content-Type headers, blank line, then JSON payload
+        let header = "Content-Length: \(data.count)\r\nContent-Type: application/json; charset=utf-8\r\n\r\n"
         let headerData = header.data(using: .utf8)!
         try inputPipe.fileHandleForWriting.write(contentsOf: headerData)
         try inputPipe.fileHandleForWriting.write(contentsOf: data)
+        // Some servers are lenient and expect a trailing newline
+        try inputPipe.fileHandleForWriting.write(contentsOf: "\n".data(using: .utf8)!)
     }
     
     private func startReadingOutput() {
@@ -348,6 +351,9 @@ public final class StdioTransport: MCPTransport {
                     await state.cancelTimeoutTask(id: idInt)
                     contByInt.resume(returning: data)
                 }
+            } else if let response = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                      let idNull = response["id"], idNull is NSNull {
+                // Some servers return null id for notifications; ignore
             }
             // Otherwise it might be a notification or other message
         } catch {
@@ -362,7 +368,7 @@ private struct JSONRPCRequest<P: Encodable>: Encodable {
     let jsonrpc: String
     let method: String
     let params: P
-    let id: Int
+    let id: String
 }
 
 private struct JSONRPCNotification<P: Encodable>: Encodable {
@@ -375,7 +381,20 @@ private struct JSONRPCResponse<R: Decodable>: Decodable {
     let jsonrpc: String
     let result: R?
     let error: JSONRPCError?
-    let id: Int
+    let id: JSONRPCID?
+}
+
+private enum JSONRPCID: Decodable {
+    case int(Int)
+    case string(String)
+    case null
+    init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        if let i = try? container.decode(Int.self) { self = .int(i); return }
+        if let s = try? container.decode(String.self) { self = .string(s); return }
+        if container.decodeNil() { self = .null; return }
+        throw DecodingError.typeMismatch(JSONRPCID.self, .init(codingPath: decoder.codingPath, debugDescription: "Unsupported id type"))
+    }
 }
 
 private struct JSONRPCError: Decodable {
