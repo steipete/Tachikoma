@@ -69,8 +69,7 @@ public final class SSETransport: MCPTransport {
         await state.setTransport(transport)
         await state.setBaseURL(url)
         await state.setHeaders(config.headers ?? [:])
-        // Default write endpoint to the same URL; servers may override via 'endpoint' SSE event
-        await state.setEndpoint(url)
+        // Do NOT set endpoint yet. Give SSE a chance to provide an 'endpoint' event.
         await state.setTimeout(config.timeout)
         startReading()
         logger.info("SSE transport connected: \(url)")
