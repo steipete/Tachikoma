@@ -151,6 +151,9 @@ public final class StdioTransport: MCPTransport {
         
         // Encode and send
         let data = try JSONEncoder().encode(request)
+        if method == "initialize", let json = String(data: data, encoding: .utf8) {
+            logger.info("[MCP stdio] → initialize payload: \(json)")
+        }
         try await send(data)
         
         // Wait for response
