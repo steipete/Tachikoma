@@ -256,27 +256,54 @@ public final class StdioTransport: MCPTransport {
         }
     }
 
-    // Read headers until CRLFCRLF, then read exact content-length bytes
+    // Robustly read MCP stdio-framed message, tolerating banner/noise
+    // Looks for a "Content-Length:" header, supports both CRLF and LF newlines
     private func readFramedMessage(from fileHandle: FileHandle) async throws -> ([String: String], Data)? {
-        var headerBuffer = Data()
-        // Read until we find \r\n\r\n
-        let delimiter = "\r\n\r\n".data(using: .utf8)!
+        var buffer = Data()
+        let contentLengthToken = "Content-Length:".data(using: .utf8)!
+        let crlfcrlf = "\r\n\r\n".data(using: .utf8)!
+        let lflf = "\n\n".data(using: .utf8)!
+
+        // Read until we have at least a Content-Length header and the blank line after headers
         while true {
             if let chunk = try fileHandle.read(upToCount: 1), !chunk.isEmpty {
-                headerBuffer.append(chunk)
-                if headerBuffer.count >= delimiter.count,
-                   headerBuffer.suffix(delimiter.count) == delimiter {
-                    break
+                buffer.append(chunk)
+                // Skip any leading noise before header
+                if let range = buffer.range(of: contentLengthToken) {
+                    // From the first occurrence of Content-Length to end
+                    let headerStart = range.lowerBound
+                    let headerSlice = buffer[headerStart...]
+
+                    // Check for end of headers (CRLFCRLF or LFLF)
+                    if let _ = headerSlice.range(of: crlfcrlf) {
+                        break
+                    } else if let _ = headerSlice.range(of: lflf) {
+                        break
+                    }
                 }
+                // Otherwise keep reading
             } else {
                 // EOF
                 return nil
             }
         }
-        // Parse headers
+
+        // Normalize header segment starting at Content-Length
+        guard let headerStartRange = buffer.range(of: contentLengthToken) else {
+            // Did not find a frame header; drop noise and continue
+            return nil
+        }
+        let headerStart = headerStartRange.lowerBound
+        let headerSegment = buffer[headerStart...]
+
+        // Determine newline convention and split headers
+        let headerEndRange = headerSegment.range(of: crlfcrlf) ?? headerSegment.range(of: lflf)
+        guard let headerEnd = headerEndRange?.lowerBound else { return nil }
+        let headersData = headerSegment[..<headerEnd]
+        let headersString = String(data: headersData, encoding: .utf8) ?? ""
+        let lines = headersString.replacingOccurrences(of: "\r\n", with: "\n").components(separatedBy: "\n").filter { !$0.isEmpty }
+
         var headers: [String: String] = [:]
-        let headerString = String(data: headerBuffer, encoding: .utf8) ?? ""
-        let lines = headerString.components(separatedBy: "\r\n").filter { !$0.isEmpty }
         for line in lines {
             if let sep = line.firstIndex(of: ":") {
                 let key = line[..<sep].lowercased().trimmingCharacters(in: .whitespaces)
@@ -284,9 +311,11 @@ public final class StdioTransport: MCPTransport {
                 headers[key] = value
             }
         }
-        // Read body
+
         let length = Int(headers["content-length"] ?? "0") ?? 0
-        var body = Data(capacity: length)
+
+        // Compute how many bytes remain in the file after headers to fulfill the body
+        var body = Data(capacity: max(length, 0))
         var remaining = length
         while remaining > 0 {
             let chunk = try fileHandle.read(upToCount: remaining)
