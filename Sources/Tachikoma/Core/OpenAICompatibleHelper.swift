@@ -380,6 +380,17 @@ struct OpenAICompatibleHelper {
                 propDict["enum"] = enumValues
             }
             
+            // Handle array items if present
+            if prop.type == .array, let items = prop.items {
+                var itemsDict: [String: Any] = [
+                    "type": items.type.rawValue
+                ]
+                if let itemEnumValues = items.enumValues {
+                    itemsDict["enum"] = itemEnumValues
+                }
+                propDict["items"] = itemsDict
+            }
+            
             properties[key] = propDict
         }
         
