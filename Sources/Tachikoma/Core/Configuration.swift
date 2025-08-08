@@ -396,4 +396,9 @@ extension NSLock {
 
 @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 extension ProviderFactory {
+    /// Create a provider with configuration
+    public static func createConfiguredProvider(for model: LanguageModel, configuration: TachikomaConfiguration) throws -> any ModelProvider {
+        let provider = try createProvider(for: model, configuration: configuration)
+        return provider
+    }
 }

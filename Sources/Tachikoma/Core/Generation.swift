@@ -28,7 +28,7 @@ public func generateText(
     sessionId: String? = nil
 ) async throws
 -> GenerateTextResult {
-    let provider = try await ProviderFactory.createProvider(for: model, configuration: configuration)
+    let provider = try ProviderFactory.createProvider(for: model, configuration: configuration)
 
     var currentMessages = messages
     var allSteps: [GenerationStep] = []
@@ -241,7 +241,7 @@ public func streamText(
     sessionId: String? = nil
 ) async throws
 -> StreamTextResult {
-    let provider = try await ProviderFactory.createProvider(for: model, configuration: configuration)
+    let provider = try ProviderFactory.createProvider(for: model, configuration: configuration)
 
     let request = ProviderRequest(
         messages: messages,
@@ -350,7 +350,7 @@ public func generateObject<T: Codable & Sendable>(
     configuration: TachikomaConfiguration = .current
 ) async throws
 -> GenerateObjectResult<T> {
-    let provider = try await ProviderFactory.createProvider(for: model, configuration: configuration)
+    let provider = try ProviderFactory.createProvider(for: model, configuration: configuration)
 
     let request = ProviderRequest(
         messages: messages,
@@ -406,7 +406,7 @@ public func streamObject<T: Codable & Sendable>(
     configuration: TachikomaConfiguration = .current
 ) async throws
 -> StreamObjectResult<T> {
-    let provider = try await ProviderFactory.createProvider(for: model, configuration: configuration)
+    let provider = try ProviderFactory.createProvider(for: model, configuration: configuration)
     
     // Create request with JSON output format
     let request = ProviderRequest(

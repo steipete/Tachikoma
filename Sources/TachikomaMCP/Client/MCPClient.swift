@@ -110,6 +110,7 @@ public final class MCPClient: Sendable {
         let initResponse: InitializeResponse = try await transport.sendRequest(
             method: "initialize",
             params: InitializeParams(
+                protocolVersion: "2024-11-05",
                 clientInfo: ClientInfo(
                     name: "tachikoma-mcp-client",
                     version: "1.0.0"
@@ -208,6 +209,7 @@ public final class MCPClient: Sendable {
 // MARK: - MCP Protocol Types
 
 struct InitializeParams: Codable {
+    let protocolVersion: String
     let clientInfo: ClientInfo
     let capabilities: ClientCapabilities
 }
