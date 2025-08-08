@@ -395,19 +395,4 @@ extension NSLock {
 // MARK: - Provider Integration
 
 @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
-extension ProviderFactory {
-    /// Create a provider with configuration
-    public static func createConfiguredProvider(for model: LanguageModel, configuration: TachikomaConfiguration) throws -> any ModelProvider {
-        let provider = try await createProvider(for: model, configuration: configuration)
-
-        // Apply configuration overrides if available
-        let providerEnum = Provider.from(identifier: model.providerName)
-
-        if configuration.getBaseURL(for: providerEnum) != nil {
-            // Note: This would require providers to support runtime base URL changes
-            // For now, this is a placeholder for future enhancement
-        }
-
-        return provider
-    }
-}
+// Removed createConfiguredProvider async stub to keep sync API
