@@ -75,7 +75,7 @@ public struct RealtimeConversationView: View {
                     .fill(connectionColor)
                     .frame(width: 8, height: 8)
                 
-                Text(viewModel.connectionStatus.rawValue.capitalized)
+                Text(String(describing: viewModel.connectionStatus).capitalized)
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
@@ -312,7 +312,7 @@ struct SettingsView: View {
                     HStack {
                         Text("Status")
                         Spacer()
-                        Text(viewModel.connectionStatus.rawValue.capitalized)
+                        Text(String(describing: viewModel.connectionStatus).capitalized)
                             .foregroundColor(.secondary)
                     }
                     

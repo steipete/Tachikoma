@@ -5,6 +5,9 @@
 
 import Foundation
 import Tachikoma
+#if canImport(Combine)
+import Combine
+#endif
 
 // MARK: - Conversation State
 
@@ -18,12 +21,71 @@ public enum ConversationState: String, Sendable {
     case error
 }
 
+// MARK: - Connection Status
+
+/// Status of the realtime connection
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
+public enum ConnectionStatus: String, Sendable {
+    case disconnected
+    case connecting
+    case connected
+    case reconnecting
+    case error
+}
+
 // MARK: - Realtime Conversation
 
 /// High-level API for managing real-time voice conversations
 @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 @MainActor
-public final class RealtimeConversation {
+public final class RealtimeConversation: ObservableObject {
+    // MARK: - Nested Types
+    
+    /// Configuration for realtime conversation
+    public struct ConversationConfiguration: Sendable {
+        public var enableVAD: Bool
+        public var enableEchoCancellation: Bool
+        public var enableNoiseSupression: Bool
+        public var autoReconnect: Bool
+        public var sessionPersistence: Bool
+        
+        public init(
+            enableVAD: Bool = true,
+            enableEchoCancellation: Bool = true,
+            enableNoiseSupression: Bool = true,
+            autoReconnect: Bool = true,
+            sessionPersistence: Bool = true
+        ) {
+            self.enableVAD = enableVAD
+            self.enableEchoCancellation = enableEchoCancellation
+            self.enableNoiseSupression = enableNoiseSupression
+            self.autoReconnect = autoReconnect
+            self.sessionPersistence = sessionPersistence
+        }
+    }
+    
+    /// Message in conversation
+    public struct ConversationMessage: Identifiable, Sendable {
+        public let id: String
+        public let role: Tachikoma.ModelMessage.Role
+        public let content: String
+        public let timestamp: Date
+        public let audioData: Data?
+        
+        public init(
+            id: String = UUID().uuidString,
+            role: Tachikoma.ModelMessage.Role,
+            content: String,
+            timestamp: Date = Date(),
+            audioData: Data? = nil
+        ) {
+            self.id = id
+            self.role = role
+            self.content = content
+            self.timestamp = timestamp
+            self.audioData = audioData
+        }
+    }
     // MARK: - Properties
     
     /// The underlying session
@@ -33,19 +95,39 @@ public final class RealtimeConversation {
     private let toolRegistry = RealtimeToolRegistry()
     
     /// Current conversation state
-    public private(set) var state: ConversationState = .idle
+    @Published public private(set) var state: ConversationState = .idle
     
     /// Conversation items (messages)
     public private(set) var items: [ConversationItem] = []
     
+    /// Conversation messages
+    @Published public private(set) var messages: [ConversationMessage] = []
+    
+    /// Connection status
+    @Published public private(set) var connectionStatus: ConnectionStatus = .disconnected
+    
     /// Whether we're currently recording audio
-    public private(set) var isRecording: Bool = false
+    @Published public private(set) var isRecording: Bool = false
     
     /// Whether the assistant is currently speaking
-    public private(set) var isPlaying: Bool = false
+    @Published public private(set) var isPlaying: Bool = false
+    
+    /// Audio level for visualization
+    @Published public private(set) var audioLevel: Float = 0
     
     /// Current configuration
     public let configuration: TachikomaConfiguration
+    
+    /// Whether the conversation is ready
+    public var isReady: Bool {
+        connectionStatus == .connected
+    }
+    
+    /// Duration of the current session
+    public var duration: TimeInterval? {
+        // TODO: Track session start time
+        nil
+    }
     
     // Event streams
     private var transcriptContinuation: AsyncStream<String>.Continuation?
@@ -100,8 +182,12 @@ public final class RealtimeConversation {
         config.instructions = instructions
         config.tools = tools
         
+        // Update connection status
+        connectionStatus = .connecting
+        
         // Connect to the API
         try await session.connect()
+        connectionStatus = .connected
         
         // Update configuration if needed
         if instructions != nil || tools != nil {
@@ -132,6 +218,7 @@ public final class RealtimeConversation {
         // Update state
         state = .idle
         stateContinuation?.yield(.idle)
+        connectionStatus = .disconnected
         
         // Complete all streams
         transcriptContinuation?.finish()
@@ -185,6 +272,7 @@ public final class RealtimeConversation {
             // Simulate audio level for UI feedback
             let level = Float.random(in: 0.1...0.8)
             audioLevelContinuation?.yield(level)
+            audioLevel = level
         }
     }
     
@@ -219,6 +307,41 @@ public final class RealtimeConversation {
         
         state = .idle
         stateContinuation?.yield(.idle)
+        isPlaying = false
+    }
+    
+    /// Send a message (alias for sendText)
+    public func sendMessage(_ text: String) async throws {
+        try await sendText(text)
+        
+        // Add to messages
+        let message = ConversationMessage(
+            role: Tachikoma.ModelMessage.Role.user,
+            content: text
+        )
+        messages.append(message)
+    }
+    
+    /// Toggle recording
+    public func toggleRecording() async throws {
+        if isRecording {
+            await stopListening()
+        } else {
+            try await startListening()
+        }
+    }
+    
+    /// Clear conversation history
+    public func clearHistory() {
+        messages.removeAll()
+        items.removeAll()
+    }
+    
+    /// Export conversation as text
+    public func exportAsText() -> String {
+        messages.map { message in
+            "\(message.role): \(message.content)"
+        }.joined(separator: "\n")
     }
     
     /// Register tools for function calling
@@ -289,6 +412,13 @@ public final class RealtimeConversation {
         case .responseTextDone(let event):
             // Final text received
             transcriptContinuation?.yield(event.text)
+            
+            // Add assistant message
+            let message = ConversationMessage(
+                role: Tachikoma.ModelMessage.Role.assistant,
+                content: event.text
+            )
+            messages.append(message)
             
         case .responseAudioDelta(_):
             // Handle audio streaming (would play audio here)

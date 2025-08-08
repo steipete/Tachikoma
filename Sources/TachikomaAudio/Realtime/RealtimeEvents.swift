@@ -152,7 +152,17 @@ public struct RealtimeSessionConfig: Codable, Sendable {
     public init(from config: SessionConfiguration) {
         self.id = nil
         self.model = config.model
-        self.modalities = config.modalities.rawValue.components(separatedBy: ",")
+        // Convert modalities from OptionSet to string array
+        var modalityStrings: [String] = []
+        if let modalities = config.modalities {
+            if modalities.contains(.text) {
+                modalityStrings.append("text")
+            }
+            if modalities.contains(.audio) {
+                modalityStrings.append("audio")
+            }
+        }
+        self.modalities = modalityStrings.isEmpty ? ["text", "audio"] : modalityStrings
         self.instructions = config.instructions
         self.voice = config.voice
     }

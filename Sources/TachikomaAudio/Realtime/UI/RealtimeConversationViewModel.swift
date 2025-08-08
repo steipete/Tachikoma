@@ -6,6 +6,7 @@
 #if canImport(SwiftUI) && canImport(Combine)
 import SwiftUI
 import Combine
+import Tachikoma
 
 // MARK: - Realtime Conversation View Model
 
@@ -20,7 +21,7 @@ public final class RealtimeConversationViewModel: ObservableObject {
     @Published public var isPlaying = false
     @Published public var audioLevel: Float = 0
     @Published public var messages: [RealtimeConversation.ConversationMessage] = []
-    @Published public var connectionStatus: RealtimeConversation.ConnectionStatus = .disconnected
+    @Published public var connectionStatus: ConnectionStatus = .disconnected
     
     // Settings
     @Published public var selectedVoice: RealtimeVoice = .nova
@@ -74,17 +75,14 @@ public final class RealtimeConversationViewModel: ObservableObject {
     /// Initialize the conversation
     public func initialize() async {
         do {
-            // Create conversation with current settings
-            var config = configuration
-            config.enableVAD = enableVAD
-            config.enableEchoCancellation = enableEchoCancellation
-            config.enableNoiseSupression = enableNoiseSupression
-            config.autoReconnect = autoReconnect
-            config.sessionPersistence = sessionPersistence
+            // Create TachikomaConfiguration
+            var tachikomaConfig = TachikomaConfiguration()
+            if let apiKey = apiKey {
+                tachikomaConfig.setAPIKey(apiKey, for: .openai)
+            }
             
             let conversation = try RealtimeConversation(
-                apiKey: apiKey,
-                configuration: config
+                configuration: tachikomaConfig
             )
             
             self.conversation = conversation
@@ -99,7 +97,7 @@ public final class RealtimeConversationViewModel: ObservableObject {
             )
         } catch {
             print("Failed to initialize conversation: \(error)")
-            connectionStatus = .error
+            connectionStatus = ConnectionStatus.error
         }
     }
     
@@ -146,7 +144,7 @@ public final class RealtimeConversationViewModel: ObservableObject {
     public func reconnect() async {
         guard let conversation = conversation else { return }
         
-        connectionStatus = .reconnecting
+        connectionStatus = ConnectionStatus.reconnecting
         
         do {
             // End current session
@@ -159,7 +157,7 @@ public final class RealtimeConversationViewModel: ObservableObject {
             )
         } catch {
             print("Failed to reconnect: \(error)")
-            connectionStatus = .error
+            connectionStatus = ConnectionStatus.error
         }
     }
     
@@ -249,33 +247,33 @@ public extension RealtimeConversationViewModel {
         
         // Add mock messages
         viewModel.messages = [
-            .init(
-                role: .user,
+            RealtimeConversation.ConversationMessage(
+                role: Tachikoma.ModelMessage.Role.user,
                 content: "Hello, how are you?",
                 timestamp: Date().addingTimeInterval(-60),
-                audioData: nil
+                audioData: nil as Data?
             ),
-            .init(
-                role: .assistant,
+            RealtimeConversation.ConversationMessage(
+                role: Tachikoma.ModelMessage.Role.assistant,
                 content: "I'm doing well, thank you! How can I help you today?",
                 timestamp: Date().addingTimeInterval(-30),
-                audioData: nil
+                audioData: nil as Data?
             ),
-            .init(
-                role: .user,
+            RealtimeConversation.ConversationMessage(
+                role: Tachikoma.ModelMessage.Role.user,
                 content: "What's the weather like?",
                 timestamp: Date().addingTimeInterval(-15),
-                audioData: nil
+                audioData: nil as Data?
             ),
-            .init(
-                role: .assistant,
+            RealtimeConversation.ConversationMessage(
+                role: Tachikoma.ModelMessage.Role.assistant,
                 content: "I'd be happy to help with weather information, but I'd need to know your location first. Where are you located?",
                 timestamp: Date(),
-                audioData: nil
+                audioData: nil as Data?
             )
         ]
         
-        viewModel.connectionStatus = .connected
+        viewModel.connectionStatus = ConnectionStatus.connected
         viewModel.state = .idle
         
         return viewModel
