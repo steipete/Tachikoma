@@ -395,4 +395,5 @@ extension NSLock {
 // MARK: - Provider Integration
 
 @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
-// Removed createConfiguredProvider async stub to keep sync API
+extension ProviderFactory {
+}
