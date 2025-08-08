@@ -343,7 +343,9 @@ public final class StdioTransport: MCPTransport {
             } else if let response = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
                       let idString = response["id"] as? String,
                       let idInt = Int(idString) {
-                if let continuation = await state.removePendingRequestByStringId(idString) ?? await state.removePendingRequest(id: idInt) {
+                let contByString = await state.removePendingRequestByStringId(idString)
+                let cont = contByString ?? await state.removePendingRequest(id: idInt)
+                if let continuation = cont {
                     await state.cancelTimeoutTask(id: idInt)
                     continuation.resume(returning: data)
                 }
