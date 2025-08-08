@@ -167,55 +167,77 @@ struct OpenAICompatibleHelper {
 
         let encoder = JSONEncoder()
         urlRequest.httpBody = try encoder.encode(openAIRequest)
-
-        let (data, response) = try await URLSession.shared.data(for: urlRequest)
-
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw TachikomaError.networkError(NSError(domain: "Invalid response", code: 0))
-        }
-
-        guard httpResponse.statusCode == 200 else {
-            let errorText = String(data: data, encoding: .utf8) ?? "Unknown error"
-            throw TachikomaError.apiError("\(providerName) Error (HTTP \(httpResponse.statusCode)): \(errorText)")
-        }
+        let finalRequest = urlRequest
 
         return AsyncThrowingStream { continuation in
             Task {
                 do {
-                    // Split the data by lines for SSE processing
-                    let responseString = String(data: data, encoding: .utf8) ?? ""
-                    let lines = responseString.components(separatedBy: .newlines)
+                    let (bytes, response) = try await URLSession.shared.bytes(for: finalRequest)
                     
-                    for line in lines {
-                        if line.hasPrefix("data: ") {
-                            let jsonString = String(line.dropFirst(6))
-                            
-                            if jsonString.trimmingCharacters(in: .whitespacesAndNewlines) == "[DONE]" {
-                                continuation.yield(TextStreamDelta.done())
+                    guard let httpResponse = response as? HTTPURLResponse else {
+                        continuation.finish(throwing: TachikomaError.networkError(NSError(domain: "Invalid response", code: 0)))
+                        return
+                    }
+                    
+                    guard httpResponse.statusCode == 200 else {
+                        // Try to read first few bytes for error message
+                        var errorData = Data()
+                        var bytesIterator = bytes.makeAsyncIterator()
+                        for _ in 0..<1024 { // Read up to 1KB for error message
+                            if let byte = try await bytesIterator.next() {
+                                errorData.append(byte)
+                            } else {
                                 break
                             }
+                        }
+                        let errorText = String(data: errorData, encoding: .utf8) ?? "Unknown error"
+                        continuation.finish(throwing: TachikomaError.apiError("\(providerName) Error (HTTP \(httpResponse.statusCode)): \(errorText)"))
+                        return
+                    }
+                    
+                    // Process the streaming data
+                    var buffer = ""
+                    for try await byte in bytes {
+                        let char = Character(UnicodeScalar(byte))
+                        buffer.append(char)
+                        
+                        // Process complete lines
+                        if char == "\n" {
+                            let line = buffer.trimmingCharacters(in: .whitespacesAndNewlines)
+                            buffer = ""
                             
-                            guard let data = jsonString.data(using: .utf8) else { continue }
-                            
-                            do {
-                                let chunk = try JSONDecoder().decode(OpenAIStreamChunk.self, from: data)
-                                if let choice = chunk.choices.first {
-                                    if let content = choice.delta.content {
-                                        continuation.yield(TextStreamDelta.text(content))
-                                    }
-                                    
-                                    if choice.finishReason != nil {
-                                        continuation.yield(TextStreamDelta.done())
-                                        break
-                                    }
+                            if line.hasPrefix("data: ") {
+                                let jsonString = String(line.dropFirst(6)).trimmingCharacters(in: .whitespacesAndNewlines)
+                                
+                                if jsonString == "[DONE]" {
+                                    continuation.yield(TextStreamDelta.done())
+                                    break
                                 }
-                            } catch {
-                                // Skip malformed chunks
-                                continue
+                                
+                                guard let data = jsonString.data(using: .utf8) else { continue }
+                                
+                                do {
+                                    let chunk = try JSONDecoder().decode(OpenAIStreamChunk.self, from: data)
+                                    if let choice = chunk.choices.first {
+                                        if let content = choice.delta.content {
+                                            continuation.yield(TextStreamDelta.text(content))
+                                        }
+                                        
+                                        if choice.finishReason != nil {
+                                            continuation.yield(TextStreamDelta.done())
+                                            break
+                                        }
+                                    }
+                                } catch {
+                                    // Skip malformed chunks
+                                    continue
+                                }
                             }
                         }
                     }
                     continuation.finish()
+                } catch {
+                    continuation.finish(throwing: error)
                 }
             }
         }

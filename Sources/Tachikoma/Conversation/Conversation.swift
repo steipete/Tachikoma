@@ -91,10 +91,59 @@ public final class Conversation: @unchecked Sendable {
 
         return response.text
     }
+
+    /// Continue the conversation with a model, streaming the response
+    public func continueConversationStreaming(using model: Model? = nil, tools: [AgentTool]? = nil) async throws -> AsyncThrowingStream<String, Error> {
+        // Convert conversation messages to model messages
+        let modelMessages = self.messages.map { conversationMessage in
+            ModelMessage(
+                id: conversationMessage.id,
+                role: ModelMessage.Role(rawValue: conversationMessage.role.rawValue) ?? .user,
+                content: [.text(conversationMessage.content)],
+                timestamp: conversationMessage.timestamp
+            )
+        }
+
+        // Generate response using the core API
+        let responseStream = try await streamText(
+            model: model ?? .default,
+            messages: modelMessages,
+            tools: [],
+            settings: .default,
+            configuration: self.configuration
+        )
+
+        // Create a new stream to process the response and update the conversation
+        let processedStream = AsyncThrowingStream<String, Error> { continuation in
+            Task {
+                var fullResponse = ""
+                do {
+                    for try await delta in responseStream.stream {
+                        switch delta.type {
+                        case .textDelta:
+                            if let text = delta.content {
+                                continuation.yield(text)
+                                fullResponse += text
+                            }
+                        default:
+                            break
+                        }
+                    }
+                    // Add the full response to the conversation
+                    self.addAssistantMessage(fullResponse)
+                    continuation.finish()
+                } catch {
+                    continuation.finish(throwing: error)
+                }
+            }
+        }
+
+        return processedStream
+    }
 }
 
 /// A message in a conversation
-@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *) 
 public struct ConversationMessage: Sendable, Codable, Equatable {
     public let id: String
     public let role: Role
