@@ -264,7 +264,7 @@ public final class StdioTransport: MCPTransport {
     // Looks for a "Content-Length:" header, supports both CRLF and LF newlines
     private func readFramedMessage(from fileHandle: FileHandle) async throws -> ([String: String], Data)? {
         var buffer = Data()
-        let contentLengthToken = "Content-Length:".data(using: .utf8)!
+        let contentLengthTokenLower = "content-length:" // search case-insensitively
         let crlfcrlf = "\r\n\r\n".data(using: .utf8)!
         let lflf = "\n\n".data(using: .utf8)!
 
@@ -272,16 +272,11 @@ public final class StdioTransport: MCPTransport {
         while true {
             if let chunk = try fileHandle.read(upToCount: 1), !chunk.isEmpty {
                 buffer.append(chunk)
-                // Skip any leading noise before header
-                if let range = buffer.range(of: contentLengthToken) {
-                    // From the first occurrence of Content-Length to end
-                    let headerStart = range.lowerBound
-                    let headerSlice = buffer[headerStart...]
-
+                // Skip any leading noise before header (case-insensitive search)
+                let lower = String(data: buffer, encoding: .utf8)?.lowercased() ?? ""
+                if lower.contains(contentLengthTokenLower) {
                     // Check for end of headers (CRLFCRLF or LFLF)
-                    if let _ = headerSlice.range(of: crlfcrlf) {
-                        break
-                    } else if let _ = headerSlice.range(of: lflf) {
+                    if buffer.range(of: crlfcrlf) != nil || buffer.range(of: lflf) != nil {
                         break
                     }
                 }
@@ -293,12 +288,15 @@ public final class StdioTransport: MCPTransport {
         }
 
         // Normalize header segment starting at Content-Length
-        guard let headerStartRange = buffer.range(of: contentLengthToken) else {
+        // Find start by locating the content-length line case-insensitively
+        let headerStringAll = String(data: buffer, encoding: .utf8) ?? ""
+        guard let tokenRange = headerStringAll.lowercased().range(of: contentLengthTokenLower) else {
             // Did not find a frame header; drop noise and continue
             return nil
         }
-        let headerStart = headerStartRange.lowerBound
-        let headerSegment = buffer[headerStart...]
+        let headerStartIndex = headerStringAll.distance(from: headerStringAll.startIndex, to: tokenRange.lowerBound)
+        let headerBytes = buffer.suffix(buffer.count - headerStartIndex)
+        let headerSegment = headerBytes
 
         // Determine newline convention and split headers
         let headerEndRange = headerSegment.range(of: crlfcrlf) ?? headerSegment.range(of: lflf)
