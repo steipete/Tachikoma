@@ -227,13 +227,13 @@ struct OpenAICompatibleHelper {
                                                     // Convert JSON to AnyAgentToolValue dictionary
                                                     argumentsDict = json.compactMapValues { value in
                                                         if let stringValue = value as? String {
-                                                            return try? AnyAgentToolValue(string: stringValue)
+                                                            return AnyAgentToolValue(string: stringValue)
                                                         } else if let intValue = value as? Int {
-                                                            return try? AnyAgentToolValue(int: intValue)
+                                                            return AnyAgentToolValue(int: intValue)
                                                         } else if let doubleValue = value as? Double {
-                                                            return try? AnyAgentToolValue(double: doubleValue)
+                                                            return AnyAgentToolValue(double: doubleValue)
                                                         } else if let boolValue = value as? Bool {
-                                                            return try? AnyAgentToolValue(bool: boolValue)
+                                                            return AnyAgentToolValue(bool: boolValue)
                                                         }
                                                         return nil
                                                     }
@@ -282,12 +282,11 @@ struct OpenAICompatibleHelper {
         }
         
         // Check if it's a composite condition
-        if let anyStop = stopCondition as? AnyStopCondition {
+        if stopCondition is AnyStopCondition {
             // Extract stop strings from all conditions
-            var sequences: [String] = []
             // Note: We'd need to expose the conditions array in AnyStopCondition
             // For now, we can't extract from composite conditions
-            return sequences
+            return []
         }
         
         // For other types of stop conditions, we can't extract native sequences

@@ -24,6 +24,7 @@ private actor SSEState {
     func setHeaders(_ h: [String: String]) { headers = h }
     func setEndpoint(_ url: URL?) { endpointURL = url }
     func getEndpoint() -> URL? { endpointURL }
+    func getBaseURL() -> URL? { baseURL }
 
     func getNextId() -> Int { defer { nextId += 1 }; return nextId }
     func addPending(_ id: Int, _ cont: CheckedContinuation<Data, Swift.Error>) { pendingRequests[id] = cont }
@@ -98,11 +99,14 @@ public final class SSETransport: MCPTransport {
         dict["id"] = id
         let postBody = try JSONSerialization.data(withJSONObject: dict)
 
-        // Ensure endpoint is available (wait briefly if needed)
+        // Ensure endpoint is available (fallback to base URL if server doesn't emit 'endpoint')
+        if await state.getEndpoint() == nil, let base = await state.getBaseURL() {
+            await state.setEndpoint(base)
+        }
         let start = Date()
         while await state.getEndpoint() == nil {
             try await Task.sleep(nanoseconds: 50_000_000) // 50ms
-            if Date().timeIntervalSince(start) > 10 { // 10s safety
+            if Date().timeIntervalSince(start) > 10 {
                 logger.error("SSE endpoint not established before send; method=\(method)")
                 throw MCPError.connectionFailed("SSE endpoint not established")
             }

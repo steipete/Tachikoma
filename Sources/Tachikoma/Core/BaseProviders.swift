@@ -188,43 +188,39 @@ public final class AnthropicProvider: ModelProvider {
 
         return AsyncThrowingStream { continuation in
             Task {
-                do {
-                    // Split the data by lines for SSE processing
-                    let responseString = String(data: data, encoding: .utf8) ?? ""
-                    let lines = responseString.components(separatedBy: .newlines)
-                    
-                    for line in lines {
-                        if line.hasPrefix("data: ") {
-                            let jsonString = String(line.dropFirst(6))
-                            
-                            if jsonString.trimmingCharacters(in: .whitespacesAndNewlines) == "[DONE]" ||
-                               jsonString.contains("\"type\":\"message_stop\"") {
-                                continuation.yield(TextStreamDelta.done())
-                                break
-                            }
-                            
-                            guard let data = jsonString.data(using: .utf8) else { continue }
-                            
-                            do {
-                                let chunk = try JSONDecoder().decode(AnthropicStreamChunk.self, from: data)
-                                if let delta = chunk.delta {
-                                    switch delta {
-                                    case .textDelta(let text):
-                                        continuation.yield(TextStreamDelta.text(text))
-                                    case .other:
-                                        break
-                                    }
+                // Split the data by lines for SSE processing
+                let responseString = String(data: data, encoding: .utf8) ?? ""
+                let lines = responseString.components(separatedBy: .newlines)
+                
+                for line in lines {
+                    if line.hasPrefix("data: ") {
+                        let jsonString = String(line.dropFirst(6))
+                        
+                        if jsonString.trimmingCharacters(in: .whitespacesAndNewlines) == "[DONE]" ||
+                           jsonString.contains("\"type\":\"message_stop\"") {
+                            continuation.yield(TextStreamDelta.done())
+                            break
+                        }
+                        
+                        guard let data = jsonString.data(using: .utf8) else { continue }
+                        
+                        do {
+                            let chunk = try JSONDecoder().decode(AnthropicStreamChunk.self, from: data)
+                            if let delta = chunk.delta {
+                                switch delta {
+                                case .textDelta(let text):
+                                    continuation.yield(TextStreamDelta.text(text))
+                                case .other:
+                                    break
                                 }
-                            } catch {
-                                // Skip malformed chunks
-                                continue
                             }
+                        } catch {
+                            // Skip malformed chunks
+                            continue
                         }
                     }
-                    continuation.finish()
-                } catch {
-                    continuation.finish(throwing: error)
                 }
+                continuation.finish()
             }
         }
     }
@@ -552,34 +548,30 @@ public final class OllamaProvider: ModelProvider {
 
         return AsyncThrowingStream { continuation in
             Task {
-                do {
-                    // Split the data by lines for streaming JSON processing
-                    let responseString = String(data: data, encoding: .utf8) ?? ""
-                    let lines = responseString.components(separatedBy: .newlines)
+                // Split the data by lines for streaming JSON processing
+                let responseString = String(data: data, encoding: .utf8) ?? ""
+                let lines = responseString.components(separatedBy: .newlines)
+                
+                for line in lines {
+                    guard let data = line.data(using: .utf8) else { continue }
                     
-                    for line in lines {
-                        guard let data = line.data(using: .utf8) else { continue }
+                    do {
+                        let chunk = try JSONDecoder().decode(OllamaStreamChunk.self, from: data)
                         
-                        do {
-                            let chunk = try JSONDecoder().decode(OllamaStreamChunk.self, from: data)
-                            
-                            if let content = chunk.message.content, !content.isEmpty {
-                                continuation.yield(TextStreamDelta.text(content))
-                            }
-                            
-                            if chunk.done {
-                                continuation.yield(TextStreamDelta.done())
-                                break
-                            }
-                        } catch {
-                            // Skip malformed chunks
-                            continue
+                        if let content = chunk.message.content, !content.isEmpty {
+                            continuation.yield(TextStreamDelta.text(content))
                         }
+                        
+                        if chunk.done {
+                            continuation.yield(TextStreamDelta.done())
+                            break
+                        }
+                    } catch {
+                        // Skip malformed chunks
+                        continue
                     }
-                    continuation.finish()
-                } catch {
-                    continuation.finish(throwing: error)
                 }
+                continuation.finish()
             }
         }
     }
