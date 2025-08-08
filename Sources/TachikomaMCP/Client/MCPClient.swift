@@ -107,17 +107,23 @@ public final class MCPClient: Sendable {
         try await transport.connect(config: config)
         
         // Initialize MCP handshake
-        let initResponse: InitializeResponse = try await transport.sendRequest(
-            method: "initialize",
-            params: InitializeParams(
+        let initParams = InitializeParams(
+            protocolVersion: "2024-11-05",
+            clientInfo: ClientInfo(name: "tachikoma-mcp-client", version: "1.0.0"),
+            capabilities: ClientCapabilities()
+        )
+        let initResponse: InitializeResponse
+        do {
+            initResponse = try await transport.sendRequest(method: "initialize", params: initParams)
+        } catch {
+            // Fallback: some servers expect snake_case field name
+            let fallbackParams = InitializeParamsSnake(
                 protocolVersion: "2024-11-05",
-                clientInfo: ClientInfo(
-                    name: "tachikoma-mcp-client",
-                    version: "1.0.0"
-                ),
+                clientInfo: ClientInfo(name: "tachikoma-mcp-client", version: "1.0.0"),
                 capabilities: ClientCapabilities()
             )
-        )
+            initResponse = try await transport.sendRequest(method: "initialize", params: fallbackParams)
+        }
         
         logger.debug("Initialized MCP connection: \(initResponse)")
         
@@ -212,6 +218,18 @@ struct InitializeParams: Codable {
     let protocolVersion: String
     let clientInfo: ClientInfo
     let capabilities: ClientCapabilities
+}
+
+// Some servers use snake_case for protocol_version in initialize
+struct InitializeParamsSnake: Codable {
+    let protocolVersion: String
+    let clientInfo: ClientInfo
+    let capabilities: ClientCapabilities
+    enum CodingKeys: String, CodingKey {
+        case protocolVersion = "protocol_version"
+        case clientInfo
+        case capabilities
+    }
 }
 
 struct InitializeResponse: Decodable {
