@@ -164,6 +164,74 @@ public final class TachikomaMCPClientManager {
         return all
     }
 
+    // MARK: Health checks
+    /// Probe a specific server with a timeout. Attempts to connect if not connected.
+    /// Returns tuple: (connected, toolCount, responseTime, error)
+    public func probeServer(name: String, timeoutMs: Int = 5000) async -> (Bool, Int, TimeInterval, String?) {
+        let start = Date()
+        guard let client = connections[name], let cfg = effectiveConfigs[name], cfg.enabled else {
+            return (false, 0, 0, "Disabled or not configured")
+        }
+
+        // If already connected, return quickly
+        if await client.isConnected {
+            let tools = await client.tools
+            return (true, tools.count, Date().timeIntervalSince(start), nil)
+        }
+
+        // Try to connect with timeout
+        let connectTask: Task<String?, Never> = Task { () -> String? in
+            do { try await client.connect(); return nil } catch { return error.localizedDescription }
+        }
+        let timeoutTask: Task<String?, Never> = Task { () -> String? in
+            try? await Task.sleep(nanoseconds: UInt64(timeoutMs) * 1_000_000)
+            return "timeout after \(timeoutMs)ms"
+        }
+
+        var errorMessage: String? = nil
+        let winner = await firstResult(connectTask, timeoutTask)
+        if let msg = winner { errorMessage = msg }
+
+        // Cancel the loser task
+        connectTask.cancel()
+        timeoutTask.cancel()
+
+        if errorMessage == nil {
+            let tools = await client.tools
+            return (true, tools.count, Date().timeIntervalSince(start), nil)
+        } else {
+            // Ensure process is cleaned up on timeout/failure
+            await client.disconnect()
+            return (false, 0, Date().timeIntervalSince(start), errorMessage)
+        }
+    }
+
+    /// Probe all servers in parallel
+    public func probeAllServers(timeoutMs: Int = 5000) async -> [String: (Bool, Int, TimeInterval, String?)] {
+        var results: [String: (Bool, Int, TimeInterval, String?)] = [:]
+        await withTaskGroup(of: (String, (Bool, Int, TimeInterval, String?)).self) { group in
+            for name in listServerNames() {
+                group.addTask { [weak self] in
+                    let res = await self?.probeServer(name: name, timeoutMs: timeoutMs) ?? (false, 0, 0, "not found")
+                    return (name, res)
+                }
+            }
+            for await (name, res) in group { results[name] = res }
+        }
+        return results
+    }
+
+    // Simple race between two tasks, returning the first result
+    private func firstResult<T>(_ a: Task<T, Never>, _ b: Task<T, Never>) async -> T {
+        await withTaskGroup(of: T.self) { group in
+            group.addTask { await a.value }
+            group.addTask { await b.value }
+            let result = await group.next()!
+            group.cancelAll()
+            return result
+        }
+    }
+
     // MARK: Persistence
     /// Persist the current effectiveConfigs back to the profile config file under mcpClients.
     public func persist() throws {
