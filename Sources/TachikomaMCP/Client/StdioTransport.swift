@@ -230,12 +230,15 @@ public final class StdioTransport: MCPTransport {
         guard let inputPipe = await state.getInputPipe() else {
             throw MCPError.notConnected
         }
-        // MCP stdio framing: Content-Length header and blank line, then JSON payload
-        let header = "Content-Length: \(data.count)\r\n\r\n"
+        // MCP stdio framing (LSP-style): headers + blank line + JSON payload
+        // Some servers require Content-Type and a trailing newline after the payload
+        var header = "Content-Type: application/json\r\n"
+        header += "Content-Length: \(data.count)\r\n\r\n"
         let headerData = header.data(using: .utf8)!
         try inputPipe.fileHandleForWriting.write(contentsOf: headerData)
         try inputPipe.fileHandleForWriting.write(contentsOf: data)
-        // No trailing newline (strict framing)
+        // Append trailing newline to trigger flush for some Node-based servers
+        try inputPipe.fileHandleForWriting.write(contentsOf: "\n".data(using: .utf8)!)
     }
     
     private func startReadingOutput() {
