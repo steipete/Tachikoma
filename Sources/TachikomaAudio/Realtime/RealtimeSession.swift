@@ -85,7 +85,7 @@ public final class RealtimeSession {
         // Build connection URL with model parameter
         var urlComponents = URLComponents(string: baseURL)!
         urlComponents.queryItems = [
-            URLQueryItem(name: "model", value: configuration.model ?? "gpt-4o-realtime-preview")
+            URLQueryItem(name: "model", value: configuration.model)
         ]
         
         guard let url = urlComponents.url else {
@@ -265,7 +265,6 @@ public final class RealtimeSession {
     
     private func hasNonDefaultConfiguration() -> Bool {
         configuration.instructions != nil ||
-        configuration.voice != nil ||
         configuration.tools != nil ||
         configuration.temperature != nil ||
         configuration.turnDetection != nil

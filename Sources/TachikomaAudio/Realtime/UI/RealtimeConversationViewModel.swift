@@ -76,7 +76,7 @@ public final class RealtimeConversationViewModel: ObservableObject {
     public func initialize() async {
         do {
             // Create TachikomaConfiguration
-            var tachikomaConfig = TachikomaConfiguration()
+            let tachikomaConfig = TachikomaConfiguration()
             if let apiKey = apiKey {
                 tachikomaConfig.setAPIKey(apiKey, for: .openai)
             }

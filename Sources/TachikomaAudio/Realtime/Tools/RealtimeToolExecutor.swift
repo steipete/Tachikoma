@@ -156,47 +156,33 @@ public actor RealtimeToolExecutor {
             await wrapper.tool.execute(parsedArgs)
         }
         
-        let result: String
-        do {
-            // Create timeout task
-            let timeoutTask = Task {
-                try await Task.sleep(nanoseconds: UInt64(timeout * 1_000_000_000))
-                task.cancel()
-            }
-            
-            // Wait for result
-            result = try await withTaskCancellationHandler {
-                let executionResult = await task.value
-                timeoutTask.cancel()
-                return executionResult
-            } onCancel: {
-                task.cancel()
-                timeoutTask.cancel()
-            }
-        } catch {
-            if task.isCancelled {
-                let execution = ToolExecution(
-                    id: executionId,
-                    toolName: toolName,
-                    arguments: arguments,
-                    result: .timeout,
-                    timestamp: startTime,
-                    duration: Date().timeIntervalSince(startTime)
-                )
-                addToHistory(execution)
-                return execution
-            } else {
-                let execution = ToolExecution(
-                    id: executionId,
-                    toolName: toolName,
-                    arguments: arguments,
-                    result: .failure("Execution failed: \(error)"),
-                    timestamp: startTime,
-                    duration: Date().timeIntervalSince(startTime)
-                )
-                addToHistory(execution)
-                return execution
-            }
+        // Create timeout task
+        let timeoutTask = Task {
+            try? await Task.sleep(nanoseconds: UInt64(timeout * 1_000_000_000))
+            task.cancel()
+        }
+        
+        // Wait for result
+        let result = await withTaskCancellationHandler {
+            let executionResult = await task.value
+            timeoutTask.cancel()
+            return executionResult
+        } onCancel: {
+            task.cancel()
+            timeoutTask.cancel()
+        }
+        
+        if task.isCancelled {
+            let execution = ToolExecution(
+                id: executionId,
+                toolName: toolName,
+                arguments: arguments,
+                result: .timeout,
+                timestamp: startTime,
+                duration: Date().timeIntervalSince(startTime)
+            )
+            addToHistory(execution)
+            return execution
         }
         
         // Success

@@ -141,7 +141,7 @@ public final class TachikomaMCPClientManager {
     /// Build Tachikoma AgentTools for all connected servers
     public func getAllAgentTools() async -> [AgentTool] {
         var all: [AgentTool] = []
-        for (name, client) in connections {
+        for (_, client) in connections {
             // Only attempt if connected
             if await client.isConnected {
                 let provider = MCPToolProvider(client: client)
@@ -319,7 +319,7 @@ public final class TachikomaMCPClientManager {
 
     // MARK: File loading
     private func loadFileConfigs() -> [String: MCPServerConfig] {
-        guard var json = self.loadRawConfigJSON() else { return [:] }
+        guard let json = self.loadRawConfigJSON() else { return [:] }
         guard let mcp = json["mcpClients"] as? [String: Any] else { return [:] }
         var out: [String: MCPServerConfig] = [:]
         for (name, value) in mcp {
