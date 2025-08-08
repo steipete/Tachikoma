@@ -63,7 +63,7 @@ public final class SSETransport: MCPTransport {
         try await transport.connect()
         await state.setTransport(transport)
         await state.setBaseURL(url)
-        await state.setHeaders([:])
+        await state.setHeaders(config.headers ?? [:])
         await state.setTimeout(config.timeout)
         startReading()
         logger.info("SSE transport connected: \(url)")

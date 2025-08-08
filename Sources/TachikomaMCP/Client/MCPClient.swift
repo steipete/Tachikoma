@@ -27,9 +27,10 @@ struct HTTPJSONRPCError: Decodable { let code: Int; let message: String }
 /// Configuration for an MCP server connection
 public struct MCPServerConfig: Sendable, Codable {
     public var transport: String          // "stdio", "http", "sse"
-    public var command: String            // executable path
-    public var args: [String]             // command arguments
+    public var command: String            // executable path or URL for HTTP/SSE
+    public var args: [String]             // command arguments (stdio) or unused
     public var env: [String: String]      // environment variables
+    public var headers: [String: String]? // optional HTTP headers (HTTP/SSE)
     public var enabled: Bool              // enable/disable server
     public var timeout: TimeInterval      // connection timeout
     public var autoReconnect: Bool        // auto-reconnect on failure
@@ -40,6 +41,7 @@ public struct MCPServerConfig: Sendable, Codable {
         command: String,
         args: [String] = [],
         env: [String: String] = [:],
+        headers: [String: String]? = nil,
         enabled: Bool = true,
         timeout: TimeInterval = 30,
         autoReconnect: Bool = true,
@@ -49,6 +51,7 @@ public struct MCPServerConfig: Sendable, Codable {
         self.command = command
         self.args = args
         self.env = env
+        self.headers = headers
         self.enabled = enabled
         self.timeout = timeout
         self.autoReconnect = autoReconnect

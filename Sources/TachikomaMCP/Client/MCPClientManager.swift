@@ -242,11 +242,12 @@ public final class TachikomaMCPClientManager {
         // Build mcpClients object
         var mcpDict: [String: Any] = [:]
         for (name, cfg) in effectiveConfigs {
-            let obj: [String: Any?] = [
+                            let obj: [String: Any?] = [
                 "transport": cfg.transport,
                 "command": cfg.command,
                 "args": cfg.args,
                 "env": cfg.env,
+                "headers": cfg.headers,
                 "enabled": cfg.enabled,
                 "timeout": cfg.timeout,
                 "autoReconnect": cfg.autoReconnect,
@@ -327,6 +328,7 @@ public final class TachikomaMCPClientManager {
             let command = (dict["command"] as? String) ?? ""
             let args = (dict["args"] as? [String]) ?? []
             let env = (dict["env"] as? [String: String]) ?? [:]
+            let headers = (dict["headers"] as? [String: String])
             let enabled = (dict["enabled"] as? Bool) ?? true
             let timeout = (dict["timeout"] as? Double) ?? 30
             let autoReconnect = (dict["autoReconnect"] as? Bool) ?? true
@@ -336,6 +338,7 @@ public final class TachikomaMCPClientManager {
                 command: command,
                 args: args,
                 env: env,
+                headers: headers,
                 enabled: enabled,
                 timeout: timeout,
                 autoReconnect: autoReconnect,
