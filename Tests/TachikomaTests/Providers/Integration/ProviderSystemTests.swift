@@ -10,7 +10,7 @@ struct ProviderSystemTests {
     func providerFactoryOpenAI() async throws {
         try await TestHelpers.withTestConfiguration(apiKeys: ["openai": "test-key"]) { config in
             let model = Model.openai(.gpt4o)
-            let provider = try ProviderFactory.createProvider(for: model, configuration: config)
+            let provider = try await ProviderFactory.createProvider(for: model, configuration: config)
 
             #expect(provider.modelId == "gpt-4o")
             #expect(provider.capabilities.supportsVision == true)
@@ -23,7 +23,7 @@ struct ProviderSystemTests {
     func providerFactoryAnthropic() async throws {
         try await TestHelpers.withTestConfiguration(apiKeys: ["anthropic": "test-key"]) { config in
             let model = Model.anthropic(.opus4)
-            let provider = try ProviderFactory.createProvider(for: model, configuration: config)
+            let provider = try await ProviderFactory.createProvider(for: model, configuration: config)
 
             #expect(provider.modelId == "claude-opus-4-1-20250805")
             #expect(provider.capabilities.supportsVision == true)
@@ -36,7 +36,7 @@ struct ProviderSystemTests {
     func providerFactoryGrok() async throws {
         try await TestHelpers.withTestConfiguration(apiKeys: ["grok": "test-key"]) { config in
             let model = Model.grok(.grok4)
-            let provider = try ProviderFactory.createProvider(for: model, configuration: config)
+            let provider = try await ProviderFactory.createProvider(for: model, configuration: config)
 
             #expect(provider.modelId == "grok-4")
             #expect(provider.capabilities.supportsTools == true)
@@ -49,7 +49,7 @@ struct ProviderSystemTests {
         // No API key needed for Ollama
         let config = TachikomaConfiguration(loadFromEnvironment: false)
         let model = Model.ollama(.llama33)
-        let provider = try ProviderFactory.createProvider(for: model, configuration: config)
+        let provider = try await ProviderFactory.createProvider(for: model, configuration: config)
 
         #expect(provider.modelId == "llama3.3")
         #expect(provider.capabilities.supportsTools == true)

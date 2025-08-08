@@ -398,7 +398,7 @@ extension NSLock {
 extension ProviderFactory {
     /// Create a provider with configuration
     public static func createConfiguredProvider(for model: LanguageModel, configuration: TachikomaConfiguration) throws -> any ModelProvider {
-        let provider = try createProvider(for: model, configuration: configuration)
+        let provider = try await createProvider(for: model, configuration: configuration)
 
         // Apply configuration overrides if available
         let providerEnum = Provider.from(identifier: model.providerName)

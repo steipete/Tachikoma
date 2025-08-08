@@ -129,6 +129,15 @@ public final class TachikomaMCPClientManager {
         return result
     }
 
+    // MARK: Health/Info (lightweight)
+    public func getServerNames() -> [String] { Array(effectiveConfigs.keys).sorted() }
+
+    public func getServerInfo(name: String) async -> (config: MCPServerConfig, connected: Bool)? {
+        guard let cfg = effectiveConfigs[name] else { return nil }
+        let isConnected = await connections[name]?.isConnected ?? false
+        return (cfg, isConnected)
+    }
+
     // MARK: Persistence
     /// Persist the current effectiveConfigs back to the profile config file under mcpClients.
     public func persist() throws {

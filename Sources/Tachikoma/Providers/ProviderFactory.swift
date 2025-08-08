@@ -4,9 +4,10 @@ import Foundation
 
 /// Factory for creating model providers from LanguageModel enum
 @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
+@MainActor
 public struct ProviderFactory {
     /// Create a provider for the specified language model
-    public static func createProvider(for model: LanguageModel, configuration: TachikomaConfiguration) throws -> any ModelProvider {
+    public static func createProvider(for model: LanguageModel, configuration: TachikomaConfiguration) async throws -> any ModelProvider {
         switch model {
         case let .openai(openaiModel):
             // Use Responses API for reasoning models (o3, o4) only

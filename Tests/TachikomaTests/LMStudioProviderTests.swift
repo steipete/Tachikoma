@@ -63,7 +63,7 @@ struct LMStudioProviderTests {
         
         // Test LMStudio provider creation
         let model = LanguageModel.lmstudio(.gptOSS120BQ5)
-        let provider = try ProviderFactory.createProvider(for: model, configuration: config)
+        let provider = try await ProviderFactory.createProvider(for: model, configuration: config)
         
         let modelId = await provider.modelId
         #expect(modelId == "gpt-oss-120b-q5_k_m")
