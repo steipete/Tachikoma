@@ -197,12 +197,11 @@ public final class StdioTransport: MCPTransport {
         guard let inputPipe = await state.getInputPipe() else {
             throw MCPError.notConnected
         }
-        
-        // Add newline for line-delimited JSON
-        var dataWithNewline = data
-        dataWithNewline.append("\n".data(using: .utf8)!)
-        
-        try inputPipe.fileHandleForWriting.write(contentsOf: dataWithNewline)
+        // MCP stdio framing: Content-Length header and blank line, then JSON payload
+        let header = "Content-Length: \(data.count)\r\n\r\n"
+        let headerData = header.data(using: .utf8)!
+        try inputPipe.fileHandleForWriting.write(contentsOf: headerData)
+        try inputPipe.fileHandleForWriting.write(contentsOf: data)
     }
     
     private func startReadingOutput() {
@@ -213,14 +212,12 @@ public final class StdioTransport: MCPTransport {
             
             while true {
                 do {
-                    // Read line by line (JSON-RPC is line-delimited)
-                    guard let line = try await readLine(from: fileHandle) else {
-                        break
-                    }
-                    
-                    // Parse JSON-RPC response
-                    if let data = line.data(using: .utf8) {
-                        await handleResponse(data)
+                    // Read MCP stdio-framed message: headers then body
+                    guard let (headers, body) = try await readFramedMessage(from: fileHandle) else { break }
+                    if let len = headers["content-length"], Int(len) == body.count {
+                        await handleResponse(body)
+                    } else {
+                        logger.error("Invalid MCP stdio frame: content-length mismatch")
                     }
                 } catch {
                     logger.error("Error reading output: \(error)")
@@ -229,22 +226,46 @@ public final class StdioTransport: MCPTransport {
             }
         }
     }
-    
-    private func readLine(from fileHandle: FileHandle) async throws -> String? {
-        var buffer = Data()
-        
+
+    // Read headers until CRLFCRLF, then read exact content-length bytes
+    private func readFramedMessage(from fileHandle: FileHandle) async throws -> ([String: String], Data)? {
+        var headerBuffer = Data()
+        // Read until we find \r\n\r\n
+        let delimiter = "\r\n\r\n".data(using: .utf8)!
         while true {
-            let byte = try fileHandle.read(upToCount: 1)
-            guard let byte = byte, !byte.isEmpty else {
-                return buffer.isEmpty ? nil : String(data: buffer, encoding: .utf8)
+            if let chunk = try fileHandle.read(upToCount: 1), !chunk.isEmpty {
+                headerBuffer.append(chunk)
+                if headerBuffer.count >= delimiter.count,
+                   headerBuffer.suffix(delimiter.count) == delimiter {
+                    break
+                }
+            } else {
+                // EOF
+                return nil
             }
-            
-            if byte[0] == 0x0A { // newline
-                return String(data: buffer, encoding: .utf8)
-            }
-            
-            buffer.append(byte)
         }
+        // Parse headers
+        var headers: [String: String] = [:]
+        let headerString = String(data: headerBuffer, encoding: .utf8) ?? ""
+        let lines = headerString.components(separatedBy: "\r\n").filter { !$0.isEmpty }
+        for line in lines {
+            if let sep = line.firstIndex(of: ":") {
+                let key = line[..<sep].lowercased().trimmingCharacters(in: .whitespaces)
+                let value = line[line.index(after: sep)...].trimmingCharacters(in: .whitespaces)
+                headers[key] = value
+            }
+        }
+        // Read body
+        let length = Int(headers["content-length"] ?? "0") ?? 0
+        var body = Data(capacity: length)
+        var remaining = length
+        while remaining > 0 {
+            let chunk = try fileHandle.read(upToCount: remaining)
+            guard let chunk = chunk, !chunk.isEmpty else { break }
+            body.append(chunk)
+            remaining -= chunk.count
+        }
+        return (headers, body)
     }
     
     private func handleResponse(_ data: Data) async {
