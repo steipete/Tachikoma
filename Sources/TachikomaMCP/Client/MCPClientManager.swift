@@ -32,15 +32,15 @@ public final class TachikomaMCPClientManager {
     }
 
     // MARK: Initialization
-    public func initializeFromProfile() async {
+    public func initializeFromProfile(connect: Bool = true) async {
         let fileConfigs = self.loadFileConfigs()
         let merged = self.merge(defaults: defaultConfigs, file: fileConfigs)
-        await self.apply(configs: merged)
+        await self.apply(configs: merged, connect: connect)
     }
 
-    public func initialize(with userConfigs: [String: MCPServerConfig]) async {
+    public func initialize(with userConfigs: [String: MCPServerConfig], connect: Bool = true) async {
         let merged = self.merge(defaults: defaultConfigs, file: userConfigs)
-        await self.apply(configs: merged)
+        await self.apply(configs: merged, connect: connect)
     }
 
     // MARK: Lifecycle
@@ -196,7 +196,7 @@ public final class TachikomaMCPClientManager {
     }
 
     // MARK: Helpers
-    private func apply(configs: [String: MCPServerConfig]) async {
+    private func apply(configs: [String: MCPServerConfig], connect: Bool = true) async {
         // Disconnect removed servers
         let toRemove = Set(connections.keys).subtracting(Set(configs.keys))
         for name in toRemove { await connections[name]?.disconnect(); connections.removeValue(forKey: name) }
@@ -209,11 +209,13 @@ public final class TachikomaMCPClientManager {
             }
         }
 
-        await withTaskGroup(of: Void.self) { group in
-            for (name, cfg) in configs where cfg.enabled {
-                group.addTask { [weak self] in
-                    do { try await self?.connections[name]?.connect() } catch {
-                        self?.logger.error("Failed to connect to \(name): \(error.localizedDescription)")
+        if connect {
+            await withTaskGroup(of: Void.self) { group in
+                for (name, cfg) in configs where cfg.enabled {
+                    group.addTask { [weak self] in
+                        do { try await self?.connections[name]?.connect() } catch {
+                            self?.logger.error("Failed to connect to \(name): \(error.localizedDescription)")
+                        }
                     }
                 }
             }
