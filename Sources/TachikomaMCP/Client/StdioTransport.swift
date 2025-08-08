@@ -12,15 +12,17 @@ private actor StdioTransportState {
     var process: Process?
     var inputPipe: Pipe?
     var outputPipe: Pipe?
+    var errorPipe: Pipe?
     var nextId: Int = 1
     var pendingRequests: [String: CheckedContinuation<Data, Swift.Error>] = [:]
     var timeoutTasks: [Int: Task<Void, Never>] = [:]
     var requestTimeoutNs: UInt64 = 30_000_000_000 // default 30s
     
-    func setProcess(_ process: Process?, input: Pipe?, output: Pipe?) {
+    func setProcess(_ process: Process?, input: Pipe?, output: Pipe?, error: Pipe?) {
         self.process = process
         self.inputPipe = input
         self.outputPipe = output
+        self.errorPipe = error
     }
     
     func getNextId() -> Int {
@@ -85,11 +87,12 @@ public final class StdioTransport: MCPTransport {
         let process = Process()
         let inputPipe = Pipe()
         let outputPipe = Pipe()
+        let errorPipe = Pipe()
         
         process.standardInput = inputPipe
         process.standardOutput = outputPipe
-        // Merge stderr into the same pipe so we don't miss frames emitted there
-        process.standardError = outputPipe
+        // Keep stderr separate; mixing can corrupt frame boundaries
+        process.standardError = errorPipe
         
         // Parse command and arguments
         let components = config.command.split(separator: " ").map(String.init)
@@ -141,11 +144,22 @@ public final class StdioTransport: MCPTransport {
             throw MCPError.connectionFailed("Failed to start process: \(error)")
         }
         
-        await state.setProcess(process, input: inputPipe, output: outputPipe)
+        await state.setProcess(process, input: inputPipe, output: outputPipe, error: errorPipe)
         await state.setRequestTimeout(seconds: config.timeout)
         
         // Start reading output
         startReadingOutput()
+        // Drain and log stderr separately (non-blocking)
+        Task {
+            let fh = errorPipe.fileHandleForReading
+            while true {
+                let chunk = try? fh.read(upToCount: 4096)
+                guard let chunk, !chunk.isEmpty else { break }
+                if let s = String(data: chunk, encoding: .utf8), !s.isEmpty {
+                    self.logger.debug("[MCP stdio][stderr] \(s.trimmingCharacters(in: .whitespacesAndNewlines))")
+                }
+            }
+        }
         
         logger.info("Stdio transport connected")
     }
