@@ -131,6 +131,40 @@ enum OpenAIChatMessageContent: Codable {
     struct ImageUrl: Codable {
         let url: String
     }
+
+    // Provide custom Codable to match OpenAI schema (flattened objects with type field)
+    enum CodingKeys: String, CodingKey {
+        case type
+        case text
+        case imageUrl = "image_url"
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let type = try container.decode(String.self, forKey: .type)
+        switch type {
+        case "text":
+            let text = try container.decode(String.self, forKey: .text)
+            self = .text(TextContent(type: type, text: text))
+        case "image_url":
+            let imageUrl = try container.decode(ImageUrl.self, forKey: .imageUrl)
+            self = .imageUrl(ImageUrlContent(type: type, imageUrl: imageUrl))
+        default:
+            throw DecodingError.dataCorruptedError(forKey: .type, in: container, debugDescription: "Unsupported content type: \(type)")
+        }
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        switch self {
+        case .text(let content):
+            try container.encode(content.type, forKey: .type)
+            try container.encode(content.text, forKey: .text)
+        case .imageUrl(let content):
+            try container.encode(content.type, forKey: .type)
+            try container.encode(content.imageUrl, forKey: .imageUrl)
+        }
+    }
 }
 
 struct OpenAITool: Codable {

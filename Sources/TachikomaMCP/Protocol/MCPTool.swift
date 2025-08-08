@@ -35,6 +35,23 @@ public struct ToolArguments: Sendable {
         self.raw = value
     }
     
+    /// Expose arguments as a plain dictionary for bridging to non-Sendable APIs
+    public var rawDictionary: [String: Any] {
+        guard case let .object(dict) = raw else { return [:] }
+        return dict.mapValues { value in
+            switch value {
+            case let .string(s): s
+            case let .int(i): i
+            case let .double(d): d
+            case let .bool(b): b
+            case let .array(arr): arr.map { ValueToAny($0) }
+            case let .object(obj): obj.mapValues { ValueToAny($0) }
+            case .null: NSNull()
+            case let .data(mime, data): ["type": "data", "mimeType": mime ?? "application/octet-stream", "data": data]
+            }
+        }
+    }
+    
     /// Decode arguments into a specific type
     public func decode<T: Decodable>(_ type: T.Type) throws -> T {
         let data = try JSONEncoder().encode(self.raw)
@@ -138,6 +155,19 @@ public struct ToolArguments: Sendable {
     /// Get the raw Value
     public var rawValue: Value {
         raw
+    }
+}
+
+private func ValueToAny(_ value: Value) -> Any {
+    switch value {
+    case let .string(s): return s
+    case let .int(i): return i
+    case let .double(d): return d
+    case let .bool(b): return b
+    case let .array(arr): return arr.map { ValueToAny($0) }
+    case let .object(obj): return obj.mapValues { ValueToAny($0) }
+    case .null: return NSNull()
+    case let .data(mime, data): return ["type": "data", "mimeType": mime ?? "application/octet-stream", "data": data]
     }
 }
 

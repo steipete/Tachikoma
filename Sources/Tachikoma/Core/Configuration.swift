@@ -6,6 +6,13 @@ import Foundation
 /// Create instances for different contexts rather than using a global singleton
 @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public final class TachikomaConfiguration: @unchecked Sendable {
+    // MARK: - Profile Directory (for config/credentials)
+    /// Name of the profile directory under the user's HOME used to store
+    /// configuration and credentials (e.g. \.tachikoma, \.peekaboo).
+    /// Defaults to ".tachikoma". Host applications (like Peekaboo) should set this
+    /// to their own folder name during startup.
+    public nonisolated(unsafe) static var profileDirectoryName: String = ".tachikoma"
+
     private let lock = NSLock()
     private var _apiKeys: [String: String] = [:]
     private var _baseURLs: [String: String] = [:]
@@ -237,8 +244,15 @@ public final class TachikomaConfiguration: @unchecked Sendable {
         }
         #endif
 
-        let credentialsPath = "\(homeDirectory)/.tachikoma/credentials"
-        let credentialsURL = URL(fileURLWithPath: credentialsPath)
+        // Primary: configured profile directory (e.g. .peekaboo)
+        let primaryCredentialsPath = "\(homeDirectory)/\(Self.profileDirectoryName)/credentials"
+        // Fallback: legacy .tachikoma directory for non-Peekaboo users
+        let fallbackCredentialsPath = "\(homeDirectory)/.tachikoma/credentials"
+
+        let candidates = [primaryCredentialsPath, fallbackCredentialsPath]
+        let credentialsPath = candidates.first { FileManager.default.fileExists(atPath: $0) }
+        guard let path = credentialsPath else { return }
+        let credentialsURL = URL(fileURLWithPath: path)
 
         guard
             let credentialsData = try? Data(contentsOf: credentialsURL),
@@ -301,12 +315,12 @@ public final class TachikomaConfiguration: @unchecked Sendable {
         }
         #endif
 
-        let tachikomatDir = "\(homeDirectory)/.tachikoma"
-        let credentialsPath = "\(tachikomatDir)/credentials"
+        let profileDir = "\(homeDirectory)/\(Self.profileDirectoryName)"
+        let credentialsPath = "\(profileDir)/credentials"
 
         // Create directory if needed
-        let tachikomaURL = URL(fileURLWithPath: tachikomatDir)
-        try FileManager.default.createDirectory(at: tachikomaURL, withIntermediateDirectories: true)
+        let profileURL = URL(fileURLWithPath: profileDir)
+        try FileManager.default.createDirectory(at: profileURL, withIntermediateDirectories: true)
 
         // Build credentials content
         var lines: [String] = []

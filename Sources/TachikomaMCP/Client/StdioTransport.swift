@@ -78,21 +78,39 @@ public final class StdioTransport: MCPTransport {
         // Set executable path
         if components[0].starts(with: "/") {
             process.executableURL = URL(fileURLWithPath: components[0])
-        } else {
-            // Try to find in PATH
-            process.launchPath = "/usr/bin/env"
-            process.arguments = [components[0]] + config.args
-        }
-        
-        // If we have a direct path, use provided args
-        if process.executableURL != nil {
             process.arguments = config.args.isEmpty ? Array(components.dropFirst()) : config.args
+        } else {
+            // Use which to find the executable
+            let whichProcess = Process()
+            let whichPipe = Pipe()
+            whichProcess.standardOutput = whichPipe
+            whichProcess.standardError = FileHandle.nullDevice
+            whichProcess.launchPath = "/usr/bin/which"
+            whichProcess.arguments = [components[0]]
+            
+            do {
+                try whichProcess.run()
+                whichProcess.waitUntilExit()
+                
+                if whichProcess.terminationStatus == 0 {
+                    let data = whichPipe.fileHandleForReading.readDataToEndOfFile()
+                    if let path = String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines),
+                       !path.isEmpty {
+                        process.executableURL = URL(fileURLWithPath: path)
+                        process.arguments = config.args.isEmpty ? Array(components.dropFirst()) : config.args
+                    } else {
+                        throw MCPError.connectionFailed("Command not found: \(components[0])")
+                    }
+                } else {
+                    throw MCPError.connectionFailed("Command not found: \(components[0])")
+                }
+            } catch {
+                throw MCPError.connectionFailed("Failed to locate command: \(components[0])")
+            }
         }
         
-        // Set environment
-        if !config.env.isEmpty {
-            process.environment = ProcessInfo.processInfo.environment.merging(config.env) { _, new in new }
-        }
+        // Set environment - always inherit current environment and merge custom vars
+        process.environment = ProcessInfo.processInfo.environment.merging(config.env) { _, new in new }
         
         // Start process
         do {
