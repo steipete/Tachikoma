@@ -14,6 +14,53 @@ struct OpenAIChatRequest: Codable {
     enum CodingKeys: String, CodingKey {
         case model, messages, temperature, tools, stream, stop
         case maxTokens = "max_tokens"
+        case maxCompletionTokens = "max_completion_tokens"
+    }
+    
+    init(model: String, messages: [OpenAIChatMessage], temperature: Double? = nil, maxTokens: Int? = nil, tools: [OpenAITool]? = nil, stream: Bool? = nil, stop: [String]? = nil) {
+        self.model = model
+        self.messages = messages
+        self.temperature = temperature
+        self.maxTokens = maxTokens
+        self.tools = tools
+        self.stream = stream
+        self.stop = stop
+    }
+    
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        model = try container.decode(String.self, forKey: .model)
+        messages = try container.decode([OpenAIChatMessage].self, forKey: .messages)
+        temperature = try container.decodeIfPresent(Double.self, forKey: .temperature)
+        
+        // Try both max_tokens and max_completion_tokens
+        if let maxTokens = try container.decodeIfPresent(Int.self, forKey: .maxTokens) {
+            self.maxTokens = maxTokens
+        } else {
+            self.maxTokens = try container.decodeIfPresent(Int.self, forKey: .maxCompletionTokens)
+        }
+        
+        tools = try container.decodeIfPresent([OpenAITool].self, forKey: .tools)
+        stream = try container.decodeIfPresent(Bool.self, forKey: .stream)
+        stop = try container.decodeIfPresent([String].self, forKey: .stop)
+    }
+    
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(model, forKey: .model)
+        try container.encode(messages, forKey: .messages)
+        try container.encodeIfPresent(temperature, forKey: .temperature)
+        
+        // Use max_completion_tokens for GPT-5 models, max_tokens for others
+        if model.hasPrefix("gpt-5") {
+            try container.encodeIfPresent(maxTokens, forKey: .maxCompletionTokens)
+        } else {
+            try container.encodeIfPresent(maxTokens, forKey: .maxTokens)
+        }
+        
+        try container.encodeIfPresent(tools, forKey: .tools)
+        try container.encodeIfPresent(stream, forKey: .stream)
+        try container.encodeIfPresent(stop, forKey: .stop)
     }
 }
 

@@ -168,25 +168,28 @@ struct OpenAICompatibleHelper {
         let encoder = JSONEncoder()
         urlRequest.httpBody = try encoder.encode(openAIRequest)
 
-        let (data, response) = try await URLSession.shared.data(for: urlRequest)
-
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw TachikomaError.networkError(NSError(domain: "Invalid response", code: 0))
-        }
-
-        guard httpResponse.statusCode == 200 else {
-            let errorText = String(data: data, encoding: .utf8) ?? "Unknown error"
-            throw TachikomaError.apiError("\(providerName) Error (HTTP \(httpResponse.statusCode)): \(errorText)")
-        }
-
         return AsyncThrowingStream { continuation in
             Task {
                 do {
-                    // Split the data by lines for SSE processing
-                    let responseString = String(data: data, encoding: .utf8) ?? ""
-                    let lines = responseString.components(separatedBy: .newlines)
+                    let (bytes, response) = try await URLSession.shared.bytes(for: urlRequest)
                     
-                    for line in lines {
+                    guard let httpResponse = response as? HTTPURLResponse else {
+                        throw TachikomaError.networkError(NSError(domain: "Invalid response", code: 0))
+                    }
+                    
+                    guard httpResponse.statusCode == 200 else {
+                        // Try to read error message from response
+                        var errorBody = ""
+                        for try await line in bytes.lines {
+                            errorBody += line
+                            if errorBody.count > 1000 { break }
+                        }
+                        let errorText = errorBody.isEmpty ? "Unknown error" : errorBody
+                        throw TachikomaError.apiError("\(providerName) Error (HTTP \(httpResponse.statusCode)): \(errorText)")
+                    }
+                    
+                    // Process the streaming response
+                    for try await line in bytes.lines {
                         if line.hasPrefix("data: ") {
                             let jsonString = String(line.dropFirst(6))
                             
@@ -200,8 +203,27 @@ struct OpenAICompatibleHelper {
                             do {
                                 let chunk = try JSONDecoder().decode(OpenAIStreamChunk.self, from: data)
                                 if let choice = chunk.choices.first {
-                                    if let content = choice.delta.content {
+                                    if let content = choice.delta.content, !content.isEmpty {
                                         continuation.yield(TextStreamDelta.text(content))
+                                    }
+                                    
+                                    if let toolCalls = choice.delta.toolCalls {
+                                        for toolCall in toolCalls {
+                                            if let function = toolCall.function {
+                                                if let name = function.name {
+                                                    continuation.yield(TextStreamDelta.toolCallStart(
+                                                        id: toolCall.id ?? "",
+                                                        name: name
+                                                    ))
+                                                }
+                                                if let arguments = function.arguments {
+                                                    continuation.yield(TextStreamDelta.toolCallDelta(
+                                                        id: toolCall.id ?? "",
+                                                        delta: arguments
+                                                    ))
+                                                }
+                                            }
+                                        }
                                     }
                                     
                                     if choice.finishReason != nil {
@@ -216,6 +238,8 @@ struct OpenAICompatibleHelper {
                         }
                     }
                     continuation.finish()
+                } catch {
+                    continuation.finish(throwing: error)
                 }
             }
         }

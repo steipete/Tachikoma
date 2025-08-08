@@ -130,12 +130,31 @@ public final class OpenAIResponsesProvider: ModelProvider {
                 do {
                     let (bytes, response) = try await URLSession.shared.bytes(for: finalURLRequest)
                     
-                    guard let httpResponse = response as? HTTPURLResponse,
-                          httpResponse.statusCode == 200 else {
-                        throw TachikomaError.apiError("Failed to start streaming")
+                    guard let httpResponse = response as? HTTPURLResponse else {
+                        throw TachikomaError.apiError("Invalid response type")
+                    }
+                    
+                    if httpResponse.statusCode != 200 {
+                        // Try to read error message from response
+                        var errorMessage = "HTTP \(httpResponse.statusCode)"
+                        var errorBody = ""
+                        for try await line in bytes.lines {
+                            errorBody += line
+                            if errorBody.count > 1000 { break } // Limit error message size
+                        }
+                        if let data = errorBody.data(using: .utf8),
+                           let errorResponse = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                           let error = errorResponse["error"] as? [String: Any],
+                           let message = error["message"] as? String {
+                            errorMessage = "\(httpResponse.statusCode): \(message)"
+                        } else if !errorBody.isEmpty {
+                            errorMessage = "\(httpResponse.statusCode): \(errorBody.prefix(500))"
+                        }
+                        throw TachikomaError.apiError("Failed to start streaming: \(errorMessage)")
                     }
                     
                     var buffer = ""
+                    var previousContent = ""  // Track previously sent content for GPT-5 preambles
                     
                     for try await line in bytes.lines {
                         // Handle SSE format
@@ -153,12 +172,34 @@ public final class OpenAIResponsesProvider: ModelProvider {
                                     
                                     // Convert to TextStreamDelta
                                     if let choice = chunk.choices.first,
-                                       let content = choice.delta.content {
-                                        // Check for preamble messages (GPT-5 feature)
-                                        let isPreamble = choice.delta.role == "assistant" && !content.isEmpty
+                                       let content = choice.delta.content,
+                                       !content.isEmpty {
+                                        // Debug logging for GPT-5 streaming issue
+                                        if ProcessInfo.processInfo.environment["DEBUG_STREAMING"] != nil {
+                                            print("DEBUG: Received content: '\(content)'")
+                                            print("DEBUG: Previous content: '\(previousContent)'")
+                                        }
                                         
-                                        // Use text constructor for TextStreamDelta
-                                        continuation.yield(TextStreamDelta.text(content))
+                                        // GPT-5 preamble messages might send accumulated content instead of deltas
+                                        // Check if this is accumulated content or a true delta
+                                        if content.hasPrefix(previousContent) && !previousContent.isEmpty {
+                                            // This is accumulated content, extract just the delta
+                                            let delta = String(content.dropFirst(previousContent.count))
+                                            if !delta.isEmpty {
+                                                if ProcessInfo.processInfo.environment["DEBUG_STREAMING"] != nil {
+                                                    print("DEBUG: Yielding delta: '\(delta)'")
+                                                }
+                                                continuation.yield(TextStreamDelta.text(delta))
+                                                previousContent = content  // Update the accumulated content
+                                            }
+                                        } else {
+                                            // This is a true delta or the first chunk
+                                            if ProcessInfo.processInfo.environment["DEBUG_STREAMING"] != nil {
+                                                print("DEBUG: Yielding content as-is: '\(content)'")
+                                            }
+                                            continuation.yield(TextStreamDelta.text(content))
+                                            previousContent += content  // Accumulate for comparison
+                                        }
                                     }
                                     
                                     // Handle tool calls
@@ -215,8 +256,8 @@ public final class OpenAIResponsesProvider: ModelProvider {
             nil
         }
         
-        // Determine verbosity (GPT-5 only)
-        let verbosity: String? = Self.isGPT5Model(model) ? self.verbosity : nil
+        // Determine verbosity (GPT-5 doesn't actually support this parameter)
+        let verbosity: String? = nil
         
         // Build request
         return OpenAIResponsesRequest(
