@@ -102,10 +102,7 @@ public final class SSETransport: MCPTransport {
         dict["id"] = id
         let postBody = try JSONSerialization.data(withJSONObject: dict)
 
-        // Ensure endpoint is available (fallback to base URL if server doesn't emit 'endpoint')
-        if await state.getEndpoint() == nil, let base = await state.getBaseURL() {
-            await state.setEndpoint(base)
-        }
+        // Ensure endpoint is available via SSE 'endpoint' event; do not fallback to base URL
         let start = Date()
         while await state.getEndpoint() == nil {
             try await Task.sleep(nanoseconds: 50_000_000) // 50ms
