@@ -148,7 +148,9 @@ public final class StdioTransport: MCPTransport {
         await state.setRequestTimeout(seconds: config.timeout)
         
         // Start reading output
+        logger.info("About to start reading output")
         startReadingOutput()
+        logger.info("Called startReadingOutput")
         // Drain and log stderr separately (non-blocking)
         Task {
             let fh = errorPipe.fileHandleForReading
@@ -168,7 +170,7 @@ public final class StdioTransport: MCPTransport {
         logger.info("Disconnecting stdio transport")
         let process = await state.process
         process?.terminate()
-        await state.setProcess(nil, input: nil, output: nil)
+        await state.setProcess(nil, input: nil, output: nil, error: nil)
         await state.cancelAllRequests()
     }
     
@@ -244,36 +246,63 @@ public final class StdioTransport: MCPTransport {
         guard let inputPipe = await state.getInputPipe() else {
             throw MCPError.notConnected
         }
-        // MCP stdio framing (LSP-style): headers + blank line + JSON payload
-        // Some servers require Content-Type and a trailing newline after the payload
-        var header = "Content-Type: application/json\r\n"
-        header += "Content-Length: \(data.count)\r\n\r\n"
-        let headerData = header.data(using: .utf8)!
-        try inputPipe.fileHandleForWriting.write(contentsOf: headerData)
+        // MCP TypeScript SDK uses simple newline-delimited JSON, NOT LSP-style framing
+        // Just send the JSON followed by a newline
         try inputPipe.fileHandleForWriting.write(contentsOf: data)
-        // Append trailing newline to trigger flush for some Node-based servers
         try inputPipe.fileHandleForWriting.write(contentsOf: "\n".data(using: .utf8)!)
+        
+        // Log what we sent for debugging
+        if let json = String(data: data, encoding: .utf8) {
+            logger.debug("[MCP stdio] → sent: \(json)")
+        }
     }
     
     private func startReadingOutput() {
         Task {
-            guard let outputPipe = await state.getOutputPipe() else { return }
+            guard let outputPipe = await state.getOutputPipe() else { 
+                logger.error("[MCP stdio] No output pipe available")
+                return 
+            }
             
+            logger.info("[MCP stdio] Starting to read output")
             let fileHandle = outputPipe.fileHandleForReading
+            var buffer = Data()
             
             while true {
-                do {
-                    // Read MCP stdio-framed message: headers then body
-                    guard let (headers, body) = try await readFramedMessage(from: fileHandle) else { break }
-                    if let len = headers["content-length"], Int(len) == body.count {
-                        await handleResponse(body)
+                autoreleasepool {
+                    // Use availableData which doesn't block if no data is available
+                    logger.info("[MCP stdio] Attempting to read...")
+                    let chunk = fileHandle.availableData
+                    
+                    if chunk.isEmpty {
+                        logger.info("[MCP stdio] No data available, sleeping...")
+                        // Sleep briefly before trying again
+                        Thread.sleep(forTimeInterval: 0.01)
                     } else {
-                        logger.error("Invalid MCP stdio frame: content-length mismatch")
-                    }
-                } catch {
-                    logger.error("Error reading output: \(error)")
-                    break
-                }
+                        buffer.append(chunk)
+                        
+                        // Log raw data for debugging
+                        if let raw = String(data: chunk, encoding: .utf8) {
+                            logger.info("[MCP stdio] ← raw chunk: \(raw)")
+                        }
+                        
+                        // Process complete lines (newline-delimited JSON)
+                        while let newlineRange = buffer.firstRange(of: Data("\n".utf8)) {
+                            let lineData = buffer[..<newlineRange.lowerBound]
+                            buffer.removeSubrange(..<newlineRange.upperBound)
+                            
+                            if !lineData.isEmpty {
+                                // Log what we received for debugging
+                                if let json = String(data: lineData, encoding: .utf8) {
+                                    logger.info("[MCP stdio] ← received: \(json)")
+                                }
+                                Task {
+                                    await handleResponse(lineData)
+                                }
+                            }
+                        }
+                    } // end else (chunk not empty)
+                } // end autoreleasepool
             }
         }
     }

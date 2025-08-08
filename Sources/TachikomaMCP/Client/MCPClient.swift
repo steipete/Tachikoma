@@ -112,6 +112,7 @@ public final class MCPClient: Sendable {
         let transport: any MCPTransport
         switch config.transport.lowercased() {
         case "stdio":
+            // Always use standard stdio transport now that we've fixed the reading issue
             transport = StdioTransport()
         case "sse":
             transport = SSETransport()
