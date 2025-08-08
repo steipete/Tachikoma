@@ -138,6 +138,32 @@ public final class TachikomaMCPClientManager {
         return (cfg, isConnected)
     }
 
+    /// Build Tachikoma AgentTools for all connected servers
+    public func getAllAgentTools() async -> [AgentTool] {
+        var all: [AgentTool] = []
+        for (name, client) in connections {
+            // Only attempt if connected
+            if await client.isConnected {
+                let provider = MCPToolProvider(client: client)
+                if let tools = try? await provider.getAgentTools() {
+                    all.append(contentsOf: tools)
+                }
+            } else {
+                // Try to connect quickly and then fetch
+                do {
+                    try await client.connect()
+                    let provider = MCPToolProvider(client: client)
+                    if let tools = try? await provider.getAgentTools() {
+                        all.append(contentsOf: tools)
+                    }
+                } catch {
+                    continue
+                }
+            }
+        }
+        return all
+    }
+
     // MARK: Persistence
     /// Persist the current effectiveConfigs back to the profile config file under mcpClients.
     public func persist() throws {
