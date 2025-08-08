@@ -13,7 +13,7 @@ private actor StdioTransportState {
     var inputPipe: Pipe?
     var outputPipe: Pipe?
     var nextId: Int = 1
-    var pendingRequests: [Int: CheckedContinuation<Data, Swift.Error>] = [:]
+    var pendingRequests: [String: CheckedContinuation<Data, Swift.Error>] = [:]
     var timeoutTasks: [Int: Task<Void, Never>] = [:]
     var requestTimeoutNs: UInt64 = 30_000_000_000 // default 30s
     
@@ -30,10 +30,14 @@ private actor StdioTransportState {
     }
     
     func addPendingRequest(id: Int, continuation: CheckedContinuation<Data, Swift.Error>) {
-        pendingRequests[id] = continuation
+        pendingRequests[String(id)] = continuation
     }
     
     func removePendingRequest(id: Int) -> CheckedContinuation<Data, Swift.Error>? {
+        return pendingRequests.removeValue(forKey: String(id))
+    }
+    
+    func removePendingRequestByStringId(_ id: String) -> CheckedContinuation<Data, Swift.Error>? {
         return pendingRequests.removeValue(forKey: id)
     }
     
@@ -334,6 +338,13 @@ public final class StdioTransport: MCPTransport {
                 
                 if let continuation = await state.removePendingRequest(id: id) {
                     await state.cancelTimeoutTask(id: id)
+                    continuation.resume(returning: data)
+                }
+            } else if let response = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                      let idString = response["id"] as? String,
+                      let idInt = Int(idString) {
+                if let continuation = await state.removePendingRequestByStringId(idString) ?? await state.removePendingRequest(id: idInt) {
+                    await state.cancelTimeoutTask(id: idInt)
                     continuation.resume(returning: data)
                 }
             }
