@@ -203,16 +203,8 @@ public final class OpenAIResponsesProvider: ModelProvider {
                                     }
                                     
                                     // Handle tool calls
-                                    if let choice = chunk.choices.first,
-                                       let toolCalls = choice.delta.toolCalls {
-                                        for toolCall in toolCalls {
-                                            if let function = toolCall.function,
-                                               let name = function.name {
-                                                // TODO: Handle tool call streaming properly
-                                                // For now, just skip tool calls in streaming
-                                            }
-                                        }
-                                    }
+                                    // Note: OpenAIStreamChunk doesn't have toolCalls in delta yet
+                                    // This would need to be added to the type definition if needed
                                     
                                     // Check for finish
                                     if let choice = chunk.choices.first,

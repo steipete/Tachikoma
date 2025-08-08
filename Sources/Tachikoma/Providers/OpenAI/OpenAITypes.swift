@@ -249,6 +249,24 @@ struct OpenAIStreamChunk: Codable {
     struct Delta: Codable {
         let role: String?
         let content: String?
+        let toolCalls: [ToolCall]?
+        
+        enum CodingKeys: String, CodingKey {
+            case role, content
+            case toolCalls = "tool_calls"
+        }
+        
+        struct ToolCall: Codable {
+            let index: Int?
+            let id: String?
+            let type: String?
+            let function: Function?
+            
+            struct Function: Codable {
+                let name: String?
+                let arguments: String?
+            }
+        }
     }
 }
 

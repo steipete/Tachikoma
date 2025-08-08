@@ -167,11 +167,14 @@ struct OpenAICompatibleHelper {
 
         let encoder = JSONEncoder()
         urlRequest.httpBody = try encoder.encode(openAIRequest)
+        
+        // Create a copy to avoid capturing mutable reference
+        let finalRequest = urlRequest
 
         return AsyncThrowingStream { continuation in
             Task {
                 do {
-                    let (bytes, response) = try await URLSession.shared.bytes(for: urlRequest)
+                    let (bytes, response) = try await URLSession.shared.bytes(for: finalRequest)
                     
                     guard let httpResponse = response as? HTTPURLResponse else {
                         throw TachikomaError.networkError(NSError(domain: "Invalid response", code: 0))
@@ -209,19 +212,41 @@ struct OpenAICompatibleHelper {
                                     
                                     if let toolCalls = choice.delta.toolCalls {
                                         for toolCall in toolCalls {
-                                            if let function = toolCall.function {
-                                                if let name = function.name {
-                                                    continuation.yield(TextStreamDelta.toolCallStart(
-                                                        id: toolCall.id ?? "",
-                                                        name: name
-                                                    ))
+                                            if let function = toolCall.function,
+                                               let name = function.name {
+                                                // Handle incremental tool call updates
+                                                // This is a simplified version - full implementation  
+                                                // would need to accumulate function arguments
+                                                
+                                                // Parse arguments JSON string into dictionary
+                                                let argumentsDict: [String: AnyAgentToolValue]
+                                                if let argumentsStr = function.arguments,
+                                                   !argumentsStr.isEmpty,
+                                                   let data = argumentsStr.data(using: .utf8),
+                                                   let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+                                                    // Convert JSON to AnyAgentToolValue dictionary
+                                                    argumentsDict = json.compactMapValues { value in
+                                                        if let stringValue = value as? String {
+                                                            return try? AnyAgentToolValue(string: stringValue)
+                                                        } else if let intValue = value as? Int {
+                                                            return try? AnyAgentToolValue(int: intValue)
+                                                        } else if let doubleValue = value as? Double {
+                                                            return try? AnyAgentToolValue(double: doubleValue)
+                                                        } else if let boolValue = value as? Bool {
+                                                            return try? AnyAgentToolValue(bool: boolValue)
+                                                        }
+                                                        return nil
+                                                    }
+                                                } else {
+                                                    argumentsDict = [:]
                                                 }
-                                                if let arguments = function.arguments {
-                                                    continuation.yield(TextStreamDelta.toolCallDelta(
-                                                        id: toolCall.id ?? "",
-                                                        delta: arguments
-                                                    ))
-                                                }
+                                                
+                                                let agentToolCall = AgentToolCall(
+                                                    id: toolCall.id ?? UUID().uuidString,
+                                                    name: name,
+                                                    arguments: argumentsDict
+                                                )
+                                                continuation.yield(TextStreamDelta.tool(agentToolCall))
                                             }
                                         }
                                     }
