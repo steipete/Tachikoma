@@ -52,12 +52,16 @@ public final class SSETransport: MCPTransport {
         guard let url = URL(string: config.command) else {
             throw MCPError.connectionFailed("Invalid URL: \(config.command)")
         }
-        // Per AI SDK, the SSE GET uses Accept: text/event-stream only
+        // Per AI SDK, the SSE GET uses Accept: text/event-stream. Also forward any custom headers (e.g., Authorization)
+        var getHeaders: [String: String] = [
+            "Accept": "text/event-stream"
+        ]
+        if let custom = config.headers {
+            for (k, v) in custom { getHeaders[k] = v }
+        }
         let transport = HTTPClientTransport(
             endpoint: url,
-            headers: [
-                "Accept": "text/event-stream"
-            ],
+            headers: getHeaders,
             streaming: true,
             sseInitializationTimeout: min(max(config.timeout, 1), 60)
         )
@@ -213,14 +217,23 @@ public final class SSETransport: MCPTransport {
         logger.trace("[SSE] event=\(eventType) data=\(dataString)")
         switch eventType {
         case "endpoint":
-            // Resolve endpoint relative to base URL
-            if let base = await state.baseURL, let url = URL(string: dataString, relativeTo: base) {
-                // Ensure same-origin
-                if url.host == base.host && url.scheme == base.scheme {
-                    await state.setEndpoint(url.absoluteURL)
-                    logger.info("[SSE] Endpoint established: \(url.absoluteString)")
-                } else {
-                    logger.error("[SSE] Endpoint origin mismatch: \(url.absoluteString)")
+            // Allow either a plain string URL or a JSON object: { "url": "/rpc" } or { "endpoint": "/rpc" }
+            if let base = await state.baseURL {
+                var endpointCandidate: String? = dataString
+                if dataString.trimmingCharacters(in: .whitespacesAndNewlines).hasPrefix("{") {
+                    if let jsonData = dataString.data(using: .utf8),
+                       let obj = try? JSONSerialization.jsonObject(with: jsonData) as? [String: Any] {
+                        if let u = obj["url"] as? String { endpointCandidate = u }
+                        else if let e = obj["endpoint"] as? String { endpointCandidate = e }
+                    }
+                }
+                if let candidate = endpointCandidate, let url = URL(string: candidate, relativeTo: base) {
+                    if url.host == base.host && url.scheme == base.scheme {
+                        await state.setEndpoint(url.absoluteURL)
+                        logger.info("[SSE] Endpoint established: \(url.absoluteString)")
+                    } else {
+                        logger.error("[SSE] Endpoint origin mismatch: \(url.absoluteString)")
+                    }
                 }
             }
         case "message":
