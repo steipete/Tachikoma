@@ -46,7 +46,8 @@ public final class HTTPTransport: MCPTransport {
     
     public func disconnect() async {
         logger.info("Disconnecting HTTP transport")
-        await state.setConnection(session: nil, url: nil)
+        let currentTimeout = await state.getTimeout()
+        await state.setConnection(session: nil, url: nil, timeout: currentTimeout)
     }
     
     public func sendRequest<P: Encodable, R: Decodable>(
@@ -63,14 +64,8 @@ public final class HTTPTransport: MCPTransport {
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         
         // JSON-RPC 2.0 over HTTP
-        struct JSONRPCRequest<P: Encodable>: Encodable {
-            let jsonrpc = "2.0"
-            let method: String
-            let params: P
-            let id: Int
-        }
         let id = Int.random(in: 1...Int(Int32.max))
-        let body = JSONRPCRequest(method: method, params: params, id: id)
+        let body = HTTPJSONRPCRequest(method: method, params: params, id: id)
         request.httpBody = try JSONEncoder().encode(body)
         
         let (data, response) = try await urlSession.data(for: request)
@@ -79,14 +74,7 @@ public final class HTTPTransport: MCPTransport {
             throw MCPError.executionFailed("HTTP request failed")
         }
         
-        struct JSONRPCResponse<R: Decodable>: Decodable {
-            let jsonrpc: String
-            let result: R?
-            let error: JSONRPCError?
-            let id: Int?
-        }
-        struct JSONRPCError: Decodable { let code: Int; let message: String }
-        let decoded = try JSONDecoder().decode(JSONRPCResponse<R>.self, from: data)
+        let decoded = try JSONDecoder().decode(HTTPJSONRPCResponse<R>.self, from: data)
         if let err = decoded.error { throw MCPError.executionFailed(err.message) }
         guard let result = decoded.result else { throw MCPError.invalidResponse }
         return result
@@ -96,21 +84,8 @@ public final class HTTPTransport: MCPTransport {
         method: String,
         params: P
     ) async throws {
-        // Use same path with an id we ignore
-        struct JSONRPCNotification<P: Encodable>: Encodable {
-            let jsonrpc = "2.0"
-            let method: String
-            let params: P
-        }
-        guard let baseURL = await state.getBaseURL(),
-              let urlSession = await state.getSession() else {
-            throw MCPError.notConnected
-        }
-        var request = URLRequest(url: baseURL)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.httpBody = try JSONEncoder().encode(JSONRPCNotification(method: method, params: params))
-        _ = try await urlSession.data(for: request)
+        // Reuse request path; ignore result
+        let _: EmptyResponse = try await sendRequest(method: method, params: params)
     }
 }
 

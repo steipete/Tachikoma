@@ -6,6 +6,23 @@
 import Foundation
 import MCP
 import Logging
+// Shared JSON-RPC types for HTTP transport
+struct HTTPJSONRPCRequest<P: Encodable>: Encodable {
+    let jsonrpc = "2.0"
+    let method: String
+    let params: P
+    let id: Int
+}
+
+struct HTTPJSONRPCResponse<R: Decodable>: Decodable {
+    let jsonrpc: String
+    let result: R?
+    let error: HTTPJSONRPCError?
+    let id: Int?
+}
+
+struct HTTPJSONRPCError: Decodable { let code: Int; let message: String }
+
 
 /// Configuration for an MCP server connection
 public struct MCPServerConfig: Sendable, Codable {
