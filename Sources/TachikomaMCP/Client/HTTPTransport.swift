@@ -10,19 +10,17 @@ import Logging
 private actor HTTPTransportState {
     var urlSession: URLSession?
     var baseURL: URL?
+    var requestTimeout: TimeInterval = 30
     
-    func setConnection(session: URLSession?, url: URL?) {
+    func setConnection(session: URLSession?, url: URL?, timeout: TimeInterval) {
         self.urlSession = session
         self.baseURL = url
+        self.requestTimeout = timeout
     }
     
-    func getSession() -> URLSession? {
-        return urlSession
-    }
-    
-    func getBaseURL() -> URL? {
-        return baseURL
-    }
+    func getSession() -> URLSession? { urlSession }
+    func getBaseURL() -> URL? { baseURL }
+    func getTimeout() -> TimeInterval { requestTimeout }
 }
 
 /// HTTP transport for MCP communication
@@ -37,14 +35,13 @@ public final class HTTPTransport: MCPTransport {
             throw MCPError.connectionFailed("Invalid URL: \(config.command)")
         }
         
-        let session = URLSession(configuration: .default)
-        await state.setConnection(session: session, url: url)
+        let cfg = URLSessionConfiguration.default
+        cfg.timeoutIntervalForRequest = max(1, config.timeout)
+        cfg.timeoutIntervalForResource = max(1, config.timeout)
+        let session = URLSession(configuration: cfg)
+        await state.setConnection(session: session, url: url, timeout: config.timeout)
         
-        logger.info("HTTP transport connecting to: \(url)")
-        
-        // HTTP doesn't require a persistent connection
-        // Just validate the endpoint is reachable
-        // TODO: Implement health check
+        logger.info("HTTP transport ready: \(url)")
     }
     
     public func disconnect() async {
@@ -61,34 +58,59 @@ public final class HTTPTransport: MCPTransport {
             throw MCPError.notConnected
         }
         
-        // Build request URL
-        let requestURL = baseURL.appendingPathComponent(method)
-        var request = URLRequest(url: requestURL)
+        var request = URLRequest(url: baseURL)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         
-        // Encode params
-        request.httpBody = try JSONEncoder().encode(params)
+        // JSON-RPC 2.0 over HTTP
+        struct JSONRPCRequest<P: Encodable>: Encodable {
+            let jsonrpc = "2.0"
+            let method: String
+            let params: P
+            let id: Int
+        }
+        let id = Int.random(in: 1...Int(Int32.max))
+        let body = JSONRPCRequest(method: method, params: params, id: id)
+        request.httpBody = try JSONEncoder().encode(body)
         
-        // Send request
         let (data, response) = try await urlSession.data(for: request)
-        
-        // Check response
         guard let httpResponse = response as? HTTPURLResponse,
               (200...299).contains(httpResponse.statusCode) else {
             throw MCPError.executionFailed("HTTP request failed")
         }
         
-        // Decode response
-        return try JSONDecoder().decode(R.self, from: data)
+        struct JSONRPCResponse<R: Decodable>: Decodable {
+            let jsonrpc: String
+            let result: R?
+            let error: JSONRPCError?
+            let id: Int?
+        }
+        struct JSONRPCError: Decodable { let code: Int; let message: String }
+        let decoded = try JSONDecoder().decode(JSONRPCResponse<R>.self, from: data)
+        if let err = decoded.error { throw MCPError.executionFailed(err.message) }
+        guard let result = decoded.result else { throw MCPError.invalidResponse }
+        return result
     }
     
     public func sendNotification<P: Encodable>(
         method: String,
         params: P
     ) async throws {
-        // For HTTP, notifications are just fire-and-forget requests
-        _ = try await sendRequest(method: method, params: params) as EmptyResponse
+        // Use same path with an id we ignore
+        struct JSONRPCNotification<P: Encodable>: Encodable {
+            let jsonrpc = "2.0"
+            let method: String
+            let params: P
+        }
+        guard let baseURL = await state.getBaseURL(),
+              let urlSession = await state.getSession() else {
+            throw MCPError.notConnected
+        }
+        var request = URLRequest(url: baseURL)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try JSONEncoder().encode(JSONRPCNotification(method: method, params: params))
+        _ = try await urlSession.data(for: request)
     }
 }
 
