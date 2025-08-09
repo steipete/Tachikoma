@@ -80,6 +80,30 @@ public final class GoogleProvider: ModelProvider {
                     urlRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
                     urlRequest.httpBody = try JSONEncoder().encode(googleRequest)
                     
+                    #if canImport(FoundationNetworking)
+                    // Linux: Use data task
+                    let (data, response) = try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<(Data, URLResponse), Error>) in
+                        URLSession.shared.dataTask(with: urlRequest) { data, response, error in
+                            if let error = error {
+                                continuation.resume(throwing: error)
+                            } else if let data = data, let response = response {
+                                continuation.resume(returning: (data, response))
+                            } else {
+                                continuation.resume(throwing: TachikomaError.networkError(NSError(domain: "Invalid response", code: 0)))
+                            }
+                        }.resume()
+                    }
+                    
+                    guard let httpResponse = response as? HTTPURLResponse,
+                          200..<300 ~= httpResponse.statusCode else {
+                        throw TachikomaError.apiError("Google API request failed")
+                    }
+                    
+                    // Parse entire response for Linux
+                    let lines = String(data: data, encoding: .utf8)?.components(separatedBy: "\n") ?? []
+                    for line in lines {
+                    #else
+                    // macOS/iOS: Use streaming API
                     let (bytes, response) = try await URLSession.shared.bytes(for: urlRequest)
                     
                     guard let httpResponse = response as? HTTPURLResponse,
@@ -89,6 +113,7 @@ public final class GoogleProvider: ModelProvider {
                     
                     // Parse SSE stream
                     for try await line in bytes.lines {
+                    #endif
                         if line.hasPrefix("data: ") {
                             let jsonString = String(line.dropFirst(6))
                             if let data = jsonString.data(using: .utf8),

@@ -241,7 +241,7 @@ public final class AnthropicProvider: ModelProvider {
         // Use URLSession's bytes API for proper streaming
         #if canImport(FoundationNetworking)
         // Linux: Use data task for now (streaming not available)
-        let (data, response) = try await withCheckedThrowingContinuation { continuation in
+        let (data, response) = try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<(Data, URLResponse), Error>) in
             URLSession.shared.dataTask(with: urlRequest) { data, response, error in
                 if let error = error {
                     continuation.resume(throwing: error)
@@ -260,7 +260,7 @@ public final class AnthropicProvider: ModelProvider {
         guard httpResponse.statusCode == 200 else {
             // Return error data
             let errorText = String(data: data, encoding: .utf8) ?? "Unknown error"
-            throw TachikomaError.providerError(errorText)
+            throw TachikomaError.apiError("Anthropic Error (HTTP \(httpResponse.statusCode)): \(errorText)")
         }
         
         // For Linux, parse the entire response at once

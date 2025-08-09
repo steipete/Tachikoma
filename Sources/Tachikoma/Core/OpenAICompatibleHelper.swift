@@ -192,7 +192,7 @@ struct OpenAICompatibleHelper {
                 do {
                     #if canImport(FoundationNetworking)
                     // Linux: Use data task
-                    let (data, response) = try await withCheckedThrowingContinuation { cont in
+                    let (data, response) = try await withCheckedThrowingContinuation { (cont: CheckedContinuation<(Data, URLResponse), Error>) in
                         URLSession.shared.dataTask(with: finalRequest) { data, response, error in
                             if let error = error {
                                 cont.resume(throwing: error)

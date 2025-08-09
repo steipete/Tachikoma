@@ -76,7 +76,7 @@ public final class OpenAIResponsesProvider: ModelProvider {
         // Send request
         #if canImport(FoundationNetworking)
         // Linux: Use data task
-        let (data, response) = try await withCheckedThrowingContinuation { continuation in
+        let (data, response) = try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<(Data, URLResponse), Error>) in
             URLSession.shared.dataTask(with: urlRequest) { data, response, error in
                 if let error = error {
                     continuation.resume(throwing: error)
