@@ -65,7 +65,18 @@ public final class AnthropicProvider: ModelProvider {
         )
 
         let encoder = JSONEncoder()
-        urlRequest.httpBody = try encoder.encode(anthropicRequest)
+        encoder.outputFormatting = .prettyPrinted // For debugging
+        let requestData = try encoder.encode(anthropicRequest)
+        urlRequest.httpBody = requestData
+        
+        // Debug: Print the request JSON when verbose
+        if ProcessInfo.processInfo.arguments.contains("--verbose") || 
+           ProcessInfo.processInfo.arguments.contains("-v") {
+            if let jsonString = String(data: requestData, encoding: .utf8) {
+                print("DEBUG: Anthropic request JSON:")
+                print(jsonString)
+            }
+        }
 
         let (data, response) = try await URLSession.shared.data(for: urlRequest)
 
@@ -86,6 +97,15 @@ public final class AnthropicProvider: ModelProvider {
 
         let decoder = JSONDecoder()
         let anthropicResponse = try decoder.decode(AnthropicMessageResponse.self, from: data)
+        
+        // Debug: Print the response when verbose
+        if ProcessInfo.processInfo.arguments.contains("--verbose") || 
+           ProcessInfo.processInfo.arguments.contains("-v") {
+            if let jsonString = String(data: data, encoding: .utf8) {
+                print("DEBUG: Anthropic response JSON:")
+                print(jsonString)
+            }
+        }
 
         let text = anthropicResponse.content.compactMap { content in
             switch content {
@@ -240,7 +260,7 @@ public final class AnthropicProvider: ModelProvider {
                     return nil
                 }.joined()
             case .user:
-                let content = try message.content.compactMap { contentPart -> AnthropicContent? in
+                let content = message.content.compactMap { contentPart -> AnthropicContent? in
                     switch contentPart {
                     case .text(let text):
                         return .text(AnthropicContent.TextContent(type: "text", text: text))
