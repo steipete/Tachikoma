@@ -299,16 +299,37 @@ public final class AudioRecorder: ObservableObject, AudioRecorderProtocol {
     }
 }
 
+// MARK: - Thread-safe audio file wrapper
+
+/// Thread-safe wrapper for AVAudioFile to handle concurrent writes
+private final class ThreadSafeAudioFile: @unchecked Sendable {
+    private let audioFile: AVAudioFile
+    private let lock = NSLock()
+    
+    init(audioFile: AVAudioFile) {
+        self.audioFile = audioFile
+    }
+    
+    func write(from buffer: AVAudioPCMBuffer) throws {
+        lock.lock()
+        defer { lock.unlock() }
+        try audioFile.write(from: buffer)
+    }
+}
+
 // MARK: - Realtime helper (free function, not MainActor-isolated)
 
 private func installInputTapNonisolated(inputNode: AVAudioInputNode,
                                        format: AVAudioFormat,
                                        audioFile: AVAudioFile) {
+    let threadSafeFile = ThreadSafeAudioFile(audioFile: audioFile)
+    
     inputNode.installTap(onBus: 0, bufferSize: 1024, format: format) { buffer, _ in
         do {
-            try audioFile.write(from: buffer)
+            try threadSafeFile.write(from: buffer)
         } catch {
-            logger.error("Failed to write audio buffer: \(error)")        }
+            logger.error("Failed to write audio buffer: \(error)")
+        }
     }
 }
 
