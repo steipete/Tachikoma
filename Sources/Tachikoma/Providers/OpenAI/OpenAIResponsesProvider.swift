@@ -17,8 +17,8 @@ public final class OpenAIResponsesProvider: ModelProvider {
     private let configuration: TachikomaConfiguration
     
     // Provider options (immutable for Sendable conformance)
-    private let reasoningEffort: String = "medium"  // minimal, low, medium, high
-    private let verbosity: String = "high"  // low, medium, high (GPT-5 only) - set to high for preambles
+    private let reasoningEffort: ReasoningEffort = .medium
+    private let verbosity: TextVerbosity = .high  // Set to high for preambles
     private let previousResponseId: String? = nil  // For conversation persistence
     private let reasoningItemIds: [String] = []  // For stateful reasoning
     
@@ -235,7 +235,7 @@ public final class OpenAIResponsesProvider: ModelProvider {
         let reasoning: ReasoningConfig? = if Self.isReasoningModel(model) || Self.isGPT5Model(model) {
             ReasoningConfig(
                 effort: reasoningEffort,
-                summary: false  // TODO: Add includeReasoning to GenerationSettings
+                summary: .auto
             )
         } else {
             nil
@@ -383,6 +383,7 @@ public final class OpenAIResponsesProvider: ModelProvider {
         )
         
         return ResponsesTool(
+            name: tool.name,  // Add name at root level for GPT-5
             type: "function",
             function: function
         )

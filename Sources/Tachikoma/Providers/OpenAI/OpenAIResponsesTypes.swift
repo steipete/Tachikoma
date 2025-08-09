@@ -61,17 +61,42 @@ struct OpenAIResponsesRequest: Codable {
     }
 }
 
+/// Text verbosity levels for GPT-5
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
+enum TextVerbosity: String, Codable, Sendable {
+    case low = "low"
+    case medium = "medium"
+    case high = "high"
+}
+
+/// Reasoning effort levels for reasoning models
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
+enum ReasoningEffort: String, Codable, Sendable {
+    case minimal = "minimal"
+    case low = "low"
+    case medium = "medium"
+    case high = "high"
+}
+
+/// Reasoning summary modes for reasoning models
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
+enum ReasoningSummary: String, Codable, Sendable {
+    case concise = "concise"
+    case detailed = "detailed"
+    case auto = "auto"
+}
+
 /// Text configuration for GPT-5 models
 @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 struct TextConfig: Codable, Sendable {
-    let verbosity: String?  // "low", "medium", "high"
+    let verbosity: TextVerbosity?
 }
 
 /// Reasoning configuration for reasoning models
 @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 struct ReasoningConfig: Codable, Sendable {
-    let effort: String?  // "minimal", "low", "medium", "high"
-    let summary: Bool?
+    let effort: ReasoningEffort?
+    let summary: ReasoningSummary?
 }
 
 /// Response format configuration
@@ -213,6 +238,7 @@ struct ResponsesContentPart: Codable, Sendable {
 /// Tool definition for Responses API
 @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 struct ResponsesTool: Codable {
+    let name: String  // Add name at root level for GPT-5 compatibility
     let type: String
     let function: ToolFunction?
     
