@@ -544,8 +544,7 @@ public struct AgentTool: Sendable {
         self.namespace = namespace
         self.recipient = recipient
         // Wrap the simple executor to ignore context
-        let capturedExecute = execute
-        self.execute = { args, _ in try await capturedExecute(args) }
+        self.execute = { @Sendable args, _ in try await execute(args) }
     }
     
     public init(
