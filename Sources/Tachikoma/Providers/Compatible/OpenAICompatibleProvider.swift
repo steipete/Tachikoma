@@ -39,10 +39,24 @@ public final class OpenAICompatibleProvider: ModelProvider {
     }
 
     public func generateText(request: ProviderRequest) async throws -> ProviderResponse {
-        throw TachikomaError.unsupportedOperation("OpenAI-compatible provider not yet implemented")
+        // Use OpenAI-compatible implementation
+        return try await OpenAICompatibleHelper.generateText(
+            request: request,
+            modelId: self.modelId,
+            baseURL: self.baseURL!,
+            apiKey: self.apiKey ?? "",
+            providerName: "OpenAICompatible"
+        )
     }
 
     public func streamText(request: ProviderRequest) async throws -> AsyncThrowingStream<TextStreamDelta, Error> {
-        throw TachikomaError.unsupportedOperation("OpenAI-compatible streaming not yet implemented")
+        // Use OpenAI-compatible streaming implementation
+        return try await OpenAICompatibleHelper.streamText(
+            request: request,
+            modelId: self.modelId,
+            baseURL: self.baseURL!,
+            apiKey: self.apiKey ?? "",
+            providerName: "OpenAICompatible"
+        )
     }
 }

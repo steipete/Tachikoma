@@ -91,6 +91,57 @@ public final class Conversation: @unchecked Sendable {
 
         return response.text
     }
+    
+    /// Continue the conversation with a model, streaming the response
+    public func continueConversationStreaming(using model: LanguageModel? = nil, tools: [AgentTool]? = nil) async throws -> AsyncThrowingStream<String, Error> {
+        // Convert conversation messages to model messages
+        let modelMessages = self.messages.map { conversationMessage in
+            ModelMessage(
+                id: conversationMessage.id,
+                role: ModelMessage.Role(rawValue: conversationMessage.role.rawValue) ?? .user,
+                content: [.text(conversationMessage.content)],
+                timestamp: conversationMessage.timestamp
+            )
+        }
+
+        // Generate response using the core API
+        let responseStream = try await streamText(
+            model: model ?? .default,
+            messages: modelMessages,
+            tools: tools ?? [],  // Use provided tools or empty array
+            settings: .default,
+            configuration: self.configuration
+        )
+
+        // Create a new stream to process the response and update the conversation
+        let processedStream = AsyncThrowingStream<String, Error> { continuation in
+            Task {
+                var fullResponse = ""
+                do {
+                    for try await delta in responseStream.stream {
+                        switch delta.type {
+                        case .textDelta:
+                            if let text = delta.content {
+                                continuation.yield(text)
+                                fullResponse += text
+                            }
+                        default:
+                            break
+                        }
+                    }
+                    // Add the full response to the conversation
+                    if !fullResponse.isEmpty {
+                        self.addAssistantMessage(fullResponse)
+                    }
+                    continuation.finish()
+                } catch {
+                    continuation.finish(throwing: error)
+                }
+            }
+        }
+
+        return processedStream
+    }
 }
 
 /// A message in a conversation
