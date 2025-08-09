@@ -4,6 +4,9 @@
 //
 
 import Foundation
+#if canImport(FoundationNetworking)
+import FoundationNetworking
+#endif
 
 /// Provider for OpenAI Responses API (GPT-5, o3, o4)
 @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
@@ -71,7 +74,23 @@ public final class OpenAIResponsesProvider: ModelProvider {
         // Log request in verbose mode (silent by default)
         
         // Send request
+        #if canImport(FoundationNetworking)
+        // Linux: Use data task
+        let (data, response) = try await withCheckedThrowingContinuation { continuation in
+            URLSession.shared.dataTask(with: urlRequest) { data, response, error in
+                if let error = error {
+                    continuation.resume(throwing: error)
+                } else if let data = data, let response = response {
+                    continuation.resume(returning: (data, response))
+                } else {
+                    continuation.resume(throwing: TachikomaError.networkError(NSError(domain: "Invalid response", code: 0)))
+                }
+            }.resume()
+        }
+        #else
+        // macOS/iOS: Use async API
         let (data, response) = try await URLSession.shared.data(for: urlRequest)
+        #endif
         
         guard let httpResponse = response as? HTTPURLResponse else {
             throw TachikomaError.networkError(NSError(domain: "Invalid response", code: 0))

@@ -1,0 +1,2722 @@
+warning: 'tachikoma': found 19 file(s) which are unhandled; explicitly declare them as resources or exclude from the target
+    /Users/steipete/Projects/Peekaboo/Tachikoma/Examples/Advanced/TachikomaExamples.swift
+    /Users/steipete/Projects/Peekaboo/Tachikoma/Examples/Agent-CLI/Sources/Agent-CLI/Agent.swift
+    /Users/steipete/Projects/Peekaboo/Tachikoma/Examples/RealtimeUsageExamples.swift
+    /Users/steipete/Projects/Peekaboo/Tachikoma/Examples/AI-CLI/Sources/AI-CLI.swift
+    /Users/steipete/Projects/Peekaboo/Tachikoma/Examples/AI-CLI/README.md
+    /Users/steipete/Projects/Peekaboo/Tachikoma/Examples/Agent-CLI/README.md
+    /Users/steipete/Projects/Peekaboo/Tachikoma/Examples/Agent-CLI/Sources/Agent-CLI/MCPManager.swift
+    /Users/steipete/Projects/Peekaboo/Tachikoma/Examples/HarmonyFeatures.swift
+    /Users/steipete/Projects/Peekaboo/Tachikoma/Examples/Agent-CLI/Package.swift
+    /Users/steipete/Projects/Peekaboo/Tachikoma/Examples/Agent-CLI/Sources/Agent-CLI/StatusBarUI.swift
+    /Users/steipete/Projects/Peekaboo/Tachikoma/Examples/Demos/DemoScript.swift
+    /Users/steipete/Projects/Peekaboo/Tachikoma/Examples/Agent-CLI/Package.resolved
+    /Users/steipete/Projects/Peekaboo/Tachikoma/Examples/RealtimeAPIDemo.swift
+    /Users/steipete/Projects/Peekaboo/Tachikoma/Examples/RealtimeExample.swift
+    /Users/steipete/Projects/Peekaboo/Tachikoma/Examples/RealtimeQuickTest.swift
+    /Users/steipete/Projects/Peekaboo/Tachikoma/Examples/Agent-CLI/Sources/Agent-CLI/AgentCLI.swift
+    /Users/steipete/Projects/Peekaboo/Tachikoma/Examples/Demos/TachikomaDemo.sh
+    /Users/steipete/Projects/Peekaboo/Tachikoma/Examples/RealtimeVoiceAssistant.swift
+    /Users/steipete/Projects/Peekaboo/Tachikoma/Examples/Agent-CLI/Sources/Agent-CLI/AgentEventHandler.swift
+warning: 'tachikoma': found 1 file(s) which are unhandled; explicitly declare them as resources or exclude from the target
+    /Users/steipete/Projects/Peekaboo/Tachikoma/Examples/AI-CLI/README.md
+[0/1] Planning build
+Building for debugging...
+[0/7] Write swift-version-39B54973F684ADAB.txt
+[2/42] Compiling TachikomaMCP MCPTool.swift
+[3/42] Compiling TachikomaMCP SchemaBuilder.swift
+[4/42] Compiling TachikomaAgent ToolBuilder.swift
+[5/42] Compiling TachikomaAgent SimplifiedTools.swift
+[6/42] Compiling TachikomaMCP MCPToolDiscovery.swift
+[7/42] Compiling TachikomaMCP TypeConversions.swift
+[8/42] Compiling TachikomaAudio BuiltInTools.swift
+[9/43] Compiling TachikomaAgent DynamicTools.swift
+[10/43] Compiling TachikomaAgent Conversation.swift
+[11/43] Emitting module TachikomaAgent
+[12/43] Compiling TachikomaAudio RealtimeConversationViewModel.swift
+[13/43] Compiling TachikomaAgent Agent.swift
+[14/43] Compiling TachikomaMCP StdioTransportPTY.swift
+[15/43] Compiling TachikomaMCP MCPToolAdapter.swift
+/Users/steipete/Projects/Peekaboo/Tachikoma/Sources/TachikomaMCP/Bridge/MCPToolAdapter.swift:119:21: warning: variable 'itemEnumValues' was written to, but never read
+117 |                case let .object(itemsDict) = itemsValue {
+118 |                 var itemType: AgentToolParameterProperty.ParameterType = .string
+119 |                 var itemEnumValues: [String]?
+    |                     `- warning: variable 'itemEnumValues' was written to, but never read
+120 |                 
+121 |                 // Extract item type
+[16/43] Compiling TachikomaMCP StdioTransport.swift
+[17/43] Compiling TachikomaMCP SSETransport.swift
+[18/43] Compiling TachikomaAudio RealtimeToolExecutor.swift
+[19/43] Compiling TachikomaMCP MCPClient.swift
+[20/43] Emitting module TachikomaMCP
+[21/43] Compiling TachikomaMCP MCPToolProvider.swift
+[22/43] Compiling TachikomaMCP HTTPTransport.swift
+[23/43] Compiling TachikomaMCP MCPClientManager.swift
+[24/43] Compiling TachikomaAudio AudioModels.swift
+[25/43] Compiling TachikomaAudio OpenAIAudioProvider.swift
+[26/43] Compiling TachikomaAudio AudioTypes.swift
+[27/43] Compiling TachikomaAudio AudioStreamPipeline.swift
+[28/43] Compiling TachikomaAudio RealtimeConfiguration.swift
+[29/43] Compiling TachikomaAudio RealtimeSession.swift
+[30/43] Compiling TachikomaAudio AudioRecorder.swift
+[31/43] Compiling TachikomaAudio WebSocketTransport.swift
+[32/43] Compiling TachikomaAudio AudioProviders.swift
+[33/43] Compiling TachikomaAudio AgentToolWrapper.swift
+[34/43] Compiling TachikomaAudio RealtimeConversationView.swift
+[35/43] Emitting module TachikomaAudio
+[36/43] Compiling TachikomaAudio AudioFunctions.swift
+[37/43] Compiling TachikomaAudio AudioFormats.swift
+[38/43] Compiling TachikomaAudio AudioManager.swift
+[39/43] Compiling TachikomaAudio AudioProcessor.swift
+[40/43] Compiling TachikomaAudio RealtimeConversation.swift
+[41/43] Compiling TachikomaAudio RealtimeEvents.swift
+[42/89] Compiling TachikomaTests BasicTest.swift
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/Core/ConfigurationArchitectureTests.swift:100:17: note: '#expect(_:_:)' will always pass here; use 'Bool(true)' to silence this warning (from macro 'expect')
+ 98 |         }
+ 99 |         
+100 |         #expect(true, "All README examples compile successfully")
+    |                 `- note: '#expect(_:_:)' will always pass here; use 'Bool(true)' to silence this warning (from macro 'expect')
+101 |         
+102 |         // Clean up
+
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/Core/ConfigurationArchitectureTests.swift:96:17: warning: initialization of immutable value 'conv1' was never used; consider replacing with assignment to '_' or removing it [#no-usage]
+ 94 |         // Example 4: Conversation
+ 95 |         _ = {
+ 96 |             let conv1 = Conversation() // Uses default
+    |                 `- warning: initialization of immutable value 'conv1' was never used; consider replacing with assignment to '_' or removing it [#no-usage]
+ 97 |             let conv2 = Conversation(configuration: TachikomaConfiguration())
+ 98 |         }
+
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/Core/ConfigurationArchitectureTests.swift:97:17: warning: initialization of immutable value 'conv2' was never used; consider replacing with assignment to '_' or removing it [#no-usage]
+ 95 |         _ = {
+ 96 |             let conv1 = Conversation() // Uses default
+ 97 |             let conv2 = Conversation(configuration: TachikomaConfiguration())
+    |                 `- warning: initialization of immutable value 'conv2' was never used; consider replacing with assignment to '_' or removing it [#no-usage]
+ 98 |         }
+ 99 |         
+
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/Core/DebugConfigTest.swift:37:17: note: '#expect(_:_:)' will always pass here; use 'Bool(true)' to silence this warning (from macro 'expect')
+35 |         print("openai key: \(config.getAPIKey(for: .openai) ?? "nil")")
+36 |         
+37 |         #expect(true) // Just to complete the test
+   |                 `- note: '#expect(_:_:)' will always pass here; use 'Bool(true)' to silence this warning (from macro 'expect')
+38 |     }
+39 |     
+[43/89] Compiling TachikomaTests ConfigurationArchitectureTests.swift
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/Core/ConfigurationArchitectureTests.swift:100:17: note: '#expect(_:_:)' will always pass here; use 'Bool(true)' to silence this warning (from macro 'expect')
+ 98 |         }
+ 99 |         
+100 |         #expect(true, "All README examples compile successfully")
+    |                 `- note: '#expect(_:_:)' will always pass here; use 'Bool(true)' to silence this warning (from macro 'expect')
+101 |         
+102 |         // Clean up
+
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/Core/ConfigurationArchitectureTests.swift:96:17: warning: initialization of immutable value 'conv1' was never used; consider replacing with assignment to '_' or removing it [#no-usage]
+ 94 |         // Example 4: Conversation
+ 95 |         _ = {
+ 96 |             let conv1 = Conversation() // Uses default
+    |                 `- warning: initialization of immutable value 'conv1' was never used; consider replacing with assignment to '_' or removing it [#no-usage]
+ 97 |             let conv2 = Conversation(configuration: TachikomaConfiguration())
+ 98 |         }
+
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/Core/ConfigurationArchitectureTests.swift:97:17: warning: initialization of immutable value 'conv2' was never used; consider replacing with assignment to '_' or removing it [#no-usage]
+ 95 |         _ = {
+ 96 |             let conv1 = Conversation() // Uses default
+ 97 |             let conv2 = Conversation(configuration: TachikomaConfiguration())
+    |                 `- warning: initialization of immutable value 'conv2' was never used; consider replacing with assignment to '_' or removing it [#no-usage]
+ 98 |         }
+ 99 |         
+
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/Core/DebugConfigTest.swift:37:17: note: '#expect(_:_:)' will always pass here; use 'Bool(true)' to silence this warning (from macro 'expect')
+35 |         print("openai key: \(config.getAPIKey(for: .openai) ?? "nil")")
+36 |         
+37 |         #expect(true) // Just to complete the test
+   |                 `- note: '#expect(_:_:)' will always pass here; use 'Bool(true)' to silence this warning (from macro 'expect')
+38 |     }
+39 |     
+[44/89] Compiling TachikomaTests DebugConfigTest.swift
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/Core/ConfigurationArchitectureTests.swift:100:17: note: '#expect(_:_:)' will always pass here; use 'Bool(true)' to silence this warning (from macro 'expect')
+ 98 |         }
+ 99 |         
+100 |         #expect(true, "All README examples compile successfully")
+    |                 `- note: '#expect(_:_:)' will always pass here; use 'Bool(true)' to silence this warning (from macro 'expect')
+101 |         
+102 |         // Clean up
+
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/Core/ConfigurationArchitectureTests.swift:96:17: warning: initialization of immutable value 'conv1' was never used; consider replacing with assignment to '_' or removing it [#no-usage]
+ 94 |         // Example 4: Conversation
+ 95 |         _ = {
+ 96 |             let conv1 = Conversation() // Uses default
+    |                 `- warning: initialization of immutable value 'conv1' was never used; consider replacing with assignment to '_' or removing it [#no-usage]
+ 97 |             let conv2 = Conversation(configuration: TachikomaConfiguration())
+ 98 |         }
+
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/Core/ConfigurationArchitectureTests.swift:97:17: warning: initialization of immutable value 'conv2' was never used; consider replacing with assignment to '_' or removing it [#no-usage]
+ 95 |         _ = {
+ 96 |             let conv1 = Conversation() // Uses default
+ 97 |             let conv2 = Conversation(configuration: TachikomaConfiguration())
+    |                 `- warning: initialization of immutable value 'conv2' was never used; consider replacing with assignment to '_' or removing it [#no-usage]
+ 98 |         }
+ 99 |         
+
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/Core/DebugConfigTest.swift:37:17: note: '#expect(_:_:)' will always pass here; use 'Bool(true)' to silence this warning (from macro 'expect')
+35 |         print("openai key: \(config.getAPIKey(for: .openai) ?? "nil")")
+36 |         
+37 |         #expect(true) // Just to complete the test
+   |                 `- note: '#expect(_:_:)' will always pass here; use 'Bool(true)' to silence this warning (from macro 'expect')
+38 |     }
+39 |     
+[45/91] Compiling TachikomaTests LMStudioProviderTests.swift
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/LMStudioProviderTests.swift:22:23: warning: no 'async' operations occur within 'await' expression
+ 20 |         
+ 21 |         // Access actor-isolated properties within the actor context
+ 22 |         let baseURL = await provider.baseURL
+    |                       `- warning: no 'async' operations occur within 'await' expression
+ 23 |         let modelId = await provider.modelId
+ 24 |         let apiKey = await provider.apiKey
+
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/LMStudioProviderTests.swift:66:28: warning: no 'async' operations occur within 'await' expression
+ 64 |         // Test LMStudio provider creation
+ 65 |         let model = LanguageModel.lmstudio(.gptOSS120B)
+ 66 |         let provider = try await ProviderFactory.createProvider(for: model, configuration: config)
+    |                            `- warning: no 'async' operations occur within 'await' expression
+ 67 |         
+ 68 |         let modelId = await provider.modelId
+
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/LMStudioProviderTests.swift:68:23: warning: no 'async' operations occur within 'await' expression
+ 66 |         let provider = try await ProviderFactory.createProvider(for: model, configuration: config)
+ 67 |         
+ 68 |         let modelId = await provider.modelId
+    |                       `- warning: no 'async' operations occur within 'await' expression
+ 69 |         #expect(modelId == "gpt-oss-120b")
+ 70 |         
+    :
+126 |             // In real mode, test would depend on whether LMStudio is running
+127 |             // We'll skip this for now
+128 |             #expect(true)
+    |                     `- note: '#expect(_:_:)' will always pass here; use 'Bool(true)' to silence this warning (from macro 'expect')
+129 |         }
+130 |     }
+[46/91] Compiling TachikomaTests MockProvider.swift
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/LMStudioProviderTests.swift:22:23: warning: no 'async' operations occur within 'await' expression
+ 20 |         
+ 21 |         // Access actor-isolated properties within the actor context
+ 22 |         let baseURL = await provider.baseURL
+    |                       `- warning: no 'async' operations occur within 'await' expression
+ 23 |         let modelId = await provider.modelId
+ 24 |         let apiKey = await provider.apiKey
+
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/LMStudioProviderTests.swift:66:28: warning: no 'async' operations occur within 'await' expression
+ 64 |         // Test LMStudio provider creation
+ 65 |         let model = LanguageModel.lmstudio(.gptOSS120B)
+ 66 |         let provider = try await ProviderFactory.createProvider(for: model, configuration: config)
+    |                            `- warning: no 'async' operations occur within 'await' expression
+ 67 |         
+ 68 |         let modelId = await provider.modelId
+
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/LMStudioProviderTests.swift:68:23: warning: no 'async' operations occur within 'await' expression
+ 66 |         let provider = try await ProviderFactory.createProvider(for: model, configuration: config)
+ 67 |         
+ 68 |         let modelId = await provider.modelId
+    |                       `- warning: no 'async' operations occur within 'await' expression
+ 69 |         #expect(modelId == "gpt-oss-120b")
+ 70 |         
+    :
+126 |             // In real mode, test would depend on whether LMStudio is running
+127 |             // We'll skip this for now
+128 |             #expect(true)
+    |                     `- note: '#expect(_:_:)' will always pass here; use 'Bool(true)' to silence this warning (from macro 'expect')
+129 |         }
+130 |     }
+[47/91] Compiling TachikomaTests TestProviderFactory.swift
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/LMStudioProviderTests.swift:22:23: warning: no 'async' operations occur within 'await' expression
+ 20 |         
+ 21 |         // Access actor-isolated properties within the actor context
+ 22 |         let baseURL = await provider.baseURL
+    |                       `- warning: no 'async' operations occur within 'await' expression
+ 23 |         let modelId = await provider.modelId
+ 24 |         let apiKey = await provider.apiKey
+
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/LMStudioProviderTests.swift:66:28: warning: no 'async' operations occur within 'await' expression
+ 64 |         // Test LMStudio provider creation
+ 65 |         let model = LanguageModel.lmstudio(.gptOSS120B)
+ 66 |         let provider = try await ProviderFactory.createProvider(for: model, configuration: config)
+    |                            `- warning: no 'async' operations occur within 'await' expression
+ 67 |         
+ 68 |         let modelId = await provider.modelId
+
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/LMStudioProviderTests.swift:68:23: warning: no 'async' operations occur within 'await' expression
+ 66 |         let provider = try await ProviderFactory.createProvider(for: model, configuration: config)
+ 67 |         
+ 68 |         let modelId = await provider.modelId
+    |                       `- warning: no 'async' operations occur within 'await' expression
+ 69 |         #expect(modelId == "gpt-oss-120b")
+ 70 |         
+    :
+126 |             // In real mode, test would depend on whether LMStudio is running
+127 |             // We'll skip this for now
+128 |             #expect(true)
+    |                     `- note: '#expect(_:_:)' will always pass here; use 'Bool(true)' to silence this warning (from macro 'expect')
+129 |         }
+130 |     }
+[48/91] Compiling TachikomaTests OpenAIResponsesProviderTests.swift
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/Providers/OpenAIResponsesProviderTests.swift:47:13: warning: initialization of immutable value 'request' was never used; consider replacing with assignment to '_' or removing it [#no-usage]
+ 45 |         
+ 46 |         // Create a simple request
+ 47 |         let request = ProviderRequest(
+    |             `- warning: initialization of immutable value 'request' was never used; consider replacing with assignment to '_' or removing it [#no-usage]
+ 48 |             messages: [
+ 49 |                 ModelMessage(role: .user, content: [.text("Hello")])
+
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/SimplifiedToolsTests.swift:52:20: warning: no calls to throwing functions occur within 'try' expression
+ 50 |         
+ 51 |         // Test execution
+ 52 |         let args = try AgentToolArguments(["expression": "21*2"])
+    |                    `- warning: no calls to throwing functions occur within 'try' expression
+ 53 |         let context = ToolExecutionContext()
+ 54 |         let result = try await tool.execute(args, context: context)
+
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/SimplifiedToolsTests.swift:88:20: warning: no calls to throwing functions occur within 'try' expression
+ 86 |         )
+ 87 |         
+ 88 |         let args = try AgentToolArguments(["query": "test"])
+    |                    `- warning: no calls to throwing functions occur within 'try' expression
+ 89 |         let result = try await tool.execute(args, context: context)
+ 90 |         
+
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/SimplifiedToolsTests.swift:119:20: warning: no calls to throwing functions occur within 'try' expression
+117 |         
+118 |         // Test execution
+119 |         let args = try AgentToolArguments([
+    |                    `- warning: no calls to throwing functions occur within 'try' expression
+120 |             "message": "hello",
+121 |             "uppercase": true
+
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/SimplifiedToolsTests.swift:154:20: warning: no calls to throwing functions occur within 'try' expression
+152 |         
+153 |         // Test execution
+154 |         let args = try AgentToolArguments([
+    |                    `- warning: no calls to throwing functions occur within 'try' expression
+155 |             "location": "San Francisco",
+156 |             "units": "fahrenheit"
+[49/91] Compiling TachikomaTests SimplifiedToolsTests.swift
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/Providers/OpenAIResponsesProviderTests.swift:47:13: warning: initialization of immutable value 'request' was never used; consider replacing with assignment to '_' or removing it [#no-usage]
+ 45 |         
+ 46 |         // Create a simple request
+ 47 |         let request = ProviderRequest(
+    |             `- warning: initialization of immutable value 'request' was never used; consider replacing with assignment to '_' or removing it [#no-usage]
+ 48 |             messages: [
+ 49 |                 ModelMessage(role: .user, content: [.text("Hello")])
+
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/SimplifiedToolsTests.swift:52:20: warning: no calls to throwing functions occur within 'try' expression
+ 50 |         
+ 51 |         // Test execution
+ 52 |         let args = try AgentToolArguments(["expression": "21*2"])
+    |                    `- warning: no calls to throwing functions occur within 'try' expression
+ 53 |         let context = ToolExecutionContext()
+ 54 |         let result = try await tool.execute(args, context: context)
+
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/SimplifiedToolsTests.swift:88:20: warning: no calls to throwing functions occur within 'try' expression
+ 86 |         )
+ 87 |         
+ 88 |         let args = try AgentToolArguments(["query": "test"])
+    |                    `- warning: no calls to throwing functions occur within 'try' expression
+ 89 |         let result = try await tool.execute(args, context: context)
+ 90 |         
+
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/SimplifiedToolsTests.swift:119:20: warning: no calls to throwing functions occur within 'try' expression
+117 |         
+118 |         // Test execution
+119 |         let args = try AgentToolArguments([
+    |                    `- warning: no calls to throwing functions occur within 'try' expression
+120 |             "message": "hello",
+121 |             "uppercase": true
+
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/SimplifiedToolsTests.swift:154:20: warning: no calls to throwing functions occur within 'try' expression
+152 |         
+153 |         // Test execution
+154 |         let args = try AgentToolArguments([
+    |                    `- warning: no calls to throwing functions occur within 'try' expression
+155 |             "location": "San Francisco",
+156 |             "units": "fahrenheit"
+[50/91] Compiling TachikomaTests TestHelpers.swift
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/Providers/OpenAIResponsesProviderTests.swift:47:13: warning: initialization of immutable value 'request' was never used; consider replacing with assignment to '_' or removing it [#no-usage]
+ 45 |         
+ 46 |         // Create a simple request
+ 47 |         let request = ProviderRequest(
+    |             `- warning: initialization of immutable value 'request' was never used; consider replacing with assignment to '_' or removing it [#no-usage]
+ 48 |             messages: [
+ 49 |                 ModelMessage(role: .user, content: [.text("Hello")])
+
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/SimplifiedToolsTests.swift:52:20: warning: no calls to throwing functions occur within 'try' expression
+ 50 |         
+ 51 |         // Test execution
+ 52 |         let args = try AgentToolArguments(["expression": "21*2"])
+    |                    `- warning: no calls to throwing functions occur within 'try' expression
+ 53 |         let context = ToolExecutionContext()
+ 54 |         let result = try await tool.execute(args, context: context)
+
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/SimplifiedToolsTests.swift:88:20: warning: no calls to throwing functions occur within 'try' expression
+ 86 |         )
+ 87 |         
+ 88 |         let args = try AgentToolArguments(["query": "test"])
+    |                    `- warning: no calls to throwing functions occur within 'try' expression
+ 89 |         let result = try await tool.execute(args, context: context)
+ 90 |         
+
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/SimplifiedToolsTests.swift:119:20: warning: no calls to throwing functions occur within 'try' expression
+117 |         
+118 |         // Test execution
+119 |         let args = try AgentToolArguments([
+    |                    `- warning: no calls to throwing functions occur within 'try' expression
+120 |             "message": "hello",
+121 |             "uppercase": true
+
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/SimplifiedToolsTests.swift:154:20: warning: no calls to throwing functions occur within 'try' expression
+152 |         
+153 |         // Test execution
+154 |         let args = try AgentToolArguments([
+    |                    `- warning: no calls to throwing functions occur within 'try' expression
+155 |             "location": "San Francisco",
+156 |             "units": "fahrenheit"
+[51/91] Compiling TachikomaTests RetryHandlerTests.swift
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/HarmonyFeatures/RetryHandlerTests.swift:289:17: note: '#expect(_:_:)' will always pass here; use 'Bool(true)' to silence this warning (from macro 'expect')
+287 |         
+288 |         // Test passes if all handlers created without errors
+289 |         #expect(true)
+    |                 `- note: '#expect(_:_:)' will always pass here; use 'Bool(true)' to silence this warning (from macro 'expect')
+290 |     }
+291 | }
+
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/Integration/PlaceholderTests.swift:9:17: note: '#expect(_:_:)' will always pass here; use 'Bool(true)' to silence this warning (from macro 'expect')
+ 7 |     func placeholderTest() {
+ 8 |         // This is a placeholder test to satisfy Package.swift test target requirements
+ 9 |         #expect(true)
+   |                 `- note: '#expect(_:_:)' will always pass here; use 'Bool(true)' to silence this warning (from macro 'expect')
+10 |     }
+11 | }
+
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/IntegrationTests.swift:89:21: warning: no calls to throwing functions occur within 'try' expression
+ 87 |         
+ 88 |         // Test successful execution
+ 89 |         let args1 = try AgentToolArguments([
+    |                     `- warning: no calls to throwing functions occur within 'try' expression
+ 90 |             "operation": "+",
+ 91 |             "a": 10.0,
+
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/IntegrationTests.swift:105:21: warning: no calls to throwing functions occur within 'try' expression
+103 |         
+104 |         // Test error handling
+105 |         let args2 = try AgentToolArguments([
+    |                     `- warning: no calls to throwing functions occur within 'try' expression
+106 |             "operation": "/",
+107 |             "a": 10.0,
+
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/IntegrationTests.swift:263:20: warning: no calls to throwing functions occur within 'try' expression
+261 |         )
+262 |         
+263 |         let args = try AgentToolArguments([
+    |                    `- warning: no calls to throwing functions occur within 'try' expression
+264 |             "query": "Swift programming",
+265 |             "limit": 5
+[52/91] Compiling TachikomaTests PlaceholderTests.swift
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/HarmonyFeatures/RetryHandlerTests.swift:289:17: note: '#expect(_:_:)' will always pass here; use 'Bool(true)' to silence this warning (from macro 'expect')
+287 |         
+288 |         // Test passes if all handlers created without errors
+289 |         #expect(true)
+    |                 `- note: '#expect(_:_:)' will always pass here; use 'Bool(true)' to silence this warning (from macro 'expect')
+290 |     }
+291 | }
+
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/Integration/PlaceholderTests.swift:9:17: note: '#expect(_:_:)' will always pass here; use 'Bool(true)' to silence this warning (from macro 'expect')
+ 7 |     func placeholderTest() {
+ 8 |         // This is a placeholder test to satisfy Package.swift test target requirements
+ 9 |         #expect(true)
+   |                 `- note: '#expect(_:_:)' will always pass here; use 'Bool(true)' to silence this warning (from macro 'expect')
+10 |     }
+11 | }
+
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/IntegrationTests.swift:89:21: warning: no calls to throwing functions occur within 'try' expression
+ 87 |         
+ 88 |         // Test successful execution
+ 89 |         let args1 = try AgentToolArguments([
+    |                     `- warning: no calls to throwing functions occur within 'try' expression
+ 90 |             "operation": "+",
+ 91 |             "a": 10.0,
+
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/IntegrationTests.swift:105:21: warning: no calls to throwing functions occur within 'try' expression
+103 |         
+104 |         // Test error handling
+105 |         let args2 = try AgentToolArguments([
+    |                     `- warning: no calls to throwing functions occur within 'try' expression
+106 |             "operation": "/",
+107 |             "a": 10.0,
+
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/IntegrationTests.swift:263:20: warning: no calls to throwing functions occur within 'try' expression
+261 |         )
+262 |         
+263 |         let args = try AgentToolArguments([
+    |                    `- warning: no calls to throwing functions occur within 'try' expression
+264 |             "query": "Swift programming",
+265 |             "limit": 5
+[53/91] Compiling TachikomaTests IntegrationTests.swift
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/HarmonyFeatures/RetryHandlerTests.swift:289:17: note: '#expect(_:_:)' will always pass here; use 'Bool(true)' to silence this warning (from macro 'expect')
+287 |         
+288 |         // Test passes if all handlers created without errors
+289 |         #expect(true)
+    |                 `- note: '#expect(_:_:)' will always pass here; use 'Bool(true)' to silence this warning (from macro 'expect')
+290 |     }
+291 | }
+
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/Integration/PlaceholderTests.swift:9:17: note: '#expect(_:_:)' will always pass here; use 'Bool(true)' to silence this warning (from macro 'expect')
+ 7 |     func placeholderTest() {
+ 8 |         // This is a placeholder test to satisfy Package.swift test target requirements
+ 9 |         #expect(true)
+   |                 `- note: '#expect(_:_:)' will always pass here; use 'Bool(true)' to silence this warning (from macro 'expect')
+10 |     }
+11 | }
+
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/IntegrationTests.swift:89:21: warning: no calls to throwing functions occur within 'try' expression
+ 87 |         
+ 88 |         // Test successful execution
+ 89 |         let args1 = try AgentToolArguments([
+    |                     `- warning: no calls to throwing functions occur within 'try' expression
+ 90 |             "operation": "+",
+ 91 |             "a": 10.0,
+
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/IntegrationTests.swift:105:21: warning: no calls to throwing functions occur within 'try' expression
+103 |         
+104 |         // Test error handling
+105 |         let args2 = try AgentToolArguments([
+    |                     `- warning: no calls to throwing functions occur within 'try' expression
+106 |             "operation": "/",
+107 |             "a": 10.0,
+
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/IntegrationTests.swift:263:20: warning: no calls to throwing functions occur within 'try' expression
+261 |         )
+262 |         
+263 |         let args = try AgentToolArguments([
+    |                    `- warning: no calls to throwing functions occur within 'try' expression
+264 |             "query": "Swift programming",
+265 |             "limit": 5
+[54/91] Compiling TachikomaTests DynamicToolsTests.swift
+[55/91] Compiling TachikomaTests ToolKitTests.swift
+[56/91] Compiling TachikomaTests UIIntegrationTests.swift
+[57/91] Compiling TachikomaTests MinimalModernAPITests.swift
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/Core/ModelCapabilitiesTests.swift:375:21: note: '#expect(_:_:)' will always pass here; use 'Bool(true)' to silence this warning (from macro 'expect')
+373 |             
+374 |             // Should complete without crashes
+375 |             #expect(true)
+    |                     `- note: '#expect(_:_:)' will always pass here; use 'Bool(true)' to silence this warning (from macro 'expect')
+376 |         }
+377 |     }
+
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/Core/OpenAICompatibleHelperTests.swift:29:13: note: '#expect(_:_:)' will always pass here; use 'Bool(true)' to silence this warning (from macro 'expect')
+ 27 |     // Verify that each chunk is processed independently
+ 28 |     // (This would require refactoring to inject URLSession, keeping simple for now)
+ 29 |     #expect(true) // Placeholder for now
+    |             `- note: '#expect(_:_:)' will always pass here; use 'Bool(true)' to silence this warning (from macro 'expect')
+ 30 | }
+ 31 | 
+
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/Core/OpenAICompatibleHelperTests.swift:17:9: warning: initialization of immutable value 'mockSession' was never used; consider replacing with assignment to '_' or removing it [#no-usage]
+ 15 |     
+ 16 |     // Create a mock URLSession that simulates streaming responses
+ 17 |     let mockSession = MockStreamingURLSession()
+    |         `- warning: initialization of immutable value 'mockSession' was never used; consider replacing with assignment to '_' or removing it [#no-usage]
+ 18 |     
+ 19 |     // Test that the helper properly processes SSE format
+
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/Core/OpenAICompatibleHelperTests.swift:20:9: warning: initialization of immutable value 'sseData' was never used; consider replacing with assignment to '_' or removing it [#no-usage]
+ 18 |     
+ 19 |     // Test that the helper properly processes SSE format
+ 20 |     let sseData = """
+    |         `- warning: initialization of immutable value 'sseData' was never used; consider replacing with assignment to '_' or removing it [#no-usage]
+ 21 |     data: {"choices":[{"delta":{"content":"Hello"}}]}
+ 22 |     data: {"choices":[{"delta":{"content":" "}}]}
+[58/91] Compiling TachikomaTests ModelCapabilitiesTests.swift
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/Core/ModelCapabilitiesTests.swift:375:21: note: '#expect(_:_:)' will always pass here; use 'Bool(true)' to silence this warning (from macro 'expect')
+373 |             
+374 |             // Should complete without crashes
+375 |             #expect(true)
+    |                     `- note: '#expect(_:_:)' will always pass here; use 'Bool(true)' to silence this warning (from macro 'expect')
+376 |         }
+377 |     }
+
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/Core/OpenAICompatibleHelperTests.swift:29:13: note: '#expect(_:_:)' will always pass here; use 'Bool(true)' to silence this warning (from macro 'expect')
+ 27 |     // Verify that each chunk is processed independently
+ 28 |     // (This would require refactoring to inject URLSession, keeping simple for now)
+ 29 |     #expect(true) // Placeholder for now
+    |             `- note: '#expect(_:_:)' will always pass here; use 'Bool(true)' to silence this warning (from macro 'expect')
+ 30 | }
+ 31 | 
+
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/Core/OpenAICompatibleHelperTests.swift:17:9: warning: initialization of immutable value 'mockSession' was never used; consider replacing with assignment to '_' or removing it [#no-usage]
+ 15 |     
+ 16 |     // Create a mock URLSession that simulates streaming responses
+ 17 |     let mockSession = MockStreamingURLSession()
+    |         `- warning: initialization of immutable value 'mockSession' was never used; consider replacing with assignment to '_' or removing it [#no-usage]
+ 18 |     
+ 19 |     // Test that the helper properly processes SSE format
+
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/Core/OpenAICompatibleHelperTests.swift:20:9: warning: initialization of immutable value 'sseData' was never used; consider replacing with assignment to '_' or removing it [#no-usage]
+ 18 |     
+ 19 |     // Test that the helper properly processes SSE format
+ 20 |     let sseData = """
+    |         `- warning: initialization of immutable value 'sseData' was never used; consider replacing with assignment to '_' or removing it [#no-usage]
+ 21 |     data: {"choices":[{"delta":{"content":"Hello"}}]}
+ 22 |     data: {"choices":[{"delta":{"content":" "}}]}
+[59/91] Compiling TachikomaTests OpenAICompatibleHelperTests.swift
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/Core/ModelCapabilitiesTests.swift:375:21: note: '#expect(_:_:)' will always pass here; use 'Bool(true)' to silence this warning (from macro 'expect')
+373 |             
+374 |             // Should complete without crashes
+375 |             #expect(true)
+    |                     `- note: '#expect(_:_:)' will always pass here; use 'Bool(true)' to silence this warning (from macro 'expect')
+376 |         }
+377 |     }
+
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/Core/OpenAICompatibleHelperTests.swift:29:13: note: '#expect(_:_:)' will always pass here; use 'Bool(true)' to silence this warning (from macro 'expect')
+ 27 |     // Verify that each chunk is processed independently
+ 28 |     // (This would require refactoring to inject URLSession, keeping simple for now)
+ 29 |     #expect(true) // Placeholder for now
+    |             `- note: '#expect(_:_:)' will always pass here; use 'Bool(true)' to silence this warning (from macro 'expect')
+ 30 | }
+ 31 | 
+
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/Core/OpenAICompatibleHelperTests.swift:17:9: warning: initialization of immutable value 'mockSession' was never used; consider replacing with assignment to '_' or removing it [#no-usage]
+ 15 |     
+ 16 |     // Create a mock URLSession that simulates streaming responses
+ 17 |     let mockSession = MockStreamingURLSession()
+    |         `- warning: initialization of immutable value 'mockSession' was never used; consider replacing with assignment to '_' or removing it [#no-usage]
+ 18 |     
+ 19 |     // Test that the helper properly processes SSE format
+
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/Core/OpenAICompatibleHelperTests.swift:20:9: warning: initialization of immutable value 'sseData' was never used; consider replacing with assignment to '_' or removing it [#no-usage]
+ 18 |     
+ 19 |     // Test that the helper properly processes SSE format
+ 20 |     let sseData = """
+    |         `- warning: initialization of immutable value 'sseData' was never used; consider replacing with assignment to '_' or removing it [#no-usage]
+ 21 |     data: {"choices":[{"delta":{"content":"Hello"}}]}
+ 22 |     data: {"choices":[{"delta":{"content":" "}}]}
+[60/91] Compiling TachikomaTests ProviderFeatureParityTests.swift
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/ProviderFeatureParityTests.swift:209:13: warning: initialization of immutable value 'adapter' was never used; consider replacing with assignment to '_' or removing it [#no-usage]
+207 |         
+208 |         let config = ProviderConfiguration(maxToolCalls: 2)
+209 |         let adapter = ProviderAdapter(provider: provider, configuration: config)
+    |             `- warning: initialization of immutable value 'adapter' was never used; consider replacing with assignment to '_' or removing it [#no-usage]
+210 |         
+211 |         // Create more tools than allowed
+
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/ProviderFeatureParityTests.swift:220:13: warning: initialization of immutable value 'request' was never used; consider replacing with assignment to '_' or removing it [#no-usage]
+218 |         }
+219 |         
+220 |         let request = ProviderRequest(
+    |             `- warning: initialization of immutable value 'request' was never used; consider replacing with assignment to '_' or removing it [#no-usage]
+221 |             messages: [.user("Test")],
+222 |             tools: tools,
+
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/Providers/Integration/ProviderIntegrationTests.swift:27:21: warning: no 'async' operations occur within 'await' expression
+ 25 |         let model = Model.openai(.gpt4oMini)
+ 26 |         let config = TachikomaConfiguration()
+ 27 |         let _ = try await ProviderFactory.createProvider(for: model, configuration: config)
+    |                     `- warning: no 'async' operations occur within 'await' expression
+ 28 |         
+ 29 |         let response = try await generate(TestConfig.shortMessage, using: model, maxTokens: 50, temperature: 0.0, configuration: config)
+
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/Providers/Integration/ProviderIntegrationTests.swift:44:28: warning: no 'async' operations occur within 'await' expression
+ 42 |         let model = Model.openai(.gpt4oMini)
+ 43 |         let config = TachikomaConfiguration()
+ 44 |         let provider = try await ProviderFactory.createProvider(for: model, configuration: config)
+    |                            `- warning: no 'async' operations occur within 'await' expression
+ 45 |         
+ 46 |         let tool = AgentTool(
+
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/Providers/Integration/ProviderIntegrationTests.swift:87:28: warning: no 'async' operations occur within 'await' expression
+ 85 |         let model = Model.openai(.gpt4oMini)
+ 86 |         let config = TachikomaConfiguration()
+ 87 |         let provider = try await ProviderFactory.createProvider(for: model, configuration: config)
+    |                            `- warning: no 'async' operations occur within 'await' expression
+ 88 |         
+ 89 |         let request = ProviderRequest(
+
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/Providers/Integration/ProviderIntegrationTests.swift:150:28: warning: no 'async' operations occur within 'await' expression
+148 |         let model = Model.anthropic(.haiku35)
+149 |         let config = TachikomaConfiguration()
+150 |         let provider = try await ProviderFactory.createProvider(for: model, configuration: config)
+    |                            `- warning: no 'async' operations occur within 'await' expression
+151 |         
+152 |         let tool = AgentTool(
+
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/Providers/Integration/ProviderIntegrationTests.swift:283:28: warning: no 'async' operations occur within 'await' expression
+281 |         let model = Model.openai(.gpt4o)
+282 |         let config = TachikomaConfiguration()
+283 |         let provider = try await ProviderFactory.createProvider(for: model, configuration: config)
+    |                            `- warning: no 'async' operations occur within 'await' expression
+284 |         
+285 |         // Create a simple base64 encoded 1x1 red pixel PNG
+
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/Providers/Integration/ProviderSystemTests.swift:13:32: warning: no 'async' operations occur within 'await' expression
+ 11 |         try await TestHelpers.withTestConfiguration(apiKeys: ["openai": "test-key"]) { config in
+ 12 |             let model = Model.openai(.gpt4o)
+ 13 |             let provider = try await ProviderFactory.createProvider(for: model, configuration: config)
+    |                                `- warning: no 'async' operations occur within 'await' expression
+ 14 | 
+ 15 |             #expect(provider.modelId == "gpt-4o")
+
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/Providers/Integration/ProviderSystemTests.swift:26:32: warning: no 'async' operations occur within 'await' expression
+ 24 |         try await TestHelpers.withTestConfiguration(apiKeys: ["anthropic": "test-key"]) { config in
+ 25 |             let model = Model.anthropic(.opus4)
+ 26 |             let provider = try await ProviderFactory.createProvider(for: model, configuration: config)
+    |                                `- warning: no 'async' operations occur within 'await' expression
+ 27 | 
+ 28 |             #expect(provider.modelId == "claude-opus-4-1-20250805")
+
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/Providers/Integration/ProviderSystemTests.swift:39:32: warning: no 'async' operations occur within 'await' expression
+ 37 |         try await TestHelpers.withTestConfiguration(apiKeys: ["grok": "test-key"]) { config in
+ 38 |             let model = Model.grok(.grok4)
+ 39 |             let provider = try await ProviderFactory.createProvider(for: model, configuration: config)
+    |                                `- warning: no 'async' operations occur within 'await' expression
+ 40 | 
+ 41 |             #expect(provider.modelId == "grok-4-0709")
+
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/Providers/Integration/ProviderSystemTests.swift:52:28: warning: no 'async' operations occur within 'await' expression
+ 50 |         let config = TachikomaConfiguration(loadFromEnvironment: false)
+ 51 |         let model = Model.ollama(.llama33)
+ 52 |         let provider = try await ProviderFactory.createProvider(for: model, configuration: config)
+    |                            `- warning: no 'async' operations occur within 'await' expression
+ 53 | 
+ 54 |         #expect(provider.modelId == "llama3.3")
+[61/91] Compiling TachikomaTests ProviderIntegrationTests.swift
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/ProviderFeatureParityTests.swift:209:13: warning: initialization of immutable value 'adapter' was never used; consider replacing with assignment to '_' or removing it [#no-usage]
+207 |         
+208 |         let config = ProviderConfiguration(maxToolCalls: 2)
+209 |         let adapter = ProviderAdapter(provider: provider, configuration: config)
+    |             `- warning: initialization of immutable value 'adapter' was never used; consider replacing with assignment to '_' or removing it [#no-usage]
+210 |         
+211 |         // Create more tools than allowed
+
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/ProviderFeatureParityTests.swift:220:13: warning: initialization of immutable value 'request' was never used; consider replacing with assignment to '_' or removing it [#no-usage]
+218 |         }
+219 |         
+220 |         let request = ProviderRequest(
+    |             `- warning: initialization of immutable value 'request' was never used; consider replacing with assignment to '_' or removing it [#no-usage]
+221 |             messages: [.user("Test")],
+222 |             tools: tools,
+
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/Providers/Integration/ProviderIntegrationTests.swift:27:21: warning: no 'async' operations occur within 'await' expression
+ 25 |         let model = Model.openai(.gpt4oMini)
+ 26 |         let config = TachikomaConfiguration()
+ 27 |         let _ = try await ProviderFactory.createProvider(for: model, configuration: config)
+    |                     `- warning: no 'async' operations occur within 'await' expression
+ 28 |         
+ 29 |         let response = try await generate(TestConfig.shortMessage, using: model, maxTokens: 50, temperature: 0.0, configuration: config)
+
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/Providers/Integration/ProviderIntegrationTests.swift:44:28: warning: no 'async' operations occur within 'await' expression
+ 42 |         let model = Model.openai(.gpt4oMini)
+ 43 |         let config = TachikomaConfiguration()
+ 44 |         let provider = try await ProviderFactory.createProvider(for: model, configuration: config)
+    |                            `- warning: no 'async' operations occur within 'await' expression
+ 45 |         
+ 46 |         let tool = AgentTool(
+
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/Providers/Integration/ProviderIntegrationTests.swift:87:28: warning: no 'async' operations occur within 'await' expression
+ 85 |         let model = Model.openai(.gpt4oMini)
+ 86 |         let config = TachikomaConfiguration()
+ 87 |         let provider = try await ProviderFactory.createProvider(for: model, configuration: config)
+    |                            `- warning: no 'async' operations occur within 'await' expression
+ 88 |         
+ 89 |         let request = ProviderRequest(
+
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/Providers/Integration/ProviderIntegrationTests.swift:150:28: warning: no 'async' operations occur within 'await' expression
+148 |         let model = Model.anthropic(.haiku35)
+149 |         let config = TachikomaConfiguration()
+150 |         let provider = try await ProviderFactory.createProvider(for: model, configuration: config)
+    |                            `- warning: no 'async' operations occur within 'await' expression
+151 |         
+152 |         let tool = AgentTool(
+
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/Providers/Integration/ProviderIntegrationTests.swift:283:28: warning: no 'async' operations occur within 'await' expression
+281 |         let model = Model.openai(.gpt4o)
+282 |         let config = TachikomaConfiguration()
+283 |         let provider = try await ProviderFactory.createProvider(for: model, configuration: config)
+    |                            `- warning: no 'async' operations occur within 'await' expression
+284 |         
+285 |         // Create a simple base64 encoded 1x1 red pixel PNG
+
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/Providers/Integration/ProviderSystemTests.swift:13:32: warning: no 'async' operations occur within 'await' expression
+ 11 |         try await TestHelpers.withTestConfiguration(apiKeys: ["openai": "test-key"]) { config in
+ 12 |             let model = Model.openai(.gpt4o)
+ 13 |             let provider = try await ProviderFactory.createProvider(for: model, configuration: config)
+    |                                `- warning: no 'async' operations occur within 'await' expression
+ 14 | 
+ 15 |             #expect(provider.modelId == "gpt-4o")
+
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/Providers/Integration/ProviderSystemTests.swift:26:32: warning: no 'async' operations occur within 'await' expression
+ 24 |         try await TestHelpers.withTestConfiguration(apiKeys: ["anthropic": "test-key"]) { config in
+ 25 |             let model = Model.anthropic(.opus4)
+ 26 |             let provider = try await ProviderFactory.createProvider(for: model, configuration: config)
+    |                                `- warning: no 'async' operations occur within 'await' expression
+ 27 | 
+ 28 |             #expect(provider.modelId == "claude-opus-4-1-20250805")
+
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/Providers/Integration/ProviderSystemTests.swift:39:32: warning: no 'async' operations occur within 'await' expression
+ 37 |         try await TestHelpers.withTestConfiguration(apiKeys: ["grok": "test-key"]) { config in
+ 38 |             let model = Model.grok(.grok4)
+ 39 |             let provider = try await ProviderFactory.createProvider(for: model, configuration: config)
+    |                                `- warning: no 'async' operations occur within 'await' expression
+ 40 | 
+ 41 |             #expect(provider.modelId == "grok-4-0709")
+
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/Providers/Integration/ProviderSystemTests.swift:52:28: warning: no 'async' operations occur within 'await' expression
+ 50 |         let config = TachikomaConfiguration(loadFromEnvironment: false)
+ 51 |         let model = Model.ollama(.llama33)
+ 52 |         let provider = try await ProviderFactory.createProvider(for: model, configuration: config)
+    |                            `- warning: no 'async' operations occur within 'await' expression
+ 53 | 
+ 54 |         #expect(provider.modelId == "llama3.3")
+[62/91] Compiling TachikomaTests ProviderSystemTests.swift
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/ProviderFeatureParityTests.swift:209:13: warning: initialization of immutable value 'adapter' was never used; consider replacing with assignment to '_' or removing it [#no-usage]
+207 |         
+208 |         let config = ProviderConfiguration(maxToolCalls: 2)
+209 |         let adapter = ProviderAdapter(provider: provider, configuration: config)
+    |             `- warning: initialization of immutable value 'adapter' was never used; consider replacing with assignment to '_' or removing it [#no-usage]
+210 |         
+211 |         // Create more tools than allowed
+
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/ProviderFeatureParityTests.swift:220:13: warning: initialization of immutable value 'request' was never used; consider replacing with assignment to '_' or removing it [#no-usage]
+218 |         }
+219 |         
+220 |         let request = ProviderRequest(
+    |             `- warning: initialization of immutable value 'request' was never used; consider replacing with assignment to '_' or removing it [#no-usage]
+221 |             messages: [.user("Test")],
+222 |             tools: tools,
+
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/Providers/Integration/ProviderIntegrationTests.swift:27:21: warning: no 'async' operations occur within 'await' expression
+ 25 |         let model = Model.openai(.gpt4oMini)
+ 26 |         let config = TachikomaConfiguration()
+ 27 |         let _ = try await ProviderFactory.createProvider(for: model, configuration: config)
+    |                     `- warning: no 'async' operations occur within 'await' expression
+ 28 |         
+ 29 |         let response = try await generate(TestConfig.shortMessage, using: model, maxTokens: 50, temperature: 0.0, configuration: config)
+
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/Providers/Integration/ProviderIntegrationTests.swift:44:28: warning: no 'async' operations occur within 'await' expression
+ 42 |         let model = Model.openai(.gpt4oMini)
+ 43 |         let config = TachikomaConfiguration()
+ 44 |         let provider = try await ProviderFactory.createProvider(for: model, configuration: config)
+    |                            `- warning: no 'async' operations occur within 'await' expression
+ 45 |         
+ 46 |         let tool = AgentTool(
+
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/Providers/Integration/ProviderIntegrationTests.swift:87:28: warning: no 'async' operations occur within 'await' expression
+ 85 |         let model = Model.openai(.gpt4oMini)
+ 86 |         let config = TachikomaConfiguration()
+ 87 |         let provider = try await ProviderFactory.createProvider(for: model, configuration: config)
+    |                            `- warning: no 'async' operations occur within 'await' expression
+ 88 |         
+ 89 |         let request = ProviderRequest(
+
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/Providers/Integration/ProviderIntegrationTests.swift:150:28: warning: no 'async' operations occur within 'await' expression
+148 |         let model = Model.anthropic(.haiku35)
+149 |         let config = TachikomaConfiguration()
+150 |         let provider = try await ProviderFactory.createProvider(for: model, configuration: config)
+    |                            `- warning: no 'async' operations occur within 'await' expression
+151 |         
+152 |         let tool = AgentTool(
+
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/Providers/Integration/ProviderIntegrationTests.swift:283:28: warning: no 'async' operations occur within 'await' expression
+281 |         let model = Model.openai(.gpt4o)
+282 |         let config = TachikomaConfiguration()
+283 |         let provider = try await ProviderFactory.createProvider(for: model, configuration: config)
+    |                            `- warning: no 'async' operations occur within 'await' expression
+284 |         
+285 |         // Create a simple base64 encoded 1x1 red pixel PNG
+
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/Providers/Integration/ProviderSystemTests.swift:13:32: warning: no 'async' operations occur within 'await' expression
+ 11 |         try await TestHelpers.withTestConfiguration(apiKeys: ["openai": "test-key"]) { config in
+ 12 |             let model = Model.openai(.gpt4o)
+ 13 |             let provider = try await ProviderFactory.createProvider(for: model, configuration: config)
+    |                                `- warning: no 'async' operations occur within 'await' expression
+ 14 | 
+ 15 |             #expect(provider.modelId == "gpt-4o")
+
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/Providers/Integration/ProviderSystemTests.swift:26:32: warning: no 'async' operations occur within 'await' expression
+ 24 |         try await TestHelpers.withTestConfiguration(apiKeys: ["anthropic": "test-key"]) { config in
+ 25 |             let model = Model.anthropic(.opus4)
+ 26 |             let provider = try await ProviderFactory.createProvider(for: model, configuration: config)
+    |                                `- warning: no 'async' operations occur within 'await' expression
+ 27 | 
+ 28 |             #expect(provider.modelId == "claude-opus-4-1-20250805")
+
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/Providers/Integration/ProviderSystemTests.swift:39:32: warning: no 'async' operations occur within 'await' expression
+ 37 |         try await TestHelpers.withTestConfiguration(apiKeys: ["grok": "test-key"]) { config in
+ 38 |             let model = Model.grok(.grok4)
+ 39 |             let provider = try await ProviderFactory.createProvider(for: model, configuration: config)
+    |                                `- warning: no 'async' operations occur within 'await' expression
+ 40 | 
+ 41 |             #expect(provider.modelId == "grok-4-0709")
+
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/Providers/Integration/ProviderSystemTests.swift:52:28: warning: no 'async' operations occur within 'await' expression
+ 50 |         let config = TachikomaConfiguration(loadFromEnvironment: false)
+ 51 |         let model = Model.ollama(.llama33)
+ 52 |         let provider = try await ProviderFactory.createProvider(for: model, configuration: config)
+    |                            `- warning: no 'async' operations occur within 'await' expression
+ 53 | 
+ 54 |         #expect(provider.modelId == "llama3.3")
+[63/91] Compiling TachikomaTests GrokDebugTest.swift
+[64/91] Compiling TachikomaTests EmbeddingsAPITests.swift
+[65/91] Compiling TachikomaTests EnhancedToolSystemTests.swift
+[66/91] Compiling TachikomaTests MultiChannelResponseTests.swift
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/HarmonyFeatures/ReasoningEffortTests.swift:71:17: note: '#expect(_:_:)' will always pass here; use 'Bool(true)' to silence this warning (from macro 'expect')
+ 69 |         
+ 70 |         // Test passes if all handlers created without errors
+ 71 |         #expect(true)
+    |                 `- note: '#expect(_:_:)' will always pass here; use 'Bool(true)' to silence this warning (from macro 'expect')
+ 72 |     }
+ 73 |     
+
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/HarmonyFeatures/ResponseCacheTests.swift:32:23: warning: comparing non-optional value of type 'ResponseCache' to 'nil' always returns true
+ 30 |         
+ 31 |         // Test is minimal since we can't access statistics
+ 32 |         #expect(cache != nil)
+    |                       `- warning: comparing non-optional value of type 'ResponseCache' to 'nil' always returns true
+ 33 |     }
+ 34 |     
+
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/HarmonyFeatures/ResponseCacheTests.swift:319:13: warning: initialization of immutable value 'cache' was never used; consider replacing with assignment to '_' or removing it [#no-usage]
+317 |     @Test("CachedProvider wraps provider correctly")
+318 |     func testCachedProviderWrapper() async throws {
+319 |         let cache = ResponseCache()
+    |             `- warning: initialization of immutable value 'cache' was never used; consider replacing with assignment to '_' or removing it [#no-usage]
+320 |         
+321 |         // Create a mock provider
+
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/HarmonyFeatures/ResponseCacheTests.swift:339:13: warning: initialization of immutable value 'cache' was never used; consider replacing with assignment to '_' or removing it [#no-usage]
+337 |     @Test("CachedProvider caches generateText")
+338 |     func testCachedProviderGenerateText() async throws {
+339 |         let cache = ResponseCache()
+    |             `- warning: initialization of immutable value 'cache' was never used; consider replacing with assignment to '_' or removing it [#no-usage]
+340 |         
+341 |         // Use a simple counter that can be modified in the closure
+
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/HarmonyFeatures/ResponseCacheTests.swift:374:13: warning: initialization of immutable value 'cache' was never used; consider replacing with assignment to '_' or removing it [#no-usage]
+372 |     @Test("CachedProvider doesn't cache streaming")
+373 |     func testCachedProviderStreamText() async throws {
+374 |         let cache = ResponseCache()
+    |             `- warning: initialization of immutable value 'cache' was never used; consider replacing with assignment to '_' or removing it [#no-usage]
+375 |         
+376 |         let callCount = Box(value: 0)
+[67/91] Compiling TachikomaTests ReasoningEffortTests.swift
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/HarmonyFeatures/ReasoningEffortTests.swift:71:17: note: '#expect(_:_:)' will always pass here; use 'Bool(true)' to silence this warning (from macro 'expect')
+ 69 |         
+ 70 |         // Test passes if all handlers created without errors
+ 71 |         #expect(true)
+    |                 `- note: '#expect(_:_:)' will always pass here; use 'Bool(true)' to silence this warning (from macro 'expect')
+ 72 |     }
+ 73 |     
+
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/HarmonyFeatures/ResponseCacheTests.swift:32:23: warning: comparing non-optional value of type 'ResponseCache' to 'nil' always returns true
+ 30 |         
+ 31 |         // Test is minimal since we can't access statistics
+ 32 |         #expect(cache != nil)
+    |                       `- warning: comparing non-optional value of type 'ResponseCache' to 'nil' always returns true
+ 33 |     }
+ 34 |     
+
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/HarmonyFeatures/ResponseCacheTests.swift:319:13: warning: initialization of immutable value 'cache' was never used; consider replacing with assignment to '_' or removing it [#no-usage]
+317 |     @Test("CachedProvider wraps provider correctly")
+318 |     func testCachedProviderWrapper() async throws {
+319 |         let cache = ResponseCache()
+    |             `- warning: initialization of immutable value 'cache' was never used; consider replacing with assignment to '_' or removing it [#no-usage]
+320 |         
+321 |         // Create a mock provider
+
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/HarmonyFeatures/ResponseCacheTests.swift:339:13: warning: initialization of immutable value 'cache' was never used; consider replacing with assignment to '_' or removing it [#no-usage]
+337 |     @Test("CachedProvider caches generateText")
+338 |     func testCachedProviderGenerateText() async throws {
+339 |         let cache = ResponseCache()
+    |             `- warning: initialization of immutable value 'cache' was never used; consider replacing with assignment to '_' or removing it [#no-usage]
+340 |         
+341 |         // Use a simple counter that can be modified in the closure
+
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/HarmonyFeatures/ResponseCacheTests.swift:374:13: warning: initialization of immutable value 'cache' was never used; consider replacing with assignment to '_' or removing it [#no-usage]
+372 |     @Test("CachedProvider doesn't cache streaming")
+373 |     func testCachedProviderStreamText() async throws {
+374 |         let cache = ResponseCache()
+    |             `- warning: initialization of immutable value 'cache' was never used; consider replacing with assignment to '_' or removing it [#no-usage]
+375 |         
+376 |         let callCount = Box(value: 0)
+[68/91] Compiling TachikomaTests ResponseCacheTests.swift
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/HarmonyFeatures/ReasoningEffortTests.swift:71:17: note: '#expect(_:_:)' will always pass here; use 'Bool(true)' to silence this warning (from macro 'expect')
+ 69 |         
+ 70 |         // Test passes if all handlers created without errors
+ 71 |         #expect(true)
+    |                 `- note: '#expect(_:_:)' will always pass here; use 'Bool(true)' to silence this warning (from macro 'expect')
+ 72 |     }
+ 73 |     
+
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/HarmonyFeatures/ResponseCacheTests.swift:32:23: warning: comparing non-optional value of type 'ResponseCache' to 'nil' always returns true
+ 30 |         
+ 31 |         // Test is minimal since we can't access statistics
+ 32 |         #expect(cache != nil)
+    |                       `- warning: comparing non-optional value of type 'ResponseCache' to 'nil' always returns true
+ 33 |     }
+ 34 |     
+
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/HarmonyFeatures/ResponseCacheTests.swift:319:13: warning: initialization of immutable value 'cache' was never used; consider replacing with assignment to '_' or removing it [#no-usage]
+317 |     @Test("CachedProvider wraps provider correctly")
+318 |     func testCachedProviderWrapper() async throws {
+319 |         let cache = ResponseCache()
+    |             `- warning: initialization of immutable value 'cache' was never used; consider replacing with assignment to '_' or removing it [#no-usage]
+320 |         
+321 |         // Create a mock provider
+
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/HarmonyFeatures/ResponseCacheTests.swift:339:13: warning: initialization of immutable value 'cache' was never used; consider replacing with assignment to '_' or removing it [#no-usage]
+337 |     @Test("CachedProvider caches generateText")
+338 |     func testCachedProviderGenerateText() async throws {
+339 |         let cache = ResponseCache()
+    |             `- warning: initialization of immutable value 'cache' was never used; consider replacing with assignment to '_' or removing it [#no-usage]
+340 |         
+341 |         // Use a simple counter that can be modified in the closure
+
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/HarmonyFeatures/ResponseCacheTests.swift:374:13: warning: initialization of immutable value 'cache' was never used; consider replacing with assignment to '_' or removing it [#no-usage]
+372 |     @Test("CachedProvider doesn't cache streaming")
+373 |     func testCachedProviderStreamText() async throws {
+374 |         let cache = ResponseCache()
+    |             `- warning: initialization of immutable value 'cache' was never used; consider replacing with assignment to '_' or removing it [#no-usage]
+375 |         
+376 |         let callCount = Box(value: 0)
+[69/91] Compiling TachikomaTests StreamTransformTests.swift
+[70/91] Compiling TachikomaTests TachikomaConfigurationTests.swift
+[71/91] Compiling TachikomaTests TestHelpersTest.swift
+[72/91] Compiling TachikomaTests UnifiedErrorsTests.swift
+[73/91] Compiling TachikomaTests UsageTrackingTests.swift
+[74/91] Compiling TachikomaTests ProviderOptionsTests.swift
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/Core/ProviderTests.swift:141:17: warning: initialization of immutable value 'originalEnv' was never used; consider replacing with assignment to '_' or removing it [#no-usage]
+139 |         func loadFromPrimaryEnvironment() {
+140 |             // Mock environment for testing
+141 |             let originalEnv = ProcessInfo.processInfo.environment
+    |                 `- warning: initialization of immutable value 'originalEnv' was never used; consider replacing with assignment to '_' or removing it [#no-usage]
+142 |             
+143 |             // Test with mocked environment
+
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/Core/ProviderTests.swift:144:17: warning: initialization of immutable value 'mockEnv' was never used; consider replacing with assignment to '_' or removing it [#no-usage]
+142 |             
+143 |             // Test with mocked environment
+144 |             let mockEnv = ["OPENAI_API_KEY": "test-openai-key"]
+    |                 `- warning: initialization of immutable value 'mockEnv' was never used; consider replacing with assignment to '_' or removing it [#no-usage]
+145 |             
+146 |             // We can't easily mock ProcessInfo.processInfo.environment in tests,
+[75/91] Compiling TachikomaTests ProviderTests.swift
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/Core/ProviderTests.swift:141:17: warning: initialization of immutable value 'originalEnv' was never used; consider replacing with assignment to '_' or removing it [#no-usage]
+139 |         func loadFromPrimaryEnvironment() {
+140 |             // Mock environment for testing
+141 |             let originalEnv = ProcessInfo.processInfo.environment
+    |                 `- warning: initialization of immutable value 'originalEnv' was never used; consider replacing with assignment to '_' or removing it [#no-usage]
+142 |             
+143 |             // Test with mocked environment
+
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/Core/ProviderTests.swift:144:17: warning: initialization of immutable value 'mockEnv' was never used; consider replacing with assignment to '_' or removing it [#no-usage]
+142 |             
+143 |             // Test with mocked environment
+144 |             let mockEnv = ["OPENAI_API_KEY": "test-openai-key"]
+    |                 `- warning: initialization of immutable value 'mockEnv' was never used; consider replacing with assignment to '_' or removing it [#no-usage]
+145 |             
+146 |             // We can't easily mock ProcessInfo.processInfo.environment in tests,
+[76/91] Compiling TachikomaTests SimpleConfigurationTest.swift
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/Core/ProviderTests.swift:141:17: warning: initialization of immutable value 'originalEnv' was never used; consider replacing with assignment to '_' or removing it [#no-usage]
+139 |         func loadFromPrimaryEnvironment() {
+140 |             // Mock environment for testing
+141 |             let originalEnv = ProcessInfo.processInfo.environment
+    |                 `- warning: initialization of immutable value 'originalEnv' was never used; consider replacing with assignment to '_' or removing it [#no-usage]
+142 |             
+143 |             // Test with mocked environment
+
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/Core/ProviderTests.swift:144:17: warning: initialization of immutable value 'mockEnv' was never used; consider replacing with assignment to '_' or removing it [#no-usage]
+142 |             
+143 |             // Test with mocked environment
+144 |             let mockEnv = ["OPENAI_API_KEY": "test-openai-key"]
+    |                 `- warning: initialization of immutable value 'mockEnv' was never used; consider replacing with assignment to '_' or removing it [#no-usage]
+145 |             
+146 |             // We can't easily mock ProcessInfo.processInfo.environment in tests,
+[77/91] Compiling TachikomaTests StopConditionsIntegrationTests.swift
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/Core/StopConditionsIntegrationTests.swift:18:13: warning: initialization of immutable value 'mockProvider' was never used; consider replacing with assignment to '_' or removing it [#no-usage]
+ 16 |     func testOpenAIProviderStopSequences() async throws {
+ 17 |         // Create a mock provider that can verify the request
+ 18 |         let mockProvider = MockOpenAIProvider()
+    |             `- warning: initialization of immutable value 'mockProvider' was never used; consider replacing with assignment to '_' or removing it [#no-usage]
+ 19 |         
+ 20 |         // Configure with string stop conditions
+
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/Core/StopConditionsIntegrationTests.swift:28:13: warning: initialization of immutable value 'request' was never used; consider replacing with assignment to '_' or removing it [#no-usage]
+ 26 |         )
+ 27 |         
+ 28 |         let request = ProviderRequest(
+    |             `- warning: initialization of immutable value 'request' was never used; consider replacing with assignment to '_' or removing it [#no-usage]
+ 29 |             messages: [.user("Test")],
+ 30 |             tools: nil,
+
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/Core/StopConditionsTests.swift:148:13: warning: initialization of immutable value 'mockProvider' was never used; consider replacing with assignment to '_' or removing it [#no-usage]
+146 |         // Create a mock provider that returns text with a stop marker
+147 |         let mockText = "This is the response. STOP HERE. This should be truncated."
+148 |         let mockProvider = createMockProvider(responseText: mockText)
+    |             `- warning: initialization of immutable value 'mockProvider' was never used; consider replacing with assignment to '_' or removing it [#no-usage]
+149 |         
+150 |         // Configure with stop condition
+[78/91] Compiling TachikomaTests StopConditionsTests.swift
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/Core/StopConditionsIntegrationTests.swift:18:13: warning: initialization of immutable value 'mockProvider' was never used; consider replacing with assignment to '_' or removing it [#no-usage]
+ 16 |     func testOpenAIProviderStopSequences() async throws {
+ 17 |         // Create a mock provider that can verify the request
+ 18 |         let mockProvider = MockOpenAIProvider()
+    |             `- warning: initialization of immutable value 'mockProvider' was never used; consider replacing with assignment to '_' or removing it [#no-usage]
+ 19 |         
+ 20 |         // Configure with string stop conditions
+
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/Core/StopConditionsIntegrationTests.swift:28:13: warning: initialization of immutable value 'request' was never used; consider replacing with assignment to '_' or removing it [#no-usage]
+ 26 |         )
+ 27 |         
+ 28 |         let request = ProviderRequest(
+    |             `- warning: initialization of immutable value 'request' was never used; consider replacing with assignment to '_' or removing it [#no-usage]
+ 29 |             messages: [.user("Test")],
+ 30 |             tools: nil,
+
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/Core/StopConditionsTests.swift:148:13: warning: initialization of immutable value 'mockProvider' was never used; consider replacing with assignment to '_' or removing it [#no-usage]
+146 |         // Create a mock provider that returns text with a stop marker
+147 |         let mockText = "This is the response. STOP HERE. This should be truncated."
+148 |         let mockProvider = createMockProvider(responseText: mockText)
+    |             `- warning: initialization of immutable value 'mockProvider' was never used; consider replacing with assignment to '_' or removing it [#no-usage]
+149 |         
+150 |         // Configure with stop condition
+[79/91] Compiling TachikomaTests StreamObjectTests.swift
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/Core/StopConditionsIntegrationTests.swift:18:13: warning: initialization of immutable value 'mockProvider' was never used; consider replacing with assignment to '_' or removing it [#no-usage]
+ 16 |     func testOpenAIProviderStopSequences() async throws {
+ 17 |         // Create a mock provider that can verify the request
+ 18 |         let mockProvider = MockOpenAIProvider()
+    |             `- warning: initialization of immutable value 'mockProvider' was never used; consider replacing with assignment to '_' or removing it [#no-usage]
+ 19 |         
+ 20 |         // Configure with string stop conditions
+
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/Core/StopConditionsIntegrationTests.swift:28:13: warning: initialization of immutable value 'request' was never used; consider replacing with assignment to '_' or removing it [#no-usage]
+ 26 |         )
+ 27 |         
+ 28 |         let request = ProviderRequest(
+    |             `- warning: initialization of immutable value 'request' was never used; consider replacing with assignment to '_' or removing it [#no-usage]
+ 29 |             messages: [.user("Test")],
+ 30 |             tools: nil,
+
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/Core/StopConditionsTests.swift:148:13: warning: initialization of immutable value 'mockProvider' was never used; consider replacing with assignment to '_' or removing it [#no-usage]
+146 |         // Create a mock provider that returns text with a stop marker
+147 |         let mockText = "This is the response. STOP HERE. This should be truncated."
+148 |         let mockProvider = createMockProvider(responseText: mockText)
+    |             `- warning: initialization of immutable value 'mockProvider' was never used; consider replacing with assignment to '_' or removing it [#no-usage]
+149 |         
+150 |         // Configure with stop condition
+[80/91] Compiling TachikomaTests DebugExactTest.swift
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/Core/GenerationTests.swift:192:9: warning: no calls to throwing functions occur within 'try' expression
+190 |     @Test("Generate Function - Invalid Configuration")
+191 |     func generateFunctionInvalidConfig() async throws {
+192 |         try await TestHelpers.withTestConfiguration(apiKeys: ["openai": "test-key"]) { config in
+    |         `- warning: no calls to throwing functions occur within 'try' expression
+193 |             // Test with invalid base URL format
+194 |             config.setBaseURL("not-a-url", for: .openai)
+[81/91] Compiling TachikomaTests DirectConfigTest.swift
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/Core/GenerationTests.swift:192:9: warning: no calls to throwing functions occur within 'try' expression
+190 |     @Test("Generate Function - Invalid Configuration")
+191 |     func generateFunctionInvalidConfig() async throws {
+192 |         try await TestHelpers.withTestConfiguration(apiKeys: ["openai": "test-key"]) { config in
+    |         `- warning: no calls to throwing functions occur within 'try' expression
+193 |             // Test with invalid base URL format
+194 |             config.setBaseURL("not-a-url", for: .openai)
+[82/91] Compiling TachikomaTests GenerationTests.swift
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/Core/GenerationTests.swift:192:9: warning: no calls to throwing functions occur within 'try' expression
+190 |     @Test("Generate Function - Invalid Configuration")
+191 |     func generateFunctionInvalidConfig() async throws {
+192 |         try await TestHelpers.withTestConfiguration(apiKeys: ["openai": "test-key"]) { config in
+    |         `- warning: no calls to throwing functions occur within 'try' expression
+193 |             // Test with invalid base URL format
+194 |             config.setBaseURL("not-a-url", for: .openai)
+[83/91] Emitting module TachikomaTests
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/IntegrationTests.swift:89:21: warning: no calls to throwing functions occur within 'try' expression
+ 87 |         
+ 88 |         // Test successful execution
+ 89 |         let args1 = try AgentToolArguments([
+    |                     `- warning: no calls to throwing functions occur within 'try' expression
+ 90 |             "operation": "+",
+ 91 |             "a": 10.0,
+
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/IntegrationTests.swift:105:21: warning: no calls to throwing functions occur within 'try' expression
+103 |         
+104 |         // Test error handling
+105 |         let args2 = try AgentToolArguments([
+    |                     `- warning: no calls to throwing functions occur within 'try' expression
+106 |             "operation": "/",
+107 |             "a": 10.0,
+
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/SimplifiedToolsTests.swift:52:20: warning: no calls to throwing functions occur within 'try' expression
+ 50 |         
+ 51 |         // Test execution
+ 52 |         let args = try AgentToolArguments(["expression": "21*2"])
+    |                    `- warning: no calls to throwing functions occur within 'try' expression
+ 53 |         let context = ToolExecutionContext()
+ 54 |         let result = try await tool.execute(args, context: context)
+
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/SimplifiedToolsTests.swift:88:20: warning: no calls to throwing functions occur within 'try' expression
+ 86 |         )
+ 87 |         
+ 88 |         let args = try AgentToolArguments(["query": "test"])
+    |                    `- warning: no calls to throwing functions occur within 'try' expression
+ 89 |         let result = try await tool.execute(args, context: context)
+ 90 |         
+
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/SimplifiedToolsTests.swift:154:20: warning: no calls to throwing functions occur within 'try' expression
+152 |         
+153 |         // Test execution
+154 |         let args = try AgentToolArguments([
+    |                    `- warning: no calls to throwing functions occur within 'try' expression
+155 |             "location": "San Francisco",
+156 |             "units": "fahrenheit"
+[84/91] Compiling TachikomaTests AgentToolValueTests.swift
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/Audio/AudioFunctionsTests.swift:86:13: warning: no calls to throwing functions occur within 'try' expression
+ 84 |         @Test("transcribe() with abort signal")
+ 85 |         func transcribeWithAbortSignal() async throws {
+ 86 |             try await TestHelpers.withTestConfiguration(apiKeys: ["openai": "test-key"]) { config in
+    |             `- warning: no calls to throwing functions occur within 'try' expression
+ 87 |                 let audioData = AudioData(data: Data([0x01, 0x02, 0x03]), format: .wav)
+ 88 |                 let abortSignal = AbortSignal()
+
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/Audio/AudioFunctionsTests.swift:177:13: warning: no calls to throwing functions occur within 'try' expression
+175 |         @Test("generateSpeech() with abort signal")
+176 |         func generateSpeechWithAbortSignal() async throws {
+177 |             try await TestHelpers.withTestConfiguration(apiKeys: ["openai": "test-key"]) { config in
+    |             `- warning: no calls to throwing functions occur within 'try' expression
+178 |                 let abortSignal = AbortSignal()
+179 | 
+
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/Audio/AudioFunctionsTests.swift:290:13: warning: no calls to throwing functions occur within 'try' expression
+288 |         @Test("transcribe() handles empty audio data")
+289 |         func transcribeHandlesEmptyAudioData() async throws {
+290 |             try await TestHelpers.withTestConfiguration(apiKeys: ["openai": "test-key"]) { config in
+    |             `- warning: no calls to throwing functions occur within 'try' expression
+291 |                 let emptyAudioData = AudioData(data: Data(), format: .wav)
+292 | 
+
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/Audio/AudioFunctionsTests.swift:301:35: warning: result of call to 'withTestConfiguration(apiKeys:_:)' is unused [#no-usage]
+299 |         @Test("generateSpeech() handles empty text")
+300 |         func generateSpeechHandlesEmptyText() async throws {
+301 |             try await TestHelpers.withTestConfiguration(apiKeys: ["openai": "test-key"]) { config in
+    |                                   `- warning: result of call to 'withTestConfiguration(apiKeys:_:)' is unused [#no-usage]
+302 |                 await #expect(throws: TachikomaError.self) {
+303 |                     _ = try await generateSpeech("", using: .openai(.tts1), configuration: config)
+
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/Audio/AudioFunctionsTests.swift:301:13: warning: no calls to throwing functions occur within 'try' expression
+299 |         @Test("generateSpeech() handles empty text")
+300 |         func generateSpeechHandlesEmptyText() async throws {
+301 |             try await TestHelpers.withTestConfiguration(apiKeys: ["openai": "test-key"]) { config in
+    |             `- warning: no calls to throwing functions occur within 'try' expression
+302 |                 await #expect(throws: TachikomaError.self) {
+303 |                     _ = try await generateSpeech("", using: .openai(.tts1), configuration: config)
+
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/Audio/AudioFunctionsTests.swift:310:13: warning: no calls to throwing functions occur within 'try' expression
+308 |         @Test("functions handle missing API keys")
+309 |         func functionsHandleMissingAPIKeys() async throws {
+310 |             try await TestHelpers.withEmptyTestConfiguration { config in
+    |             `- warning: no calls to throwing functions occur within 'try' expression
+311 |                 let audioData = AudioData(data: Data([0x01, 0x02]), format: .wav)
+312 | 
+[85/91] Compiling TachikomaTests AsyncErgonomicsTests.swift
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/Audio/AudioFunctionsTests.swift:86:13: warning: no calls to throwing functions occur within 'try' expression
+ 84 |         @Test("transcribe() with abort signal")
+ 85 |         func transcribeWithAbortSignal() async throws {
+ 86 |             try await TestHelpers.withTestConfiguration(apiKeys: ["openai": "test-key"]) { config in
+    |             `- warning: no calls to throwing functions occur within 'try' expression
+ 87 |                 let audioData = AudioData(data: Data([0x01, 0x02, 0x03]), format: .wav)
+ 88 |                 let abortSignal = AbortSignal()
+
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/Audio/AudioFunctionsTests.swift:177:13: warning: no calls to throwing functions occur within 'try' expression
+175 |         @Test("generateSpeech() with abort signal")
+176 |         func generateSpeechWithAbortSignal() async throws {
+177 |             try await TestHelpers.withTestConfiguration(apiKeys: ["openai": "test-key"]) { config in
+    |             `- warning: no calls to throwing functions occur within 'try' expression
+178 |                 let abortSignal = AbortSignal()
+179 | 
+
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/Audio/AudioFunctionsTests.swift:290:13: warning: no calls to throwing functions occur within 'try' expression
+288 |         @Test("transcribe() handles empty audio data")
+289 |         func transcribeHandlesEmptyAudioData() async throws {
+290 |             try await TestHelpers.withTestConfiguration(apiKeys: ["openai": "test-key"]) { config in
+    |             `- warning: no calls to throwing functions occur within 'try' expression
+291 |                 let emptyAudioData = AudioData(data: Data(), format: .wav)
+292 | 
+
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/Audio/AudioFunctionsTests.swift:301:35: warning: result of call to 'withTestConfiguration(apiKeys:_:)' is unused [#no-usage]
+299 |         @Test("generateSpeech() handles empty text")
+300 |         func generateSpeechHandlesEmptyText() async throws {
+301 |             try await TestHelpers.withTestConfiguration(apiKeys: ["openai": "test-key"]) { config in
+    |                                   `- warning: result of call to 'withTestConfiguration(apiKeys:_:)' is unused [#no-usage]
+302 |                 await #expect(throws: TachikomaError.self) {
+303 |                     _ = try await generateSpeech("", using: .openai(.tts1), configuration: config)
+
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/Audio/AudioFunctionsTests.swift:301:13: warning: no calls to throwing functions occur within 'try' expression
+299 |         @Test("generateSpeech() handles empty text")
+300 |         func generateSpeechHandlesEmptyText() async throws {
+301 |             try await TestHelpers.withTestConfiguration(apiKeys: ["openai": "test-key"]) { config in
+    |             `- warning: no calls to throwing functions occur within 'try' expression
+302 |                 await #expect(throws: TachikomaError.self) {
+303 |                     _ = try await generateSpeech("", using: .openai(.tts1), configuration: config)
+
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/Audio/AudioFunctionsTests.swift:310:13: warning: no calls to throwing functions occur within 'try' expression
+308 |         @Test("functions handle missing API keys")
+309 |         func functionsHandleMissingAPIKeys() async throws {
+310 |             try await TestHelpers.withEmptyTestConfiguration { config in
+    |             `- warning: no calls to throwing functions occur within 'try' expression
+311 |                 let audioData = AudioData(data: Data([0x01, 0x02]), format: .wav)
+312 | 
+[86/91] Compiling TachikomaTests AudioFunctionsTests.swift
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/Audio/AudioFunctionsTests.swift:86:13: warning: no calls to throwing functions occur within 'try' expression
+ 84 |         @Test("transcribe() with abort signal")
+ 85 |         func transcribeWithAbortSignal() async throws {
+ 86 |             try await TestHelpers.withTestConfiguration(apiKeys: ["openai": "test-key"]) { config in
+    |             `- warning: no calls to throwing functions occur within 'try' expression
+ 87 |                 let audioData = AudioData(data: Data([0x01, 0x02, 0x03]), format: .wav)
+ 88 |                 let abortSignal = AbortSignal()
+
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/Audio/AudioFunctionsTests.swift:177:13: warning: no calls to throwing functions occur within 'try' expression
+175 |         @Test("generateSpeech() with abort signal")
+176 |         func generateSpeechWithAbortSignal() async throws {
+177 |             try await TestHelpers.withTestConfiguration(apiKeys: ["openai": "test-key"]) { config in
+    |             `- warning: no calls to throwing functions occur within 'try' expression
+178 |                 let abortSignal = AbortSignal()
+179 | 
+
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/Audio/AudioFunctionsTests.swift:290:13: warning: no calls to throwing functions occur within 'try' expression
+288 |         @Test("transcribe() handles empty audio data")
+289 |         func transcribeHandlesEmptyAudioData() async throws {
+290 |             try await TestHelpers.withTestConfiguration(apiKeys: ["openai": "test-key"]) { config in
+    |             `- warning: no calls to throwing functions occur within 'try' expression
+291 |                 let emptyAudioData = AudioData(data: Data(), format: .wav)
+292 | 
+
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/Audio/AudioFunctionsTests.swift:301:35: warning: result of call to 'withTestConfiguration(apiKeys:_:)' is unused [#no-usage]
+299 |         @Test("generateSpeech() handles empty text")
+300 |         func generateSpeechHandlesEmptyText() async throws {
+301 |             try await TestHelpers.withTestConfiguration(apiKeys: ["openai": "test-key"]) { config in
+    |                                   `- warning: result of call to 'withTestConfiguration(apiKeys:_:)' is unused [#no-usage]
+302 |                 await #expect(throws: TachikomaError.self) {
+303 |                     _ = try await generateSpeech("", using: .openai(.tts1), configuration: config)
+
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/Audio/AudioFunctionsTests.swift:301:13: warning: no calls to throwing functions occur within 'try' expression
+299 |         @Test("generateSpeech() handles empty text")
+300 |         func generateSpeechHandlesEmptyText() async throws {
+301 |             try await TestHelpers.withTestConfiguration(apiKeys: ["openai": "test-key"]) { config in
+    |             `- warning: no calls to throwing functions occur within 'try' expression
+302 |                 await #expect(throws: TachikomaError.self) {
+303 |                     _ = try await generateSpeech("", using: .openai(.tts1), configuration: config)
+
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/Audio/AudioFunctionsTests.swift:310:13: warning: no calls to throwing functions occur within 'try' expression
+308 |         @Test("functions handle missing API keys")
+309 |         func functionsHandleMissingAPIKeys() async throws {
+310 |             try await TestHelpers.withEmptyTestConfiguration { config in
+    |             `- warning: no calls to throwing functions occur within 'try' expression
+311 |                 let audioData = AudioData(data: Data([0x01, 0x02]), format: .wav)
+312 | 
+[87/91] Compiling TachikomaTests AudioTypesTests.swift
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/Audio/OpenAIAudioProviderTests.swift:27:35: warning: result of call to 'withEmptyTestConfiguration' is unused [#no-usage]
+ 25 |         @Test("OpenAI transcription provider initialization fails without API key")
+ 26 |         func openAITranscriptionProviderInitFailsWithoutAPIKey() async throws {
+ 27 |             try await TestHelpers.withEmptyTestConfiguration { config in
+    |                                   `- warning: result of call to 'withEmptyTestConfiguration' is unused [#no-usage]
+ 28 |                 #expect(throws: TachikomaError.self) {
+ 29 |                     _ = try TranscriptionProviderFactory.createProvider(for: .openai(.whisper1), configuration: config)
+
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/Audio/OpenAIAudioProviderTests.swift:27:13: warning: no calls to throwing functions occur within 'try' expression
+ 25 |         @Test("OpenAI transcription provider initialization fails without API key")
+ 26 |         func openAITranscriptionProviderInitFailsWithoutAPIKey() async throws {
+ 27 |             try await TestHelpers.withEmptyTestConfiguration { config in
+    |             `- warning: no calls to throwing functions occur within 'try' expression
+ 28 |                 #expect(throws: TachikomaError.self) {
+ 29 |                     _ = try TranscriptionProviderFactory.createProvider(for: .openai(.whisper1), configuration: config)
+
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/Audio/OpenAIAudioProviderTests.swift:165:35: warning: result of call to 'withEmptyTestConfiguration' is unused [#no-usage]
+163 |         @Test("OpenAI speech provider initialization fails without API key")
+164 |         func openAISpeechProviderInitFailsWithoutAPIKey() async throws {
+165 |             try await TestHelpers.withEmptyTestConfiguration { config in
+    |                                   `- warning: result of call to 'withEmptyTestConfiguration' is unused [#no-usage]
+166 |                 #expect(throws: TachikomaError.self) {
+167 |                     _ = try SpeechProviderFactory.createProvider(for: .openai(.tts1), configuration: config)
+
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/Audio/OpenAIAudioProviderTests.swift:165:13: warning: no calls to throwing functions occur within 'try' expression
+163 |         @Test("OpenAI speech provider initialization fails without API key")
+164 |         func openAISpeechProviderInitFailsWithoutAPIKey() async throws {
+165 |             try await TestHelpers.withEmptyTestConfiguration { config in
+    |             `- warning: no calls to throwing functions occur within 'try' expression
+166 |                 #expect(throws: TachikomaError.self) {
+167 |                     _ = try SpeechProviderFactory.createProvider(for: .openai(.tts1), configuration: config)
+
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/Audio/OpenAIAudioProviderTests.swift:484:13: warning: no calls to throwing functions occur within 'try' expression
+482 |         @Test("OpenAI provider error message formatting")
+483 |         func openAIProviderErrorMessageFormatting() async throws {
+484 |             try await TestHelpers.withEmptyTestConfiguration { config in
+    |             `- warning: no calls to throwing functions occur within 'try' expression
+485 |                 // Test that error messages are properly formatted
+486 |                 do {
+[88/91] Compiling TachikomaTests OpenAIAudioProviderTests.swift
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/Audio/OpenAIAudioProviderTests.swift:27:35: warning: result of call to 'withEmptyTestConfiguration' is unused [#no-usage]
+ 25 |         @Test("OpenAI transcription provider initialization fails without API key")
+ 26 |         func openAITranscriptionProviderInitFailsWithoutAPIKey() async throws {
+ 27 |             try await TestHelpers.withEmptyTestConfiguration { config in
+    |                                   `- warning: result of call to 'withEmptyTestConfiguration' is unused [#no-usage]
+ 28 |                 #expect(throws: TachikomaError.self) {
+ 29 |                     _ = try TranscriptionProviderFactory.createProvider(for: .openai(.whisper1), configuration: config)
+
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/Audio/OpenAIAudioProviderTests.swift:27:13: warning: no calls to throwing functions occur within 'try' expression
+ 25 |         @Test("OpenAI transcription provider initialization fails without API key")
+ 26 |         func openAITranscriptionProviderInitFailsWithoutAPIKey() async throws {
+ 27 |             try await TestHelpers.withEmptyTestConfiguration { config in
+    |             `- warning: no calls to throwing functions occur within 'try' expression
+ 28 |                 #expect(throws: TachikomaError.self) {
+ 29 |                     _ = try TranscriptionProviderFactory.createProvider(for: .openai(.whisper1), configuration: config)
+
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/Audio/OpenAIAudioProviderTests.swift:165:35: warning: result of call to 'withEmptyTestConfiguration' is unused [#no-usage]
+163 |         @Test("OpenAI speech provider initialization fails without API key")
+164 |         func openAISpeechProviderInitFailsWithoutAPIKey() async throws {
+165 |             try await TestHelpers.withEmptyTestConfiguration { config in
+    |                                   `- warning: result of call to 'withEmptyTestConfiguration' is unused [#no-usage]
+166 |                 #expect(throws: TachikomaError.self) {
+167 |                     _ = try SpeechProviderFactory.createProvider(for: .openai(.tts1), configuration: config)
+
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/Audio/OpenAIAudioProviderTests.swift:165:13: warning: no calls to throwing functions occur within 'try' expression
+163 |         @Test("OpenAI speech provider initialization fails without API key")
+164 |         func openAISpeechProviderInitFailsWithoutAPIKey() async throws {
+165 |             try await TestHelpers.withEmptyTestConfiguration { config in
+    |             `- warning: no calls to throwing functions occur within 'try' expression
+166 |                 #expect(throws: TachikomaError.self) {
+167 |                     _ = try SpeechProviderFactory.createProvider(for: .openai(.tts1), configuration: config)
+
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/Audio/OpenAIAudioProviderTests.swift:484:13: warning: no calls to throwing functions occur within 'try' expression
+482 |         @Test("OpenAI provider error message formatting")
+483 |         func openAIProviderErrorMessageFormatting() async throws {
+484 |             try await TestHelpers.withEmptyTestConfiguration { config in
+    |             `- warning: no calls to throwing functions occur within 'try' expression
+485 |                 // Test that error messages are properly formatted
+486 |                 do {
+[89/91] Compiling TachikomaTests AsyncSequenceTests.swift
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/Audio/OpenAIAudioProviderTests.swift:27:35: warning: result of call to 'withEmptyTestConfiguration' is unused [#no-usage]
+ 25 |         @Test("OpenAI transcription provider initialization fails without API key")
+ 26 |         func openAITranscriptionProviderInitFailsWithoutAPIKey() async throws {
+ 27 |             try await TestHelpers.withEmptyTestConfiguration { config in
+    |                                   `- warning: result of call to 'withEmptyTestConfiguration' is unused [#no-usage]
+ 28 |                 #expect(throws: TachikomaError.self) {
+ 29 |                     _ = try TranscriptionProviderFactory.createProvider(for: .openai(.whisper1), configuration: config)
+
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/Audio/OpenAIAudioProviderTests.swift:27:13: warning: no calls to throwing functions occur within 'try' expression
+ 25 |         @Test("OpenAI transcription provider initialization fails without API key")
+ 26 |         func openAITranscriptionProviderInitFailsWithoutAPIKey() async throws {
+ 27 |             try await TestHelpers.withEmptyTestConfiguration { config in
+    |             `- warning: no calls to throwing functions occur within 'try' expression
+ 28 |                 #expect(throws: TachikomaError.self) {
+ 29 |                     _ = try TranscriptionProviderFactory.createProvider(for: .openai(.whisper1), configuration: config)
+
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/Audio/OpenAIAudioProviderTests.swift:165:35: warning: result of call to 'withEmptyTestConfiguration' is unused [#no-usage]
+163 |         @Test("OpenAI speech provider initialization fails without API key")
+164 |         func openAISpeechProviderInitFailsWithoutAPIKey() async throws {
+165 |             try await TestHelpers.withEmptyTestConfiguration { config in
+    |                                   `- warning: result of call to 'withEmptyTestConfiguration' is unused [#no-usage]
+166 |                 #expect(throws: TachikomaError.self) {
+167 |                     _ = try SpeechProviderFactory.createProvider(for: .openai(.tts1), configuration: config)
+
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/Audio/OpenAIAudioProviderTests.swift:165:13: warning: no calls to throwing functions occur within 'try' expression
+163 |         @Test("OpenAI speech provider initialization fails without API key")
+164 |         func openAISpeechProviderInitFailsWithoutAPIKey() async throws {
+165 |             try await TestHelpers.withEmptyTestConfiguration { config in
+    |             `- warning: no calls to throwing functions occur within 'try' expression
+166 |                 #expect(throws: TachikomaError.self) {
+167 |                     _ = try SpeechProviderFactory.createProvider(for: .openai(.tts1), configuration: config)
+
+/Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/Audio/OpenAIAudioProviderTests.swift:484:13: warning: no calls to throwing functions occur within 'try' expression
+482 |         @Test("OpenAI provider error message formatting")
+483 |         func openAIProviderErrorMessageFormatting() async throws {
+484 |             try await TestHelpers.withEmptyTestConfiguration { config in
+    |             `- warning: no calls to throwing functions occur within 'try' expression
+485 |                 // Test that error messages are properly formatted
+486 |                 do {
+[89/91] Write Objects.LinkFileList
+[90/91] Linking TachikomaPackageTests
+Build complete! (13.05s)
+Test Suite 'All tests' started at 2025-08-10 01:14:01.967.
+Test Suite 'All tests' passed at 2025-08-10 01:14:01.975.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.008) seconds
+􀟈  Test run started.
+􀄵  Testing Library Version: 1083
+􀄵  Target Platform: arm64e-apple-macos14.0
+􀟈  Suite "Async Ergonomics Tests" started.
+􀟈  Suite "OpenAI Audio Provider Tests" started.
+􀟈  Suite "Type Conversion Tests" started.
+􀟈  Suite "MCP Tool Adapter Tests" started.
+􀟈  Suite "Unified Errors Tests" started.
+􀟈  Suite "StreamObject Tests" started.
+􀟈  Suite "Tool System Tests" started.
+􀟈  Suite "Mock Tool Tests" started.
+􀟈  Suite "Integration Tests" started.
+􀟈  Suite "MCP Client Tests" started.
+􀟈  Suite "Test Helpers Tests" started.
+􀟈  Suite "Audio Types Tests" started.
+􀟈  Suite "Provider Options Tests" started.
+􀟈  Suite "Basic Tests" started.
+􀟈  Suite "Direct Configuration Tests" started.
+􀙟  Suite "Provider Integration Tests" skipped.
+􀟈  Suite "Enhanced Tool System" started.
+􀟈  Suite "Simple Configuration Tests" started.
+􀟈  Suite "TachikomaCLI Placeholder Tests" started.
+􀟈  Suite "AsyncSequence Conformance Tests" started.
+􀟈  Suite "Model Capabilities Tests" started.
+􀟈  Suite "Stop Conditions Tests" started.
+􀟈  Suite "Audio Functions Tests" started.
+􀟈  Suite "TachikomaConfiguration Tests" started.
+􀟈  Suite "Provider Enum Tests" started.
+􀟈  Suite "Retry Handler" started.
+􀟈  Suite "Dynamic Tools System Tests" started.
+􀟈  Suite UsageTrackingTests started.
+􀟈  Suite "Debug Configuration Tests" started.
+􀟈  Suite "Schema Builder Tests" started.
+􀟈  Suite "Reasoning Effort Levels" started.
+􀟈  Suite "UI Integration Tests" started.
+􀟈  Suite "Stream Transform Pipeline Tests" started.
+􀟈  Suite "Minimal Modern API Tests" started.
+􀟈  Suite "LMStudio Provider Tests" started.
+􀟈  Suite "Stop Conditions Integration Tests" started.
+􀟈  Suite "Simplified Tools Tests" started.
+􀟈  Suite "Debug Exact Test" started.
+􀟈  Test "Error responses are properly handled" started.
+􀟈  Suite "OpenAI Responses API Tests" started.
+􀟈  Suite "Configuration Architecture Tests" started.
+􀟈  Suite "Provider System Tests" started.
+􀟈  Test "Streaming response chunks are processed incrementally" started.
+􀟈  Suite "Generation Function Tests" started.
+􀟈  Suite "OpenAI Transcription Provider Tests" started.
+􀟈  Suite "OpenAI Error Handling Tests" started.
+􀟈  Suite "AudioData Tests" started.
+􀟈  Suite "Codable Conformance" started.
+􀟈  Suite "AudioFormat Tests" started.
+􀟈  Suite "VoiceOption Tests" started.
+􀟈  Suite "OpenAI Speech Provider Tests" started.
+􀟈  Suite "Provider Feature Parity Tests" started.
+􀟈  Suite "AbortSignal Tests" started.
+􀟈  Suite "Result Types Tests" started.
+􀟈  Suite "Provider Options Creation" started.
+􀟈  Test "OpenAIChatRequest decode handles both max_tokens and max_completion_tokens" started.
+􀟈  Suite "Enum Value Tests" started.
+􀟈  Suite "OpenAI API Configuration Tests" started.
+􀟈  Suite "Capability Detection" started.
+􀟈  Suite "Batch Operations Tests" started.
+􀟈  Suite "Multi-Channel Response System" started.
+􀟈  Test "GPT-5 max_completion_tokens parameter encoding" started.
+􀟈  Suite "Integration Tests" started.
+􀟈  Suite "Basic Speech Generation Functions Tests" started.
+􀟈  Suite "Thread Safety" started.
+􀟈  Suite "Error Handling Tests" started.
+􀟈  Suite "Instance Creation Tests" started.
+􀟈  Suite "Basic Transcription Functions Tests" started.
+􀟈  Suite "Response Caching" started.
+􀟈  Suite "Request Types Tests" started.
+􀟈  Suite "Settings Validation" started.
+􀟈  Suite "Provider Options Container" started.
+􀟈  Suite "Codable Tests" started.
+􀟈  Suite "Provider Properties Tests" started.
+􀟈  Suite "Environment Variable Loading Tests" started.
+􀟈  Suite "Equality Tests" started.
+􀟈  Suite "GenerationSettings Integration" started.
+􀟈  Test "Tool calls are properly handled in streaming" started.
+􀟈  Suite "Custom Model Registration" started.
+􀟈  Suite "Environment Variable Loading Tests" started.
+􀟈  Suite "Hashable Tests" started.
+􀟈  Suite "Default Configuration Tests" started.
+􀟈  Suite "Thread Safety Tests" started.
+􀟈  Suite "Type-Safe API Tests" started.
+􀟈  Suite "Provider Factory Tests" started.
+􀟈  Suite "Instance Isolation Tests" started.
+􀟈  Suite "AgentToolValue Protocol System Tests" started.
+􀟈  Test "Cancellation token with handlers" started.
+􀟈  Suite "Configuration Priority Tests" started.
+􀟈  Test "OpenAICompatibleHelper streaming implementation" started.
+􀟈  Test "With timeout basic functionality" started.
+􀟈  Test "Round-trip conversions" started.
+􀟈  Test "Task group with auto cancellation" started.
+􀟈  Suite "Embeddings API" started.
+􀟈  Suite "Configuration State Tests" started.
+􀟈  Test "Async stream collect basic" started.
+􀟈  Test "With timeout throws on timeout" started.
+􀟈  Test "Timeout error description" started.
+􀟈  Test "Generic error conversion" started.
+􀟈  Test "Retry configuration presets" started.
+􀟈  Test "ToolResponse to AnyAgentToolValue conversion via toAgentToolResult" started.
+􀟈  Test "ToolArguments initialization from AgentToolArguments" started.
+􀟈  Test "ToolArguments getBool" started.
+􀟈  Test "API call error conversion" started.
+􀟈  Test "Retry with cancellation - immediate success" started.
+􀟈  Test "Any to AnyAgentToolValue conversion" started.
+􀟈  Test "ToolResponse image creation" started.
+􀟈  Test "Retry error conversion" started.
+􀟈  Test "ToolArguments getInt" started.
+􀟈  Test "ToolArguments getNumber" started.
+􀟈  Test "ToolArguments getString" started.
+􀟈  Test "streamObject basic functionality" started.
+􀟈  Test "finalObject throws when no complete object" started.
+􀟈  Test "Error code categories" started.
+􀟈  Test "StreamObjectResult AsyncSequence iteration" started.
+􀟈  Test "StreamObjectResult structure" started.
+􀟈  Test "Error details with metadata" started.
+􀟈  Test "Cancellation token basic operations" started.
+􀟈  Test "ToolArguments isEmpty" started.
+􀟈  Test "AnyAgentToolValue to Value conversion" started.
+􀟈  Test "ObjectStreamDelta types and structure" started.
+􀟈  Test "AnyAgentToolValue to JSON conversion" started.
+􀟈  Test "Convert legacy TachikomaError to unified error" started.
+􀟈  Suite "String-Based Compatibility API Tests" started.
+􀟈  Test "Debug Grok streaming issue" started.
+􀟈  Test "finalObject method" started.
+􀟈  Test "Mock tool execution with missing arguments" started.
+􀟈  Test "Tool Error Handling" started.
+􀟈  Test "ToolResponse error creation" started.
+􀟈  Test "Mock tool schema validation" started.
+􀟈  Test "Retry configuration defaults" started.
+􀟈  Test "ToolResponse text creation" started.
+􀟈  Test "Mock tool execution with valid arguments" started.
+􀟈  Test "ToolArguments getStringArray" started.
+􀟈  Test "Value encoding and decoding" started.
+􀟈  Test "Tool Execution" started.
+􀟈  Test "Tool execution with simplified builder and error handling" started.
+􀟈  Test "Async operations with timeout and cancellation" started.
+􀟈  Test "Test helper create configuration" started.
+􀟈  Test "Provider with feature parity and caching" started.
+􀟈  Suite "Utility Functions Tests" started.
+􀟈  Test "Convert ModelError to unified error" started.
+􀟈  Test "MCPToolProvider initialization" started.
+􀟈  Test "partialObjects filter method" started.
+􀟈  Test "Tool Arguments" started.
+􀟈  Test "AgentTool Creation" started.
+􀟈  Test "End-to-end UI message flow with streaming" started.
+􀟈  Test "Complete tool workflow with context and error recovery" started.
+􀟈  Test "ToolResponse with metadata" started.
+􀟈  Test "Test helper with standard test configuration" started.
+􀟈  Test "Built-in Tools" started.
+􀟈  Test "MCPServerConfig initialization with minimal parameters" started.
+􀟈  Test "ToolArguments decoding" started.
+􀟈  Test "Test helper with selective configuration" started.
+􀟈  Test "Tool metadata structure" started.
+􀟈  Test "ToolResponse creation methods" started.
+􀟈  Test "Tool Parameter Types" started.
+􀟈  Test "Test helper with empty configuration" started.
+􀟈  Test "TimestampGranularity enum" started.
+􀟈  Test "Create unified error with recovery suggestion" started.
+􀟈  Test "TranscriptionResponseFormat enum" started.
+􀟈  Test "MCPToolProvider as DynamicToolProvider" started.
+􀟈  Test "Audio error types" started.
+􀟈  Test "ToolArguments from Value" started.
+􀟈  Test "ToolResponse to AnyAgentToolValue conversion" started.
+􀙟  Test "Groq Provider - Real API Call" skipped.
+􀟈  Test "Recovery suggestion with actions" started.
+􀟈  Test "ToolArguments convenience methods" started.
+􀟈  Test "Configuration instance creation" started.
+􀟈  Test "MCPError descriptions" started.
+􀙟  Test "Anthropic Provider - Real API Call" skipped.
+􀟈  Test "Provider enum direct access" started.
+􀙟  Test "Multi-Modal Provider - Vision Support" skipped.
+􀟈  Test "MCPClient initialization" started.
+􀙟  Test "OpenAI Provider - Real API Call" skipped.
+􀟈  Test "Error with nil recovery" started.
+􀙟  Test "Grok Provider - Real API Call" skipped.
+􀙟  Test "Mistral Provider - Real API Call" skipped.
+􀟈  Test "Direct configuration access" started.
+􀟈  Test "MCPServerConfig initialization with all parameters" started.
+􀟈  Test "Convert AgentToolError to unified error" started.
+􀟈  Test "Placeholder test" started.
+􀟈  Test "AgentToolCall Codable with namespace and recipient" started.
+􀙟  Test "OpenAI Provider - Streaming" skipped.
+􀟈  Test "Configuration instance basic functionality" started.
+􀟈  Test "AgentTool supports namespace and recipient" started.
+􀟈  Test "Value to AnyAgentToolValue conversion" started.
+􀟈  Test "Provider enum basic functionality" started.
+􀟈  Test "Tool execution with namespace context" started.
+􀟈  Test "Provider factory method" started.
+􀟈  Test "Tool organization by namespace" started.
+􀟈  Test "String test" started.
+􀟈  Test "AgentTool works without namespace and recipient" started.
+􀟈  Test "Multiple configuration instances are isolated" started.
+􀟈  Test "Tool routing by recipient" started.
+􀟈  Test "StreamObjectResult conforms to AsyncSequence" started.
+􀟈  Test "AgentToolCall Codable without namespace and recipient" started.
+􀟈  Test "StreamTextResult conforms to AsyncSequence" started.
+􀙟  Test "Anthropic Provider - Tool Calling" skipped.
+􀟈  Test "StreamTextResult can be iterated multiple ways" started.
+􀟈  Test "StreamObjectResult extension methods work with AsyncSequence" started.
+􀟈  Test "AsyncSequence can be cancelled mid-iteration" started.
+􀟈  Test "AgentToolCall supports namespace and recipient" started.
+􀟈  Test "AsyncSequence works with standard operators" started.
+􀟈  Test "StringStopCondition should stop on exact match" started.
+􀟈  Test "RegexStopCondition should match patterns" started.
+􀟈  Test "Stop conditions with streaming" started.
+􀟈  Test "StopConditionBuilder creates correct conditions" started.
+􀟈  Test "AsyncSequence handles errors properly" started.
+􀟈  Test "StringStopCondition case-insensitive matching" started.
+􀙟  Test "OpenAI Provider - Tool Calling" skipped.
+􀟈  Test "Reset functionality" started.
+􀟈  Test "PredicateStopCondition with custom logic" started.
+􀙟  Test "Google Provider - Real API Call" skipped.
+􀟈  Test "GenerationSettings with stop conditions factory" started.
+􀟈  Test "RepetitionStopCondition detects repeating content" started.
+􀟈  Test "AnyStopCondition should stop when any condition is met" started.
+􀟈  Test "TokenCountStopCondition should stop after limit" started.
+􀙟  Test "Ollama Provider - Real API Call" skipped.
+􀟈  Test "AgentToolCall works without namespace and recipient" started.
+􀟈  Test "AllStopCondition should stop only when all conditions are met" started.
+􀟈  Test "RetryPolicy default shouldRetry for network errors" started.
+􀟈  Test "RetryHandler execute with retries" started.
+􀟈  Test "TimeoutStopCondition should stop after duration" started.
+􀟈  Test "Stop conditions in generateText" started.
+􀟈  Test "RetryHandler from GenerationSettings" started.
+􀟈  Test "DynamicSchema converts to AgentToolParameters" started.
+􀟈  Test "Multiple Operations in Session" started.
+􀟈  Test "RetryPolicy delay calculation" started.
+􀟈  Test "Operation Type Display Names" started.
+􀟈  Test "RetryPolicy default values" started.
+􀟈  Test "SchemaProperty handles nested structures" started.
+􀟈  Test "RetryHandler executeStream success" started.
+􀟈  Test "RetryPolicy delay with jitter" started.
+􀟈  Test "Usage Report Generation" started.
+􀟈  Test "RetryPolicy default shouldRetry for API errors" started.
+􀟈  Test "RetryPolicy aggressive configuration" started.
+􀟈  Test "Date Range Report" started.
+􀟈  Test "Clear registry" started.
+􀟈  Test "Simple math test" started.
+􀟈  Test "Cost Calculation for Different Models" started.
+􀟈  Test "RetryHandler execute exhausts retries" started.
+􀟈  Test "ConsecutivePatternStopCondition detects repeating patterns" started.
+􀟈  Test "Multiple tools with same name but different namespaces" started.
+􀟈  Test "RetryPolicy default shouldRetry for non-retryable errors" started.
+􀟈  Test "DynamicToolProvider discovers tools" started.
+􀟈  Test "All Operation Types Available" started.
+􀟈  Test "Multiple configurations isolation" started.
+􀟈  Test "Custom Session ID" started.
+􀟈  Test "Build number schema" started.
+􀟈  Test "Build integer schema" started.
+􀟈  Test "Build anyOf schema" started.
+􀟈  Test "Build string schema" started.
+􀟈  Test "Build nullable schema" started.
+􀟈  Test "Build array schema" started.
+􀟈  Test "DynamicToolRegistry manages tools" started.
+􀟈  Test "Build object schema" started.
+􀟈  Test "Session Creation and Management" started.
+􀟈  Test "GenerationSettings Codable with reasoning effort" started.
+􀟈  Test "Non-object schema conversion" started.
+􀟈  Test "Total Usage Aggregation" started.
+􀟈  Test "RetryHandler execute with non-retryable error" started.
+􀟈  Test "All reasoning effort levels properly ordered" started.
+􀟈  Test "ReasoningEffort raw values are correct" started.
+􀟈  Test "RetryHandler execute with success" started.
+􀟈  Test "StreamTextResult extension methods work with AsyncSequence" started.
+􀟈  Test "Debug configuration behavior" started.
+􀟈  Test "Stream map extension works" started.
+􀟈  Test "GenerationSettings Codable without reasoning effort" started.
+􀟈  Test "BufferTransform with time interval" started.
+􀟈  Test "Usage Recording" started.
+􀟈  Test "ReasoningEffort enum has all expected cases" started.
+􀟈  Test "GenerationSettings supports reasoning effort" started.
+􀟈  Test "Build oneOf schema" started.
+􀟈  Test "Box type for recursive schemas" started.
+􀟈  Test "StreamTextResult to UI Message Stream" started.
+􀟈  Test "Build boolean schema" started.
+􀟈  Test "RetryHandler adapts based on reasoning effort" started.
+􀟈  Test "StreamTextResult filter extension works" started.
+􀟈  Test "TapTransform adds side effects" started.
+􀟈  Test "RetryPolicy conservative configuration" started.
+􀟈  Test "Bidirectional conversion preserves content" started.
+􀟈  Test "ThrottleTransform limits rate" started.
+􀟈  Test "Convert ModelMessage to UIMessage" started.
+􀟈  Test "AgentToolArguments parsing" started.
+􀟈  Test "StreamTextResult fullText works" started.
+􀟈  Test "DynamicTool creates valid AgentTool" started.
+􀟈  Test "RetryPolicy default shouldRetry for rate limits" started.
+􀟈  Test "Response channel parsing" started.
+􀟈  Test "CombinedTransform chains transforms" started.
+􀟈  Test "Stream filter extension works" started.
+􀟈  Test "Streaming with multiple stop conditions" started.
+􀟈  Test "Stop condition state management with reset" started.
+􀟈  Test "SimplifiedToolBuilder with context" started.
+􀟈  Test "UIStreamResponse collect message" started.
+􀟈  Test "Transform chain with complex pipeline" started.
+􀟈  Test "Empty text and nil delta handling" started.
+􀟈  Test "Convert UIMessage to ModelMessage" started.
+􀟈  Test "MapTransform transforms elements" started.
+􀟈  Test "Request mapping" started.
+􀟈  Test "Auto-detection (mock)" started.
+􀟈  Test "Provider factory creation" started.
+􀟈  Test "ConversationMessage basic properties" started.
+􀟈  Test "Provider initialization" started.
+􀟈  Test "Collect text from stream" started.
+􀟈  Test "StreamTextResult collectText works" started.
+􀟈  Test "UIAttachment with data URL" started.
+􀟈  Test "Timeout stop condition with streaming" started.
+􀟈  Test "Stream throttle extension works" started.
+􀟈  Test "AgentTool.create with schema builder" started.
+􀟈  Test "Create simple tool with schema builder" started.
+􀟈  Test "Stream tap extension works" started.
+􀟈  Test "FilterTransform filters elements correctly" started.
+􀟈  Test "Simple tool without structured types" started.
+􀟈  Test "Stop conditions passed to OpenAI as native stop sequences" started.
+􀟈  Test "Codable conformance for ReasoningEffort" started.
+􀟈  Test "BufferTransform batches elements" started.
+􀟈  Test "Built-in tools exist" started.
+􀟈  Test "Predicate stop condition with custom logic" started.
+􀟈  Test "Model enum integration" started.
+􀟈  Test "Model default value" started.
+􀟈  Test "Regex stop condition with complex patterns" started.
+􀟈  Test "Tool parameter property with enum values" started.
+􀟈  Test "Conversation basic functionality" started.
+􀟈  Test "Tool schema builder with all parameter types" started.
+􀟈  Test "Tool error types" started.
+􀟈  Test "Token count stop condition with streaming" started.
+􀟈  Test "Stream buffer extension works" started.
+􀟈  Test "TextConfig encodes verbosity correctly" started.
+􀟈  Test "OpenAIResponsesRequest includes text config for GPT-5" started.
+􀟈  Test "Stop conditions work with generateText end-to-end" started.
+􀟈  Test "Composite stop conditions with ALL logic" started.
+􀟈  Test "Replicate failing test exactly" started.
+􀟈  Test "AgentTool creation" started.
+􀟈  Test "GenerationSettings default has nil reasoning effort" started.
+􀟈  Test "Legacy models use standard OpenAI provider" started.
+􀟈  Test "SimplifiedToolBuilder with structured input" started.
+􀟈  Test "Native provider stop sequence extraction" started.
+􀟈  Test "Auto instance is a true singleton" started.
+􀟈  Test "Conversation maintains its configuration" started.
+􀟈  Test "GPT-5 uses Responses API provider" started.
+􀟈  Test "Convenience properties" started.
+􀟈  Test "Model enum construction" started.
+􀟈  Test "README examples work correctly" started.
+􀟈  Test "Model Capabilities - Streaming Support" started.
+􀟈  Test "GPT-5 text.verbosity parameter is set correctly" started.
+􀟈  Test "Model Capabilities - Vision Support" started.
+􀟈  Test "Generation Request With Images" started.
+􀟈  Test "Provider Factory - Ollama Provider Creation" started.
+􀟈  Test "Usage Statistics" started.
+􀟈  Test "Finish Reason Cases" started.
+􀟈  Test "Thread safety under high concurrency" started.
+􀟈  Test "Provider Factory - Anthropic Provider Creation" started.
+􀟈  Test "Configuration priority chain" started.
+􀟈  Test "Generation Request Basic Creation" started.
+􀟈  Test "Reasoning models use Responses API" started.
+􀟈  Test "Provider Factory - OpenAI Provider Creation" started.
+􀟈  Test "Stream Token Types" started.
+􀟈  Test "Stream Function - Basic Streaming" started.
+Testing Grok-3 streaming...
+􀟈  Test "Stream Function - Anthropic Streaming" started.
+􀟈  Test "Generate Function - Invalid Configuration" started.
+􀟈  Test "Analyze Function - Non-Vision Model Error" started.
+􀟈  Test "Generate Function - Without Tools" started.
+􀟈  Test "Provider Factory - Grok Provider Creation" started.
+􀟈  Test "Generate Function - Default Model" started.
+􀟈  Test "Generate Function - Anthropic Provider" started.
+􀟈  Test "Generate Function - OpenAI Provider" started.
+􀟈  Test "Generate Function - With System Prompt" started.
+􀟈  Test "Model Capabilities - Tool Support" started.
+􀟈  Test "Analyze Function - Vision Model" started.
+􀟈  Test "Provider Factory - Missing API Key Error" started.
+􁁛  Test "Error responses are properly handled" passed after 0.007 seconds.
+􀟈  Test "OpenAI transcription provider initialization" started.
+􀟈  Test "OpenAI transcription provider transcribe function" started.
+􀟈  Test "Generate Function - Missing API Key" started.
+􀟈  Test "OpenAI transcription provider request validation" started.
+􀟈  Test "OpenAI transcription provider different models" started.
+􀟈  Test "OpenAI provider handles unsupported formats gracefully" started.
+􀟈  Test "OpenAI transcription provider supported formats" started.
+􀟈  Test "OpenAI provider error message formatting" started.
+􀟈  Test "OpenAI provider handles network errors" started.
+􀟈  Test "Analyze Function - Default Vision Model" started.
+􀟈  Test "Generate Function - With Custom Tools" started.
+􀟈  Test "OpenAI provider handles rate limiting" started.
+􀟈  Test "OpenAI transcription provider with abort signal" started.
+􀢄  Test "Provider with feature parity and caching" recorded an issue at IntegrationTests.swift:202:9: Expectation failed: (validated[0].role → .system) == .user
+􀟈  Test "Encode and decode GenerationSettings with provider options" started.
+􀟈  Test "AudioData initialization with basic properties" started.
+􀟈  Test "AudioData initialization with defaults" started.
+􀟈  Test "OpenAI transcription provider with timestamps" started.
+􀟈  Test "Encode and decode Anthropic thinking mode" started.
+􀟈  Test "AudioData file URL with unknown extension" started.
+􀟈  Test "Encode and decode provider options container" started.
+􀟈  Test "AudioFormat lossless property" started.
+􀟈  Test "Encode and decode OpenAI options" started.
+􀟈  Test "AudioFormat all cases completeness" started.
+􀟈  Test "OpenAI transcription provider initialization fails without API key" started.
+􀟈  Test "Image Input Types" started.
+􀢄  Test "Create unified error with recovery suggestion" recorded an issue at UnifiedErrorsTests.swift:28:9: Expectation failed: (description?.contains("auth_authentication_failed") → false) == true
+􀟈  Test "OpenAI speech provider with voice instructions" started.
+􀟈  Test "OpenAI speech provider with different voices" started.
+􀟈  Test "OpenAI speech provider with abort signal" started.
+􀟈  Test "OpenAI speech provider with speed control" started.
+􀟈  Test "AudioFormat MIME types" started.
+􀟈  Test "VoiceOption hashable and equatable" started.
+􀟈  Test "OpenAI speech provider request validation" started.
+􀟈  Test "OpenAI speech provider supported voices" started.
+􀟈  Test "OpenAI speech provider different output formats" started.
+􀟈  Test "OpenAI speech provider generate speech function" started.
+􀟈  Test "AudioData write to file" started.
+􀟈  Test "Provider feature flags" started.
+􀟈  Test "Tool limit enforcement" started.
+􀟈  Test "VoiceOption string values" started.
+􀟈  Test "VoiceOption defaults and recommendations" started.
+􀟈  Test "AbortSignal timeout functionality" started.
+􀟈  Test "OpenAI speech provider initialization fails without API key" started.
+􀟈  Test "AbortSignal basic functionality" started.
+􀟈  Test "Alternating roles enforcement" started.
+􀟈  Test "AbortSignal throwIfCancelled" started.
+􀟈  Test "OpenAI speech provider initialization" started.
+􀟈  Test "System message transformation" started.
+􀟈  Test "AudioData file URL initialization" started.
+􀟈  Test "Provider configuration defaults" started.
+􀟈  Test "TranscriptionSegment duration calculation" started.
+􀟈  Test "SpeechResult initialization" started.
+􀟈  Test "Create OpenAI options" started.
+􀟈  Test "TranscriptionResult initialization" started.
+􀟈  Test "Create Mistral options" started.
+􀟈  Test "Vision input validation" started.
+􁁛  Test "Streaming response chunks are processed incrementally" passed after 0.008 seconds.
+􀟈  Test "OpenAI speech provider different models" started.
+􀟈  Test "AbortSignal thread safety" started.
+􀟈  Test "Create Grok options" started.
+􀟈  Test "Create Anthropic options" started.
+􀟈  Test "Create Google options" started.
+􀟈  Test "Provider configuration presets" started.
+􀟈  Test "Provider adapter wrapping" started.
+􀟈  Test "Provider feature detection" started.
+􀟈  Test "Create Groq options" started.
+􀟈  Test "OpenAI verbosity values" started.
+􀟈  Test "OpenAI request timeout configuration" started.
+􀟈  Test "Groq speed level values" started.
+􀟈  Test "OpenAI custom base URL configuration" started.
+􀟈  Test "OpenAI response format values" started.
+􀟈  Test "OpenAI organization ID configuration" started.
+􀟈  Test "O3/O4 models have forced temperature" started.
+􀟈  Test "OpenAI reasoning effort values" started.
+􀟈  Test "Groq models support speed level" started.
+􀟈  Test "Anthropic cache control values" started.
+􀟈  Test "Google models support topK and thinking" started.
+􀟈  Test "Claude models support thinking" started.
+􀟈  Test "generateSpeechBatch() function works" started.
+􀟈  Test "transcribeBatch() function works" started.
+􀟈  Test "ResponseChannel raw values are correct" started.
+􀟈  Test "ResponseChannel enum has all expected cases" started.
+􀟈  Test "O3 models exclude multiple parameters" started.
+􀟈  Test "multiple provider integration" started.
+􀟈  Test "Codable conformance for MessageMetadata" started.
+􀟈  Test "Codable conformance for ResponseChannel" started.
+􀟈  Test "GPT-5 models exclude temperature and topP" started.
+􀟈  Test "ModelMessage supports metadata property" started.
+􀟈  Test "GPT-4 models support standard parameters" started.
+􀟈  Test "Google safety settings values" started.
+􀟈  Test "OpenAI API key configuration from environment" started.
+􀟈  Test "TextStreamDelta supports channel events" started.
+􀟈  Test "Channel-aware message creation" started.
+􀟈  Test "Mistral models support safe mode" started.
+􀟈  Test "generateSpeech() with abort signal" started.
+􀟈  Test "generateSpeech() with voice selection" started.
+􀟈  Test "ModelMessage supports channel property" started.
+􀟈  Test "Convenience initializers preserve nil channel" started.
+􀟈  Test "transcribe() handles empty audio data" started.
+􀟈  Test "Grok models support fun mode" started.
+􀟈  Test "Default constructor loads from environment" started.
+􀟈  Test "generateSpeech() handles empty text" started.
+􀟈  Test "generateSpeech() direct to file using convenience function" started.
+􀟈  Test "Legacy messages work without channel" started.
+􀟈  Test "Convenience constructor with API keys" started.
+􀟈  Test "transcribe() with timestamps" started.
+􀟈  Test "transcribe() with abort signal" started.
+􀟈  Test "Convenience constructor with API keys and base URLs" started.
+􀟈  Test "transcribe() with full model specification works" started.
+􀟈  Test "transcribe() convenience function works" started.
+􀟈  Test "Constructor with loadFromEnvironment=false" started.
+􀟈  Test "Concurrent capability access" started.
+􀟈  Test "ResponseCache store and retrieve" started.
+􀟈  Test "ResponseCache clear" started.
+􀟈  Test "ResponseCache TTL expiration" started.
+􀟈  Test "CachedProvider doesn't cache streaming" started.
+􀟈  Test "CacheKey includes tools in hash" started.
+􁁛  Test "OpenAIChatRequest decode handles both max_tokens and max_completion_tokens" passed after 0.010 seconds.
+􀟈  Test "ResponseCache statistics" started.
+􀟈  Test "ResponseCache cache miss" started.
+􀟈  Test "CachedProvider wraps provider correctly" started.
+􀟈  Test "CacheKey generation deterministic" started.
+􀟈  Test "ResponseCache LRU eviction" started.
+􀟈  Test "CachedProvider caches generateText" started.
+􀟈  Test "ResponseCache initialization" started.
+􀟈  Test "CacheKey differs for different requests" started.
+􀟈  Test "TranscriptionRequest initialization" started.
+􀟈  Test "Request default values" started.
+􀟈  Test "Validate settings for GPT-4" started.
+􀟈  Test "Validate settings for O3 with forced temperature" started.
+􀟈  Test "Validate Anthropic options" started.
+􀟈  Test "Validate settings for GPT-5" started.
+􀟈  Test "Empty provider options" started.
+􀟈  Test "Create provider options container" started.
+􀟈  Test "Provider encodes to identifier string" started.
+􀟈  Test "SpeechRequest initialization" started.
+􀟈  Test "Display names are human-readable" started.
+􀟈  Test "Alternative environment variables" started.
+􀟈  Test "transcribe() from file URL works" started.
+􀟈  Test "API key requirements" started.
+􀟈  Test "Environment variables are correct" started.
+􀟈  Test "transcribe and generate speech pipeline" started.
+􀟈  Test "Default base URLs" started.
+􀟈  Test "Custom providers don't have environment variables" started.
+􀟈  Test "Load API key from alternative environment variable" started.
+􀟈  Test "generateSpeech() with full model specification works" started.
+􀟈  Test "Load API key from primary environment variable" started.
+􀟈  Test "MessageMetadata equality" started.
+􀟈  Test "Register custom model capabilities" started.
+􀟈  Test "Environment detection methods" started.
+􀟈  Test "Settings with empty provider options" started.
+􀟈  Test "Settings with provider options" started.
+􀟈  Test "OpenAI-compatible model registration" started.
+􀟈  Test "Standard providers have correct identifiers" started.
+􀟈  Test "Auto instance is singleton" started.
+􀟈  Test "Conversation uses provided configuration" started.
+􀟈  Test "Default configuration usage" started.
+􀟈  Test "Provider hashable implementation" started.
+􀟈  Test "Generation functions with different configurations" started.
+􀟈  Test "Provider decodes from identifier string" started.
+􀟈  Test "Set and get API key with Provider enum" started.
+􀟈  Test "Concurrent access is thread-safe" started.
+􀟈  Test "Remove API key" started.
+􀟈  Test "Custom providers equality" started.
+􀟈  Test "Has API key checks" started.
+􀟈  Test "Thread safety stress test" started.
+􀟈  Test "Set and get base URL" started.
+􀟈  Test "Create provider from identifier - custom providers" started.
+􀟈  Test "Custom provider has correct identifier" started.
+􀟈  Test "Resolve helper function" started.
+􀟈  Test "Create provider from identifier - case insensitive" started.
+􀟈  Test "functions handle missing API keys" started.
+􁁛  Test "GPT-5 max_completion_tokens parameter encoding" passed after 0.011 seconds.
+􀟈  Test "Standard providers list" started.
+􀟈  Test "Environment vs configured key priority" started.
+􀟈  Test "Standard providers equality" started.
+􀟈  Test "Remove base URL falls back to default" started.
+􁁛  Test "Tool calls are properly handled in streaming" passed after 0.011 seconds.
+􀟈  Test "Instance isolation with same provider keys" started.
+􀟈  Test "Create provider from identifier - standard providers" started.
+􀟈  Test "Multiple instances are isolated" started.
+=== Testing instance-based configuration ===
+Initial configured providers: 0
+openai key: nil
+anthropic key: nil
+=== In empty configuration ===
+openai key: nil
+anthropic key: nil
+=== After setting key ===
+openai key: test-openai-key
+=== Back to original config ===
+openai key: nil
+Config1 OpenAI key: key1
+Config2 OpenAI key: key2
+􀟈  Test "generateSpeech() convenience function works" started.
+􀟈  Test "AnyAgentToolValue Codable conformance" started.
+􀟈  Test "AgentNullValue works correctly" started.
+􀟈  Test "Handle integer/double ambiguity" started.
+􀟈  Test "AgentToolArguments error handling" started.
+􀟈  Test "String conforms to AgentToolValue" started.
+􀟈  Test "AnyAgentToolValue wraps complex types" started.
+􀟈  Test "Dictionary conforms to AgentToolValue" started.
+􀟈  Test "AgentToolCall uses AnyAgentToolValue" started.
+􀟈  Test "Int conforms to AgentToolValue" started.
+􀟈  Test "Array conforms to AgentToolValue" started.
+􀟈  Test "Handle mixed-type arrays" started.
+􀟈  Test "Bool conforms to AgentToolValue" started.
+􀟈  Test "AnyAgentToolValue wraps basic types" started.
+􀟈  Test "AgentToolProtocol implementation" started.
+􀟈  Test "AgentToolResult uses AnyAgentToolValue" started.
+􀟈  Test "AnyAgentToolValue JSON conversion" started.
+􀟈  Test "Handle nested structures" started.
+􀟈  Test "AgentToolArguments accessor methods" started.
+􀟈  Test "Double conforms to AgentToolValue" started.
+􀟈  Test "AgentToolCall legacy init with Any" started.
+􀟈  Test "Configuration priority chain" started.
+􁁛  Test "OpenAICompatibleHelper streaming implementation" passed after 0.014 seconds.
+􀟈  Test "EmbeddingInput texts variant" started.
+􀟈  Test "EmbeddingResult with empty embeddings" started.
+􀟈  Test "EmbeddingRequest structure" started.
+􀟈  Test "EmbeddingMetadata Codable" started.
+􀟈  Test "EmbeddingInput tokens variant" started.
+􀟈  Test "EmbeddingResult convenience properties" started.
+􀟈  Test "EmbeddingSettings default values" started.
+􀟈  Test "EmbeddingSettings truncation strategies" started.
+􀟈  Test "EmbeddingModel enum cases" started.
+􀟈  Test "OpenAI embedding model raw values" started.
+􀟈  Test "EmbeddingSettings custom values" started.
+􀟈  Test "EmbeddingInput text variant" started.
+􀟈  Test "Voyage embedding model raw values" started.
+􀟈  Test "Configured providers list" started.
+􀟈  Test "EmbeddingSettings Codable" started.
+􀟈  Test "Configuration summary" started.
+􀟈  Test "Clear all configuration" started.
+􀟈  Test "EmbeddingMetadata properties" started.
+􁁛  Test "Async stream collect basic" passed after 0.014 seconds.
+􁁛  Test "Retry configuration presets" passed after 0.014 seconds.
+􁁛  Test "Retry with cancellation - immediate success" passed after 0.015 seconds.
+􀟈  Test "EmbeddingModel to LanguageModel conversion" started.
+􀢄  Test "Convenience properties" recorded an issue at LMStudioProviderTests.swift:57:9: Expectation failed: (model2.modelId → "gpt-oss-120b") == "gpt-oss-20b"
+􁁛  Test "ToolArguments initialization from AgentToolArguments" passed after 0.014 seconds.
+􁁛  Test "API call error conversion" passed after 0.014 seconds.
+􁁛  Test "ToolArguments getInt" passed after 0.015 seconds.
+􁁛  Test "Round-trip conversions" passed after 0.015 seconds.
+􁁛  Test "ToolArguments getString" passed after 0.014 seconds.
+􁁛  Test "ToolResponse image creation" passed after 0.015 seconds.
+􁁛  Test "ToolResponse to AnyAgentToolValue conversion via toAgentToolResult" passed after 0.015 seconds.
+􁁛  Test "Error code categories" passed after 0.014 seconds.
+􁁛  Test "streamObject basic functionality" passed after 0.014 seconds.
+􁁛  Test "Timeout error description" passed after 0.015 seconds.
+􁁛  Test "AnyAgentToolValue to Value conversion" passed after 0.014 seconds.
+􁁛  Test "Generic error conversion" passed after 0.015 seconds.
+􁁛  Test "ToolArguments getBool" passed after 0.015 seconds.
+􁁛  Test "Cancellation token basic operations" passed after 0.015 seconds.
+􁁛  Test "Error details with metadata" passed after 0.015 seconds.
+􁁛  Test "ToolArguments getNumber" passed after 0.015 seconds.
+􀟈  Test "String-based API case insensitive" started.
+􀟈  Test "String-based API handles custom providers" started.
+􁁛  Test "StreamObjectResult structure" passed after 0.015 seconds.
+􁁛  Test "AnyAgentToolValue to JSON conversion" passed after 0.015 seconds.
+􁁛  Test "ToolArguments isEmpty" passed after 0.015 seconds.
+􁁛  Test "ToolResponse error creation" passed after 0.015 seconds.
+􁁛  Test "ToolResponse text creation" passed after 0.015 seconds.
+􀟈  Test "Cohere embedding model raw values" started.
+􁁛  Test "Mock tool execution with missing arguments" passed after 0.015 seconds.
+􀟈  Test "EmbeddingResult properties" started.
+􁁛  Test "Mock tool schema validation" passed after 0.015 seconds.
+􀟈  Test "capabilities() for speech models" started.
+􁁛  Test "Mock tool execution with valid arguments" passed after 0.015 seconds.
+􀟈  Test "capabilities() for transcription models" started.
+=== Starting exact replication ===
+Before setting keys:
+  openai: nil
+  anthropic: nil
+  custom: nil
+After setting keys:
+  openai: test-openai-key
+  anthropic: test-anthropic-key
+  custom: test-custom-key
+Final check:
+  openai == 'test-openai-key': true
+  anthropic == 'test-anthropic-key': true
+  custom == 'test-custom-key': true
+=== Test completed ===
+􀟈  Test "availableSpeechModels() returns models" started.
+􁁛  Test "Convert legacy TachikomaError to unified error" passed after 0.015 seconds.
+􁁛  Test "Retry configuration defaults" passed after 0.016 seconds.
+􁁛  Test "ObjectStreamDelta types and structure" passed after 0.015 seconds.
+􀟈  Test "String-based API delegates to type-safe API" started.
+􁁛  Test "Convert ModelError to unified error" passed after 0.015 seconds.
+􁁛  Test "Test helper create configuration" passed after 0.015 seconds.
+􁁛  Test "Tool Execution" passed after 0.015 seconds.
+􁁛  Test "ToolArguments getStringArray" passed after 0.015 seconds.
+􁁛  Test "ToolResponse with metadata" passed after 0.015 seconds.
+􁁛  Test "Test helper with standard test configuration" passed after 0.015 seconds.
+􁁛  Test "Complete tool workflow with context and error recovery" passed after 0.015 seconds.
+􁁛  Test "AgentTool Creation" passed after 0.015 seconds.
+􁁛  Test "Tool Arguments" passed after 0.015 seconds.
+􁁛  Test "Tool execution with simplified builder and error handling" passed after 0.015 seconds.
+􀟈  Test "availableTranscriptionModels() returns models" started.
+􁁛  Test "Tool metadata structure" passed after 0.015 seconds.
+􁁛  Test "MCPToolProvider initialization" passed after 0.016 seconds.
+􁁛  Test "ToolResponse creation methods" passed after 0.015 seconds.
+􁁛  Test "ToolArguments decoding" passed after 0.015 seconds.
+􁁛  Test "Tool Error Handling" passed after 0.016 seconds.
+􁁛  Test "Tool Parameter Types" passed after 0.016 seconds.
+􁁛  Test "Test helper with selective configuration" passed after 0.016 seconds.
+􁁛  Test "MCPServerConfig initialization with minimal parameters" passed after 0.017 seconds.
+􀢄  Test "Provider with feature parity and caching" failed after 0.018 seconds with 1 issue.
+􁁛  Test "TimestampGranularity enum" passed after 0.018 seconds.
+􁁛  Test "TranscriptionResponseFormat enum" passed after 0.018 seconds.
+􁁛  Test "Value encoding and decoding" passed after 0.018 seconds.
+􁁛  Test "Test helper with empty configuration" passed after 0.018 seconds.
+􁁛  Test "MCPToolProvider as DynamicToolProvider" passed after 0.019 seconds.
+􀢄  Test "OpenAI transcription provider initialization fails without API key" recorded an issue at OpenAIAudioProviderTests.swift:28:17: Expectation failed: an error was expected but none was thrown
+􁁛  Test "Audio error types" passed after 0.019 seconds.
+􀢄  Test "Create unified error with recovery suggestion" failed after 0.019 seconds with 1 issue.
+􁁛  Test "ToolArguments convenience methods" passed after 0.020 seconds.
+􁁛  Test "ToolResponse to AnyAgentToolValue conversion" passed after 0.020 seconds.
+􁁛  Test "Provider enum direct access" passed after 0.019 seconds.
+􁁛  Test "Recovery suggestion with actions" passed after 0.020 seconds.
+􁁛  Test "Error with nil recovery" passed after 0.020 seconds.
+􁁛  Test "ToolArguments from Value" passed after 0.020 seconds.
+􀢄  Test "OpenAI provider error message formatting" recorded an issue at OpenAIAudioProviderTests.swift:488:33: Issue recorded
+􀄵  Expected error for missing API key
+􁁛  Test "AgentTool supports namespace and recipient" passed after 0.020 seconds.
+􁁛  Test "MCPError descriptions" passed after 0.020 seconds.
+􁁛  Test "Provider enum basic functionality" passed after 0.020 seconds.
+􁁛  Test "Tool organization by namespace" passed after 0.020 seconds.
+􁁛  Test "Configuration instance basic functionality" passed after 0.020 seconds.
+􁁛  Test "Tool execution with namespace context" passed after 0.020 seconds.
+􁁛  Test "MCPClient initialization" passed after 0.020 seconds.
+􁁛  Test "Configuration instance creation" passed after 0.020 seconds.
+􁁛  Test "Multiple configuration instances are isolated" passed after 0.020 seconds.
+􁁛  Test "Value to AnyAgentToolValue conversion" passed after 0.020 seconds.
+􁁛  Test "String test" passed after 0.020 seconds.
+􁁛  Test "Convert AgentToolError to unified error" passed after 0.020 seconds.
+􁁛  Test "Direct configuration access" passed after 0.020 seconds.
+􁁛  Test "MCPServerConfig initialization with all parameters" passed after 0.020 seconds.
+􁁛  Test "Placeholder test" passed after 0.020 seconds.
+􁁛  Test "Tool routing by recipient" passed after 0.020 seconds.
+􁁛  Test "AgentTool works without namespace and recipient" passed after 0.020 seconds.
+􁁛  Test "Provider factory method" passed after 0.020 seconds.
+􀢄  Test "OpenAI speech provider initialization fails without API key" recorded an issue at OpenAIAudioProviderTests.swift:166:17: Expectation failed: an error was expected but none was thrown
+􁁛  Test "AgentToolCall Codable with namespace and recipient" passed after 0.020 seconds.
+􁁛  Test "AgentToolCall supports namespace and recipient" passed after 0.021 seconds.
+􁁛  Test "AgentToolCall Codable without namespace and recipient" passed after 0.021 seconds.
+􁁛  Test "StringStopCondition case-insensitive matching" passed after 0.021 seconds.
+􁁛  Test "StringStopCondition should stop on exact match" passed after 0.021 seconds.
+􁁛  Test "StopConditionBuilder creates correct conditions" passed after 0.021 seconds.
+􁁛  Test "GenerationSettings with stop conditions factory" passed after 0.021 seconds.
+􁁛  Test "RepetitionStopCondition detects repeating content" passed after 0.021 seconds.
+􁁛  Test "AnyStopCondition should stop when any condition is met" passed after 0.021 seconds.
+􁁛  Test "TokenCountStopCondition should stop after limit" passed after 0.021 seconds.
+􀢄  Test "CachedProvider caches generateText" recorded an issue at ResponseCacheTests.swift:369:9: Expectation failed: (callCount.value → 2) == 1
+􁁛  Test "Reset functionality" passed after 0.022 seconds.
+􁁛  Test "AgentToolCall works without namespace and recipient" passed after 0.023 seconds.
+􁁛  Test "AllStopCondition should stop only when all conditions are met" passed after 0.022 seconds.
+􁁛  Test "RetryHandler from GenerationSettings" passed after 0.022 seconds.
+􁁛  Test "RetryPolicy default shouldRetry for network errors" passed after 0.022 seconds.
+􁁛  Test "RetryPolicy delay calculation" passed after 0.022 seconds.
+􁁛  Test "Operation Type Display Names" passed after 0.022 seconds.
+􁁛  Test "RetryPolicy default values" passed after 0.022 seconds.
+􁁛  Test "Multiple Operations in Session" passed after 0.022 seconds.
+􁁛  Test "RegexStopCondition should match patterns" passed after 0.023 seconds.
+􁁛  Test "SchemaProperty handles nested structures" passed after 0.022 seconds.
+􁁛  Test "RetryPolicy delay with jitter" passed after 0.022 seconds.
+􁁛  Test "RetryHandler executeStream success" passed after 0.023 seconds.
+􁁛  Test "Cost Calculation for Different Models" passed after 0.022 seconds.
+􁁛  Test "Simple math test" passed after 0.024 seconds.
+􁁛  Test "PredicateStopCondition with custom logic" passed after 0.023 seconds.
+􁁛  Test "DynamicToolProvider discovers tools" passed after 0.023 seconds.
+􁁛  Test "Date Range Report" passed after 0.022 seconds.
+􁁛  Test "Clear registry" passed after 0.023 seconds.
+􁁛  Test "Custom Session ID" passed after 0.023 seconds.
+􁁛  Test "Stop conditions in generateText" passed after 0.023 seconds.
+􁁛  Test "RetryPolicy default shouldRetry for API errors" passed after 0.022 seconds.
+􁁛  Test "Build integer schema" passed after 0.023 seconds.
+􁁛  Test "DynamicSchema converts to AgentToolParameters" passed after 0.023 seconds.
+􁁛  Test "RetryPolicy default shouldRetry for non-retryable errors" passed after 0.023 seconds.
+􁁛  Test "Build anyOf schema" passed after 0.023 seconds.
+􁁛  Test "All Operation Types Available" passed after 0.023 seconds.
+􁁛  Test "Build array schema" passed after 0.023 seconds.
+􁁛  Test "DynamicToolRegistry manages tools" passed after 0.023 seconds.
+􁁛  Test "Build string schema" passed after 0.023 seconds.
+􁁛  Test "Build object schema" passed after 0.023 seconds.
+􁁛  Test "Total Usage Aggregation" passed after 0.023 seconds.
+􁁛  Test "RetryPolicy aggressive configuration" passed after 0.023 seconds.
+􁁛  Test "Multiple tools with same name but different namespaces" passed after 0.023 seconds.
+􁁛  Test "Non-object schema conversion" passed after 0.023 seconds.
+􁁛  Test "Retry error conversion" passed after 0.025 seconds.
+􁁛  Test "All reasoning effort levels properly ordered" passed after 0.023 seconds.
+􁁛  Test "Build nullable schema" passed after 0.023 seconds.
+􁁛  Test "ReasoningEffort raw values are correct" passed after 0.023 seconds.
+􁁛  Test "Usage Recording" passed after 0.023 seconds.
+􁁛  Test "GenerationSettings Codable with reasoning effort" passed after 0.023 seconds.
+􁁛  Test "Box type for recursive schemas" passed after 0.023 seconds.
+􁁛  Test "GenerationSettings Codable without reasoning effort" passed after 0.023 seconds.
+􁁛  Test "Build boolean schema" passed after 0.023 seconds.
+􁁛  Test "Multiple configurations isolation" passed after 0.023 seconds.
+􁁛  Test "Bidirectional conversion preserves content" passed after 0.023 seconds.
+􁁛  Test "GenerationSettings supports reasoning effort" passed after 0.023 seconds.
+􁁛  Test "AgentToolArguments parsing" passed after 0.022 seconds.
+􁁛  Test "Debug configuration behavior" passed after 0.023 seconds.
+􁁛  Test "DynamicTool creates valid AgentTool" passed after 0.023 seconds.
+􁁛  Test "Convert ModelMessage to UIMessage" passed after 0.022 seconds.
+􁁛  Test "TapTransform adds side effects" passed after 0.022 seconds.
+􁁛  Test "RetryPolicy default shouldRetry for rate limits" passed after 0.023 seconds.
+􁁛  Test "Response channel parsing" passed after 0.022 seconds.
+􁁛  Test "Stop condition state management with reset" passed after 0.022 seconds.
+􁁛  Test "Session Creation and Management" passed after 0.023 seconds.
+􁁛  Test "CombinedTransform chains transforms" passed after 0.023 seconds.
+􁁛  Test "Convert UIMessage to ModelMessage" passed after 0.022 seconds.
+􁁛  Test "Empty text and nil delta handling" passed after 0.023 seconds.
+􁁛  Test "RetryHandler execute with success" passed after 0.023 seconds.
+􁁛  Test "ConversationMessage basic properties" passed after 0.022 seconds.
+􁁛  Test "UIStreamResponse collect message" passed after 0.022 seconds.
+􁁛  Test "RetryHandler execute with non-retryable error" passed after 0.023 seconds.
+􁁛  Test "ConsecutivePatternStopCondition detects repeating patterns" passed after 0.023 seconds.
+􁁛  Test "AgentTool.create with schema builder" passed after 0.022 seconds.
+􁁛  Test "Create simple tool with schema builder" passed after 0.022 seconds.
+􁁛  Test "Auto-detection (mock)" passed after 0.022 seconds.
+􁁛  Test "FilterTransform filters elements correctly" passed after 0.023 seconds.
+􁁛  Test "Simple tool without structured types" passed after 0.022 seconds.
+􁁛  Test "ReasoningEffort enum has all expected cases" passed after 0.023 seconds.
+􁁛  Test "UIAttachment with data URL" passed after 0.023 seconds.
+􁁛  Test "BufferTransform batches elements" passed after 0.023 seconds.
+􁁛  Test "Model enum integration" passed after 0.022 seconds.
+􁁛  Test "Codable conformance for ReasoningEffort" passed after 0.022 seconds.
+􁁛  Test "Tool parameter property with enum values" passed after 0.023 seconds.
+􁁛  Test "RetryPolicy conservative configuration" passed after 0.023 seconds.
+􁁛  Test "Conversation basic functionality" passed after 0.022 seconds.
+􁁛  Test "Built-in tools exist" passed after 0.022 seconds.
+􁁛  Test "SimplifiedToolBuilder with context" passed after 0.023 seconds.
+􁁛  Test "Tool schema builder with all parameter types" passed after 0.022 seconds.
+􁁛  Test "Model default value" passed after 0.023 seconds.
+􁁛  Test "Stop conditions passed to OpenAI as native stop sequences" passed after 0.023 seconds.
+􀢄  Test "Handle integer/double ambiguity" recorded an issue at AgentToolValueTests.swift:449:9: Expectation failed: (largeInt.intValue → 9223372036854774784) == (Int.max - 1000 → 9223372036854774807)
+􁁛  Test "Build number schema" passed after 0.024 seconds.
+􁁛  Test "Stop conditions work with generateText end-to-end" passed after 0.023 seconds.
+􁁛  Test "AgentTool creation" passed after 0.023 seconds.
+􁁛  Test "OpenAIResponsesRequest includes text config for GPT-5" passed after 0.023 seconds.
+􁁛  Test "TextConfig encodes verbosity correctly" passed after 0.023 seconds.
+􁁛  Test "GenerationSettings default has nil reasoning effort" passed after 0.024 seconds.
+􁁛  Test "Native provider stop sequence extraction" passed after 0.023 seconds.
+􁁛  Test "Build oneOf schema" passed after 0.023 seconds.
+􁁛  Test "Conversation maintains its configuration" passed after 0.023 seconds.
+􁁛  Test "SimplifiedToolBuilder with structured input" passed after 0.023 seconds.
+􁁛  Test "GPT-5 uses Responses API provider" passed after 0.023 seconds.
+􁁛  Test "Tool error types" passed after 0.023 seconds.
+􁁛  Test "README examples work correctly" passed after 0.023 seconds.
+􁁛  Test "MapTransform transforms elements" passed after 0.023 seconds.
+􀢄  Test "Convenience properties" failed after 0.023 seconds with 1 issue.
+􁁛  Test "Model Capabilities - Streaming Support" passed after 0.022 seconds.
+􁁛  Test "Request mapping" passed after 0.023 seconds.
+􁁛  Test "Auto instance is a true singleton" passed after 0.023 seconds.
+􁁛  Test "GPT-5 text.verbosity parameter is set correctly" passed after 0.022 seconds.
+􁁛  Test "Provider Factory - Ollama Provider Creation" passed after 0.022 seconds.
+􁁛  Test "Generation Request With Images" passed after 0.022 seconds.
+􁁛  Test "Model Capabilities - Vision Support" passed after 0.022 seconds.
+􁁛  Test "Provider factory creation" passed after 0.023 seconds.
+􁁛  Test "Finish Reason Cases" passed after 0.022 seconds.
+􁁛  Test "Provider initialization" passed after 0.024 seconds.
+􁁛  Test "Provider Factory - Anthropic Provider Creation" passed after 0.022 seconds.
+􁁛  Test "Configuration priority chain" passed after 0.022 seconds.
+􁁛  Test "Replicate failing test exactly" passed after 0.023 seconds.
+􀢄  Test "AnyAgentToolValue Codable conformance" recorded an issue at AgentToolValueTests.swift:226:13: Expectation failed: (originalData → 34 bytes) == (decodedData → 34 bytes)
+􀅺  inserted [50, 48, 48, 49, 34, 118, 97, 108, 117, 101, 34], removed [49, 34, 118, 97, 108, 117, 101, 34, 50, 48, 48]
+􁁛  Test "Generation Request Basic Creation" passed after 0.022 seconds.
+􁁛  Test "Reasoning models use Responses API" passed after 0.023 seconds.
+􁁛  Test "Provider Factory - OpenAI Provider Creation" passed after 0.022 seconds.
+􁁛  Test "Composite stop conditions with ALL logic" passed after 0.024 seconds.
+􁁛  Test "Stream Token Types" passed after 0.022 seconds.
+􁁛  Test "Usage Statistics" passed after 0.023 seconds.
+􁁛  Test "Model enum construction" passed after 0.023 seconds.
+􁁛  Test "Analyze Function - Non-Vision Model Error" passed after 0.022 seconds.
+􁁛  Test "Model Capabilities - Tool Support" passed after 0.023 seconds.
+􁁛  Test "Provider Factory - Missing API Key Error" passed after 0.022 seconds.
+􁁛  Test "Legacy models use standard OpenAI provider" passed after 0.024 seconds.
+􁁛  Test "Provider Factory - Grok Provider Creation" passed after 0.023 seconds.
+􁁛  Test "AudioFormat lossless property" passed after 0.021 seconds.
+􁁛  Test "Encode and decode Anthropic thinking mode" passed after 0.021 seconds.
+􁁛  Test "Encode and decode provider options container" passed after 0.021 seconds.
+􁁛  Test "Image Input Types" passed after 0.022 seconds.
+􁁛  Test "RetryHandler adapts based on reasoning effort" passed after 0.025 seconds.
+􁁛  Test "Generate Function - Missing API Key" passed after 0.022 seconds.
+􁁛  Test "OpenAI transcription provider supported formats" passed after 0.022 seconds.
+􁁛  Test "VoiceOption hashable and equatable" passed after 0.021 seconds.
+􁁛  Test "OpenAI transcription provider initialization" passed after 0.022 seconds.
+􁁛  Test "Any to AnyAgentToolValue conversion" passed after 0.028 seconds.
+􁁛  Test "OpenAI transcription provider with abort signal" passed after 0.022 seconds.
+􁁛  Test "AudioData file URL with unknown extension" passed after 0.021 seconds.
+􁁛  Test "Provider feature flags" passed after 0.021 seconds.
+􁁛  Test "Built-in Tools" passed after 0.027 seconds.
+􁁛  Test "AudioFormat MIME types" passed after 0.021 seconds.
+􁁛  Test "VoiceOption defaults and recommendations" passed after 0.021 seconds.
+􁁛  Test "OpenAI transcription provider different models" passed after 0.022 seconds.
+􁁛  Test "AudioData initialization with defaults" passed after 0.022 seconds.
+􁁛  Test "Encode and decode OpenAI options" passed after 0.022 seconds.
+􁁛  Test "AbortSignal basic functionality" passed after 0.021 seconds.
+􁁛  Test "AudioData initialization with basic properties" passed after 0.022 seconds.
+􁁛  Test "Alternating roles enforcement" passed after 0.021 seconds.
+􁁛  Test "AudioFormat all cases completeness" passed after 0.021 seconds.
+􁁛  Test "VoiceOption string values" passed after 0.021 seconds.
+􁁛  Test "TranscriptionSegment duration calculation" passed after 0.021 seconds.
+􁁛  Test "Create Mistral options" passed after 0.021 seconds.
+􁁛  Test "System message transformation" passed after 0.021 seconds.
+􁁛  Test "Tool limit enforcement" passed after 0.021 seconds.
+􁁛  Test "Create OpenAI options" passed after 0.021 seconds.
+􀢄  Test "OpenAI transcription provider initialization fails without API key" failed after 0.022 seconds with 1 issue.
+􁁛  Test "Vision input validation" passed after 0.021 seconds.
+􁁛  Test "TranscriptionResult initialization" passed after 0.021 seconds.
+􁁛  Test "Encode and decode GenerationSettings with provider options" passed after 0.022 seconds.
+􁁛  Test "Usage Report Generation" passed after 0.026 seconds.
+􁁛  Test "SpeechResult initialization" passed after 0.021 seconds.
+􁁛  Test "Create Grok options" passed after 0.021 seconds.
+􁁛  Test "AudioData write to file" passed after 0.022 seconds.
+􁁛  Test "Provider configuration defaults" passed after 0.021 seconds.
+􁁛  Test "Create Google options" passed after 0.021 seconds.
+􁁛  Test "AudioData file URL initialization" passed after 0.021 seconds.
+􁁛  Test "Create Anthropic options" passed after 0.021 seconds.
+􁁛  Test "Provider adapter wrapping" passed after 0.021 seconds.
+􁁛  Test "Provider feature detection" passed after 0.021 seconds.
+􁁛  Test "Provider configuration presets" passed after 0.021 seconds.
+􀢄  Test "OpenAI provider error message formatting" failed after 0.022 seconds with 1 issue.
+􁁛  Test "AbortSignal throwIfCancelled" passed after 0.021 seconds.
+􁁛  Test "OpenAI verbosity values" passed after 0.020 seconds.
+􁁛  Test "Groq speed level values" passed after 0.020 seconds.
+􁁛  Test "OpenAI response format values" passed after 0.020 seconds.
+􀢄  Test "OpenAI speech provider initialization fails without API key" failed after 0.021 seconds with 1 issue.
+􁁛  Test "Anthropic cache control values" passed after 0.020 seconds.
+􁁛  Test "Create Groq options" passed after 0.020 seconds.
+􁁛  Test "O3/O4 models have forced temperature" passed after 0.020 seconds.
+􁁛  Test "OpenAI reasoning effort values" passed after 0.020 seconds.
+􁁛  Test "Claude models support thinking" passed after 0.020 seconds.
+􁁛  Test "Google models support topK and thinking" passed after 0.020 seconds.
+􁁛  Test "ResponseChannel raw values are correct" passed after 0.020 seconds.
+􁁛  Test "GPT-5 models exclude temperature and topP" passed after 0.020 seconds.
+􁁛  Test "O3 models exclude multiple parameters" passed after 0.020 seconds.
+􁁛  Test "ModelMessage supports metadata property" passed after 0.020 seconds.
+􁁛  Test "Codable conformance for ResponseChannel" passed after 0.020 seconds.
+􁁛  Test "GPT-4 models support standard parameters" passed after 0.020 seconds.
+􁁛  Test "Channel-aware message creation" passed after 0.020 seconds.
+􁁛  Test "Codable conformance for MessageMetadata" passed after 0.020 seconds.
+􁁛  Test "Groq models support speed level" passed after 0.020 seconds.
+􁁛  Test "Google safety settings values" passed after 0.020 seconds.
+􁁛  Test "OpenAI speech provider initialization" passed after 0.022 seconds.
+􁁛  Test "ResponseChannel enum has all expected cases" passed after 0.020 seconds.
+􁁛  Test "Convenience initializers preserve nil channel" passed after 0.020 seconds.
+􁁛  Test "TextStreamDelta supports channel events" passed after 0.020 seconds.
+􁁛  Test "Grok models support fun mode" passed after 0.020 seconds.
+􁁛  Test "Legacy messages work without channel" passed after 0.020 seconds.
+􁁛  Test "ModelMessage supports channel property" passed after 0.020 seconds.
+􁁛  Test "Convenience constructor with API keys" passed after 0.019 seconds.
+􁁛  Test "generateSpeech() with abort signal" passed after 0.020 seconds.
+􁁛  Test "OpenAI organization ID configuration" passed after 0.020 seconds.
+􁁛  Test "CachedProvider doesn't cache streaming" passed after 0.019 seconds.
+􁁛  Test "Mistral models support safe mode" passed after 0.020 seconds.
+􁁛  Test "ResponseCache statistics" passed after 0.019 seconds.
+􁁛  Test "ResponseCache clear" passed after 0.019 seconds.
+􁁛  Test "CacheKey includes tools in hash" passed after 0.019 seconds.
+􁁛  Test "OpenAI speech provider supported voices" passed after 0.022 seconds.
+􁁛  Test "Convenience constructor with API keys and base URLs" passed after 0.019 seconds.
+􁁛  Test "OpenAI speech provider with abort signal" passed after 0.022 seconds.
+􁁛  Test "Constructor with loadFromEnvironment=false" passed after 0.019 seconds.
+􁁛  Test "ResponseCache store and retrieve" passed after 0.019 seconds.
+􁁛  Test "transcribe() with abort signal" passed after 0.019 seconds.
+􁁛  Test "ResponseCache LRU eviction" passed after 0.019 seconds.
+􁁛  Test "Validate settings for GPT-4" passed after 0.019 seconds.
+􁁛  Test "Validate settings for GPT-5" passed after 0.019 seconds.
+􁁛  Test "TranscriptionRequest initialization" passed after 0.019 seconds.
+􀢄  Test "CachedProvider caches generateText" failed after 0.019 seconds with 1 issue.
+􁁛  Test "CacheKey differs for different requests" passed after 0.019 seconds.
+􁁛  Test "CacheKey generation deterministic" passed after 0.019 seconds.
+􁁛  Test "SpeechRequest initialization" passed after 0.019 seconds.
+􁁛  Test "OpenAI API key configuration from environment" passed after 0.021 seconds.
+􁁛  Test "ResponseCache cache miss" passed after 0.019 seconds.
+􁁛  Test "Create provider options container" passed after 0.019 seconds.
+􁁛  Test "Display names are human-readable" passed after 0.019 seconds.
+􁁛  Test "Environment variables are correct" passed after 0.019 seconds.
+􁁛  Test "CachedProvider wraps provider correctly" passed after 0.019 seconds.
+􁁛  Test "Provider encodes to identifier string" passed after 0.019 seconds.
+􁁛  Test "API key requirements" passed after 0.019 seconds.
+􁁛  Test "Validate Anthropic options" passed after 0.019 seconds.
+􁁛  Test "Empty provider options" passed after 0.019 seconds.
+􁁛  Test "ResponseCache initialization" passed after 0.019 seconds.
+􁁛  Test "Validate settings for O3 with forced temperature" passed after 0.019 seconds.
+􁁛  Test "MessageMetadata equality" passed after 0.020 seconds.
+􁁛  Test "Request default values" passed after 0.019 seconds.
+􁁛  Test "Custom providers don't have environment variables" passed after 0.019 seconds.
+􁁛  Test "OpenAI-compatible model registration" passed after 0.019 seconds.
+􁁛  Test "Register custom model capabilities" passed after 0.019 seconds.
+􁁛  Test "Settings with provider options" passed after 0.019 seconds.
+􁁛  Test "Default configuration usage" passed after 0.019 seconds.
+􁁛  Test "Provider decodes from identifier string" passed after 0.018 seconds.
+􁁛  Test "Conversation uses provided configuration" passed after 0.019 seconds.
+􁁛  Test "Remove API key" passed after 0.018 seconds.
+􁁛  Test "Settings with empty provider options" passed after 0.019 seconds.
+􁁛  Test "Default base URLs" passed after 0.019 seconds.
+􁁛  Test "Has API key checks" passed after 0.018 seconds.
+􁁛  Test "Custom providers equality" passed after 0.019 seconds.
+􁁛  Test "Load API key from primary environment variable" passed after 0.019 seconds.
+􁁛  Test "Set and get base URL" passed after 0.019 seconds.
+􁁛  Test "Set and get API key with Provider enum" passed after 0.019 seconds.
+􁁛  Test "Alternative environment variables" passed after 0.019 seconds.
+􁁛  Test "Standard providers equality" passed after 0.018 seconds.
+􁁛  Test "Standard providers list" passed after 0.018 seconds.
+􁁛  Test "Create provider from identifier - custom providers" passed after 0.019 seconds.
+􁁛  Test "OpenAI speech provider different models" passed after 0.022 seconds.
+􁁛  Test "Resolve helper function" passed after 0.019 seconds.
+􁁛  Test "Provider hashable implementation" passed after 0.019 seconds.
+􁁛  Test "Remove base URL falls back to default" passed after 0.019 seconds.
+􁁛  Test "Instance isolation with same provider keys" passed after 0.018 seconds.
+􁁛  Test "OpenAI custom base URL configuration" passed after 0.021 seconds.
+􁁛  Test "Default constructor loads from environment" passed after 0.020 seconds.
+􁁛  Test "Create provider from identifier - case insensitive" passed after 0.019 seconds.
+􁁛  Test "Multiple instances are isolated" passed after 0.018 seconds.
+􁁛  Test "Environment detection methods" passed after 0.019 seconds.
+􁁛  Test "Create provider from identifier - standard providers" passed after 0.018 seconds.
+􁁛  Test "AgentNullValue works correctly" passed after 0.017 seconds.
+􁁛  Test "Standard providers have correct identifiers" passed after 0.019 seconds.
+􁁛  Test "Environment vs configured key priority" passed after 0.018 seconds.
+􁁛  Test "AgentToolCall uses AnyAgentToolValue" passed after 0.017 seconds.
+􁁛  Test "Generation functions with different configurations" passed after 0.019 seconds.
+􁁛  Test "AnyAgentToolValue wraps basic types" passed after 0.016 seconds.
+􁁛  Test "Bool conforms to AgentToolValue" passed after 0.016 seconds.
+􁁛  Test "String conforms to AgentToolValue" passed after 0.017 seconds.
+􁁛  Test "Load API key from alternative environment variable" passed after 0.019 seconds.
+􁁛  Test "Int conforms to AgentToolValue" passed after 0.017 seconds.
+􁁛  Test "Double conforms to AgentToolValue" passed after 0.016 seconds.
+􁁛  Test "AgentToolCall legacy init with Any" passed after 0.016 seconds.
+􁁛  Test "AgentToolArguments error handling" passed after 0.017 seconds.
+􁁛  Test "AgentToolArguments accessor methods" passed after 0.016 seconds.
+􁁛  Test "Dictionary conforms to AgentToolValue" passed after 0.017 seconds.
+􁁛  Test "Configuration priority chain" passed after 0.016 seconds.
+􁁛  Test "EmbeddingInput tokens variant" passed after 0.016 seconds.
+􁁛  Test "AgentToolProtocol implementation" passed after 0.016 seconds.
+􁁛  Test "AgentToolResult uses AnyAgentToolValue" passed after 0.016 seconds.
+􁁛  Test "EmbeddingResult convenience properties" passed after 0.016 seconds.
+􁁛  Test "Handle mixed-type arrays" passed after 0.017 seconds.
+􁁛  Test "EmbeddingInput texts variant" passed after 0.016 seconds.
+􁁛  Test "EmbeddingResult with empty embeddings" passed after 0.016 seconds.
+􁁛  Test "Custom provider has correct identifier" passed after 0.019 seconds.
+􁁛  Test "Configured providers list" passed after 0.015 seconds.
+􁁛  Test "EmbeddingSettings default values" passed after 0.015 seconds.
+􁁛  Test "OpenAI embedding model raw values" passed after 0.015 seconds.
+􁁛  Test "AnyAgentToolValue JSON conversion" passed after 0.016 seconds.
+􁁛  Test "Clear all configuration" passed after 0.015 seconds.
+􁁛  Test "AnyAgentToolValue wraps complex types" passed after 0.017 seconds.
+􁁛  Test "EmbeddingSettings custom values" passed after 0.015 seconds.
+􁁛  Test "Configuration summary" passed after 0.015 seconds.
+􁁛  Test "EmbeddingSettings Codable" passed after 0.015 seconds.
+􁁛  Test "EmbeddingMetadata properties" passed after 0.015 seconds.
+􁁛  Test "EmbeddingModel to LanguageModel conversion" passed after 0.016 seconds.
+􁁛  Test "String-based API case insensitive" passed after 0.014 seconds.
+􁁛  Test "Handle nested structures" passed after 0.016 seconds.
+􁁛  Test "EmbeddingSettings truncation strategies" passed after 0.016 seconds.
+􀢄  Test "Handle integer/double ambiguity" failed after 0.017 seconds with 1 issue.
+􁁛  Test "finalObject throws when no complete object" passed after 0.029 seconds.
+􀢄  Suite "Unified Errors Tests" failed after 0.031 seconds with 1 issue.
+􁁛  Test "EmbeddingInput text variant" passed after 0.015 seconds.
+􁁛  Suite "MCP Tool Adapter Tests" passed after 0.031 seconds.
+􁁛  Test "finalObject method" passed after 0.029 seconds.
+􁁛  Test "String-based API handles custom providers" passed after 0.014 seconds.
+􁁛  Test "StreamObjectResult AsyncSequence iteration" passed after 0.029 seconds.
+􁁛  Suite "Mock Tool Tests" passed after 0.031 seconds.
+􁁛  Test "Cohere embedding model raw values" passed after 0.014 seconds.
+􁁛  Test "EmbeddingMetadata Codable" passed after 0.016 seconds.
+􀢄  Test "AnyAgentToolValue Codable conformance" failed after 0.017 seconds with 1 issue.
+􁁛  Test "EmbeddingRequest structure" passed after 0.016 seconds.
+􁁛  Test "EmbeddingModel enum cases" passed after 0.016 seconds.
+􁁛  Test "Array conforms to AgentToolValue" passed after 0.017 seconds.
+􁁛  Test "EmbeddingResult properties" passed after 0.014 seconds.
+􁁛  Test "capabilities() for transcription models" passed after 0.013 seconds.
+􁁛  Test "partialObjects filter method" passed after 0.029 seconds.
+􁁛  Suite "Test Helpers Tests" passed after 0.031 seconds.
+􁁛  Test "capabilities() for speech models" passed after 0.013 seconds.
+􁁛  Test "Voyage embedding model raw values" passed after 0.016 seconds.
+􁁛  Test "String-based API delegates to type-safe API" passed after 0.014 seconds.
+􁁛  Suite "MCP Client Tests" passed after 0.031 seconds.
+􁁛  Test "availableTranscriptionModels() returns models" passed after 0.013 seconds.
+􁁛  Suite "Direct Configuration Tests" passed after 0.031 seconds.
+􁁛  Suite "Simple Configuration Tests" passed after 0.031 seconds.
+􁁛  Test "StreamTextResult can be iterated multiple ways" passed after 0.028 seconds.
+􁁛  Suite "TachikomaCLI Placeholder Tests" passed after 0.031 seconds.
+􁁛  Test "StreamTextResult conforms to AsyncSequence" passed after 0.028 seconds.
+􁁛  Test "AsyncSequence works with standard operators" passed after 0.028 seconds.
+􁁛  Test "Stop conditions with streaming" passed after 0.028 seconds.
+􁁛  Suite "Enhanced Tool System" passed after 0.031 seconds.
+􁁛  Test "StreamObjectResult conforms to AsyncSequence" passed after 0.028 seconds.
+􁁛  Test "AsyncSequence handles errors properly" passed after 0.028 seconds.
+􁁛  Suite "Dynamic Tools System Tests" passed after 0.031 seconds.
+􁁛  Test "availableSpeechModels() returns models" passed after 0.014 seconds.
+􁁛  Test "Stream map extension works" passed after 0.027 seconds.
+􁁛  Suite "Reasoning Effort Levels" passed after 0.031 seconds.
+􁁛  Suite "Debug Configuration Tests" passed after 0.031 seconds.
+􁁛  Test "StreamTextResult fullText works" passed after 0.027 seconds.
+􀢄  Suite "LMStudio Provider Tests" failed after 0.031 seconds with 1 issue.
+􁁛  Test "Collect text from stream" passed after 0.027 seconds.
+􁁛  Test "StreamTextResult collectText works" passed after 0.027 seconds.
+􁁛  Suite "Simplified Tools Tests" passed after 0.031 seconds.
+􁁛  Suite "Minimal Modern API Tests" passed after 0.031 seconds.
+􁁛  Test "Predicate stop condition with custom logic" passed after 0.027 seconds.
+􁁛  Test "Token count stop condition with streaming" passed after 0.026 seconds.
+􁁛  Suite "Basic Tests" passed after 0.032 seconds.
+􁁛  Test "Stream buffer extension works" passed after 0.027 seconds.
+􁁛  Test "Streaming with multiple stop conditions" passed after 0.027 seconds.
+􁁛  Suite "OpenAI Responses API Tests" passed after 0.031 seconds.
+􁁛  Suite "Debug Exact Test" passed after 0.032 seconds.
+􁁛  Suite "Provider System Tests" passed after 0.031 seconds.
+􁁛  Test "Cancellation token with handlers" passed after 0.030 seconds.
+􁁛  Suite "AudioFormat Tests" passed after 0.031 seconds.
+􁁛  Suite "VoiceOption Tests" passed after 0.031 seconds.
+􁁛  Suite "Codable Conformance" passed after 0.031 seconds.
+􁁛  Suite "Type Conversion Tests" passed after 0.032 seconds.
+􁁛  Suite UsageTrackingTests passed after 0.032 seconds.
+􁁛  Test "StreamTextResult to UI Message Stream" passed after 0.027 seconds.
+􁁛  Suite "Provider Feature Parity Tests" passed after 0.032 seconds.
+􁁛  Suite "Provider Options Creation" passed after 0.031 seconds.
+􁁛  Test "Stream tap extension works" passed after 0.027 seconds.
+􁁛  Suite "Result Types Tests" passed after 0.031 seconds.
+􁁛  Test "Thread safety under high concurrency" passed after 0.026 seconds.
+􁁛  Test "AbortSignal thread safety" passed after 0.023 seconds.
+􁁛  Suite "Capability Detection" passed after 0.031 seconds.
+􁁛  Suite "Enum Value Tests" passed after 0.031 seconds.
+􁁛  Suite "Codable Tests" passed after 0.031 seconds.
+􁁛  Suite "Provider Options Container" passed after 0.031 seconds.
+􁁛  Suite "Settings Validation" passed after 0.031 seconds.
+􁁛  Suite "Multi-Channel Response System" passed after 0.032 seconds.
+􁁛  Suite "Provider Properties Tests" passed after 0.031 seconds.
+􁁛  Suite "Environment Variable Loading Tests" passed after 0.031 seconds.
+􁁛  Test "End-to-end UI message flow with streaming" passed after 0.029 seconds.
+􁁛  Suite "Custom Model Registration" passed after 0.031 seconds.
+􁁛  Test "Concurrent access is thread-safe" passed after 0.020 seconds.
+􁁛  Suite "GenerationSettings Integration" passed after 0.031 seconds.
+􁁛  Suite "AudioData Tests" passed after 0.031 seconds.
+􁁛  Suite "Hashable Tests" passed after 0.031 seconds.
+􁁛  Test "Concurrent capability access" passed after 0.021 seconds.
+􁁛  Suite "Provider Factory Tests" passed after 0.031 seconds.
+􁁛  Test "StreamTextResult extension methods work with AsyncSequence" passed after 0.028 seconds.
+􁁛  Suite "Tool System Tests" passed after 0.032 seconds.
+􁁛  Test "Thread safety stress test" passed after 0.020 seconds.
+􁁛  Suite "Instance Isolation Tests" passed after 0.031 seconds.
+􁁛  Suite "Type-Safe API Tests" passed after 0.031 seconds.
+􁁛  Suite "Request Types Tests" passed after 0.031 seconds.
+􁁛  Suite "Instance Creation Tests" passed after 0.031 seconds.
+􁁛  Suite "Environment Variable Loading Tests" passed after 0.031 seconds.
+􁁛  Suite "Configuration Priority Tests" passed after 0.031 seconds.
+􁁛  Suite "Equality Tests" passed after 0.031 seconds.
+􁁛  Suite "Configuration State Tests" passed after 0.031 seconds.
+􁁛  Test "With timeout basic functionality" passed after 0.030 seconds.
+􁁛  Test "Regex stop condition with complex patterns" passed after 0.027 seconds.
+􁁛  Test "Auto instance is singleton" passed after 0.020 seconds.
+􁁛  Suite "String-Based Compatibility API Tests" passed after 0.030 seconds.
+􁁛  Suite "Schema Builder Tests" passed after 0.032 seconds.
+􁁛  Test "StreamObjectResult extension methods work with AsyncSequence" passed after 0.029 seconds.
+􁁛  Suite "StreamObject Tests" passed after 0.032 seconds.
+􁁛  Test "StreamTextResult filter extension works" passed after 0.028 seconds.
+􁁛  Test "RetryHandler execute exhausts retries" passed after 0.028 seconds.
+􁁛  Test "Stream filter extension works" passed after 0.027 seconds.
+􁁛  Suite "UI Integration Tests" passed after 0.032 seconds.
+􁁛  Test "Transform chain with complex pipeline" passed after 0.027 seconds.
+􁁛  Suite "Thread Safety" passed after 0.031 seconds.
+􁁛  Suite "Configuration Architecture Tests" passed after 0.032 seconds.
+􁁛  Suite "Default Configuration Tests" passed after 0.031 seconds.
+􁁛  Suite "Thread Safety Tests" passed after 0.031 seconds.
+􁁛  Test "With timeout throws on timeout" passed after 0.030 seconds.
+􁁛  Suite "Embeddings API" passed after 0.031 seconds.
+􁁛  Suite "Utility Functions Tests" passed after 0.031 seconds.
+􀢄  Suite "AgentToolValue Protocol System Tests" failed after 0.031 seconds with 2 issues.
+􁁛  Suite "Model Capabilities Tests" passed after 0.032 seconds.
+􁁛  Suite "Provider Enum Tests" passed after 0.032 seconds.
+􁁛  Suite "Provider Options Tests" passed after 0.032 seconds.
+􁁛  Suite "TachikomaConfiguration Tests" passed after 0.032 seconds.
+􁁛  Test "AsyncSequence can be cancelled mid-iteration" passed after 0.035 seconds.
+􁁛  Suite "AsyncSequence Conformance Tests" passed after 0.038 seconds.
+􁁛  Test "RetryHandler execute with retries" passed after 0.049 seconds.
+􁁛  Suite "Retry Handler" passed after 0.053 seconds.
+􁁛  Test "Generate Function - Invalid Configuration" passed after 0.050 seconds.
+􁁛  Test "Stream throttle extension works" passed after 0.076 seconds.
+􀢄  Test "Async operations with timeout and cancellation" recorded an issue at IntegrationTests.swift:150:25: Issue recorded
+􀄵  Task should have been cancelled
+􀢄  Test "Async operations with timeout and cancellation" failed after 0.104 seconds with 1 issue.
+􀢄  Suite "Integration Tests" failed after 0.106 seconds with 2 issues.
+􁁛  Test "TimeoutStopCondition should stop after duration" passed after 0.159 seconds.
+􁁛  Suite "Stop Conditions Tests" passed after 0.163 seconds.
+􁁛  Test "ThrottleTransform limits rate" passed after 0.160 seconds.
+􁁛  Test "BufferTransform with time interval" passed after 0.162 seconds.
+􁁛  Suite "Stream Transform Pipeline Tests" passed after 0.167 seconds.
+􁁛  Test "ResponseCache TTL expiration" passed after 0.165 seconds.
+􀢄  Suite "Response Caching" failed after 0.176 seconds with 1 issue.
+􁁛  Test "AbortSignal timeout functionality" passed after 0.217 seconds.
+􁁛  Suite "AbortSignal Tests" passed after 0.225 seconds.
+􁁛  Suite "Audio Types Tests" passed after 0.226 seconds.
+􀢄  Test "Generate Function - With Custom Tools" recorded an issue at GenerationTests.swift:225:6: Caught error: apiError("Anthropic Error: invalid x-api-key")
+􀢄  Test "Generate Function - With Custom Tools" failed after 0.238 seconds with 1 issue.
+􀢄  Test "Generate Function - Default Model" recorded an issue at GenerationTests.swift:43:6: Caught error: apiError("Anthropic Error: invalid x-api-key")
+􀢄  Test "Generate Function - Default Model" failed after 0.239 seconds with 1 issue.
+􀢄  Test "Stream Function - Anthropic Streaming" recorded an issue at GenerationTests.swift:99:6: Caught error: apiError("Anthropic Error (HTTP 401): {\"type\":\"error\",\"error\":{\"type\":\"authentication_error\",\"message\":\"invalid x-api-key\"}}")
+􀢄  Test "Stream Function - Anthropic Streaming" failed after 0.251 seconds with 1 issue.
+􀢄  Test "generateSpeech() with full model specification works" recorded an issue at AudioFunctionsTests.swift:131:10: Caught error: apiError("OpenAI Speech Error: Incorrect API key provided: test-key. You can find your API key at https://platform.openai.com/account/api-keys.")
+􀢄  Test "generateSpeech() with full model specification works" failed after 0.262 seconds with 1 issue.
+􀢄  Test "transcribe() convenience function works" recorded an issue at AudioFunctionsTests.swift:12:10: Caught error: apiError("OpenAI Transcription Error: Incorrect API key provided: test-key. You can find your API key at https://platform.openai.com/account/api-keys.")
+􀢄  Test "transcribe() convenience function works" failed after 0.263 seconds with 1 issue.
+􀢄  Test "transcribeBatch() function works" recorded an issue at AudioFunctionsTests.swift:199:10: Caught error: apiError("OpenAI Transcription Error: Incorrect API key provided: test-key. You can find your API key at https://platform.openai.com/account/api-keys.")
+􀢄  Test "transcribeBatch() function works" failed after 0.264 seconds with 1 issue.
+􀢄  Test "transcribe() with timestamps" recorded an issue at AudioFunctionsTests.swift:66:10: Caught error: apiError("OpenAI Transcription Error: Incorrect API key provided: test-key. You can find your API key at https://platform.openai.com/account/api-keys.")
+􀢄  Test "transcribe() with timestamps" failed after 0.264 seconds with 1 issue.
+􀢄  Test "transcribe() from file URL works" recorded an issue at AudioFunctionsTests.swift:43:10: Caught error: apiError("OpenAI Transcription Error: Incorrect API key provided: test-key. You can find your API key at https://platform.openai.com/account/api-keys.")
+􀢄  Test "transcribe() from file URL works" failed after 0.263 seconds with 1 issue.
+􁁛  Test "transcribe() handles empty audio data" passed after 0.264 seconds.
+􀢄  Test "multiple provider integration" recorded an issue at AudioFunctionsTests.swift:345:10: Caught error: apiError("OpenAI Transcription Error: Incorrect API key provided: test-key. You can find your API key at https://platform.openai.com/account/api-keys.")
+􀢄  Test "multiple provider integration" failed after 0.266 seconds with 1 issue.
+􀢄  Test "generateSpeech() with voice selection" recorded an issue at AudioFunctionsTests.swift:120:10: Caught error: apiError("OpenAI Speech Error: Incorrect API key provided: test-key. You can find your API key at https://platform.openai.com/account/api-keys.")
+􀢄  Test "generateSpeech() with voice selection" failed after 0.266 seconds with 1 issue.
+􀢄  Test "transcribe and generate speech pipeline" recorded an issue at AudioFunctionsTests.swift:328:10: Caught error: apiError("OpenAI Transcription Error: Incorrect API key provided: test-key. You can find your API key at https://platform.openai.com/account/api-keys.")
+􀢄  Test "transcribe and generate speech pipeline" failed after 0.266 seconds with 1 issue.
+􀢄  Suite "Integration Tests" failed after 0.276 seconds with 2 issues.
+􀢄  Test "transcribe() with full model specification works" recorded an issue at AudioFunctionsTests.swift:24:10: Caught error: apiError("OpenAI Transcription Error: Incorrect API key provided: test-key. You can find your API key at https://platform.openai.com/account/api-keys.")
+􀢄  Test "transcribe() with full model specification works" failed after 0.271 seconds with 1 issue.
+􀢄  Suite "Basic Transcription Functions Tests" failed after 0.281 seconds with 4 issues.
+􀢄  Test "generateSpeech() direct to file using convenience function" recorded an issue at AudioFunctionsTests.swift:149:10: Caught error: apiError("OpenAI Speech Error: Incorrect API key provided: test-key. You can find your API key at https://platform.openai.com/account/api-keys.")
+􀢄  Test "generateSpeech() direct to file using convenience function" failed after 0.273 seconds with 1 issue.
+􀢄  Test "Generate Function - Anthropic Provider" recorded an issue at GenerationTests.swift:26:6: Caught error: apiError("Anthropic Error: invalid x-api-key")
+􀢄  Test "Generate Function - Anthropic Provider" failed after 0.277 seconds with 1 issue.
+􀢄  Test "generateSpeechBatch() function works" recorded an issue at AudioFunctionsTests.swift:229:10: Caught error: apiError("OpenAI Speech Error: Incorrect API key provided: test-key. You can find your API key at https://platform.openai.com/account/api-keys.")
+􀢄  Test "generateSpeechBatch() function works" failed after 0.274 seconds with 1 issue.
+􀢄  Suite "Batch Operations Tests" failed after 0.283 seconds with 2 issues.
+􁁛  Test "generateSpeech() handles empty text" passed after 0.275 seconds.
+􀢄  Test "generateSpeech() convenience function works" recorded an issue at AudioFunctionsTests.swift:109:10: Caught error: apiError("OpenAI Speech Error: Incorrect API key provided: test-key. You can find your API key at https://platform.openai.com/account/api-keys.")
+􀢄  Test "generateSpeech() convenience function works" failed after 0.279 seconds with 1 issue.
+􀢄  Suite "Basic Speech Generation Functions Tests" failed after 0.291 seconds with 4 issues.
+􀢄  Test "Analyze Function - Vision Model" recorded an issue at GenerationTests.swift:133:6: Caught error: apiError("OpenAI Error: Incorrect API key provided: test-key. You can find your API key at https://platform.openai.com/account/api-keys.")
+􀢄  Test "Analyze Function - Vision Model" failed after 0.308 seconds with 1 issue.
+􀢄  Test "Stream Function - Basic Streaming" recorded an issue at GenerationTests.swift:71:6: Caught error: apiError("OpenAI Error (HTTP 401): {    \"error\": {        \"message\": \"Incorrect API key provided: test-key. You can find your API key at https://platform.openai.com/account/api-keys.\",        \"type\": \"invalid_request_error\",        \"param\": null,        \"code\": \"invalid_api_key\"    }}")
+􀢄  Test "Stream Function - Basic Streaming" failed after 0.309 seconds with 1 issue.
+􀢄  Test "Generate Function - OpenAI Provider" recorded an issue at GenerationTests.swift:9:6: Caught error: apiError("OpenAI Error: Incorrect API key provided: test-key. You can find your API key at https://platform.openai.com/account/api-keys.")
+􀢄  Test "Generate Function - OpenAI Provider" failed after 0.309 seconds with 1 issue.
+􀢄  Test "Generate Function - With System Prompt" recorded an issue at GenerationTests.swift:53:6: Caught error: apiError("OpenAI Error: Incorrect API key provided: test-key. You can find your API key at https://platform.openai.com/account/api-keys.")
+􀢄  Test "Generate Function - With System Prompt" failed after 0.309 seconds with 1 issue.
+􁁛  Test "Timeout stop condition with streaming" passed after 0.329 seconds.
+􁁛  Suite "Stop Conditions Integration Tests" passed after 0.333 seconds.
+􀢄  Test "Analyze Function - Default Vision Model" recorded an issue at GenerationTests.swift:163:6: Caught error: apiError("OpenAI Error: Incorrect API key provided: test-key. You can find your API key at https://platform.openai.com/account/api-keys.")
+􀢄  Test "Analyze Function - Default Vision Model" failed after 0.340 seconds with 1 issue.
+􀢄  Test "Generate Function - Without Tools" recorded an issue at GenerationTests.swift:211:6: Caught error: apiError("OpenAI Error: Incorrect API key provided: test-key. You can find your API key at https://platform.openai.com/account/api-keys.")
+􀢄  Test "Generate Function - Without Tools" failed after 0.352 seconds with 1 issue.
+􀢄  Suite "Generation Function Tests" failed after 0.358 seconds with 10 issues.
+􁁛  Test "OpenAI speech provider request validation" passed after 0.478 seconds.
+🔵 DEBUG Grok chunk: {"id":"282b0421-ca7d-d62b-0c6d-612398868e69","object":"chat.completion.chunk","created":1754781242,"model":"grok-3","choices":[{"index":0,"delta":{"content":"Hello","role":"assistant"}}],"system_fingerprint":"fp_0d42a4eb3d"}
+Received delta: textDelta
+🔵 DEBUG Grok chunk: {"id":"282b0421-ca7d-d62b-0c6d-612398868e69","object":"chat.completion.chunk","created":1754781242,"model":"grok-3","choices":[{"index":0,"delta":{"content":"!"}}],"system_fingerprint":"fp_0d42a4eb3d"}
+Received delta: textDelta
+🔵 DEBUG Grok chunk: {"id":"282b0421-ca7d-d62b-0c6d-612398868e69","object":"chat.completion.chunk","created":1754781242,"model":"grok-3","choices":[{"index":0,"delta":{"content":" How"}}],"system_fingerprint":"fp_0d42a4eb3d"}
+Received delta: textDelta
+🔵 DEBUG Grok chunk: {"id":"282b0421-ca7d-d62b-0c6d-612398868e69","object":"chat.completion.chunk","created":1754781242,"model":"grok-3","choices":[{"index":0,"delta":{"content":" can"}}],"system_fingerprint":"fp_0d42a4eb3d"}
+Received delta: textDelta
+🔵 DEBUG Grok chunk: {"id":"282b0421-ca7d-d62b-0c6d-612398868e69","object":"chat.completion.chunk","created":1754781242,"model":"grok-3","choices":[{"index":0,"delta":{"content":" I"}}],"system_fingerprint":"fp_0d42a4eb3d"}
+Received delta: textDelta
+🔵 DEBUG Grok chunk: {"id":"282b0421-ca7d-d62b-0c6d-612398868e69","object":"chat.completion.chunk","created":1754781242,"model":"grok-3","choices":[{"index":0,"delta":{"content":" help"}}],"system_fingerprint":"fp_0d42a4eb3d"}
+Received delta: textDelta
+🔵 DEBUG Grok chunk: {"id":"282b0421-ca7d-d62b-0c6d-612398868e69","object":"chat.completion.chunk","created":1754781242,"model":"grok-3","choices":[{"index":0,"delta":{"content":" you"}}],"system_fingerprint":"fp_0d42a4eb3d"}
+Received delta: textDelta
+🔵 DEBUG Grok chunk: {"id":"282b0421-ca7d-d62b-0c6d-612398868e69","object":"chat.completion.chunk","created":1754781242,"model":"grok-3","choices":[{"index":0,"delta":{"content":" today"}}],"system_fingerprint":"fp_0d42a4eb3d"}
+Received delta: textDelta
+🔵 DEBUG Grok chunk: {"id":"282b0421-ca7d-d62b-0c6d-612398868e69","object":"chat.completion.chunk","created":1754781242,"model":"grok-3","choices":[{"index":0,"delta":{"content":"?"}}],"system_fingerprint":"fp_0d42a4eb3d"}
+Received delta: textDelta
+🔵 DEBUG Grok chunk: {"id":"282b0421-ca7d-d62b-0c6d-612398868e69","object":"chat.completion.chunk","created":1754781242,"model":"grok-3","choices":[{"index":0,"delta":{},"finish_reason":"stop"}],"system_fingerprint":"fp_0d42a4eb3d"}
+Received delta: done
+Stream completed
+Final content: Hello! How can I help you today?
+􁁛  Test "Debug Grok streaming issue" passed after 0.839 seconds.
+􁁛  Test "OpenAI provider handles network errors" passed after 0.989 seconds.
+􀢄  Test "OpenAI transcription provider transcribe function" recorded an issue at OpenAIAudioProviderTests.swift:62:10: Caught error: apiError("OpenAI Transcription Error: The audio file could not be decoded or its format is not supported.")
+􀢄  Test "OpenAI transcription provider transcribe function" failed after 1.069 seconds with 1 issue.
+􀢄  Test "OpenAI provider handles unsupported formats gracefully" recorded an issue at OpenAIAudioProviderTests.swift:445:10: Caught error: apiError("OpenAI Transcription Error: The audio file could not be decoded or its format is not supported.")
+􀢄  Test "OpenAI provider handles unsupported formats gracefully" failed after 1.142 seconds with 1 issue.
+􁁛  Test "OpenAI request timeout configuration" passed after 1.534 seconds.
+􁁛  Suite "OpenAI API Configuration Tests" passed after 1.544 seconds.
+􀢄  Test "OpenAI provider handles rate limiting" recorded an issue at OpenAIAudioProviderTests.swift:461:10: Caught error: apiError("OpenAI Transcription Error: The audio file could not be decoded or its format is not supported.")
+􀢄  Test "OpenAI provider handles rate limiting" failed after 1.606 seconds with 1 issue.
+􀢄  Suite "OpenAI Error Handling Tests" failed after 1.613 seconds with 3 issues.
+􀢄  Test "OpenAI transcription provider with timestamps" recorded an issue at OpenAIAudioProviderTests.swift:86:10: Caught error: apiError("OpenAI Transcription Error: The audio file could not be decoded or its format is not supported.")
+􀢄  Test "OpenAI transcription provider with timestamps" failed after 2.171 seconds with 1 issue.
+􁁛  Test "OpenAI speech provider generate speech function" passed after 2.651 seconds.
+􀢄  Test "functions handle missing API keys" recorded an issue at AudioFunctionsTests.swift:317:23: Expectation failed: an error was expected but none was thrown
+􀢄  Test "functions handle missing API keys" failed after 3.469 seconds with 1 issue.
+􀢄  Suite "Error Handling Tests" failed after 3.478 seconds with 1 issue.
+􀢄  Suite "Audio Functions Tests" failed after 3.479 seconds with 13 issues.
+􁁛  Test "OpenAI speech provider with voice instructions" passed after 3.775 seconds.
+􁁛  Test "OpenAI speech provider with different voices" passed after 6.807 seconds.
+􁁛  Test "OpenAI speech provider different output formats" passed after 7.065 seconds.
+􁁛  Test "OpenAI speech provider with speed control" passed after 10.052 seconds.
+􀢄  Suite "OpenAI Speech Provider Tests" failed after 10.060 seconds with 1 issue.
+􁁛  Test "Task group with auto cancellation" passed after 10.071 seconds.
+􁁛  Suite "Async Ergonomics Tests" passed after 10.073 seconds.
+􁁛  Test "OpenAI transcription provider request validation" passed after 31.877 seconds.
+􀢄  Suite "OpenAI Transcription Provider Tests" failed after 31.884 seconds with 3 issues.
+􀢄  Suite "OpenAI Audio Provider Tests" failed after 31.885 seconds with 7 issues.
+􀢄  Test run with 510 tests in 87 suites failed after 31.886 seconds with 37 issues.

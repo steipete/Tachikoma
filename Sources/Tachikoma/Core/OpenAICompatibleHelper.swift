@@ -190,6 +190,33 @@ struct OpenAICompatibleHelper {
         return AsyncThrowingStream { continuation in
             Task {
                 do {
+                    #if canImport(FoundationNetworking)
+                    // Linux: Use data task
+                    let (data, response) = try await withCheckedThrowingContinuation { cont in
+                        URLSession.shared.dataTask(with: finalRequest) { data, response, error in
+                            if let error = error {
+                                cont.resume(throwing: error)
+                            } else if let data = data, let response = response {
+                                cont.resume(returning: (data, response))
+                            } else {
+                                cont.resume(throwing: TachikomaError.networkError(NSError(domain: "Invalid response", code: 0)))
+                            }
+                        }.resume()
+                    }
+                    
+                    guard let httpResponse = response as? HTTPURLResponse else {
+                        throw TachikomaError.networkError(NSError(domain: "Invalid response", code: 0))
+                    }
+                    
+                    guard httpResponse.statusCode == 200 else {
+                        let errorText = String(data: data, encoding: .utf8) ?? "Unknown error"
+                        throw TachikomaError.apiError("\(providerName) Error (HTTP \(httpResponse.statusCode)): \(errorText)")
+                    }
+                    
+                    // Process the entire response for Linux
+                    let lines = String(data: data, encoding: .utf8)?.components(separatedBy: "\n") ?? []
+                    #else
+                    // macOS/iOS: Use streaming API
                     let (bytes, response) = try await URLSession.shared.bytes(for: finalRequest)
                     
                     guard let httpResponse = response as? HTTPURLResponse else {
@@ -206,10 +233,14 @@ struct OpenAICompatibleHelper {
                         let errorText = errorBody.isEmpty ? "Unknown error" : errorBody
                         throw TachikomaError.apiError("\(providerName) Error (HTTP \(httpResponse.statusCode)): \(errorText)")
                     }
+                    #endif
                     
                     // Process the streaming response
                     var hasReceivedContent = false
-                    for try await line in bytes.lines {
+                    
+                    #if canImport(FoundationNetworking)
+                    // Linux: Process all lines at once
+                    for line in lines {
                         if line.hasPrefix("data: ") {
                             let jsonString = String(line.dropFirst(6))
                             
@@ -294,15 +325,94 @@ struct OpenAICompatibleHelper {
                                 continue
                             }
                         }
-                    }
+                    }  // End of Linux for loop
+                    #else
+                    // macOS/iOS: Stream lines
+                    for try await line in bytes.lines {
+                        if line.hasPrefix("data: ") {
+                            let jsonString = String(line.dropFirst(6))
+                            
+                            if jsonString.trimmingCharacters(in: .whitespacesAndNewlines) == "[DONE]" {
+                                // If we haven't received any content yet and see [DONE], 
+                                // yield an empty text delta to prevent hanging
+                                if !hasReceivedContent {
+                                    continuation.yield(TextStreamDelta.text(""))
+                                }
+                                continuation.yield(TextStreamDelta.done())
+                                break
+                            }
+                            
+                            guard let data = jsonString.data(using: .utf8) else { continue }
+                            
+                            do {
+                                let chunk = try JSONDecoder().decode(OpenAIStreamChunk.self, from: data)
+                                if let choice = chunk.choices.first {
+                                    // Debug logging for Grok models
+                                    if modelId.contains("grok") && ProcessInfo.processInfo.environment["DEBUG_GROK"] != nil {
+                                        print("🔵 DEBUG Grok chunk: \(jsonString)")
+                                    }
+                                    
+                                    if let content = choice.delta.content, !content.isEmpty {
+                                        continuation.yield(TextStreamDelta.text(content))
+                                        hasReceivedContent = true
+                                    }
+                                    
+                                    // Handle tool calls - Grok sends them all at once
+                                    if let toolCalls = choice.delta.toolCalls {
+                                        for toolCall in toolCalls {
+                                            // For Grok, function data comes directly in the toolCall
+                                            if let function = toolCall.function {
+                                                // Grok always provides name and arguments together
+                                                if let name = function.name, let argumentsStr = function.arguments {
+                                                    // Parse arguments JSON string into dictionary
+                                                    let argumentsDict: [String: AnyAgentToolValue]
+                                                    if let data = argumentsStr.data(using: .utf8),
+                                                       let parsed = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+                                                        argumentsDict = parsed.mapValues { AnyAgentToolValue.from($0) }
+                                                    } else {
+                                                        argumentsDict = [:]
+                                                    }
+                                                    
+                                                    let call = AgentToolCall(
+                                                        id: toolCall.id ?? UUID().uuidString,
+                                                        name: name,
+                                                        arguments: argumentsDict
+                                                    )
+                                                    continuation.yield(TextStreamDelta.tool(call))
+                                                    hasReceivedContent = true
+                                                }
+                                            }
+                                        }
+                                    }
+                                    
+                                    if let finishReason = choice.finishReason {
+                                        if finishReason == "stop" || finishReason == "tool_calls" {
+                                            continuation.yield(TextStreamDelta.done())
+                                        }
+                                    }
+                                }
+                            } catch {
+                                // Log error in verbose mode
+                                let config = TachikomaConfiguration.current
+                                if config.verbose || modelId.contains("grok") {
+                                    print("[\(providerName)] Failed to parse chunk: \(error)")
+                                    print("   Raw JSON: \(jsonString)")
+                                }
+                                // Skip malformed chunks
+                                continue
+                            }
+                        }
+                    }  // End of macOS for loop
+                    #endif
+                    
                     continuation.finish()
                 } catch {
                     continuation.finish(throwing: error)
                 }
             }
-        }
-    }
-
+        }  // End of AsyncThrowingStream closure
+    }  // End of streamText function
+    
     // MARK: - Helper Methods
 
     /// Extract native stop sequences from stop conditions

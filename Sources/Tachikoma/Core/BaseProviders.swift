@@ -239,6 +239,34 @@ public final class AnthropicProvider: ModelProvider {
         }
 
         // Use URLSession's bytes API for proper streaming
+        #if canImport(FoundationNetworking)
+        // Linux: Use data task for now (streaming not available)
+        let (data, response) = try await withCheckedThrowingContinuation { continuation in
+            URLSession.shared.dataTask(with: urlRequest) { data, response, error in
+                if let error = error {
+                    continuation.resume(throwing: error)
+                } else if let data = data, let response = response {
+                    continuation.resume(returning: (data, response))
+                } else {
+                    continuation.resume(throwing: TachikomaError.networkError(NSError(domain: "Invalid response", code: 0)))
+                }
+            }.resume()
+        }
+        
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw TachikomaError.networkError(NSError(domain: "Invalid response", code: 0))
+        }
+        
+        guard httpResponse.statusCode == 200 else {
+            // Return error data
+            let errorText = String(data: data, encoding: .utf8) ?? "Unknown error"
+            throw TachikomaError.providerError(errorText)
+        }
+        
+        // For Linux, parse the entire response at once
+        let lines = String(data: data, encoding: .utf8)?.components(separatedBy: "\n") ?? []
+        #else
+        // macOS/iOS: Use streaming API
         let (bytes, response) = try await URLSession.shared.bytes(for: urlRequest)
 
         guard let httpResponse = response as? HTTPURLResponse else {
@@ -394,6 +422,73 @@ public final class AnthropicProvider: ModelProvider {
                 continuation.finish()
             }
         }
+        #endif  // End of macOS/iOS streaming implementation
+        
+        #if canImport(FoundationNetworking)
+        // Linux implementation: Parse the entire response
+        return AsyncThrowingStream { continuation in
+            Task {
+                var currentToolCall: (id: String, name: String, partialInput: String)?
+                var accumulatedText = ""
+                
+                do {
+                    for line in lines {
+                        // Skip empty lines
+                        guard !line.isEmpty else { continue }
+                        
+                        // Process SSE events
+                        if line.hasPrefix("event: ") {
+                            continue
+                        }
+                        
+                        if line.hasPrefix("data: ") {
+                            let jsonString = String(line.dropFirst(6))
+                            
+                            // Check for stream end
+                            if jsonString.trimmingCharacters(in: .whitespacesAndNewlines) == "[DONE]" {
+                                if !accumulatedText.isEmpty {
+                                    continuation.yield(TextStreamDelta.text(accumulatedText))
+                                }
+                                continuation.yield(TextStreamDelta.done())
+                                break
+                            }
+                            
+                            guard let data = jsonString.data(using: .utf8) else { continue }
+                            
+                            do {
+                                let event = try JSONDecoder().decode(AnthropicStreamEvent.self, from: data)
+                                
+                                // Process events similar to macOS implementation
+                                switch event.type {
+                                case "content_block_delta":
+                                    if let delta = event.delta {
+                                        if let text = delta.text {
+                                            accumulatedText += text
+                                        }
+                                    }
+                                case "message_stop":
+                                    if !accumulatedText.isEmpty {
+                                        continuation.yield(TextStreamDelta.text(accumulatedText))
+                                    }
+                                    continuation.yield(TextStreamDelta.done())
+                                    break
+                                default:
+                                    continue
+                                }
+                            } catch {
+                                continue
+                            }
+                        }
+                    }
+                } catch {
+                    continuation.finish(throwing: error)
+                    return
+                }
+                
+                continuation.finish()
+            }
+        }
+        #endif
     }
 
     // MARK: - Helper Methods
