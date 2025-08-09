@@ -429,14 +429,23 @@ struct OpenAICompatibleHelper {
             }
             
             // Handle array items if present
-            if prop.type == .array, let items = prop.items {
-                var itemsDict: [String: Any] = [
-                    "type": items.type.rawValue
-                ]
-                if let itemEnumValues = items.enumValues {
-                    itemsDict["enum"] = itemEnumValues
+            if prop.type == .array {
+                if let items = prop.items {
+                    var itemsDict: [String: Any] = [
+                        "type": items.type.rawValue
+                    ]
+                    if let itemEnumValues = items.enumValues {
+                        itemsDict["enum"] = itemEnumValues
+                    }
+                    propDict["items"] = itemsDict
+                } else {
+                    // OpenAI requires items for array types - default to string
+                    propDict["items"] = ["type": "string"]
+                    if ProcessInfo.processInfo.arguments.contains("--verbose") ||
+                       ProcessInfo.processInfo.arguments.contains("-v") {
+                        print("DEBUG: Adding default string items for array property '\(key)' in tool '\(tool.name)'")
+                    }
                 }
-                propDict["items"] = itemsDict
             }
             
             properties[key] = propDict
