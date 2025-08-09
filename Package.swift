@@ -12,10 +12,15 @@ let package = Package(
         .tvOS(.v16),
     ],
     products: [
-        // Core Tachikoma library (lightweight, no MCP)
+        // Core Tachikoma library (lightweight, no MCP or Agent)
         .library(
             name: "Tachikoma",
             targets: ["Tachikoma"]),
+        
+        // Agent system module (Agent class, sessions, agent-specific features)
+        .library(
+            name: "TachikomaAgent",
+            targets: ["TachikomaAgent"]),
         
         // Audio processing module (transcription, TTS, recording)
         .library(
@@ -26,6 +31,11 @@ let package = Package(
         .library(
             name: "TachikomaMCP",
             targets: ["TachikomaMCP"]),
+        
+        // GPT-5 CLI executable
+        .executable(
+            name: "gpt5cli",
+            targets: ["GPT5CLI"]),
     ],
     dependencies: [
         .package(url: "https://github.com/apple/swift-log.git", from: "1.0.0"),
@@ -41,6 +51,16 @@ let package = Package(
                 .product(name: "Crypto", package: "swift-crypto"),
             ],
             path: "Sources/Tachikoma",
+            swiftSettings: commonSwiftSettings),
+
+        // Agent system module
+        .target(
+            name: "TachikomaAgent",
+            dependencies: [
+                "Tachikoma",  // For core types and utilities
+                .product(name: "Logging", package: "swift-log"),
+            ],
+            path: "Sources/TachikomaAgent",
             swiftSettings: commonSwiftSettings),
 
         // Audio processing module
@@ -84,6 +104,14 @@ let package = Package(
                 .product(name: "Logging", package: "swift-log"),
             ],
             path: "Tests/TachikomaMCPTests",
+            swiftSettings: commonSwiftSettings),
+        
+        // GPT-5 CLI executable target
+        .executableTarget(
+            name: "GPT5CLI",
+            dependencies: ["Tachikoma"],
+            path: "Examples",
+            sources: ["GPT5CLI.swift"],
             swiftSettings: commonSwiftSettings),
     ])
 

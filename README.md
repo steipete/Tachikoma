@@ -416,6 +416,49 @@ if let str = jsonValue.objectValue?["key"]?.stringValue {
 
 ## Core Features
 
+### Agent System (TachikomaAgent Module)
+
+Build stateful, autonomous AI agents with memory and tool access:
+
+```swift
+import TachikomaAgent
+
+// Define your agent with context
+class MyContext {
+    var database: Database
+    var api: APIClient
+}
+
+let context = MyContext()
+let agent = Agent(
+    name: "DataAnalyst",
+    instructions: "You are a helpful data analyst. You can query databases and call APIs to answer questions.",
+    model: .openai(.gpt4o),
+    tools: [databaseTool, apiTool],
+    context: context
+)
+
+// Execute tasks
+let response = try await agent.execute("What were our top products last month?")
+print(response.text)
+
+// Stream responses
+let stream = try await agent.stream("Generate a detailed sales report")
+for try await delta in stream {
+    print(delta.content ?? "", terminator: "")
+}
+
+// Conversation persists across calls
+let followUp = try await agent.execute("Can you break that down by region?")
+
+// Session management
+let sessionManager = AgentSessionManager.shared
+sessionManager.createSession(sessionId: "analyst-001", agent: agent)
+
+// Save/load sessions
+let session = try await sessionManager.loadSession(id: "analyst-001")
+```
+
 ### Type-Safe Model Selection
 
 Compile-time safety with provider-specific enums and full autocomplete support:
@@ -649,7 +692,12 @@ Tachikoma provides multiple modules for different functionality:
 - **`Tachikoma`** - Core AI SDK with generation, models, tools, and conversations
   - All tool types are now in `Core/ToolTypes.swift` for better modularization
   - Type-safe `ParameterType` enum for tool parameters (no string-based types)
-  - Unified tool system used by both core and MCP modules
+  - Unified tool system used by all other modules
+- **`TachikomaAgent`** - Agent system module for building autonomous AI agents
+  - `Agent<Context>` class for stateful AI agents with conversation memory
+  - Session management and persistence
+  - Tool integration with context passing
+  - Built on top of core Tachikoma functionality
 - **`TachikomaMCP`** - Model Context Protocol (MCP) client and tool adapters
   - Uses shared tool types from core module
   - Provides dynamic tool discovery and execution
@@ -854,6 +902,8 @@ targets: [
         dependencies: [
             // Core AI functionality
             .product(name: "Tachikoma", package: "Tachikoma"),
+            // Agent system (optional)
+            .product(name: "TachikomaAgent", package: "Tachikoma"),
             // Audio processing (optional)
             .product(name: "TachikomaAudio", package: "Tachikoma"),
             // MCP support (optional)
