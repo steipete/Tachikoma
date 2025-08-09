@@ -334,6 +334,7 @@ public struct GenerationSettings: Sendable {
     public let reasoningEffort: ReasoningEffort?
     public let stopConditions: (any StopCondition)?
     public let seed: Int?
+    public let providerOptions: ProviderOptions
 
     public init(
         maxTokens: Int? = nil,
@@ -345,7 +346,8 @@ public struct GenerationSettings: Sendable {
         stopSequences: [String]? = nil,
         reasoningEffort: ReasoningEffort? = nil,
         stopConditions: (any StopCondition)? = nil,
-        seed: Int? = nil
+        seed: Int? = nil,
+        providerOptions: ProviderOptions = .init()
     ) {
         self.maxTokens = maxTokens
         self.temperature = temperature
@@ -357,6 +359,7 @@ public struct GenerationSettings: Sendable {
         self.reasoningEffort = reasoningEffort
         self.stopConditions = stopConditions
         self.seed = seed
+        self.providerOptions = providerOptions
     }
 
     public static let `default` = GenerationSettings()
@@ -374,6 +377,7 @@ extension GenerationSettings: Codable {
         case stopSequences
         case reasoningEffort
         case seed
+        case providerOptions
     }
     
     public init(from decoder: Decoder) throws {
@@ -387,6 +391,7 @@ extension GenerationSettings: Codable {
         self.stopSequences = try container.decodeIfPresent([String].self, forKey: .stopSequences)
         self.reasoningEffort = try container.decodeIfPresent(ReasoningEffort.self, forKey: .reasoningEffort)
         self.seed = try container.decodeIfPresent(Int.self, forKey: .seed)
+        self.providerOptions = try container.decodeIfPresent(ProviderOptions.self, forKey: .providerOptions) ?? .init()
         self.stopConditions = nil // Can't decode function types
     }
     
@@ -401,6 +406,7 @@ extension GenerationSettings: Codable {
         try container.encodeIfPresent(stopSequences, forKey: .stopSequences)
         try container.encodeIfPresent(reasoningEffort, forKey: .reasoningEffort)
         try container.encodeIfPresent(seed, forKey: .seed)
+        try container.encode(providerOptions, forKey: .providerOptions)
         // Don't encode stopConditions since it can't be serialized
     }
 }

@@ -99,7 +99,7 @@ struct TextConfig: Codable, Sendable {
 /// Reasoning configuration for reasoning models
 @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 struct ReasoningConfig: Codable, Sendable {
-    let effort: ReasoningEffort?
+    let effort: OpenAIReasoningEffort?
     let summary: ReasoningSummary?
 }
 

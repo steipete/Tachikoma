@@ -612,6 +612,101 @@ struct ChatView: View {
 }
 ```
 
+### Provider Options
+
+Configure provider-specific settings while keeping universal parameters separate:
+
+```swift
+// GPT-5 with verbosity control (enables preamble messages)
+let result = try await generateText(
+    model: .openai(.gpt5),
+    messages: messages,
+    settings: GenerationSettings(
+        maxTokens: 1000,
+        providerOptions: .init(
+            openai: .init(
+                verbosity: .high  // Shows GPT-5's preamble messages
+            )
+        )
+    )
+)
+
+// O3/O4 reasoning models with effort levels
+let reasoning = try await generateText(
+    model: .openai(.o3),
+    messages: messages,
+    settings: GenerationSettings(
+        providerOptions: .init(
+            openai: .init(
+                reasoningEffort: .high,  // Control reasoning depth
+                parallelToolCalls: false
+            )
+        )
+    )
+)
+
+// Claude with thinking mode
+let claude = try await generateText(
+    model: .anthropic(.opus4),
+    messages: messages,
+    settings: GenerationSettings(
+        temperature: 0.7,
+        providerOptions: .init(
+            anthropic: .init(
+                thinking: .enabled(budgetTokens: 5000),
+                cacheControl: .persistent
+            )
+        )
+    )
+)
+
+// Gemini with thinking configuration
+let gemini = try await generateText(
+    model: .google(.gemini25),
+    messages: messages,
+    settings: GenerationSettings(
+        topK: 40,  // Google supports topK
+        providerOptions: .init(
+            google: .init(
+                thinkingConfig: .init(
+                    budgetTokens: 3000,
+                    includeThoughts: true
+                ),
+                safetySettings: .moderate
+            )
+        )
+    )
+)
+```
+
+#### Provider-Specific Options
+
+**OpenAI Options:**
+- `verbosity`: Control output detail (low/medium/high) - GPT-5 only
+- `reasoningEffort`: Reasoning depth (minimal/low/medium/high) - O3/O4 only
+- `parallelToolCalls`: Enable parallel tool execution
+- `responseFormat`: JSON mode (.json) or schema validation
+- `previousResponseId`: Chain responses for conversation persistence
+- `logprobs`: Include log probabilities in response
+
+**Anthropic Options:**
+- `thinking`: Enable reasoning mode with token budget
+- `cacheControl`: Conversation caching (ephemeral/persistent)
+
+**Google Options:**
+- `thinkingConfig`: Control reasoning with token budget
+- `safetySettings`: Content filtering (strict/moderate/relaxed)
+
+**Mistral Options:**
+- `safeMode`: Enable safe content generation
+
+**Groq Options:**
+- `speed`: Inference speed (normal/fast/ultraFast)
+
+**Grok Options:**
+- `funMode`: Enable creative responses
+- `includeCurrentEvents`: Access to current events
+
 ### Tool System with ToolKit Protocol
 
 Type-safe function calling with structured tool definitions:
@@ -1388,6 +1483,123 @@ See the following files for complete working examples:
 - **Concurrency**: Full `@Sendable` compliance throughout
 - **Dependencies**: 
   - [swift-log](https://github.com/apple/swift-log) for logging
+
+## Testing
+
+Tachikoma includes comprehensive test coverage using Swift Testing framework (Xcode 16+).
+
+### Running Tests
+
+```bash
+# Run all tests
+swift test
+
+# Run specific test suite
+swift test --filter "ProviderOptionsTests"
+
+# Run multiple test suites
+swift test --filter "ProviderOptionsTests|ModelCapabilitiesTests"
+
+# Run with verbose output
+swift test --verbose
+```
+
+### Test Organization
+
+Tests are organized by feature area:
+
+- **Core Tests**: Model capabilities, provider options, configuration
+- **Provider Tests**: Individual provider implementations
+- **Tool Tests**: Tool system and agent functionality
+- **Audio Tests**: Audio processing and realtime features
+- **Integration Tests**: End-to-end workflows
+
+### Key Test Areas
+
+#### Provider Options Tests
+Tests for provider-specific configuration options:
+
+```swift
+@Test("OpenAI options with verbosity")
+func testOpenAIVerbosity() {
+    let options = OpenAIOptions(
+        verbosity: .high,
+        reasoningEffort: .medium
+    )
+    #expect(options.verbosity == .high)
+}
+```
+
+#### Model Capabilities Tests
+Tests for model-specific parameter validation:
+
+```swift
+@Test("GPT-5 excludes temperature")
+func testGPT5Capabilities() {
+    let caps = ModelCapabilityRegistry.shared
+        .capabilities(for: .openai(.gpt5))
+    
+    #expect(!caps.supportsTemperature)
+    #expect(caps.supportsVerbosity)
+}
+```
+
+#### Settings Validation Tests
+Tests for automatic parameter filtering:
+
+```swift
+@Test("Validate settings for model")
+func testSettingsValidation() {
+    let settings = GenerationSettings(
+        temperature: 0.7,  // Will be removed for GPT-5
+        providerOptions: .init(
+            openai: .init(verbosity: .high)
+        )
+    )
+    
+    let validated = settings.validated(for: .openai(.gpt5))
+    #expect(validated.temperature == nil)
+    #expect(validated.providerOptions.openai?.verbosity == .high)
+}
+```
+
+### Writing Tests
+
+Use Swift Testing's modern syntax:
+
+```swift
+import Testing
+@testable import Tachikoma
+
+@Suite("My Feature Tests")
+struct MyFeatureTests {
+    @Test("Test specific behavior")
+    func testBehavior() async throws {
+        // Arrange
+        let model = LanguageModel.openai(.gpt4o)
+        
+        // Act
+        let result = try await generateText(
+            model: model,
+            messages: [.user("Hello")]
+        )
+        
+        // Assert
+        #expect(!result.text.isEmpty)
+    }
+}
+```
+
+### Test Coverage Areas
+
+- ✅ **Provider Options**: All provider-specific options
+- ✅ **Model Capabilities**: Parameter support per model
+- ✅ **Settings Validation**: Automatic filtering and validation
+- ✅ **Thread Safety**: Concurrent access patterns
+- ✅ **Codable Conformance**: Serialization/deserialization
+- ✅ **Tool System**: Tool registration and execution
+- ✅ **Streaming**: Async stream handling
+- ✅ **Error Handling**: Proper error propagation
 
 ## Contributing
 

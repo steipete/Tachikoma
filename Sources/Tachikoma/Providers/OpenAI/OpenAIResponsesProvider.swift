@@ -252,39 +252,55 @@ public final class OpenAIResponsesProvider: ModelProvider {
             try convertTool(tool)
         }
         
+        // Get validated settings and provider options
+        let validatedSettings = request.settings.validated(for: .openai(model))
+        let openaiOptions = validatedSettings.providerOptions.openai
+        
         // Determine reasoning configuration
-        let reasoning: ReasoningConfig? = if Self.isReasoningModel(model) || Self.isGPT5Model(model) {
-            ReasoningConfig(
-                effort: reasoningEffort,
+        let reasoning: ReasoningConfig?
+        if Self.isReasoningModel(model) || Self.isGPT5Model(model) {
+            let effort: OpenAIReasoningEffort
+            if let optionEffort = openaiOptions?.reasoningEffort {
+                // Convert from public API to internal type
+                effort = OpenAIReasoningEffort(rawValue: optionEffort.rawValue) ?? .medium
+            } else {
+                effort = .medium // Default
+            }
+            reasoning = ReasoningConfig(
+                effort: effort,
                 summary: .auto
             )
         } else {
-            nil
+            reasoning = nil
         }
         
         // Determine text configuration for GPT-5 (enables preamble messages)
-        let textConfig: TextConfig? = if Self.isGPT5Model(model) {
-            TextConfig(verbosity: verbosity)
+        let textConfig: TextConfig?
+        if Self.isGPT5Model(model) {
+            let verbosity: TextVerbosity
+            if let optionVerbosity = openaiOptions?.verbosity {
+                // Convert from public API to internal type
+                verbosity = TextVerbosity(rawValue: optionVerbosity.rawValue) ?? .high
+            } else {
+                verbosity = .high // Default for preambles
+            }
+            textConfig = TextConfig(verbosity: verbosity)
         } else {
-            nil
+            textConfig = nil
         }
-        
-        // Build request
-        // Note: GPT-5 models don't accept temperature through Responses API
-        let shouldIncludeTemperature = !Self.isGPT5Model(model)
         
         return OpenAIResponsesRequest(
             model: modelId,
             input: messages,
-            temperature: shouldIncludeTemperature ? request.settings.temperature : nil,
-            topP: shouldIncludeTemperature ? request.settings.topP : nil,
-            maxOutputTokens: request.settings.maxTokens,
+            temperature: validatedSettings.temperature,
+            topP: validatedSettings.topP,
+            maxOutputTokens: validatedSettings.maxTokens,
             text: textConfig,
             tools: tools,
             toolChoice: nil,  // TODO: Add tool choice support
             metadata: nil,
-            parallelToolCalls: true,
-            previousResponseId: previousResponseId,
+            parallelToolCalls: openaiOptions?.parallelToolCalls ?? true,
+            previousResponseId: openaiOptions?.previousResponseId ?? previousResponseId,
             store: false,
             user: nil,
             instructions: nil,
