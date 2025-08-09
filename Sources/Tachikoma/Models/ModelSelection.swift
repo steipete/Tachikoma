@@ -148,7 +148,7 @@ public struct ModelSelector {
             return .grok2Image1212
         // Shortcuts
         case "grok":
-            return .grok3 // Default to grok-3
+            return .grok40709 // Default to grok-4-0709
         case "xai":
             return .grok3 // Default xAI model
         default:
@@ -324,7 +324,7 @@ public func getAllAvailableModels() -> String {
     output += "\nShortcuts:\n"
     output += "  • claude, claude-opus, opus → claude-opus-4-20250514\n"
     output += "  • gpt, gpt4 → gpt-4.1\n"
-    output += "  • grok → grok-4\n"
+    output += "  • grok → grok-4-0709\n"
     output += "  • llama, llama3 → llama3.3\n"
 
     output += "\nCustom Models:\n"

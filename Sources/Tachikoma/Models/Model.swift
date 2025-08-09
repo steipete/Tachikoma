@@ -867,8 +867,8 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
     /// Default GPT-4o model
     public static let gpt4o: LanguageModel = .openai(.gpt4o)
 
-    /// Default Grok model
-    public static let grok4: LanguageModel = .grok(.grok4)
+    /// Default Grok model (Grok-4-0709)
+    public static let grok4: LanguageModel = .grok(.grok40709)
 
     /// Default Llama model
     public static let llama: LanguageModel = .ollama(.llama33)

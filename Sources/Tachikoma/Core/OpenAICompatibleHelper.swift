@@ -208,11 +208,17 @@ struct OpenAICompatibleHelper {
                     }
                     
                     // Process the streaming response
+                    var hasReceivedContent = false
                     for try await line in bytes.lines {
                         if line.hasPrefix("data: ") {
                             let jsonString = String(line.dropFirst(6))
                             
                             if jsonString.trimmingCharacters(in: .whitespacesAndNewlines) == "[DONE]" {
+                                // If we haven't received any content yet and see [DONE], 
+                                // yield an empty text delta to prevent hanging
+                                if !hasReceivedContent {
+                                    continuation.yield(TextStreamDelta.text(""))
+                                }
                                 continuation.yield(TextStreamDelta.done())
                                 break
                             }
@@ -222,47 +228,53 @@ struct OpenAICompatibleHelper {
                             do {
                                 let chunk = try JSONDecoder().decode(OpenAIStreamChunk.self, from: data)
                                 if let choice = chunk.choices.first {
-                                    if let content = choice.delta.content, !content.isEmpty {
-                                        continuation.yield(TextStreamDelta.text(content))
+                                    // Debug logging for Grok models
+                                    if modelId.contains("grok") && ProcessInfo.processInfo.environment["DEBUG_GROK"] != nil {
+                                        print("🔵 DEBUG Grok chunk: \(jsonString)")
                                     }
                                     
+                                    if let content = choice.delta.content, !content.isEmpty {
+                                        continuation.yield(TextStreamDelta.text(content))
+                                        hasReceivedContent = true
+                                    }
+                                    
+                                    // Handle tool calls - Grok sends them all at once
                                     if let toolCalls = choice.delta.toolCalls {
                                         for toolCall in toolCalls {
-                                            if let function = toolCall.function,
-                                               let name = function.name {
-                                                // Handle incremental tool call updates
-                                                // This is a simplified version - full implementation  
-                                                // would need to accumulate function arguments
-                                                
-                                                // Parse arguments JSON string into dictionary
-                                                let argumentsDict: [String: AnyAgentToolValue]
-                                                if let argumentsStr = function.arguments,
-                                                   !argumentsStr.isEmpty,
-                                                   let data = argumentsStr.data(using: .utf8),
-                                                   let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
-                                                    // Convert JSON to AnyAgentToolValue dictionary
-                                                    argumentsDict = json.compactMapValues { value in
-                                                        if let stringValue = value as? String {
-                                                            return AnyAgentToolValue(string: stringValue)
-                                                        } else if let intValue = value as? Int {
-                                                            return AnyAgentToolValue(int: intValue)
-                                                        } else if let doubleValue = value as? Double {
-                                                            return AnyAgentToolValue(double: doubleValue)
-                                                        } else if let boolValue = value as? Bool {
-                                                            return AnyAgentToolValue(bool: boolValue)
+                                            // For Grok, function data comes directly in the toolCall
+                                            if let function = toolCall.function {
+                                                // Grok always provides name and arguments together
+                                                if let name = function.name, let argumentsStr = function.arguments {
+                                                    // Parse arguments JSON string into dictionary
+                                                    let argumentsDict: [String: AnyAgentToolValue]
+                                                    if !argumentsStr.isEmpty,
+                                                       let data = argumentsStr.data(using: .utf8),
+                                                       let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+                                                        // Convert JSON to AnyAgentToolValue dictionary
+                                                        argumentsDict = json.compactMapValues { value in
+                                                            if let stringValue = value as? String {
+                                                                return AnyAgentToolValue(string: stringValue)
+                                                            } else if let intValue = value as? Int {
+                                                                return AnyAgentToolValue(int: intValue)
+                                                            } else if let doubleValue = value as? Double {
+                                                                return AnyAgentToolValue(double: doubleValue)
+                                                            } else if let boolValue = value as? Bool {
+                                                                return AnyAgentToolValue(bool: boolValue)
+                                                            }
+                                                            return nil
                                                         }
-                                                        return nil
+                                                    } else {
+                                                        argumentsDict = [:]
                                                     }
-                                                } else {
-                                                    argumentsDict = [:]
+                                                    
+                                                    let agentToolCall = AgentToolCall(
+                                                        id: toolCall.id ?? UUID().uuidString,
+                                                        name: name,
+                                                        arguments: argumentsDict
+                                                    )
+                                                    continuation.yield(TextStreamDelta.tool(agentToolCall))
+                                                    hasReceivedContent = true
                                                 }
-                                                
-                                                let agentToolCall = AgentToolCall(
-                                                    id: toolCall.id ?? UUID().uuidString,
-                                                    name: name,
-                                                    arguments: argumentsDict
-                                                )
-                                                continuation.yield(TextStreamDelta.tool(agentToolCall))
                                             }
                                         }
                                     }
@@ -272,7 +284,12 @@ struct OpenAICompatibleHelper {
                                         break
                                     }
                                 }
-                            } catch {
+                            } catch let error {
+                                // Log decoding errors for debugging
+                                if modelId.contains("grok") {
+                                    print("⚠️ Grok streaming decode error: \(error)")
+                                    print("   Raw JSON: \(jsonString)")
+                                }
                                 // Skip malformed chunks
                                 continue
                             }
