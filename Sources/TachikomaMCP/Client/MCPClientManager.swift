@@ -179,30 +179,48 @@ public final class TachikomaMCPClientManager {
             return (true, tools.count, Date().timeIntervalSince(start), nil)
         }
 
-        // Try to connect with timeout
-        let connectTask: Task<String?, Never> = Task { () -> String? in
-            do { try await client.connect(); return nil } catch { return error.localizedDescription }
+        // Try to connect with timeout using withTaskGroup for proper cancellation
+        let result: (Bool, String?) = await withTaskGroup(of: (Bool, String?).self) { group in
+            group.addTask {
+                do {
+                    try await client.connect()
+                    return (true, nil)
+                } catch {
+                    return (false, error.localizedDescription)
+                }
+            }
+            
+            group.addTask {
+                do {
+                    try await Task.sleep(nanoseconds: UInt64(timeoutMs) * 1_000_000)
+                    return (false, "timeout after \(timeoutMs)ms")
+                } catch {
+                    // Task was cancelled (connection succeeded)
+                    return (true, nil)
+                }
+            }
+            
+            // Wait for the first task to complete
+            guard let firstResult = await group.next() else {
+                return (false, "unknown error")
+            }
+            
+            // Cancel all remaining tasks immediately
+            group.cancelAll()
+            
+            return firstResult
         }
-        let timeoutTask: Task<String?, Never> = Task { () -> String? in
-            try? await Task.sleep(nanoseconds: UInt64(timeoutMs) * 1_000_000)
-            return "timeout after \(timeoutMs)ms"
-        }
-
-        var errorMessage: String? = nil
-        let winner = await firstResult(connectTask, timeoutTask)
-        if let msg = winner { errorMessage = msg }
-
-        // Cancel the loser task
-        connectTask.cancel()
-        timeoutTask.cancel()
-
-        if errorMessage == nil {
+        
+        let responseTime = Date().timeIntervalSince(start)
+        
+        if result.0 {
+            // Connection succeeded
             let tools = await client.tools
-            return (true, tools.count, Date().timeIntervalSince(start), nil)
+            return (true, tools.count, responseTime, nil)
         } else {
-            // Ensure process is cleaned up on timeout/failure
+            // Connection failed or timed out
             await client.disconnect()
-            return (false, 0, Date().timeIntervalSince(start), errorMessage)
+            return (false, 0, responseTime, result.1)
         }
     }
 
@@ -221,16 +239,6 @@ public final class TachikomaMCPClientManager {
         return results
     }
 
-    // Simple race between two tasks, returning the first result
-    private func firstResult<T>(_ a: Task<T, Never>, _ b: Task<T, Never>) async -> T {
-        await withTaskGroup(of: T.self) { group in
-            group.addTask { await a.value }
-            group.addTask { await b.value }
-            let result = await group.next()!
-            group.cancelAll()
-            return result
-        }
-    }
 
     // MARK: Persistence
     /// Persist the current effectiveConfigs back to the profile config file under mcpClients.
