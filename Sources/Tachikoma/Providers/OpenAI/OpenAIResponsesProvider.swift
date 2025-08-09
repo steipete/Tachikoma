@@ -95,8 +95,8 @@ public final class OpenAIResponsesProvider: ModelProvider {
     }
     
     public func streamText(request: ProviderRequest) async throws -> AsyncThrowingStream<TextStreamDelta, Error> {
-        // Build Responses API request with streaming
-        let responsesRequest = try buildResponsesRequest(request: request)
+        // Build Responses API request with streaming enabled
+        let responsesRequest = try buildResponsesRequest(request: request, streaming: true)
         
         // Add streaming flag (though not explicitly in request, handled by SSE)
         let url = URL(string: "\(baseURL!)/responses")!
@@ -172,43 +172,64 @@ public final class OpenAIResponsesProvider: ModelProvider {
                             }
                             
                             if let data = jsonString.data(using: .utf8) {
-                                do {
-                                    let chunk = try JSONDecoder().decode(OpenAIResponsesStreamChunk.self, from: data)
-                                    
-                                    // Convert to TextStreamDelta
-                                    if let choice = chunk.choices.first,
-                                       let content = choice.delta.content,
-                                       !content.isEmpty {
-                                        // GPT-5 preamble messages might send accumulated content instead of deltas
-                                        // Check if this is accumulated content or a true delta
-                                        if content.hasPrefix(previousContent) && !previousContent.isEmpty {
-                                            // This is accumulated content, extract just the delta
-                                            let delta = String(content.dropFirst(previousContent.count))
-                                            if !delta.isEmpty {
-                                                continuation.yield(TextStreamDelta.text(delta))
-                                                previousContent = content  // Update the accumulated content
-                                            }
-                                        } else {
-                                            // This is a true delta or the first chunk
-                                            continuation.yield(TextStreamDelta.text(content))
-                                            previousContent += content  // Accumulate for comparison
+                                // Try GPT-5 format first
+                                if Self.isGPT5Model(self.model) {
+                                    do {
+                                        let event = try JSONDecoder().decode(GPT5StreamEvent.self, from: data)
+                                        
+                                        // Handle text delta events
+                                        if event.type == "response.output_text.delta",
+                                           let delta = event.delta,
+                                           !delta.isEmpty {
+                                            continuation.yield(TextStreamDelta.text(delta))
                                         }
+                                        
+                                        // Handle completion
+                                        if event.type == "response.completed" {
+                                            continuation.finish()
+                                            return
+                                        }
+                                    } catch {
+                                        // Not a GPT-5 format event, ignore
                                     }
-                                    
-                                    // Handle tool calls
-                                    // Note: OpenAIStreamChunk doesn't have toolCalls in delta yet
-                                    // This would need to be added to the type definition if needed
-                                    
-                                    // Check for finish
-                                    if let choice = chunk.choices.first,
-                                       choice.finishReason != nil {
-                                        continuation.finish()
-                                        return
+                                } else {
+                                    // Try standard Responses API format (O3, etc.)
+                                    do {
+                                        let chunk = try JSONDecoder().decode(OpenAIResponsesStreamChunk.self, from: data)
+                                        
+                                        // Convert to TextStreamDelta
+                                        if let choice = chunk.choices.first,
+                                           let content = choice.delta.content,
+                                           !content.isEmpty {
+                                            // Handle accumulated content for models with preambles
+                                            if content.hasPrefix(previousContent) && !previousContent.isEmpty {
+                                                // This is accumulated content, extract just the delta
+                                                let delta = String(content.dropFirst(previousContent.count))
+                                                if !delta.isEmpty {
+                                                    continuation.yield(TextStreamDelta.text(delta))
+                                                    previousContent = content  // Update the accumulated content
+                                                }
+                                            } else {
+                                                // This is a true delta or the first chunk
+                                                continuation.yield(TextStreamDelta.text(content))
+                                                previousContent += content  // Accumulate for comparison
+                                            }
+                                        }
+                                        
+                                        // Check for finish
+                                        if let choice = chunk.choices.first,
+                                           choice.finishReason != nil {
+                                            continuation.finish()
+                                            return
+                                        }
+                                    } catch {
+                                        // Ignore parsing errors for incomplete chunks
                                     }
-                                } catch {
-                                    // Ignore parsing errors for incomplete chunks
                                 }
                             }
+                        } else if line.hasPrefix("event: ") {
+                            // Track event types for GPT-5 streaming (but we handle them in data lines)
+                            // This helps us understand the stream structure
                         }
                     }
                     
@@ -222,7 +243,7 @@ public final class OpenAIResponsesProvider: ModelProvider {
     
     // MARK: - Private Helpers
     
-    private func buildResponsesRequest(request: ProviderRequest) throws -> OpenAIResponsesRequest {
+    private func buildResponsesRequest(request: ProviderRequest, streaming: Bool = false) throws -> OpenAIResponsesRequest {
         // Convert messages to Responses API format
         let messages = try convertMessages(request.messages)
         
@@ -267,7 +288,8 @@ public final class OpenAIResponsesProvider: ModelProvider {
             serviceTier: nil,
             include: nil,
             reasoning: reasoning,
-            truncation: Self.isReasoningModel(model) ? "auto" : nil
+            truncation: Self.isReasoningModel(model) ? "auto" : nil,
+            stream: streaming
         )
     }
     

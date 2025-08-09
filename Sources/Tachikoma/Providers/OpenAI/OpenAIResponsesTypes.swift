@@ -39,6 +39,9 @@ struct OpenAIResponsesRequest: Codable {
     // Truncation for long inputs
     let truncation: String?
     
+    // Streaming support
+    let stream: Bool?
+    
     enum CodingKeys: String, CodingKey {
         case model
         case input
@@ -58,6 +61,7 @@ struct OpenAIResponsesRequest: Codable {
         case include
         case reasoning
         case truncation
+        case stream
     }
 }
 
@@ -414,7 +418,25 @@ struct OpenAIResponsesResponse: Codable, Sendable {
 
 // MARK: - Streaming Response Types
 
-/// Server-sent event for streaming responses
+/// GPT-5 Responses API streaming event
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
+struct GPT5StreamEvent: Codable, Sendable {
+    let type: String
+    let delta: String?
+    let itemId: String?
+    let outputIndex: Int?
+    let contentIndex: Int?
+    
+    enum CodingKeys: String, CodingKey {
+        case type
+        case delta
+        case itemId = "item_id"
+        case outputIndex = "output_index"
+        case contentIndex = "content_index"
+    }
+}
+
+/// Server-sent event for streaming responses (O3 and older models)
 @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 struct OpenAIResponsesStreamChunk: Codable, Sendable {
     let id: String
