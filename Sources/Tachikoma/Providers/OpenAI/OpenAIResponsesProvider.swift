@@ -18,7 +18,7 @@ public final class OpenAIResponsesProvider: ModelProvider {
     
     // Provider options (immutable for Sendable conformance)
     private let reasoningEffort: String = "medium"  // minimal, low, medium, high
-    private let verbosity: String = "medium"  // low, medium, high (GPT-5 only)
+    private let verbosity: String = "high"  // low, medium, high (GPT-5 only) - set to high for preambles
     private let previousResponseId: String? = nil  // For conversation persistence
     private let reasoningItemIds: [String] = []  // For stateful reasoning
     
@@ -68,13 +68,7 @@ public final class OpenAIResponsesProvider: ModelProvider {
         let encoder = JSONEncoder()
         urlRequest.httpBody = try encoder.encode(responsesRequest)
         
-        // Log request in verbose mode
-        if ProcessInfo.processInfo.arguments.contains("--verbose") ||
-           ProcessInfo.processInfo.arguments.contains("-v") {
-            if let jsonString = String(data: urlRequest.httpBody ?? Data(), encoding: .utf8) {
-                print("DEBUG OpenAI Responses API Request: \(jsonString.prefix(500))")
-            }
-        }
+        // Log request in verbose mode (silent by default)
         
         // Send request
         let (data, response) = try await URLSession.shared.data(for: urlRequest)
@@ -123,18 +117,13 @@ public final class OpenAIResponsesProvider: ModelProvider {
             encoder.outputFormatting = .prettyPrinted
             req.httpBody = try? encoder.encode(responsesRequest)
             
-            // Debug logging for GPT-5 and other models
-            if modelId.contains("gpt-5") || ProcessInfo.processInfo.environment["DEBUG_OPENAI"] != nil {
+            // Debug logging only when explicitly enabled
+            if ProcessInfo.processInfo.environment["DEBUG_OPENAI"] != nil {
                 print("🟢 DEBUG OpenAI Responses API Request to \(url.absoluteString):")
                 print("   Model: \(responsesRequest.model)")
                 print("   Tools count: \(responsesRequest.tools?.count ?? 0)")
-                if let toolNames = responsesRequest.tools?.map({ $0.function.name }) {
+                if let toolNames = responsesRequest.tools?.compactMap({ $0.function?.name }) {
                     print("   Tool names: \(toolNames.joined(separator: ", "))")
-                }
-                if let jsonData = req.httpBody,
-                   let jsonString = String(data: jsonData, encoding: .utf8) {
-                    let preview = String(jsonString.prefix(2000))
-                    print("   Request JSON (first 2000 chars):\n\(preview)")
                 }
             }
             
@@ -190,29 +179,17 @@ public final class OpenAIResponsesProvider: ModelProvider {
                                     if let choice = chunk.choices.first,
                                        let content = choice.delta.content,
                                        !content.isEmpty {
-                                        // Debug logging for GPT-5 streaming issue
-                                        if ProcessInfo.processInfo.environment["DEBUG_STREAMING"] != nil {
-                                            print("DEBUG: Received content: '\(content)'")
-                                            print("DEBUG: Previous content: '\(previousContent)'")
-                                        }
-                                        
                                         // GPT-5 preamble messages might send accumulated content instead of deltas
                                         // Check if this is accumulated content or a true delta
                                         if content.hasPrefix(previousContent) && !previousContent.isEmpty {
                                             // This is accumulated content, extract just the delta
                                             let delta = String(content.dropFirst(previousContent.count))
                                             if !delta.isEmpty {
-                                                if ProcessInfo.processInfo.environment["DEBUG_STREAMING"] != nil {
-                                                    print("DEBUG: Yielding delta: '\(delta)'")
-                                                }
                                                 continuation.yield(TextStreamDelta.text(delta))
                                                 previousContent = content  // Update the accumulated content
                                             }
                                         } else {
                                             // This is a true delta or the first chunk
-                                            if ProcessInfo.processInfo.environment["DEBUG_STREAMING"] != nil {
-                                                print("DEBUG: Yielding content as-is: '\(content)'")
-                                            }
                                             continuation.yield(TextStreamDelta.text(content))
                                             previousContent += content  // Accumulate for comparison
                                         }
@@ -264,8 +241,12 @@ public final class OpenAIResponsesProvider: ModelProvider {
             nil
         }
         
-        // Determine verbosity (GPT-5 doesn't actually support this parameter)
-        let verbosity: String? = nil
+        // Determine text configuration for GPT-5 (enables preamble messages)
+        let textConfig: TextConfig? = if Self.isGPT5Model(model) {
+            TextConfig(verbosity: verbosity)
+        } else {
+            nil
+        }
         
         // Build request
         return OpenAIResponsesRequest(
@@ -274,7 +255,7 @@ public final class OpenAIResponsesProvider: ModelProvider {
             temperature: request.settings.temperature,
             topP: request.settings.topP,
             maxOutputTokens: request.settings.maxTokens,
-            text: nil,  // TODO: Add response format support
+            text: textConfig,
             tools: tools,
             toolChoice: nil,  // TODO: Add tool choice support
             metadata: nil,
@@ -286,7 +267,6 @@ public final class OpenAIResponsesProvider: ModelProvider {
             serviceTier: nil,
             include: nil,
             reasoning: reasoning,
-            verbosity: verbosity,
             truncation: Self.isReasoningModel(model) ? "auto" : nil
         )
     }

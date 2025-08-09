@@ -241,15 +241,21 @@ public func streamText(
     sessionId: String? = nil
 ) async throws
 -> StreamTextResult {
-    print("\n🔵 DEBUG streamText: Creating provider for model: \(model)")
-    print("🔵 DEBUG streamText: Model details: \(model.description)")
-    if case .openai(let openaiModel) = model {
-        print("🔵 DEBUG streamText: OpenAI model enum case: \(openaiModel)")
-        print("🔵 DEBUG streamText: OpenAI model modelId: \(openaiModel.modelId)")
+    // Debug logging only when explicitly enabled
+    let debugEnabled = ProcessInfo.processInfo.environment["DEBUG_TACHIKOMA"] != nil
+    if debugEnabled {
+        print("\n🔵 DEBUG streamText: Creating provider for model: \(model)")
+        print("🔵 DEBUG streamText: Model details: \(model.description)")
+        if case .openai(let openaiModel) = model {
+            print("🔵 DEBUG streamText: OpenAI model enum case: \(openaiModel)")
+            print("🔵 DEBUG streamText: OpenAI model modelId: \(openaiModel.modelId)")
+        }
     }
     let provider = try ProviderFactory.createProvider(for: model, configuration: configuration)
-    print("🔵 DEBUG streamText: Provider created: \(type(of: provider))")
-    print("🔵 DEBUG streamText: Provider modelId: \((provider as? AnthropicProvider)?.modelId ?? (provider as? OpenAIProvider)?.modelId ?? (provider as? OpenAIResponsesProvider)?.modelId ?? "unknown")")
+    if debugEnabled {
+        print("🔵 DEBUG streamText: Provider created: \(type(of: provider))")
+        print("🔵 DEBUG streamText: Provider modelId: \((provider as? AnthropicProvider)?.modelId ?? (provider as? OpenAIProvider)?.modelId ?? (provider as? OpenAIResponsesProvider)?.modelId ?? "unknown")")
+    }
 
     let request = ProviderRequest(
         messages: messages,
@@ -260,12 +266,16 @@ public func streamText(
     var stream: AsyncThrowingStream<TextStreamDelta, Error>
     if let timeout = timeout {
         // Wrap stream with timeout for initial connection
-        print("🔵 DEBUG streamText: Calling provider.streamText with timeout and \(request.tools?.count ?? 0) tools")
+        if debugEnabled {
+            print("🔵 DEBUG streamText: Calling provider.streamText with timeout and \(request.tools?.count ?? 0) tools")
+        }
         stream = try await withTimeout(timeout) {
             try await provider.streamText(request: request)
         }
     } else {
-        print("🔵 DEBUG streamText: Calling provider.streamText with \(request.tools?.count ?? 0) tools")
+        if debugEnabled {
+            print("🔵 DEBUG streamText: Calling provider.streamText with \(request.tools?.count ?? 0) tools")
+        }
         stream = try await provider.streamText(request: request)
     }
     

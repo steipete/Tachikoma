@@ -16,8 +16,8 @@ struct OpenAIResponsesRequest: Codable {
     let topP: Double?
     let maxOutputTokens: Int?
     
-    // Response format
-    let text: ResponseFormat?
+    // Response format and text configuration
+    let text: TextConfig?  // GPT-5 text configuration with verbosity
     
     // Tool configuration
     let tools: [ResponsesTool]?
@@ -35,9 +35,6 @@ struct OpenAIResponsesRequest: Codable {
     
     // Reasoning configuration (for o3/o4/GPT-5)
     let reasoning: ReasoningConfig?
-    
-    // GPT-5 specific parameters
-    let verbosity: String?  // "low", "medium", "high"
     
     // Truncation for long inputs
     let truncation: String?
@@ -60,9 +57,14 @@ struct OpenAIResponsesRequest: Codable {
         case serviceTier = "service_tier"
         case include
         case reasoning
-        case verbosity
         case truncation
     }
+}
+
+/// Text configuration for GPT-5 models
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
+struct TextConfig: Codable, Sendable {
+    let verbosity: String?  // "low", "medium", "high"
 }
 
 /// Reasoning configuration for reasoning models

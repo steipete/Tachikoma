@@ -198,23 +198,16 @@ public final class AnthropicProvider: ModelProvider {
         let requestData = try encoder.encode(anthropicRequest)
         urlRequest.httpBody = requestData
         
-        // CRITICAL DEBUG: Always print for testing tool issue
-        print("\n🔴 DEBUG AnthropicProvider.streamText called with:")
-        print("   Model: \(modelId)")
-        print("   Tools count: \(anthropicRequest.tools?.count ?? 0)")
-        if let tools = anthropicRequest.tools {
-            print("   Tool names: \(tools.map { $0.name }.joined(separator: ", "))")
-        }
-        print("   Messages: \(messages.count)")
-        print("   System prompt: \(systemMessage?.prefix(100) ?? "none")...")
-        
-        if let jsonString = String(data: requestData, encoding: .utf8) {
-            print("\n🔴 Anthropic Request JSON (first 3000 chars):")
-            let preview = String(jsonString.prefix(3000))
-            print(preview)
-            if jsonString.count > 3000 {
-                print("... (truncated, total \(jsonString.count) chars)")
+        // Debug logging only when explicitly enabled
+        if ProcessInfo.processInfo.environment["DEBUG_ANTHROPIC"] != nil {
+            print("\n🔴 DEBUG AnthropicProvider.streamText called with:")
+            print("   Model: \(modelId)")
+            print("   Tools count: \(anthropicRequest.tools?.count ?? 0)")
+            if let tools = anthropicRequest.tools {
+                print("   Tool names: \(tools.map { $0.name }.joined(separator: ", "))")
             }
+            print("   Messages: \(messages.count)")
+            print("   System prompt: \(systemMessage?.prefix(100) ?? "none")...")
         }
 
         // Use URLSession's bytes API for proper streaming
