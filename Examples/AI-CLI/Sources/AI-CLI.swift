@@ -312,48 +312,61 @@ For detailed documentation, visit: https://github.com/steipete/tachikoma
     }
     
     static func checkAPIKeyStatus(provider: String, envVar: String) {
-        if let key = ProcessInfo.processInfo.environment[envVar], !key.isEmpty {
+        let config = TachikomaConfiguration.current
+        let prov = Provider.from(identifier: provider.lowercased())
+        
+        if let key = config.getAPIKey(for: prov), !key.isEmpty {
             let masked = maskAPIKey(key)
-            print("   • \(provider): \(masked) ✅")
+            print("   • \(provider): \(masked) (configured)")
+        } else if let key = ProcessInfo.processInfo.environment[envVar], !key.isEmpty {
+            let masked = maskAPIKey(key)
+            print("   • \(provider): \(masked) (environment)")
         } else {
-            print("   • \(provider): Not set ❌")
+            print("   • \(provider): Not set")
         }
     }
     
     // MARK: - API Key Validation
     
     static func validateAPIKey(for model: LanguageModel) throws {
-        let requiredKey: String
+        let provider = getProvider(for: model)
+        let config = TachikomaConfiguration.current
         
-        switch model {
-        case .openai:
-            requiredKey = "OPENAI_API_KEY"
-        case .anthropic:
-            requiredKey = "ANTHROPIC_API_KEY"
-        case .google:
-            requiredKey = "GOOGLE_API_KEY"
-        case .mistral:
-            requiredKey = "MISTRAL_API_KEY"
-        case .groq:
-            requiredKey = "GROQ_API_KEY"
-        case .grok:
-            // Grok supports both X_AI_API_KEY and XAI_API_KEY
-            if ProcessInfo.processInfo.environment["X_AI_API_KEY"] == nil &&
-               ProcessInfo.processInfo.environment["XAI_API_KEY"] == nil {
+        // Check if API key is available (from config or environment)
+        if !config.hasAPIKey(for: provider) && provider.requiresAPIKey {
+            let envVar = provider.environmentVariable.isEmpty ? "API key" : provider.environmentVariable
+            if provider == .grok {
+                // Special case for Grok with alternative variables
                 throw CLIError.missingAPIKey("X_AI_API_KEY or XAI_API_KEY")
+            } else {
+                throw CLIError.missingAPIKey(envVar)
             }
-            return
-        case .ollama, .lmstudio:
-            // Local models don't need API keys
-            return
+        }
+        
+        // Check for unsupported providers
+        switch model {
         case .openRouter, .together, .replicate:
             throw CLIError.unsupportedProvider("Third-party aggregators not yet implemented in CLI")
         case .openaiCompatible, .anthropicCompatible, .custom:
             throw CLIError.unsupportedProvider("Custom providers not yet implemented in CLI")
+        default:
+            break
         }
-        
-        guard let apiKey = ProcessInfo.processInfo.environment[requiredKey], !apiKey.isEmpty else {
-            throw CLIError.missingAPIKey(requiredKey)
+    }
+    
+    static func getProvider(for model: LanguageModel) -> Provider {
+        switch model {
+        case .openai: return .openai
+        case .anthropic: return .anthropic
+        case .google: return .google
+        case .mistral: return .mistral
+        case .groq: return .groq
+        case .grok: return .grok
+        case .ollama: return .ollama
+        case .lmstudio: return .lmstudio
+        case .openRouter, .together, .replicate,
+             .openaiCompatible, .anthropicCompatible, .custom:
+            return .custom(model.providerName)
         }
     }
     
@@ -718,24 +731,8 @@ For detailed documentation, visit: https://github.com/steipete/tachikoma
     // MARK: - Utility Functions
     
     static func getCurrentAPIKey(for model: LanguageModel) -> String? {
-        switch model {
-        case .openai:
-            return ProcessInfo.processInfo.environment["OPENAI_API_KEY"]
-        case .anthropic:
-            return ProcessInfo.processInfo.environment["ANTHROPIC_API_KEY"]
-        case .google:
-            return ProcessInfo.processInfo.environment["GOOGLE_API_KEY"]
-        case .mistral:
-            return ProcessInfo.processInfo.environment["MISTRAL_API_KEY"]
-        case .groq:
-            return ProcessInfo.processInfo.environment["GROQ_API_KEY"]
-        case .grok:
-            return ProcessInfo.processInfo.environment["X_AI_API_KEY"] ?? ProcessInfo.processInfo.environment["XAI_API_KEY"]
-        case .ollama, .lmstudio:
-            return nil
-        default:
-            return nil
-        }
+        let provider = getProvider(for: model)
+        return TachikomaConfiguration.current.getAPIKey(for: provider)
     }
     
     static func maskAPIKey(_ key: String) -> String {
