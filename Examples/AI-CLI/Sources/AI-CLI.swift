@@ -496,11 +496,20 @@ For detailed documentation, visit: https://github.com/steipete/tachikoma
         print("✅ Response received in \(String(format: "%.2f", duration))s")
         
         // Display thinking/reasoning if available (before the response)
-        if let reasoning = reasoningText, config.showThinking {
-            print("\n🧠 Thinking Process:")
-            print("-------------------")
-            print(reasoning)
-            print("-------------------")
+        if config.showThinking {
+            if let reasoning = reasoningText, !reasoning.isEmpty {
+                print("\n🧠 Thinking Process:")
+                print("-------------------")
+                print(reasoning)
+                print("-------------------")
+            } else if supportsThinking {
+                // Show that reasoning occurred but isn't exposed
+                if let usage = result.usage,
+                   let outputDetails = (usage as? Usage)?.outputTokens {
+                    print("\n⚠️  Note: Model used internal reasoning but doesn't expose the thinking process.")
+                    print("   The model performed reasoning internally as part of generating the response.")
+                }
+            }
         }
         
         print("\n💬 Response:")
@@ -586,9 +595,9 @@ For detailed documentation, visit: https://github.com/steipete/tachikoma
         var usage: Usage? = nil
         
         for output in outputs {
-            let type = output["type"] as? String ?? ""
+            let outputType = output["type"] as? String ?? ""
             
-            if type == "reasoning" {
+            if outputType == "reasoning" {
                 // Extract reasoning text if available
                 if let summary = output["summary"] as? [[String: Any]] {
                     let reasoningParts = summary.compactMap { item -> String? in
@@ -601,13 +610,30 @@ For detailed documentation, visit: https://github.com/steipete/tachikoma
                         reasoningText = reasoningParts.joined(separator: "\n")
                     }
                 }
-                // If no summary, try to get raw reasoning content
+                
+                // If no summary, try content array (for O3/O4)
+                if reasoningText == nil || reasoningText?.isEmpty == true {
+                    if let contentArray = output["content"] as? [[String: Any]] {
+                        let reasoningParts = contentArray.compactMap { item -> String? in
+                            if item["type"] as? String == "text",
+                               let text = item["text"] as? String {
+                                return text
+                            }
+                            return nil
+                        }
+                        if !reasoningParts.isEmpty {
+                            reasoningText = reasoningParts.joined(separator: "\n")
+                        }
+                    }
+                }
+                
+                // If still no reasoning, try raw content string
                 if reasoningText == nil || reasoningText?.isEmpty == true {
                     if let content = output["content"] as? String {
                         reasoningText = content
                     }
                 }
-            } else if type == "message" {
+            } else if outputType == "message" {
                 // Extract message content
                 if let contents = output["content"] as? [[String: Any]] {
                     for content in contents {

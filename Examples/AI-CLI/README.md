@@ -371,7 +371,9 @@ ai-cli --model gemini-1.5-pro "Compare different database architectures"
 ai-cli --thinking --model gpt-5 "Solve this logic puzzle step by step"
 ai-cli --thinking --model o3-mini --api responses "What's the optimal algorithm for this problem?"
 ```
-Note: The `--thinking` flag attempts to show the model's reasoning process, but currently most models (including GPT-5 and O3) don't expose their internal reasoning through the API.
+
+**Important Note about --thinking**: 
+While O3, O4, and GPT-5 models perform internal reasoning (as shown by reasoning_tokens in usage stats), OpenAI's Responses API currently doesn't expose the actual reasoning text to users. The `--thinking` flag will request reasoning but will only show a note that internal reasoning occurred. This is an API limitation, not a bug in the CLI.
 
 #### Image Analysis (Vision models)
 ```bash
