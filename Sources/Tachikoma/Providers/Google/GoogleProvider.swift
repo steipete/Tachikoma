@@ -129,7 +129,7 @@ public final class GoogleProvider: ModelProvider {
                                 }
                             }
                         }
-                    }
+                    }  // End of for loop
                     
                     continuation.yield(TextStreamDelta.done())
                     continuation.finish()
