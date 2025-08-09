@@ -195,11 +195,14 @@ public final class AnthropicProvider: ModelProvider {
         )
 
         let encoder = JSONEncoder()
+        encoder.outputFormatting = .prettyPrinted  // For debugging
         let requestData = try encoder.encode(anthropicRequest)
         urlRequest.httpBody = requestData
         
         // Debug logging only when explicitly enabled
-        if ProcessInfo.processInfo.environment["DEBUG_ANTHROPIC"] != nil {
+        if ProcessInfo.processInfo.environment["DEBUG_ANTHROPIC"] != nil ||
+           ProcessInfo.processInfo.arguments.contains("--verbose") ||
+           ProcessInfo.processInfo.arguments.contains("-v") {
             print("\n🔴 DEBUG AnthropicProvider.streamText called with:")
             print("   Model: \(modelId)")
             print("   Tools count: \(anthropicRequest.tools?.count ?? 0)")
@@ -208,6 +211,29 @@ public final class AnthropicProvider: ModelProvider {
             }
             print("   Messages: \(messages.count)")
             print("   System prompt: \(systemMessage?.prefix(100) ?? "none")...")
+            
+            // Debug: Log the actual messages being sent
+            for (idx, msg) in messages.enumerated() {
+                print("   Message \(idx): role=\(msg.role)")
+                for content in msg.content {
+                    switch content {
+                    case .text(let text):
+                        print("     - text: \(text.text.prefix(100))...")
+                    case .toolUse(let tool):
+                        print("     - tool_use: id=\(tool.id), name=\(tool.name)")
+                    case .toolResult(let result):
+                        print("     - tool_result: tool_use_id=\(result.toolUseId)")
+                    default:
+                        print("     - other content")
+                    }
+                }
+            }
+            
+            // Debug: Show first 2000 chars of JSON request
+            if let jsonString = String(data: requestData, encoding: .utf8) {
+                print("\n🔴 Anthropic Request JSON (first 2000 chars):")
+                print(jsonString.prefix(2000))
+            }
         }
 
         // Use URLSession's bytes API for proper streaming
@@ -229,7 +255,6 @@ public final class AnthropicProvider: ModelProvider {
 
         return AsyncThrowingStream { continuation in
             Task {
-                var buffer = ""
                 var currentToolCall: (id: String, name: String, partialInput: String)?
                 var accumulatedText = ""
                 
@@ -402,34 +427,81 @@ public final class AnthropicProvider: ModelProvider {
                 }
                 anthropicMessages.append(AnthropicMessage(role: "user", content: content))
             case .assistant:
-                let textContent = message.content.compactMap { part in
-                    if case .text(let text) = part { return text }
-                    return nil
-                }.joined()
+                var content: [AnthropicContent] = []
                 
-                // Skip empty assistant messages as Anthropic doesn't allow empty text blocks
-                guard !textContent.isEmpty else { continue }
+                // Process each content part
+                for part in message.content {
+                    switch part {
+                    case .text(let text):
+                        if !text.isEmpty {
+                            content.append(.text(AnthropicContent.TextContent(type: "text", text: text)))
+                        }
+                    case .toolCall(let toolCall):
+                        // Convert tool call to Anthropic format
+                        var arguments: [String: Any] = [:]
+                        for (key, value) in toolCall.arguments {
+                            // Convert AnyAgentToolValue to Any using toJSON
+                            if let jsonValue = try? value.toJSON() {
+                                arguments[key] = jsonValue
+                            }
+                        }
+                        content.append(.toolUse(AnthropicContent.ToolUseContent(
+                            id: toolCall.id,
+                            name: toolCall.name,
+                            input: arguments
+                        )))
+                    default:
+                        continue
+                    }
+                }
                 
-                let content = [AnthropicContent.text(AnthropicContent.TextContent(
-                    type: "text",
-                    text: textContent
-                ))]
-                anthropicMessages.append(AnthropicMessage(role: "assistant", content: content))
+                // Only add message if it has content
+                if !content.isEmpty {
+                    anthropicMessages.append(AnthropicMessage(role: "assistant", content: content))
+                }
             case .tool:
-                // Tool results go as user messages in Anthropic
-                let textContent = message.content.compactMap { part in
-                    if case .text(let text) = part { return text }
-                    return nil
-                }.joined()
+                // Process tool results
+                var content: [AnthropicContent] = []
                 
-                // Skip empty tool messages as Anthropic doesn't allow empty text blocks
-                guard !textContent.isEmpty else { continue }
+                for part in message.content {
+                    switch part {
+                    case .toolResult(let result):
+                        // Convert tool result to Anthropic format
+                        let resultContent: String
+                        if result.isError {
+                            // Error result - get the error message
+                            resultContent = result.result.stringValue ?? "Error occurred"
+                        } else {
+                            // Success result - convert to JSON string
+                            if let json = try? result.result.toJSON(),
+                               let jsonData = try? JSONSerialization.data(withJSONObject: json, options: []),
+                               let jsonString = String(data: jsonData, encoding: .utf8) {
+                                resultContent = jsonString
+                            } else {
+                                // Fallback to string value if available
+                                resultContent = result.result.stringValue ?? "Success"
+                            }
+                        }
+                        
+                        // Tool results need to be sent as user messages with tool_result blocks
+                        content.append(.toolResult(AnthropicContent.ToolResultContent(
+                            toolUseId: result.toolCallId,
+                            content: resultContent
+                        )))
+                    case .text(let text):
+                        // Sometimes tool messages include text
+                        if !text.isEmpty {
+                            content.append(.text(AnthropicContent.TextContent(type: "text", text: text)))
+                        }
+                    default:
+                        continue
+                    }
+                }
                 
-                let content = [AnthropicContent.text(AnthropicContent.TextContent(
-                    type: "text",
-                    text: textContent
-                ))]
-                anthropicMessages.append(AnthropicMessage(role: "user", content: content))
+                // Tool results are sent as user messages in Anthropic's format
+                if !content.isEmpty {
+                    anthropicMessages.append(AnthropicMessage(role: "user", content: content))
+                }
             }
         }
 

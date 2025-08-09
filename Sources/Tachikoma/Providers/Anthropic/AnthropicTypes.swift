@@ -1,5 +1,84 @@
 import Foundation
 
+// MARK: - Helper Types
+
+/// A helper type for encoding/decoding Any values in JSON
+enum JSONValue: Codable {
+    case string(String)
+    case int(Int)
+    case double(Double)
+    case bool(Bool)
+    case array([JSONValue])
+    case object([String: JSONValue])
+    case null
+    
+    init?(value: Any) {
+        if let string = value as? String {
+            self = .string(string)
+        } else if let int = value as? Int {
+            self = .int(int)
+        } else if let double = value as? Double {
+            self = .double(double)
+        } else if let bool = value as? Bool {
+            self = .bool(bool)
+        } else if let array = value as? [Any] {
+            self = .array(array.compactMap { JSONValue(value: $0) })
+        } else if let dict = value as? [String: Any] {
+            self = .object(dict.compactMapValues { JSONValue(value: $0) })
+        } else if value is NSNull {
+            self = .null
+        } else {
+            return nil
+        }
+    }
+    
+    var value: Any {
+        switch self {
+        case .string(let s): return s
+        case .int(let i): return i
+        case .double(let d): return d
+        case .bool(let b): return b
+        case .array(let a): return a.map { $0.value }
+        case .object(let o): return o.mapValues { $0.value }
+        case .null: return NSNull()
+        }
+    }
+    
+    init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        if let string = try? container.decode(String.self) {
+            self = .string(string)
+        } else if let int = try? container.decode(Int.self) {
+            self = .int(int)
+        } else if let double = try? container.decode(Double.self) {
+            self = .double(double)
+        } else if let bool = try? container.decode(Bool.self) {
+            self = .bool(bool)
+        } else if let array = try? container.decode([JSONValue].self) {
+            self = .array(array)
+        } else if let object = try? container.decode([String: JSONValue].self) {
+            self = .object(object)
+        } else if container.decodeNil() {
+            self = .null
+        } else {
+            throw DecodingError.dataCorruptedError(in: container, debugDescription: "Cannot decode JSONValue")
+        }
+    }
+    
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        switch self {
+        case .string(let s): try container.encode(s)
+        case .int(let i): try container.encode(i)
+        case .double(let d): try container.encode(d)
+        case .bool(let b): try container.encode(b)
+        case .array(let a): try container.encode(a)
+        case .object(let o): try container.encode(o)
+        case .null: try container.encodeNil()
+        }
+    }
+}
+
 // MARK: - Anthropic API Types
 
 struct AnthropicMessageRequest: Codable {
@@ -25,6 +104,8 @@ struct AnthropicMessage: Codable {
 enum AnthropicContent: Codable {
     case text(TextContent)
     case image(ImageContent)
+    case toolUse(ToolUseContent)
+    case toolResult(ToolResultContent)
 
     struct TextContent: Codable {
         let type: String
@@ -46,6 +127,76 @@ enum AnthropicContent: Codable {
             case mediaType = "media_type"
         }
     }
+    
+    struct ToolUseContent: Codable {
+        let type: String
+        let id: String
+        let name: String
+        let input: [String: Any]
+        
+        init(type: String = "tool_use", id: String, name: String, input: [String: Any]) {
+            self.type = type
+            self.id = id
+            self.name = name
+            self.input = input
+        }
+        
+        init(from decoder: Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            self.type = try container.decode(String.self, forKey: .type)
+            self.id = try container.decode(String.self, forKey: .id)
+            self.name = try container.decode(String.self, forKey: .name)
+            
+            // Use custom decoder for Any
+            let inputDecoder = try container.superDecoder(forKey: .input)
+            self.input = try Self.decodeAnyDict(from: inputDecoder)
+        }
+        
+        func encode(to encoder: Encoder) throws {
+            var container = encoder.container(keyedBy: CodingKeys.self)
+            try container.encode(type, forKey: .type)
+            try container.encode(id, forKey: .id)
+            try container.encode(name, forKey: .name)
+            
+            // Use custom encoder for Any
+            let inputEncoder = container.superEncoder(forKey: .input)
+            try Self.encodeAnyDict(input, to: inputEncoder)
+        }
+        
+        // Helper methods for encoding/decoding [String: Any]
+        private static func decodeAnyDict(from decoder: Decoder) throws -> [String: Any] {
+            let container = try decoder.singleValueContainer()
+            return try container.decode([String: JSONValue].self).mapValues { $0.value }
+        }
+        
+        private static func encodeAnyDict(_ dict: [String: Any], to encoder: Encoder) throws {
+            var container = encoder.singleValueContainer()
+            let jsonDict = dict.compactMapValues { JSONValue(value: $0) }
+            try container.encode(jsonDict)
+        }
+        
+        enum CodingKeys: String, CodingKey {
+            case type, id, name, input
+        }
+    }
+    
+    struct ToolResultContent: Codable {
+        let type: String
+        let toolUseId: String
+        let content: String
+        
+        init(type: String = "tool_result", toolUseId: String, content: String) {
+            self.type = type
+            self.toolUseId = toolUseId
+            self.content = content
+        }
+        
+        enum CodingKeys: String, CodingKey {
+            case type
+            case toolUseId = "tool_use_id"
+            case content
+        }
+    }
 
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
@@ -56,6 +207,10 @@ enum AnthropicContent: Codable {
             self = try .text(TextContent(from: decoder))
         case "image":
             self = try .image(ImageContent(from: decoder))
+        case "tool_use":
+            self = try .toolUse(ToolUseContent(from: decoder))
+        case "tool_result":
+            self = try .toolResult(ToolResultContent(from: decoder))
         default:
             throw DecodingError.dataCorruptedError(
                 forKey: .type,
@@ -70,6 +225,10 @@ enum AnthropicContent: Codable {
         case let .text(content):
             try content.encode(to: encoder)
         case let .image(content):
+            try content.encode(to: encoder)
+        case let .toolUse(content):
+            try content.encode(to: encoder)
+        case let .toolResult(content):
             try content.encode(to: encoder)
         }
     }
