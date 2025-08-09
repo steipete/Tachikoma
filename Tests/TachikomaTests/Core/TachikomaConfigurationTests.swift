@@ -498,7 +498,7 @@ struct TachikomaConfigurationTests {
             
             // Should not crash and should have valid state
             let final = TachikomaConfiguration.current
-            #expect(final.apiEndpoints.openai != nil) // Should have a valid config
+            #expect(final.getBaseURL(for: .openai) != nil) // Should have a valid config
             
             // Clean up
             TachikomaConfiguration.default = nil

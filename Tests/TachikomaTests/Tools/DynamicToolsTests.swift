@@ -152,7 +152,7 @@ struct DynamicToolsTests {
             name: "search_web",
             arguments: AgentToolArguments(["query": AnyAgentToolValue(string: "Swift")])
         )
-        #expect(result.stringValue?.contains("Mock search results for:") == true)
+        #expect(result.stringValue?.contains("Mock result for") == true)
     }
     
     // Commented out - MCPToolProvider doesn't exist in core Tachikoma
