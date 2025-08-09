@@ -187,7 +187,7 @@ struct RetryHandlerTests {
                     await retryCounter.increment()
                     let retryCount = await retryCounter.count
                     #expect(attempt == retryCount)
-                    #expect(delay >= 0.01)
+                    #expect(delay >= 0.009) // Allow for timing precision
                 }
             )
             

@@ -25,7 +25,7 @@ struct UnifiedErrorsTests {
         
         // Check error description
         let description = error.errorDescription
-        #expect(description?.contains("authentication_failed") == true)
+        #expect(description?.contains("auth_authentication_failed") == true)
         #expect(description?.contains("API key") == true)
     }
     

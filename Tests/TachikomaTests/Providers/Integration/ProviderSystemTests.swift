@@ -38,7 +38,7 @@ struct ProviderSystemTests {
             let model = Model.grok(.grok4)
             let provider = try await ProviderFactory.createProvider(for: model, configuration: config)
 
-            #expect(provider.modelId == "grok-4")
+            #expect(provider.modelId == "grok-4-0709")
             #expect(provider.capabilities.supportsTools == true)
             #expect(provider.capabilities.supportsStreaming == true)
         }

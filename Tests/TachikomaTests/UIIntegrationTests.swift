@@ -65,7 +65,7 @@ struct UIIntegrationTests {
             content: [
                 .text("Here's the result:"),
                 .image(ModelMessage.ContentPart.ImageContent(
-                    data: "base64data",
+                    data: "https://example.com/image.jpg",
                     mimeType: "image/jpeg"
                 )),
                 .toolCall(try AgentToolCall(
