@@ -241,7 +241,10 @@ public func streamText(
     sessionId: String? = nil
 ) async throws
 -> StreamTextResult {
+    print("\n🔵 DEBUG streamText: Creating provider for model: \(model)")
     let provider = try ProviderFactory.createProvider(for: model, configuration: configuration)
+    print("🔵 DEBUG streamText: Provider created: \(type(of: provider))")
+    print("🔵 DEBUG streamText: Provider modelId: \((provider as? AnthropicProvider)?.modelId ?? "not anthropic")")
 
     let request = ProviderRequest(
         messages: messages,
@@ -252,10 +255,12 @@ public func streamText(
     var stream: AsyncThrowingStream<TextStreamDelta, Error>
     if let timeout = timeout {
         // Wrap stream with timeout for initial connection
+        print("🔵 DEBUG streamText: Calling provider.streamText with timeout and \(request.tools?.count ?? 0) tools")
         stream = try await withTimeout(timeout) {
             try await provider.streamText(request: request)
         }
     } else {
+        print("🔵 DEBUG streamText: Calling provider.streamText with \(request.tools?.count ?? 0) tools")
         stream = try await provider.streamText(request: request)
     }
     

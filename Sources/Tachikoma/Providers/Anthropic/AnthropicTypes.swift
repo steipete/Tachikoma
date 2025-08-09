@@ -322,43 +322,88 @@ struct AnthropicUsage: Codable {
     }
 }
 
-struct AnthropicStreamChunk: Codable {
+// MARK: - Streaming Types
+
+struct AnthropicStreamEvent: Codable {
     let type: String
+    let message: AnthropicStreamMessage?
     let index: Int?
+    let contentBlock: AnthropicStreamContentBlock?
     let delta: AnthropicStreamDelta?
+    let usage: AnthropicUsage?
+    
+    enum CodingKeys: String, CodingKey {
+        case type, message, index
+        case contentBlock = "content_block"
+        case delta, usage
+    }
 }
 
-enum AnthropicStreamDelta: Codable {
-    case textDelta(String)
-    case other
+struct AnthropicStreamMessage: Codable {
+    let id: String
+    let type: String
+    let role: String?
+    let model: String?
+    let usage: AnthropicUsage?
+}
 
+struct AnthropicStreamContentBlock: Codable {
+    let type: String
+    let id: String?
+    let name: String?
+    let text: String?
+    let input: Any?
+    
     enum CodingKeys: String, CodingKey {
-        case type, text
+        case type, id, name, text, input
     }
-
+    
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        let type = try container.decode(String.self, forKey: .type)
-
-        switch type {
-        case "text_delta":
-            let text = try container.decode(String.self, forKey: .text)
-            self = .textDelta(text)
-        default:
-            self = .other
+        self.type = try container.decode(String.self, forKey: .type)
+        self.id = try? container.decode(String.self, forKey: .id)
+        self.name = try? container.decode(String.self, forKey: .name)
+        self.text = try? container.decode(String.self, forKey: .text)
+        
+        // Decode input as generic JSON if present
+        if container.contains(.input) {
+            // Try to decode as Data and convert to JSON object
+            if let data = try? container.decode(Data.self, forKey: .input),
+               let obj = try? JSONSerialization.jsonObject(with: data) {
+                self.input = obj
+            } else {
+                self.input = nil
+            }
+        } else {
+            self.input = nil
         }
     }
-
+    
     func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
-
-        switch self {
-        case let .textDelta(text):
-            try container.encode("text_delta", forKey: .type)
-            try container.encode(text, forKey: .text)
-        case .other:
-            try container.encode("other", forKey: .type)
+        try container.encode(type, forKey: .type)
+        try container.encodeIfPresent(id, forKey: .id)
+        try container.encodeIfPresent(name, forKey: .name)
+        try container.encodeIfPresent(text, forKey: .text)
+        if let input = input {
+            let data = try JSONSerialization.data(withJSONObject: input)
+            try container.encode(data, forKey: .input)
         }
+    }
+}
+
+struct AnthropicStreamDelta: Codable {
+    let type: String
+    let text: String?
+    let partialJson: String?
+    let stopReason: String?
+    let stopSequence: String?
+    
+    enum CodingKeys: String, CodingKey {
+        case type, text
+        case partialJson = "partial_json"
+        case stopReason = "stop_reason"
+        case stopSequence = "stop_sequence"
     }
 }
 

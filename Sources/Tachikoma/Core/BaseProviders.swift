@@ -69,12 +69,14 @@ public final class AnthropicProvider: ModelProvider {
         let requestData = try encoder.encode(anthropicRequest)
         urlRequest.httpBody = requestData
         
-        // Debug: Print the request JSON when verbose
-        if ProcessInfo.processInfo.arguments.contains("--verbose") || 
-           ProcessInfo.processInfo.arguments.contains("-v") {
-            if let jsonString = String(data: requestData, encoding: .utf8) {
-                print("DEBUG: Anthropic request JSON:")
-                print(jsonString)
+        // Always print the request JSON for debugging
+        if let jsonString = String(data: requestData, encoding: .utf8) {
+            print("DEBUG AnthropicProvider: Request JSON (tools count: \(anthropicRequest.tools?.count ?? 0)):")
+            // Only print the first part to avoid flooding
+            let preview = String(jsonString.prefix(2000))
+            print(preview)
+            if jsonString.count > 2000 {
+                print("... (truncated, total \(jsonString.count) chars)")
             }
         }
 
@@ -193,53 +195,181 @@ public final class AnthropicProvider: ModelProvider {
         )
 
         let encoder = JSONEncoder()
-        urlRequest.httpBody = try encoder.encode(anthropicRequest)
+        let requestData = try encoder.encode(anthropicRequest)
+        urlRequest.httpBody = requestData
+        
+        // CRITICAL DEBUG: Always print for testing tool issue
+        print("\n🔴 DEBUG AnthropicProvider.streamText called with:")
+        print("   Model: \(modelId)")
+        print("   Tools count: \(anthropicRequest.tools?.count ?? 0)")
+        if let tools = anthropicRequest.tools {
+            print("   Tool names: \(tools.map { $0.name }.joined(separator: ", "))")
+        }
+        print("   Messages: \(messages.count)")
+        print("   System prompt: \(systemMessage?.prefix(100) ?? "none")...")
+        
+        if let jsonString = String(data: requestData, encoding: .utf8) {
+            print("\n🔴 Anthropic Request JSON (first 3000 chars):")
+            let preview = String(jsonString.prefix(3000))
+            print(preview)
+            if jsonString.count > 3000 {
+                print("... (truncated, total \(jsonString.count) chars)")
+            }
+        }
 
-        let (data, response) = try await URLSession.shared.data(for: urlRequest)
+        // Use URLSession's bytes API for proper streaming
+        let (bytes, response) = try await URLSession.shared.bytes(for: urlRequest)
 
         guard let httpResponse = response as? HTTPURLResponse else {
             throw TachikomaError.networkError(NSError(domain: "Invalid response", code: 0))
         }
 
         guard httpResponse.statusCode == 200 else {
-            let errorText = String(data: data, encoding: .utf8) ?? "Unknown error"
+            // Collect error data
+            var errorData = Data()
+            for try await byte in bytes {
+                errorData.append(byte)
+            }
+            let errorText = String(data: errorData, encoding: .utf8) ?? "Unknown error"
             throw TachikomaError.apiError("Anthropic Error (HTTP \(httpResponse.statusCode)): \(errorText)")
         }
 
         return AsyncThrowingStream { continuation in
             Task {
-                // Split the data by lines for SSE processing
-                let responseString = String(data: data, encoding: .utf8) ?? ""
-                let lines = responseString.components(separatedBy: .newlines)
+                var buffer = ""
+                var currentToolCall: (id: String, name: String, partialInput: String)?
+                var accumulatedText = ""
                 
-                for line in lines {
-                    if line.hasPrefix("data: ") {
-                        let jsonString = String(line.dropFirst(6))
+                do {
+                    for try await line in bytes.lines {
+                        // Skip empty lines
+                        guard !line.isEmpty else { continue }
                         
-                        if jsonString.trimmingCharacters(in: .whitespacesAndNewlines) == "[DONE]" ||
-                           jsonString.contains("\"type\":\"message_stop\"") {
-                            continuation.yield(TextStreamDelta.done())
-                            break
-                        }
-                        
-                        guard let data = jsonString.data(using: .utf8) else { continue }
-                        
-                        do {
-                            let chunk = try JSONDecoder().decode(AnthropicStreamChunk.self, from: data)
-                            if let delta = chunk.delta {
-                                switch delta {
-                                case .textDelta(let text):
-                                    continuation.yield(TextStreamDelta.text(text))
-                                case .other:
-                                    break
-                                }
-                            }
-                        } catch {
-                            // Skip malformed chunks
+                        // Process SSE events
+                        if line.hasPrefix("event: ") {
+                            // We'll use the event type in the next data line
                             continue
                         }
+                        
+                        if line.hasPrefix("data: ") {
+                            let jsonString = String(line.dropFirst(6))
+                            
+                            // Check for stream end
+                            if jsonString.trimmingCharacters(in: .whitespacesAndNewlines) == "[DONE]" {
+                                // Yield accumulated text if any
+                                if !accumulatedText.isEmpty {
+                                    continuation.yield(TextStreamDelta.text(accumulatedText))
+                                    accumulatedText = ""
+                                }
+                                continuation.yield(TextStreamDelta.done())
+                                break
+                            }
+                            
+                            guard let data = jsonString.data(using: .utf8) else { continue }
+                            
+                            do {
+                                let event = try JSONDecoder().decode(AnthropicStreamEvent.self, from: data)
+                                
+                                switch event.type {
+                                case "message_start":
+                                    // Message is starting
+                                    continue
+                                    
+                                case "content_block_start":
+                                    if let block = event.contentBlock {
+                                        if block.type == "tool_use" {
+                                            // Starting a tool call
+                                            currentToolCall = (id: block.id ?? "", name: block.name ?? "", partialInput: "")
+                                        } else if block.type == "text" {
+                                            // Text block starting
+                                            continue
+                                        }
+                                    }
+                                    
+                                case "content_block_delta":
+                                    if let delta = event.delta {
+                                        if delta.type == "text_delta", let text = delta.text {
+                                            // Accumulate text
+                                            accumulatedText += text
+                                            // Yield text in chunks
+                                            if accumulatedText.count >= 20 {
+                                                continuation.yield(TextStreamDelta.text(accumulatedText))
+                                                accumulatedText = ""
+                                            }
+                                        } else if delta.type == "input_json_delta", let partialJson = delta.partialJson {
+                                            // Accumulate tool input
+                                            if var toolCall = currentToolCall {
+                                                toolCall.partialInput += partialJson
+                                                currentToolCall = toolCall
+                                            }
+                                        }
+                                    }
+                                    
+                                case "content_block_stop":
+                                    // Yield any remaining text
+                                    if !accumulatedText.isEmpty {
+                                        continuation.yield(TextStreamDelta.text(accumulatedText))
+                                        accumulatedText = ""
+                                    }
+                                    
+                                    // Complete tool call if we have one
+                                    if let toolCall = currentToolCall {
+                                        // Parse the complete JSON input
+                                        if let inputData = toolCall.partialInput.data(using: .utf8),
+                                           let inputJson = try? JSONSerialization.jsonObject(with: inputData) as? [String: Any] {
+                                            // Convert to AnyAgentToolValue arguments
+                                            var arguments: [String: AnyAgentToolValue] = [:]
+                                            for (key, value) in inputJson {
+                                                do {
+                                                    arguments[key] = try AnyAgentToolValue.fromJSON(value)
+                                                } catch {
+                                                    print("[WARNING] Failed to convert tool argument '\(key)': \(error)")
+                                                }
+                                            }
+                                            
+                                            let agentToolCall = AgentToolCall(
+                                                id: toolCall.id,
+                                                name: toolCall.name,
+                                                arguments: arguments
+                                            )
+                                            continuation.yield(TextStreamDelta.tool(agentToolCall))
+                                        }
+                                        currentToolCall = nil
+                                    }
+                                    
+                                case "message_delta":
+                                    // Message-level updates (usage, etc.)
+                                    // Usage is typically included in the done event, not separately
+                                    continue
+                                    
+                                case "message_stop":
+                                    // Yield any final accumulated text
+                                    if !accumulatedText.isEmpty {
+                                        continuation.yield(TextStreamDelta.text(accumulatedText))
+                                        accumulatedText = ""
+                                    }
+                                    continuation.yield(TextStreamDelta.done())
+                                    break
+                                    
+                                default:
+                                    // Unknown event type, skip
+                                    continue
+                                }
+                            } catch {
+                                // Log parsing error in verbose mode
+                                if ProcessInfo.processInfo.arguments.contains("--verbose") {
+                                    print("[WARNING] Failed to parse stream event: \(error)")
+                                    print("Raw JSON: \(jsonString)")
+                                }
+                                continue
+                            }
+                        }
                     }
+                } catch {
+                    continuation.finish(throwing: error)
+                    return
                 }
+                
                 continuation.finish()
             }
         }
@@ -324,6 +454,22 @@ public final class AnthropicProvider: ModelProvider {
             
             if let enumValues = prop.enumValues {
                 propDict["enum"] = enumValues
+            }
+            
+            // Add items for array type
+            if prop.type == .array {
+                if let items = prop.items {
+                    // Convert items to dictionary
+                    var itemsDict: [String: Any] = ["type": items.type.rawValue]
+                    // Items don't have description field, only type and enum values
+                    if let itemEnum = items.enumValues {
+                        itemsDict["enum"] = itemEnum
+                    }
+                    propDict["items"] = itemsDict
+                } else {
+                    // Default items for array
+                    propDict["items"] = ["type": "string"]
+                }
             }
             
             properties[key] = propDict
