@@ -4,12 +4,12 @@ A comprehensive command-line interface for interacting with multiple AI provider
 
 ## Features
 
-- ✨ **Universal Support**: Works with 7+ AI providers
-- 🚀 **Smart Model Selection**: Intelligent model parsing with shortcuts
-- 🔐 **Secure**: API key validation and masking
-- 📊 **Detailed Output**: Usage statistics and cost estimates
-- 🌊 **Streaming**: Real-time response streaming (where supported)
-- 🛠 **Production Ready**: Comprehensive error handling and user guidance
+- **Universal Support**: Works with 7+ AI providers
+- **Smart Model Selection**: Intelligent model parsing with shortcuts
+- **Secure**: API key validation and masking
+- **Detailed Output**: Usage statistics and cost estimates
+- **Streaming**: Real-time response streaming (where supported)
+- **Production Ready**: Comprehensive error handling and user guidance
 
 ## Installation
 
@@ -195,10 +195,10 @@ ai-cli --model llama "Use default Llama model"
 
 For convenience, you can use these shortcuts:
 
-- `claude`, `opus` → `claude-opus-4-1-20250805`
-- `gpt`, `gpt4` → `gpt-4.1`
-- `grok` → `grok-4-0709`
-- `llama`, `llama3` → `llama3.3`
+- `claude`, `opus` -> `claude-opus-4-1-20250805`
+- `gpt`, `gpt4` -> `gpt-4.1`
+- `grok` -> `grok-4-0709`
+- `llama`, `llama3` -> `llama3.3`
 
 ## API Key Setup
 
@@ -288,51 +288,51 @@ ai-cli --model llava "Analyze this image locally"
 
 These models have been specifically tested and verified to work with the AI CLI:
 
-### ✅ Successfully Tested
+### Successfully Tested
 
 | Provider | Model | Command | Status |
 |----------|-------|---------|--------|
-| OpenAI | GPT-5 | `ai-cli --model gpt-5 "test"` | ✅ Working (Chat & Responses API) |
-| OpenAI | GPT-5 Mini | `ai-cli --model gpt-5-mini "test"` | ✅ Working |
-| OpenAI | GPT-4o | `ai-cli --model gpt-4o "test"` | ✅ Working |
-| Anthropic | Claude Opus 4 | `ai-cli --model claude "test"` | ✅ Working |
-| xAI | Grok 4 | `ai-cli --model grok "test"` | ✅ Working (great for jokes!) |
-| OpenAI | GPT-5 + Streaming | `ai-cli --stream --model gpt-5 "test"` | ✅ Real-time streaming |
-| OpenAI | GPT-4o + Streaming | `ai-cli --stream --model gpt-4o "test"` | ✅ Real-time streaming |
+| OpenAI | GPT-5 | `ai-cli --model gpt-5 "test"` | Working (Chat & Responses API) |
+| OpenAI | GPT-5 Mini | `ai-cli --model gpt-5-mini "test"` | Working |
+| OpenAI | GPT-4o | `ai-cli --model gpt-4o "test"` | Working |
+| Anthropic | Claude Opus 4 | `ai-cli --model claude "test"` | Working |
+| xAI | Grok 4 | `ai-cli --model grok "test"` | Working (great for jokes!) |
+| OpenAI | GPT-5 + Streaming | `ai-cli --stream --model gpt-5 "test"` | Real-time streaming |
+| OpenAI | GPT-4o + Streaming | `ai-cli --stream --model gpt-4o "test"` | Real-time streaming |
 
-### 🔍 Test Results
+### Test Results
 
 - **GPT-5 Series**: Both Chat Completions and Responses APIs tested successfully
 - **Claude Opus 4**: Fast responses with excellent reasoning
 - **Grok 4**: Unique personality, great for creative and humorous queries
 - **Streaming**: Verified working with OpenAI models for real-time output
 - **Error Handling**: Missing API keys properly detected and reported
-- **Model Shortcuts**: `claude` → Claude Opus 4, `grok` → Grok 4 verified working
+- **Model Shortcuts**: `claude` -> Claude Opus 4, `grok` -> Grok 4 verified working
 
-### 📝 Sample Test Outputs
+### Sample Test Outputs
 
 ```bash
 # GPT-5 with Responses API
 $ ai-cli --api responses "What is 2+2?"
-🔐 API Key: sk-pr...EqfAA
-🤖 Model: gpt-5
-🌐 API: Responses API
-✅ Using Responses API
-💬 Response: 4
-📊 Usage: Input: 13, Output: 71, Total: 84
+API Key: sk-pr...EqfAA
+Model: gpt-5
+API: Responses API
+Using Responses API
+Response: 4
+Usage: Input: 13, Output: 71, Total: 84
 
 # Claude Opus 4
 $ ai-cli --model claude "Explain quantum entanglement"
-🔐 API Key: sk-an...3456
-🤖 Model: claude-opus-4-1-20250805
-🌐 Provider: Anthropic
-💬 Response: [Detailed explanation...]
+API Key: sk-an...3456
+Model: claude-opus-4-1-20250805
+Provider: Anthropic
+Response: [Detailed explanation...]
 
 # Grok with humor
 $ ai-cli --model grok "Tell me a programming joke"
-🔐 API Key: xai-...abcd
-🤖 Model: grok-4-0709
-💬 Response: Why do programmers prefer dark mode? Because light attracts bugs!
+API Key: xai-...abcd
+Model: grok-4-0709
+Response: Why do programmers prefer dark mode? Because light attracts bugs!
 ```
 
 ## Command Reference
@@ -387,25 +387,25 @@ ai-cli --model llava "Analyze this screenshot locally"
 
 #### API Key Not Found
 ```
-❌ Error: Missing API key: OPENAI_API_KEY environment variable not set
+Error: Missing API key: OPENAI_API_KEY environment variable not set
 ```
 **Solution**: Set the appropriate environment variable for your provider.
 
 #### Model Not Found
 ```
-❌ Error parsing model: Invalid model 'gpt-6'
+Error parsing model: Invalid model 'gpt-6'
 ```
 **Solution**: Check model name spelling or use `--help` to see available models.
 
 #### Rate Limit Exceeded
 ```
-❌ Rate limit exceeded
+Rate limit exceeded
 ```
 **Solution**: Wait a moment and retry, or switch to a different model/provider.
 
 #### Network Issues
 ```
-❌ Error: Network error
+Error: Network error
 ```
 **Solution**: Check internet connection and provider service status.
 
@@ -435,7 +435,7 @@ The CLI provides approximate cost estimates for supported providers:
 ```bash
 ai-cli --model gpt-4o "Expensive query"
 # Shows:
-# 📊 Usage:
+# Usage:
 #   Input tokens: 100
 #   Output tokens: 500
 #   Total tokens: 600
