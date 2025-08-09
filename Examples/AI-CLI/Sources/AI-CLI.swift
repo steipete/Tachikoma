@@ -528,20 +528,24 @@ For detailed documentation, visit: https://github.com/steipete/tachikoma
         print("\n💬 Response:")
         print(result.text)
         
-        // Show usage information
+        // Show usage information in a single line
         if let usage = result.usage {
-            print("\n📊 Usage:")
-            print("  Input tokens: \(usage.inputTokens)")
-            print("  Output tokens: \(usage.outputTokens)")
-            print("  Total tokens: \(usage.totalTokens)")
+            var usageStr = "\n📊 Usage: \(usage.inputTokens) in, \(usage.outputTokens) out, \(usage.totalTokens) total"
             
-            // Calculate cost estimate for some providers
+            // Add cost estimate if available
             if let cost = estimateCost(for: model, usage: usage) {
-                print("  Estimated cost: $\(String(format: "%.6f", cost))")
+                usageStr += " (~$\(String(format: "%.4f", cost)))"
             }
+            
+            // Add finish reason
+            if let finishReason = result.finishReason {
+                usageStr += " [\(finishReason.rawValue)]"
+            }
+            
+            print(usageStr)
+        } else if let finishReason = result.finishReason {
+            print("\n🎯 Finished: \(finishReason.rawValue)")
         }
-        
-        print("  Finish reason: \(result.finishReason?.rawValue ?? "unknown")")
     }
     
     // MARK: - Reasoning Support
@@ -715,16 +719,16 @@ For detailed documentation, visit: https://github.com/steipete/tachikoma
         
         print("\n")
         
-        // Show final usage information
+        // Show final usage information in a single line
         if let usage = usage {
-            print("📊 Final Usage:")
-            print("  Input tokens: \(usage.inputTokens)")
-            print("  Output tokens: \(usage.outputTokens)")
-            print("  Total tokens: \(usage.totalTokens)")
+            var usageStr = "📊 Usage: \(usage.inputTokens) in, \(usage.outputTokens) out, \(usage.totalTokens) total"
             
+            // Add cost estimate if available
             if let cost = estimateCost(for: model, usage: usage) {
-                print("  Estimated cost: $\(String(format: "%.6f", cost))")
+                usageStr += " (~$\(String(format: "%.4f", cost)))"
             }
+            
+            print(usageStr)
         }
     }
     
