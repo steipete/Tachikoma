@@ -85,6 +85,7 @@ public struct MCPToolAdapter {
         var paramType: AgentToolParameterProperty.ParameterType = .string
         var description = "Parameter"
         var enumValues: [String]?
+        var items: AgentToolParameterItems?
         
         // Extract type
         if let typeValue = dict["type"],
@@ -109,11 +110,50 @@ public struct MCPToolAdapter {
             }
         }
         
+        // Extract items for array types
+        if paramType == .array {
+            // Check if items field exists
+            if let itemsValue = dict["items"],
+               case let .object(itemsDict) = itemsValue {
+                var itemType: AgentToolParameterProperty.ParameterType = .string
+                var itemEnumValues: [String]?
+                
+                // Extract item type
+                if let itemTypeValue = itemsDict["type"],
+                   case let .string(itemTypeStr) = itemTypeValue {
+                    itemType = AgentToolParameterProperty.ParameterType(rawValue: itemTypeStr) ?? .string
+                }
+                
+                // Extract item enum values
+                if let itemEnumValue = itemsDict["enum"],
+                   case let .array(itemEnumArray) = itemEnumValue {
+                    itemEnumValues = itemEnumArray.compactMap { val in
+                        if case let .string(str) = val {
+                            return str
+                        }
+                        return nil
+                    }
+                }
+                
+                items = AgentToolParameterItems(
+                    type: itemType,
+                    enumValues: itemEnumValues
+                )
+            } else {
+                // If array type but no items specified, default to string items
+                items = AgentToolParameterItems(
+                    type: .string,
+                    enumValues: nil
+                )
+            }
+        }
+        
         return AgentToolParameterProperty(
             name: name,
             type: paramType,
             description: description,
-            enumValues: enumValues
+            enumValues: enumValues,
+            items: items
         )
     }
     
