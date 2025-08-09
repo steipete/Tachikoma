@@ -242,9 +242,14 @@ public func streamText(
 ) async throws
 -> StreamTextResult {
     print("\n🔵 DEBUG streamText: Creating provider for model: \(model)")
+    print("🔵 DEBUG streamText: Model details: \(model.description)")
+    if case .openai(let openaiModel) = model {
+        print("🔵 DEBUG streamText: OpenAI model enum case: \(openaiModel)")
+        print("🔵 DEBUG streamText: OpenAI model modelId: \(openaiModel.modelId)")
+    }
     let provider = try ProviderFactory.createProvider(for: model, configuration: configuration)
     print("🔵 DEBUG streamText: Provider created: \(type(of: provider))")
-    print("🔵 DEBUG streamText: Provider modelId: \((provider as? AnthropicProvider)?.modelId ?? "not anthropic")")
+    print("🔵 DEBUG streamText: Provider modelId: \((provider as? AnthropicProvider)?.modelId ?? (provider as? OpenAIProvider)?.modelId ?? (provider as? OpenAIResponsesProvider)?.modelId ?? "unknown")")
 
     let request = ProviderRequest(
         messages: messages,

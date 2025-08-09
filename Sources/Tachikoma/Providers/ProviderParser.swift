@@ -228,14 +228,10 @@ public enum ProviderParser {
 
     private static func parseGrokModel(_ modelString: String) -> LanguageModel? {
         switch modelString.lowercased() {
-        case "grok-4", "grok4": .grok(.grok4)
         case "grok-4-0709": .grok(.grok40709)
-        case "grok-4-latest": .grok(.grok4Latest)
-        case "grok-2", "grok2": .grok(.grok21212)
-        case "grok-2-1212": .grok(.grok21212)
-        case "grok-2-vision-1212": .grok(.grok2Vision1212)
-        case "grok-beta": .grok(.grokBeta)
-        case "grok-vision-beta": .grok(.grokVisionBeta)
+        case "grok-3", "grok3": .grok(.grok3)
+        case "grok-3-mini": .grok(.grok3Mini)
+        case "grok-2-image-1212": .grok(.grok2Image1212)
         default:
             .grok(.custom(modelString))
         }
@@ -275,7 +271,7 @@ public enum ProviderParser {
         } else if hasOpenAI {
             .openai(.o3)
         } else if hasGrok {
-            .grok(.grok4)
+            .grok(.grok3)
         } else {
             .ollama(.llama33)
         }

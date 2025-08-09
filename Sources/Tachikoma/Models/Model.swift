@@ -321,61 +321,37 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
     }
 
     public enum Grok: Sendable, Hashable, CaseIterable {
-        // xAI Grok models
-        case grok4
+        // xAI Grok models (only models available in API)
         case grok40709
-        case grok4Latest
         case grok3
         case grok3Mini
-        case grok3Fast
-        case grok3MiniFast
-        case grok21212
-        case grok2Vision1212
         case grok2Image1212
-        case grokBeta
-        case grokVisionBeta
 
         // Custom models
         case custom(String)
 
         public static var allCases: [Grok] {
             [
-                .grok4,
                 .grok40709,
-                .grok4Latest,
                 .grok3,
                 .grok3Mini,
-                .grok3Fast,
-                .grok3MiniFast,
-                .grok21212,
-                .grok2Vision1212,
                 .grok2Image1212,
-                .grokBeta,
-                .grokVisionBeta,
             ]
         }
 
         public var modelId: String {
             switch self {
             case let .custom(id): id
-            case .grok4: "grok-4"
             case .grok40709: "grok-4-0709"
-            case .grok4Latest: "grok-4-latest"
             case .grok3: "grok-3"
             case .grok3Mini: "grok-3-mini"
-            case .grok3Fast: "grok-3-fast"
-            case .grok3MiniFast: "grok-3-mini-fast"
-            case .grok21212: "grok-2-1212"
-            case .grok2Vision1212: "grok-2-vision-1212"
             case .grok2Image1212: "grok-2-image-1212"
-            case .grokBeta: "grok-beta"
-            case .grokVisionBeta: "grok-vision-beta"
             }
         }
 
         public var supportsVision: Bool {
             switch self {
-            case .grok2Vision1212, .grok2Image1212, .grokVisionBeta: true
+            case .grok2Image1212: true
             case .custom: true // Assume custom models support vision
             default: false
             }
@@ -395,10 +371,9 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
 
         public var contextLength: Int {
             switch self {
-            case .grok4, .grok40709, .grok4Latest: 256_000
-            case .grok3, .grok3Mini, .grok3Fast, .grok3MiniFast: 128_000
-            case .grok21212, .grok2Vision1212, .grok2Image1212: 128_000
-            case .grokBeta, .grokVisionBeta: 128_000
+            case .grok40709: 256_000
+            case .grok3, .grok3Mini: 131_072
+            case .grok2Image1212: 128_000
             case .custom: 128_000 // Default assumption for custom models
             }
         }

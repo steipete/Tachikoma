@@ -120,7 +120,24 @@ public final class OpenAIResponsesProvider: ModelProvider {
             
             // Encode request
             let encoder = JSONEncoder()
+            encoder.outputFormatting = .prettyPrinted
             req.httpBody = try? encoder.encode(responsesRequest)
+            
+            // Debug logging for GPT-5 and other models
+            if modelId.contains("gpt-5") || ProcessInfo.processInfo.environment["DEBUG_OPENAI"] != nil {
+                print("🟢 DEBUG OpenAI Responses API Request to \(url.absoluteString):")
+                print("   Model: \(responsesRequest.model)")
+                print("   Tools count: \(responsesRequest.tools?.count ?? 0)")
+                if let toolNames = responsesRequest.tools?.map({ $0.function.name }) {
+                    print("   Tool names: \(toolNames.joined(separator: ", "))")
+                }
+                if let jsonData = req.httpBody,
+                   let jsonString = String(data: jsonData, encoding: .utf8) {
+                    let preview = String(jsonString.prefix(2000))
+                    print("   Request JSON (first 2000 chars):\n\(preview)")
+                }
+            }
+            
             return req
         }()
         

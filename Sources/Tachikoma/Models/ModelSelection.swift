@@ -137,36 +137,20 @@ public struct ModelSelector {
 
     private static func parseGrokModel(_ input: String) -> Model.Grok? {
         switch input {
-        // Direct matches
-        case "grok-4", "grok4":
-            return .grok4
+        // Direct matches for available models only
         case "grok-4-0709":
             return .grok40709
-        case "grok-4-latest":
-            return .grok4Latest
         case "grok-3", "grok3":
             return .grok3
         case "grok-3-mini":
             return .grok3Mini
-        case "grok-3-fast":
-            return .grok3Fast
-        case "grok-3-mini-fast":
-            return .grok3MiniFast
-        case "grok-2-1212":
-            return .grok21212
-        case "grok-2-vision-1212":
-            return .grok2Vision1212
         case "grok-2-image-1212":
             return .grok2Image1212
-        case "grok-beta":
-            return .grokBeta
-        case "grok-vision-beta":
-            return .grokVisionBeta
         // Shortcuts
         case "grok":
-            return .grok4 // Default to latest Grok
+            return .grok3 // Default to grok-3
         case "xai":
-            return .grok4 // Default xAI model
+            return .grok3 // Default xAI model
         default:
             // Check if it's a Grok model ID
             if input.hasPrefix("grok") {
