@@ -69,10 +69,12 @@ public final class SSETransport: MCPTransport {
         await state.setTransport(transport)
         await state.setBaseURL(url)
         await state.setHeaders(config.headers ?? [:])
-        // Do NOT set endpoint yet. Give SSE a chance to provide an 'endpoint' event.
+        // Set the base URL as the default endpoint (can be overridden by 'endpoint' event)
+        await state.setEndpoint(url)
         await state.setTimeout(config.timeout)
+        let verifyEndpoint = await state.getEndpoint()
+        logger.info("SSE transport connected: \(url), endpoint set to: \(verifyEndpoint?.absoluteString ?? "nil")")
         startReading()
-        logger.info("SSE transport connected: \(url)")
     }
 
     public func disconnect() async {
@@ -102,15 +104,13 @@ public final class SSETransport: MCPTransport {
         dict["id"] = id
         let postBody = try JSONSerialization.data(withJSONObject: dict)
 
-        // Ensure endpoint is available via SSE 'endpoint' event; do not fallback to base URL
-        let start = Date()
-        while await state.getEndpoint() == nil {
-            try await Task.sleep(nanoseconds: 50_000_000) // 50ms
-            if Date().timeIntervalSince(start) > 10 {
-                logger.error("SSE endpoint not established before send; method=\(method)")
-                throw MCPError.connectionFailed("SSE endpoint not established")
-            }
+        // Ensure endpoint is available - either from 'endpoint' event or base URL
+        guard let endpoint = await state.getEndpoint() else {
+            let baseURL = await state.getBaseURL()
+            logger.error("SSE endpoint not established before send; method=\(method), baseURL=\(baseURL?.absoluteString ?? "nil")")
+            throw MCPError.connectionFailed("SSE endpoint not established")
         }
+        logger.debug("Using endpoint: \(endpoint.absoluteString) for method=\(method)")
 
         // Register pending BEFORE POSTing
         let responseData = try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Data, Swift.Error>) in
@@ -127,13 +127,14 @@ public final class SSETransport: MCPTransport {
                 }
                 await state.addTimeoutTask(id, timeoutTask)
                 // Fire-and-forget POST to endpoint; responses arrive via SSE 'message'
-                Task { [logger] in
-                    let endpoint = await state.getEndpoint()!
+                Task { [logger, endpoint] in
                     logger.info("[SSE] POSTing to endpoint: \(endpoint.absoluteString) method=\(method) id=\(id)")
                     var request = URLRequest(url: endpoint)
                     request.httpMethod = "POST"
                     request.httpBody = postBody
                     request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+                    // Context7 requires both application/json and text/event-stream in Accept header
+                    request.setValue("application/json, text/event-stream", forHTTPHeaderField: "Accept")
                     // Custom headers if any
                     let headers = await state.headers
                     for (k, v) in headers { request.setValue(v, forHTTPHeaderField: k) }
@@ -172,6 +173,7 @@ public final class SSETransport: MCPTransport {
         request.httpMethod = "POST"
         request.httpBody = data
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("application/json, text/event-stream", forHTTPHeaderField: "Accept")
         let headers = await state.headers
         for (k, v) in headers { request.setValue(v, forHTTPHeaderField: k) }
         _ = try? await urlSession.data(for: request)
@@ -180,6 +182,7 @@ public final class SSETransport: MCPTransport {
     private func startReading() {
         Task {
             guard let transport = await state.getTransport() else { return }
+            logger.debug("[SSE] Starting to read from transport stream")
             let stream = await transport.receive()
             var buffer = ""
             for try await data in stream {
