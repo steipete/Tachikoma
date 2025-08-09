@@ -136,14 +136,15 @@ public struct MCPToolAdapter {
                 }
                 
                 items = AgentToolParameterItems(
-                    type: itemType,
-                    enumValues: itemEnumValues
+                    type: itemType.rawValue,
+                    description: nil
                 )
+                // Note: itemEnumValues are not supported in AgentToolParameterItems
             } else {
                 // If array type but no items specified, default to string items
                 items = AgentToolParameterItems(
-                    type: .string,
-                    enumValues: nil
+                    type: AgentToolParameterProperty.ParameterType.string.rawValue,
+                    description: nil
                 )
             }
         }

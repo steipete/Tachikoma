@@ -91,7 +91,8 @@ struct IntegrationTests {
             "b": 5.0
         ])
         
-        let result1 = try await calculator.execute(args1)
+        let context = ToolExecutionContext()
+        let result1 = try await calculator.execute(args1, context: context)
         if let obj = result1.objectValue,
            let resultValue = obj["result"]?.doubleValue {
             #expect(resultValue == 15.0)
@@ -107,7 +108,8 @@ struct IntegrationTests {
         ])
         
         do {
-            _ = try await calculator.execute(args2)
+            let context = ToolExecutionContext()
+            _ = try await calculator.execute(args2, context: context)
             Issue.record("Should have thrown division by zero error")
         } catch let error as AgentToolError {
             let unifiedError = error.toUnifiedError()

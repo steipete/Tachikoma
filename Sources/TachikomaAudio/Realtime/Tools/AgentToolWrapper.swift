@@ -79,7 +79,8 @@ public struct AgentToolWrapper: RealtimeExecutableTool {
         
         // Execute the tool
         do {
-            let result = try await tool.execute(AgentToolArguments(convertedArgs))
+            let context = ToolExecutionContext()
+            let result = try await tool.execute(AgentToolArguments(convertedArgs), context: context)
             
             // Convert result to string
             if let text = result.stringValue {

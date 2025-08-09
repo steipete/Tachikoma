@@ -243,8 +243,7 @@ public func streamText(
 -> StreamTextResult {
     // Debug logging only when explicitly enabled via environment variable or verbose flag
     let debugEnabled = ProcessInfo.processInfo.environment["DEBUG_TACHIKOMA"] != nil ||
-                      ProcessInfo.processInfo.arguments.contains("--verbose") ||
-                      ProcessInfo.processInfo.arguments.contains("-v")
+                      configuration.verbose
     if debugEnabled {
         print("\n🔵 DEBUG streamText: Creating provider for model: \(model)")
         print("🔵 DEBUG streamText: Model details: \(model.description)")

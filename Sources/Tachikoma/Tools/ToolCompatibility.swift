@@ -95,12 +95,9 @@ public func toolParametersToJSON(_ parameters: AgentToolParameters) throws -> [S
         
         // Handle array items if present
         if property.type == .array, let items = property.items {
-            var itemsSchema: [String: Any] = [
-                "type": items.type.rawValue
+            let itemsSchema: [String: Any] = [
+                "type": items.type
             ]
-            if let itemEnumValues = items.enumValues {
-                itemsSchema["enum"] = itemEnumValues
-            }
             propSchema["items"] = itemsSchema
         }
         
@@ -170,8 +167,7 @@ public struct ParameterSchema {
             name: name,
             type: .string,
             description: description,
-            enumValues: enumValues,
-            required: required
+            enumValues: enumValues
         )
     }
     
@@ -183,8 +179,7 @@ public struct ParameterSchema {
         return AgentToolParameterProperty(
             name: name,
             type: .number,
-            description: description,
-            required: required
+            description: description
         )
     }
     
@@ -196,8 +191,7 @@ public struct ParameterSchema {
         return AgentToolParameterProperty(
             name: name,
             type: .integer,
-            description: description,
-            required: required
+            description: description
         )
     }
     
@@ -209,8 +203,7 @@ public struct ParameterSchema {
         return AgentToolParameterProperty(
             name: name,
             type: .boolean,
-            description: description,
-            required: required
+            description: description
         )
     }
     
@@ -222,21 +215,18 @@ public struct ParameterSchema {
         return AgentToolParameterProperty(
             name: name,
             type: .array,
-            description: description,
-            required: required
+            description: description
         )
     }
     
     public static func object(
         name: String,
-        description: String,
-        required: Bool = false
+        description: String
     ) -> AgentToolParameterProperty {
         return AgentToolParameterProperty(
             name: name,
             type: .object,
-            description: description,
-            required: required
+            description: description
         )
     }
 }

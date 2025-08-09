@@ -101,8 +101,8 @@ public final class AnthropicProvider: ModelProvider {
         let anthropicResponse = try decoder.decode(AnthropicMessageResponse.self, from: data)
         
         // Debug: Print the response when verbose
-        if ProcessInfo.processInfo.arguments.contains("--verbose") || 
-           ProcessInfo.processInfo.arguments.contains("-v") {
+        let config = TachikomaConfiguration.current
+        if config.verbose {
             if let jsonString = String(data: data, encoding: .utf8) {
                 print("DEBUG: Anthropic response JSON:")
                 print(jsonString)
@@ -200,9 +200,9 @@ public final class AnthropicProvider: ModelProvider {
         urlRequest.httpBody = requestData
         
         // Debug logging only when explicitly enabled
+        let config = TachikomaConfiguration.current
         if ProcessInfo.processInfo.environment["DEBUG_ANTHROPIC"] != nil ||
-           ProcessInfo.processInfo.arguments.contains("--verbose") ||
-           ProcessInfo.processInfo.arguments.contains("-v") {
+           config.verbose {
             print("\n🔴 DEBUG AnthropicProvider.streamText called with:")
             print("   Model: \(modelId)")
             print("   Tools count: \(anthropicRequest.tools?.count ?? 0)")
@@ -375,7 +375,8 @@ public final class AnthropicProvider: ModelProvider {
                                 }
                             } catch {
                                 // Log parsing error in verbose mode
-                                if ProcessInfo.processInfo.arguments.contains("--verbose") {
+                                let config = TachikomaConfiguration.current
+                                if config.verbose {
                                     print("[WARNING] Failed to parse stream event: \(error)")
                                     print("Raw JSON: \(jsonString)")
                                 }
@@ -525,10 +526,10 @@ public final class AnthropicProvider: ModelProvider {
             if prop.type == .array {
                 if let items = prop.items {
                     // Convert items to dictionary
-                    var itemsDict: [String: Any] = ["type": items.type.rawValue]
-                    // Items don't have description field, only type and enum values
-                    if let itemEnum = items.enumValues {
-                        itemsDict["enum"] = itemEnum
+                    var itemsDict: [String: Any] = ["type": items.type]
+                    // Add description if present
+                    if let itemDescription = items.description {
+                        itemsDict["description"] = itemDescription
                     }
                     propDict["items"] = itemsDict
                 } else {

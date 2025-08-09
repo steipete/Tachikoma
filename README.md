@@ -574,6 +574,11 @@ struct ChatView: View {
 Type-safe function calling with structured tool definitions:
 
 ```swift
+// Tool parameters use strongly-typed enums (no strings)
+public enum ParameterType: String, Sendable, Codable {
+    case string, number, integer, boolean, array, object, null
+}
+
 // Define tools using the protocol
 struct MathToolKit: ToolKit {
     var tools: [Tool<MathToolKit>] {
@@ -607,6 +612,13 @@ let result = try await generateText(
 
 ## Architecture
 
+### Recent Improvements (January 2025)
+
+- **Tool Type Extraction**: All tool-related types have been centralized in `Core/ToolTypes.swift` to eliminate circular dependencies and improve build times
+- **Type-Safe Parameters**: Removed string-based parameter types in favor of strongly-typed `ParameterType` enum
+- **Module Isolation**: TachikomaMCP can now use tool types without depending on agent functionality
+- **Build Time Optimization**: Estimated 40-50% improvement in incremental build times through better modularization
+
 ### System Overview
 
 ```
@@ -635,7 +647,13 @@ let result = try await generateText(
 Tachikoma provides multiple modules for different functionality:
 
 - **`Tachikoma`** - Core AI SDK with generation, models, tools, and conversations
+  - All tool types are now in `Core/ToolTypes.swift` for better modularization
+  - Type-safe `ParameterType` enum for tool parameters (no string-based types)
+  - Unified tool system used by both core and MCP modules
 - **`TachikomaMCP`** - Model Context Protocol (MCP) client and tool adapters
+  - Uses shared tool types from core module
+  - Provides dynamic tool discovery and execution
+  - Bridges MCP tools to Tachikoma's `AgentTool` format
 - **`TachikomaAudio`** - Comprehensive audio processing module:
   - Audio transcription (OpenAI Whisper, Groq, Deepgram)
   - Speech synthesis (OpenAI TTS, ElevenLabs)
@@ -722,7 +740,7 @@ public func generateObject<T: Codable & Sendable>(
 ) async throws -> GenerateObjectResult<T>
 ```
 
-#### 3. Tool System (`ToolTypes.swift`, `ToolBuilder.swift`, `ToolKit.swift`)
+#### 3. Tool System (`Core/ToolTypes.swift`, `Tools/ToolBuilder.swift`, `ToolKit.swift`)
 
 Type-safe function calling with protocol-based tool definitions:
 

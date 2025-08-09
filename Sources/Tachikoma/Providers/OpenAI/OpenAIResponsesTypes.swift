@@ -69,9 +69,9 @@ enum TextVerbosity: String, Codable, Sendable {
     case high = "high"
 }
 
-/// Reasoning effort levels for reasoning models
+/// Internal reasoning effort levels for OpenAI responses provider
 @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
-enum ReasoningEffort: String, Codable, Sendable {
+enum OpenAIReasoningEffort: String, Codable, Sendable {
     case minimal = "minimal"
     case low = "low"
     case medium = "medium"

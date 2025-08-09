@@ -123,8 +123,7 @@ public struct ParameterDefinition {
             name: name,
             type: type,
             description: description,
-            enumValues: enumValues,
-            required: isRequired
+            enumValues: enumValues
         )
     }
 }
@@ -137,10 +136,16 @@ public func createTool(
     required: [String] = [],
     execute: @escaping @Sendable (AgentToolArguments) async throws -> AnyAgentToolValue
 ) -> AgentTool {
+    // Convert array of properties to dictionary keyed by name
+    var properties: [String: AgentToolParameterProperty] = [:]
+    for param in parameters {
+        properties[param.name] = param
+    }
+    
     return AgentTool(
         name: name,
         description: description,
-        parameters: AgentToolParameters(properties: parameters, required: required),
+        parameters: AgentToolParameters(properties: properties, required: required),
         execute: execute
     )
 }

@@ -49,7 +49,8 @@ struct SimplifiedToolsTests {
         
         // Test execution
         let args = try AgentToolArguments(["expression": "21*2"])
-        let result = try await tool.execute(args)
+        let context = ToolExecutionContext()
+        let result = try await tool.execute(args, context: context)
         
         // The result should be an AnyAgentToolValue
         #expect(result.doubleValue == 42.0 || result.objectValue?["result"]?.doubleValue == 42.0)
@@ -118,7 +119,8 @@ struct SimplifiedToolsTests {
             "message": "hello",
             "uppercase": true
         ])
-        let result = try await tool.execute(args)
+        let context = ToolExecutionContext()
+        let result = try await tool.execute(args, context: context)
         
         #expect(result.objectValue?["echoed"]?.stringValue == "HELLO")
     }
@@ -153,7 +155,8 @@ struct SimplifiedToolsTests {
             "units": "fahrenheit"
         ])
         
-        let result = try await tool.execute(args)
+        let context = ToolExecutionContext()
+        let result = try await tool.execute(args, context: context)
         #expect(result.objectValue?["location"]?.stringValue == "San Francisco")
         #expect(result.objectValue?["units"]?.stringValue == "fahrenheit")
     }

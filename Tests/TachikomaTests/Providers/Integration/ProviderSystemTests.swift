@@ -83,7 +83,7 @@ struct ProviderSystemTests {
         #expect(Model.anthropic(.opus4).supportsVision == true)
         #expect(Model.anthropic(.sonnet4).supportsVision == true)
 
-        #expect(Model.grok(.grok2Vision1212).supportsVision == true)
+        #expect(Model.grok(.grok2Image).supportsVision == true)
         #expect(Model.grok(.grok4).supportsVision == false)
 
         #expect(Model.ollama(.llava).supportsVision == true)

@@ -465,10 +465,10 @@ struct OpenAICompatibleHelper {
             if prop.type == .array {
                 if let items = prop.items {
                     var itemsDict: [String: Any] = [
-                        "type": items.type.rawValue
+                        "type": items.type
                     ]
-                    if let itemEnumValues = items.enumValues {
-                        itemsDict["enum"] = itemEnumValues
+                    if let itemDescription = items.description {
+                        itemsDict["description"] = itemDescription
                     }
                     propDict["items"] = itemsDict
                 } else {

@@ -62,7 +62,8 @@ struct ToolSystemTests {
         
         // Test execution
         let args = AgentToolArguments(["expression": AnyAgentToolValue(string: "2 + 2")])
-        let result = try await calculatorTool.execute(args)
+        let context = ToolExecutionContext()
+        let result = try await calculatorTool.execute(args, context: context)
         
         if let value = result.stringValue {
             #expect(value == "4")
@@ -84,7 +85,8 @@ struct ToolSystemTests {
         
         // Execute time tool (doesn't require external services)
         let args = AgentToolArguments([:])
-        let result = try await timeTool.execute(args)
+        let context = ToolExecutionContext()
+        let result = try await timeTool.execute(args, context: context)
         
         if let timeString = result.stringValue {
             #expect(!timeString.isEmpty)

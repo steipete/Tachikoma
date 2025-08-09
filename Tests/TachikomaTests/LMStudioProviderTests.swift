@@ -34,11 +34,11 @@ struct LMStudioProviderTests {
     @Test("Model enum integration")
     func testModelEnumIntegration() async throws {
         let model1 = LanguageModel.lmstudio(.gptOSS120B)
-        let model2 = LanguageModel.lmstudio(.gptOSS120BQ4)
+        let model2 = LanguageModel.lmstudio(.gptOSS20B)
         let model3 = LanguageModel.lmstudio(.current)
         
         #expect(model1.modelId == "gpt-oss-120b")
-        #expect(model2.modelId == "gpt-oss-120b-q4_k_m")
+        #expect(model2.modelId == "gpt-oss-20b")
         #expect(model3.modelId == "current")
         
         #expect(model1.supportsTools == true)
@@ -54,7 +54,7 @@ struct LMStudioProviderTests {
         #expect(model2.providerName == "LMStudio")
         
         #expect(model1.modelId == "gpt-oss:120b")
-        #expect(model2.modelId == "gpt-oss-120b-q4_k_m")
+        #expect(model2.modelId == "gpt-oss-20b")
     }
     
     @Test("Provider factory creation")
@@ -62,11 +62,11 @@ struct LMStudioProviderTests {
         let config = TachikomaConfiguration()
         
         // Test LMStudio provider creation
-        let model = LanguageModel.lmstudio(.gptOSS120BQ5)
+        let model = LanguageModel.lmstudio(.gptOSS120B)
         let provider = try await ProviderFactory.createProvider(for: model, configuration: config)
         
         let modelId = await provider.modelId
-        #expect(modelId == "gpt-oss-120b-q5_k_m")
+        #expect(modelId == "gpt-oss-120b")
         
         // Should work without API key (local model)
         #expect(provider is LMStudioProvider)

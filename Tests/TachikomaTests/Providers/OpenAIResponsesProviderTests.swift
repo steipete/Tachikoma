@@ -98,7 +98,7 @@ struct OpenAIResponsesProviderTests {
     @Test("TextConfig encodes verbosity correctly")
     func testTextConfigEncoding() throws {
         // Test that TextConfig properly encodes the verbosity parameter
-        let textConfig = TextConfig(verbosity: "high")
+        let textConfig = TextConfig(verbosity: .high)
         
         let encoder = JSONEncoder()
         let data = try encoder.encode(textConfig)
@@ -110,10 +110,10 @@ struct OpenAIResponsesProviderTests {
     @Test("OpenAIResponsesRequest includes text config for GPT-5")
     func testResponsesRequestTextConfig() throws {
         // Test that the request properly includes text config
-        let textConfig = TextConfig(verbosity: "medium")
+        let textConfig = TextConfig(verbosity: .medium)
         let request = OpenAIResponsesRequest(
             model: "gpt-5",
-            input: [ResponsesMessage(role: .user, content: .text("Test"))],
+            input: [ResponsesMessage(role: "user", content: .text("Test"))],
             temperature: nil,
             topP: nil,
             maxOutputTokens: nil,

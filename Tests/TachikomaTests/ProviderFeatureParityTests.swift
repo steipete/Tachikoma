@@ -213,7 +213,7 @@ struct ProviderFeatureParityTests {
             AgentTool(
                 name: "tool\(i)",
                 description: "Tool \(i)",
-                parameters: AgentToolParameters(properties: [], required: [])
+                parameters: AgentToolParameters(properties: [:], required: [])
             ) { _ in try AnyAgentToolValue(true) }
         }
         

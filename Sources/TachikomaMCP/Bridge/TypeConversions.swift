@@ -25,29 +25,6 @@ public extension ToolArguments {
 
 // MARK: AnyAgentToolValue Extensions
 public extension AnyAgentToolValue {
-    /// Initialize from Any type
-    static func from(_ any: Any) -> AnyAgentToolValue {
-        switch any {
-        case let str as String:
-            return AnyAgentToolValue(string: str)
-        case let num as Int:
-            return AnyAgentToolValue(int: num)
-        case let num as Double:
-            return AnyAgentToolValue(double: num)
-        case let bool as Bool:
-            return AnyAgentToolValue(bool: bool)
-        case let array as [Any]:
-            return AnyAgentToolValue(array: array.map { AnyAgentToolValue.from($0) })
-        case let dict as [String: Any]:
-            return AnyAgentToolValue(object: dict.mapValues { AnyAgentToolValue.from($0) })
-        case is NSNull:
-            return AnyAgentToolValue(null: ())
-        default:
-            // Fallback: convert to string representation
-            return AnyAgentToolValue(string: String(describing: any))
-        }
-    }
-    
     /// Convert to MCP Value
     func toValue() -> Value {
         if let str = stringValue {

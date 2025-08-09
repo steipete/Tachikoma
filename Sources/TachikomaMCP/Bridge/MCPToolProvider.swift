@@ -97,7 +97,7 @@ public final class MCPToolProvider: DynamicToolProvider {
         
         // Parse the MCP schema into DynamicSchema
         if case let .object(dict) = value {
-            var properties: [String: SchemaProperty] = [:]
+            var properties: [String: DynamicSchema.SchemaProperty] = [:]
             
             if let propsValue = dict["properties"],
                case let .object(propsDict) = propsValue {
@@ -127,9 +127,9 @@ public final class MCPToolProvider: DynamicToolProvider {
         return DynamicSchema(type: .object, properties: [:])
     }
     
-    private func convertPropertyToDynamic(_ value: Value) -> SchemaProperty {
+    private func convertPropertyToDynamic(_ value: Value) -> DynamicSchema.SchemaProperty {
         guard case let .object(dict) = value else {
-            return SchemaProperty(type: .string)
+            return DynamicSchema.SchemaProperty(type: .string)
         }
         
         var type: DynamicSchema.SchemaType = .string
@@ -145,7 +145,7 @@ public final class MCPToolProvider: DynamicToolProvider {
             description = descStr
         }
         
-        return SchemaProperty(
+        return DynamicSchema.SchemaProperty(
             type: type,
             description: description
         )

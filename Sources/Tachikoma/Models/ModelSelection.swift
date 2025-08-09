@@ -139,16 +139,16 @@ public struct ModelSelector {
         switch input {
         // Direct matches for available models only
         case "grok-4-0709":
-            return .grok40709
+            return .grok4
         case "grok-3", "grok3":
             return .grok3
         case "grok-3-mini":
             return .grok3Mini
         case "grok-2-image-1212":
-            return .grok2Image1212
+            return .grok2Image
         // Shortcuts
         case "grok":
-            return .grok40709 // Default to grok-4-0709
+            return .grok4 // Default to grok-4-0709
         case "xai":
             return .grok3 // Default xAI model
         default:

@@ -73,8 +73,9 @@ public struct SimplifiedToolBuilder {
         parameters: [String: String] = [:], // parameter name -> description
         execute: @escaping @Sendable ([String: Any]) async throws -> Any
     ) -> AgentTool {
-        let props = parameters.map { key, desc in
-            AgentToolParameterProperty(
+        var props: [String: AgentToolParameterProperty] = [:]
+        for (key, desc) in parameters {
+            props[key] = AgentToolParameterProperty(
                 name: key,
                 type: .string,
                 description: desc
@@ -206,7 +207,7 @@ public struct ToolSchemaBuilder {
             name: name,
             type: .array,
             description: description,
-            items: AgentToolParameterItems(type: itemType)
+            items: AgentToolParameterItems(type: itemType.rawValue)
         ))
         if required {
             builder.required.append(name)
@@ -234,7 +235,12 @@ public struct ToolSchemaBuilder {
     
     /// Build the parameters
     public func build() -> AgentToolParameters {
-        AgentToolParameters(properties: properties, required: required)
+        // Convert array of properties to dictionary keyed by name
+        var propertiesDict: [String: AgentToolParameterProperty] = [:]
+        for prop in properties {
+            propertiesDict[prop.name] = prop
+        }
+        return AgentToolParameters(properties: propertiesDict, required: required)
     }
 }
 

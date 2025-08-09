@@ -27,13 +27,13 @@ func testGrokStreamingDebug() async throws {
     
     for try await delta in stream {
         print("Received delta: \(delta.type)")
-        if case .textDelta(let text) = delta.type {
-            if let text = text {
+        if delta.type == .textDelta {
+            if let text = delta.content {
                 content += text
                 receivedContent = true
             }
         }
-        if case .done = delta.type {
+        if delta.type == .done {
             print("Stream completed")
             break
         }

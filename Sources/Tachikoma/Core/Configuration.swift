@@ -18,6 +18,7 @@ public final class TachikomaConfiguration: @unchecked Sendable {
     private var _baseURLs: [String: String] = [:]
     private var _defaultSettings: GenerationSettings = .default
     private let _loadFromEnvironment: Bool
+    private var _verbose: Bool = false
 
     /// Thread-safe storage for the default configuration
     private static let defaultLock = NSLock()
@@ -188,6 +189,20 @@ public final class TachikomaConfiguration: @unchecked Sendable {
     public func setDefaultSettings(_ settings: GenerationSettings) {
         self.lock.withLock {
             self._defaultSettings = settings
+        }
+    }
+    
+    /// Set verbose mode for debug logging
+    public func setVerbose(_ verbose: Bool) {
+        self.lock.withLock {
+            self._verbose = verbose
+        }
+    }
+    
+    /// Get verbose mode setting
+    public var verbose: Bool {
+        self.lock.withLock {
+            self._verbose
         }
     }
 
