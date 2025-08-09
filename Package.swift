@@ -36,6 +36,11 @@ let package = Package(
         .executable(
             name: "gpt5cli",
             targets: ["GPT5CLI"]),
+        
+        // Universal AI CLI executable
+        .executable(
+            name: "ai-cli",
+            targets: ["AICLI"]),
     ],
     dependencies: [
         .package(url: "https://github.com/apple/swift-log.git", from: "1.0.0"),
@@ -112,6 +117,14 @@ let package = Package(
             dependencies: ["Tachikoma"],
             path: "Examples",
             sources: ["GPT5CLI.swift"],
+            swiftSettings: commonSwiftSettings),
+        
+        // Universal AI CLI executable target
+        .executableTarget(
+            name: "AICLI",
+            dependencies: ["Tachikoma"],
+            path: "Examples/AI-CLI",
+            sources: ["Sources/AI-CLI.swift"],
             swiftSettings: commonSwiftSettings),
     ])
 

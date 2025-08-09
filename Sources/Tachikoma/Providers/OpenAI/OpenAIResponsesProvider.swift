@@ -390,59 +390,77 @@ public final class OpenAIResponsesProvider: ModelProvider {
     }
     
     private func convertToProviderResponse(_ response: OpenAIResponsesResponse) throws -> ProviderResponse {
-        guard let choice = response.choices.first else {
-            throw TachikomaError.apiError("No choices in response")
-        }
-        
-        // Extract text content
-        let text = choice.message.content ?? ""
-        
-        // Convert tool calls
-        let toolCalls = choice.message.toolCalls?.compactMap { toolCall -> AgentToolCall? in
-            // Parse arguments from JSON string to dictionary
-            guard let data = toolCall.function.arguments.data(using: .utf8),
-                  let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
-                return nil
-            }
-            
-            var arguments: [String: AnyAgentToolValue] = [:]
-            for (key, value) in json {
-                do {
-                    arguments[key] = try AnyAgentToolValue.fromJSON(value)
-                } catch {
-                    // Skip arguments that can't be converted
-                    continue
-                }
-            }
-            
-            return AgentToolCall(
-                id: toolCall.id,
-                name: toolCall.function.name,
-                arguments: arguments
-            )
-        }
-        
-        // Convert usage
-        let usage: Usage? = if let apiUsage = response.usage {
-            Usage(
-                inputTokens: apiUsage.promptTokens,
-                outputTokens: apiUsage.completionTokens
-            )
-        } else {
-            nil
-        }
-        
-        // Map finish reason
+        // Handle GPT-5 format (output array) vs O3 format (choices array)
+        let text: String
+        let toolCalls: [AgentToolCall]?
         let finishReason: FinishReason?
-        if let reason = choice.finishReason {
-            switch reason {
-            case "stop": finishReason = .stop
-            case "length": finishReason = .length
-            case "tool_calls": finishReason = .toolCalls
-            default: finishReason = .stop
+        
+        if let outputs = response.output {
+            // GPT-5 format with output array
+            // Find the message type output
+            let messageOutput = outputs.first { $0.type == "message" }
+            let textContent = messageOutput?.content?.first { $0.type == "output_text" }?.text ?? ""
+            text = textContent
+            toolCalls = nil  // TODO: Handle tool calls in GPT-5 format
+            finishReason = .stop  // GPT-5 doesn't return finish reason in the same way
+        } else if let choices = response.choices, let choice = choices.first {
+            // O3 format with choices array
+            text = choice.message.content ?? ""
+            
+            // Convert tool calls
+            toolCalls = choice.message.toolCalls?.compactMap { toolCall -> AgentToolCall? in
+                // Parse arguments from JSON string to dictionary
+                guard let data = toolCall.function.arguments.data(using: .utf8),
+                      let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+                    return nil
+                }
+                
+                var arguments: [String: AnyAgentToolValue] = [:]
+                for (key, value) in json {
+                    do {
+                        arguments[key] = try AnyAgentToolValue.fromJSON(value)
+                    } catch {
+                        // Skip arguments that can't be converted
+                        continue
+                    }
+                }
+                
+                return AgentToolCall(
+                    id: toolCall.id,
+                    name: toolCall.function.name,
+                    arguments: arguments
+                )
+            }
+            
+            // Map finish reason
+            if let reason = choice.finishReason {
+                switch reason {
+                case "stop": finishReason = .stop
+                case "length": finishReason = .length
+                case "tool_calls": finishReason = .toolCalls
+                default: finishReason = .stop
+                }
+            } else {
+                finishReason = nil
             }
         } else {
-            finishReason = nil
+            throw TachikomaError.apiError("No output or choices in response")
+        }
+        
+        // Convert usage (handle both GPT-5 and O3 formats)
+        let usage: Usage?
+        if let apiUsage = response.usage {
+            // GPT-5 uses input_tokens/output_tokens
+            // O3 uses prompt_tokens/completion_tokens
+            let inputTokens = apiUsage.inputTokens ?? apiUsage.promptTokens ?? 0
+            let outputTokens = apiUsage.outputTokens ?? apiUsage.completionTokens ?? 0
+            
+            usage = Usage(
+                inputTokens: inputTokens,
+                outputTokens: outputTokens
+            )
+        } else {
+            usage = nil
         }
         
         return ProviderResponse(

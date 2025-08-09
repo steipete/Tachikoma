@@ -287,17 +287,43 @@ struct ResponsesTool: Codable {
 
 // MARK: - Response Types
 
-/// Response from OpenAI Responses API
+/// Response from OpenAI Responses API (GPT-5 format)
 @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 struct OpenAIResponsesResponse: Codable, Sendable {
     let id: String
     let object: String
-    let created: Int
+    let createdAt: Int?  // GPT-5 uses created_at
+    let created: Int?    // O3 uses created
+    let status: String?
     let model: String
-    let choices: [ResponsesChoice]
+    let output: [ResponsesOutput]?  // GPT-5 uses output array
+    let choices: [ResponsesChoice]? // O3 uses choices array
     let usage: ResponsesUsage?
     let metadata: ResponsesMetadata?
     
+    enum CodingKeys: String, CodingKey {
+        case id, object, status, model, output, choices, usage, metadata
+        case createdAt = "created_at"
+        case created
+    }
+    
+    // GPT-5 output format
+    struct ResponsesOutput: Codable, Sendable {
+        let id: String
+        let type: String
+        let status: String?
+        let content: [OutputContent]?
+        let role: String?
+        // Summary can be array, which we'll decode but not use for now
+        
+        struct OutputContent: Codable, Sendable {
+            let type: String
+            let text: String?
+            // Annotations and logprobs are arrays we don't need for basic text generation
+        }
+    }
+    
+    // O3 choices format (kept for compatibility)
     struct ResponsesChoice: Codable, Sendable {
         let index: Int
         let message: ResponsesOutputMessage
@@ -338,16 +364,40 @@ struct OpenAIResponsesResponse: Codable, Sendable {
     }
     
     struct ResponsesUsage: Codable, Sendable {
-        let promptTokens: Int
-        let completionTokens: Int
-        let totalTokens: Int
+        let inputTokens: Int?
+        let outputTokens: Int?
+        let totalTokens: Int?
+        let promptTokens: Int?
+        let completionTokens: Int?
         let reasoningTokens: Int?
+        let inputTokensDetails: TokenDetails?
+        let outputTokensDetails: OutputTokenDetails?
         
         enum CodingKeys: String, CodingKey {
+            case inputTokens = "input_tokens"
+            case outputTokens = "output_tokens"
+            case totalTokens = "total_tokens"
             case promptTokens = "prompt_tokens"
             case completionTokens = "completion_tokens"
-            case totalTokens = "total_tokens"
             case reasoningTokens = "reasoning_tokens"
+            case inputTokensDetails = "input_tokens_details"
+            case outputTokensDetails = "output_tokens_details"
+        }
+        
+        struct TokenDetails: Codable, Sendable {
+            let cachedTokens: Int?
+            
+            enum CodingKeys: String, CodingKey {
+                case cachedTokens = "cached_tokens"
+            }
+        }
+        
+        struct OutputTokenDetails: Codable, Sendable {
+            let reasoningTokens: Int?
+            
+            enum CodingKeys: String, CodingKey {
+                case reasoningTokens = "reasoning_tokens"
+            }
         }
     }
     

@@ -162,6 +162,32 @@ extension TachikomaError {
     }
 }
 
+// MARK: - API Configuration
+
+/// OpenAI API mode selection
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
+public enum OpenAIAPIMode: String, Sendable, CaseIterable {
+    case chat = "chat"
+    case responses = "responses"
+    
+    public var displayName: String {
+        switch self {
+        case .chat: return "Chat Completions API"
+        case .responses: return "Responses API"
+        }
+    }
+    
+    /// Determine default API mode for a given model
+    public static func defaultMode(for model: LanguageModel.OpenAI) -> OpenAIAPIMode {
+        switch model {
+        case .o3, .o3Mini, .o3Pro, .o4Mini, .gpt5, .gpt5Mini, .gpt5Nano:
+            return .responses  // Reasoning models and GPT-5 default to Responses API
+        default:
+            return .chat  // All other models use Chat Completions API
+        }
+    }
+}
+
 // MARK: - Message Types
 
 /// A message in a conversation with an AI model

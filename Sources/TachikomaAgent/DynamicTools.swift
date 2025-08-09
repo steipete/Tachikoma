@@ -4,6 +4,7 @@
 //
 
 import Foundation
+import Tachikoma
 
 // MARK: - Dynamic Tool System Extensions
 // Core dynamic tool types (DynamicToolProvider, DynamicTool, DynamicSchema) are now in Core/ToolTypes.swift

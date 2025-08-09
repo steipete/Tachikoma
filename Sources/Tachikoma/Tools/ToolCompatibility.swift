@@ -5,6 +5,30 @@
 
 import Foundation
 
+// MARK: - Tool Creation Helper
+
+/// Creates a simple tool with basic parameters (legacy API)
+public func createTool(
+    name: String,
+    description: String,
+    parameters: [AgentToolParameterProperty] = [],
+    required: [String] = [],
+    execute: @escaping @Sendable (AgentToolArguments) async throws -> AnyAgentToolValue
+) -> AgentTool {
+    // Convert array of properties to dictionary keyed by name
+    var properties: [String: AgentToolParameterProperty] = [:]
+    for param in parameters {
+        properties[param.name] = param
+    }
+    
+    return AgentTool(
+        name: name,
+        description: description,
+        parameters: AgentToolParameters(properties: properties, required: required),
+        execute: execute
+    )
+}
+
 // MARK: - Convenience Functions
 
 public extension AgentTool {
