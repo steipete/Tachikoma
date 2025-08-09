@@ -129,15 +129,19 @@ struct OpenAIResponsesProviderTests {
             serviceTier: nil,
             include: nil,
             reasoning: nil,
-            truncation: nil
+            truncation: nil,
+            stream: false
         )
         
         let encoder = JSONEncoder()
         let data = try encoder.encode(request)
         let json = try JSONSerialization.jsonObject(with: data) as? [String: Any]
         
-        let textJson = json?["text"] as? [String: Any]
-        #expect(textJson?["verbosity"] as? String == "medium")
+        if let textJson = json?["text"] as? [String: Any] {
+            #expect(textJson["verbosity"] as? String == "medium")
+        } else {
+            Issue.record("Expected text field in JSON")
+        }
     }
 }
 

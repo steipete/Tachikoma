@@ -189,7 +189,7 @@ struct TachikomaConfigurationTests {
         
         @Test("Environment detection methods")
         func environmentDetectionMethods() async throws {
-            let config = TachikomaConfiguration()
+            let _ = TachikomaConfiguration()
             
             // Provider enum should detect environment independently
             // These test actual environment variables, not mocked ones
@@ -498,7 +498,7 @@ struct TachikomaConfigurationTests {
             
             // Should not crash and should have valid state
             let final = TachikomaConfiguration.current
-            #expect(final != nil) // Should have a valid config
+            #expect(final.apiEndpoints.openai != nil) // Should have a valid config
             
             // Clean up
             TachikomaConfiguration.default = nil

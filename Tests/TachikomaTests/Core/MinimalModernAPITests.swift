@@ -47,7 +47,7 @@ struct MinimalModernAPITests {
 
     @Test("AgentTool creation")
     func agentToolCreation() {
-        let tool = createTool(
+        let tool = Tachikoma.createTool(
             name: "test_tool",
             description: "A test tool",
             parameters: [],

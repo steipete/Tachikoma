@@ -199,10 +199,17 @@ public final class TachikomaConfiguration: @unchecked Sendable {
         }
     }
     
-    /// Get verbose mode setting
+    /// Get/set verbose mode setting
     public var verbose: Bool {
-        self.lock.withLock {
-            self._verbose
+        get {
+            self.lock.withLock {
+                self._verbose
+            }
+        }
+        set {
+            self.lock.withLock {
+                self._verbose = newValue
+            }
         }
     }
 

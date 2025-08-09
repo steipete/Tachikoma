@@ -69,14 +69,17 @@ public final class AnthropicProvider: ModelProvider {
         let requestData = try encoder.encode(anthropicRequest)
         urlRequest.httpBody = requestData
         
-        // Always print the request JSON for debugging
-        if let jsonString = String(data: requestData, encoding: .utf8) {
-            print("DEBUG AnthropicProvider: Request JSON (tools count: \(anthropicRequest.tools?.count ?? 0)):")
-            // Only print the first part to avoid flooding
-            let preview = String(jsonString.prefix(2000))
-            print(preview)
-            if jsonString.count > 2000 {
-                print("... (truncated, total \(jsonString.count) chars)")
+        // Debug logging only when explicitly enabled
+        let tachikomaConfig = TachikomaConfiguration.current
+        if ProcessInfo.processInfo.environment["DEBUG_ANTHROPIC"] != nil || tachikomaConfig.verbose {
+            if let jsonString = String(data: requestData, encoding: .utf8) {
+                print("DEBUG AnthropicProvider: Request JSON (tools count: \(anthropicRequest.tools?.count ?? 0)):")
+                // Only print the first part to avoid flooding
+                let preview = String(jsonString.prefix(2000))
+                print(preview)
+                if jsonString.count > 2000 {
+                    print("... (truncated, total \(jsonString.count) chars)")
+                }
             }
         }
 
@@ -101,8 +104,7 @@ public final class AnthropicProvider: ModelProvider {
         let anthropicResponse = try decoder.decode(AnthropicMessageResponse.self, from: data)
         
         // Debug: Print the response when verbose
-        let config = TachikomaConfiguration.current
-        if config.verbose {
+        if TachikomaConfiguration.current.verbose {
             if let jsonString = String(data: data, encoding: .utf8) {
                 print("DEBUG: Anthropic response JSON:")
                 print(jsonString)

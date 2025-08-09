@@ -16,6 +16,7 @@ struct CLIConfig {
     var apiMode: OpenAIAPIMode? // For OpenAI models
     var stream: Bool = false
     var showThinking: Bool = false  // Show reasoning/thinking process
+    var verbose: Bool = false  // Show detailed debug output
     var showHelp: Bool = false
     var showVersion: Bool = false
     var showConfig: Bool = false
@@ -76,6 +77,11 @@ struct AICLI {
             exit(1)
         }
         
+        // Set verbose mode if requested
+        if config.verbose {
+            TachikomaConfiguration.current.verbose = true
+        }
+        
         // Display configuration
         showRequestConfig(model: model, config: config, query: query)
         
@@ -112,7 +118,7 @@ struct AICLI {
             case "--help", "-h":
                 config.showHelp = true
                 return config
-            case "--version", "-v":
+            case "--version":
                 config.showVersion = true
                 return config
             case "--config":
@@ -143,6 +149,9 @@ struct AICLI {
                 i += 1
             case "--thinking":
                 config.showThinking = true
+                i += 1
+            case "--verbose", "-v":
+                config.verbose = true
                 i += 1
             default:
                 if arg.starts(with: "--") {
@@ -182,9 +191,11 @@ OPTIONS:
     -m, --model <MODEL>     Specify the AI model to use
     --api <API>            For OpenAI models: 'chat' or 'responses' (default: responses for GPT-5)
     -s, --stream           Stream the response (partial support)
+    --thinking             Show reasoning/thinking process (O3, O4, GPT-5 via Responses API)
+    --verbose, -v          Show detailed debug output
     --config               Show current configuration and exit
     -h, --help             Show this help message
-    -v, --version          Show version information
+    --version              Show version information
 
 EXAMPLES:
     # Use default model (GPT-5)

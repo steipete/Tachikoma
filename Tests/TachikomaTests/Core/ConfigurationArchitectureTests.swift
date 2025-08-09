@@ -6,6 +6,7 @@
 import Foundation
 import Testing
 @testable import Tachikoma
+@testable import TachikomaAgent
 
 @Suite("Configuration Architecture Tests")
 struct ConfigurationArchitectureTests {
