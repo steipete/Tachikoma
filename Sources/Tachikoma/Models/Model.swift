@@ -322,36 +322,36 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
 
     public enum Grok: Sendable, Hashable, CaseIterable {
         // xAI Grok models (only models available in API)
-        case grok40709
+        case grok4
         case grok3
         case grok3Mini
-        case grok2Image1212
+        case grok2Image
 
         // Custom models
         case custom(String)
 
         public static var allCases: [Grok] {
             [
-                .grok40709,
+                .grok4,
                 .grok3,
                 .grok3Mini,
-                .grok2Image1212,
+                .grok2Image,
             ]
         }
 
         public var modelId: String {
             switch self {
             case let .custom(id): id
-            case .grok40709: "grok-4-0709"
+            case .grok4: "grok-4-0709"
             case .grok3: "grok-3"
             case .grok3Mini: "grok-3-mini"
-            case .grok2Image1212: "grok-2-image-1212"
+            case .grok2Image: "grok-2-image-1212"
             }
         }
 
         public var supportsVision: Bool {
             switch self {
-            case .grok2Image1212: true
+            case .grok2Image: true
             case .custom: true // Assume custom models support vision
             default: false
             }
@@ -371,9 +371,9 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
 
         public var contextLength: Int {
             switch self {
-            case .grok40709: 256_000
+            case .grok4: 256_000
             case .grok3, .grok3Mini: 131_072
-            case .grok2Image1212: 128_000
+            case .grok2Image: 128_000
             case .custom: 128_000 // Default assumption for custom models
             }
         }
@@ -868,7 +868,7 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
     public static let gpt4o: LanguageModel = .openai(.gpt4o)
 
     /// Default Grok model (Grok-4-0709)
-    public static let grok4: LanguageModel = .grok(.grok40709)
+    public static let grok4: LanguageModel = .grok(.grok4)
 
     /// Default Llama model
     public static let llama: LanguageModel = .ollama(.llama33)

@@ -228,10 +228,10 @@ public enum ProviderParser {
 
     private static func parseGrokModel(_ modelString: String) -> LanguageModel? {
         switch modelString.lowercased() {
-        case "grok-4-0709": .grok(.grok40709)
+        case "grok-4-0709": .grok(.grok4)
         case "grok-3", "grok3": .grok(.grok3)
         case "grok-3-mini": .grok(.grok3Mini)
-        case "grok-2-image-1212": .grok(.grok2Image1212)
+        case "grok-2-image-1212": .grok(.grok2Image)
         default:
             .grok(.custom(modelString))
         }

@@ -117,6 +117,13 @@ OPENAI_API_KEY=sk-... swift test --filter "OpenAIProviderTests"
   - ❌ `AdvancedRealtimeConversation` → ✅ `RealtimeConversation`
   - ❌ `ModernAPI` → ✅ `API`
   - ❌ `NewToolSystem` → ✅ `ToolSystem`
+  
+- **No Dates in Model Enum Names**: Model enum cases should NEVER include dates or version numbers. Use clean, stable enum names that won't break API compatibility when model versions change. The actual model ID strings can have dates, but the enum cases should not.
+  - ✅ `.grok4` (maps to "grok-4-0709" internally)
+  - ❌ `.grok40709`
+  - ✅ `.grok2Image` (maps to "grok-2-image-1212" internally)
+  - ❌ `.grok2Image1212`
+  - This applies to ALL model providers - keep enum names stable and clean
 - **Type Safety Above All**: ALWAYS prefer type-safe implementations over `[String: Any]` or type erasure
   - Use proper structs/enums for data structures
   - Create specific types even for simple dictionaries
