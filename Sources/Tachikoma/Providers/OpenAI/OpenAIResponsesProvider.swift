@@ -270,11 +270,14 @@ public final class OpenAIResponsesProvider: ModelProvider {
         }
         
         // Build request
+        // Note: GPT-5 models don't accept temperature through Responses API
+        let shouldIncludeTemperature = !Self.isGPT5Model(model)
+        
         return OpenAIResponsesRequest(
             model: modelId,
             input: messages,
-            temperature: request.settings.temperature,
-            topP: request.settings.topP,
+            temperature: shouldIncludeTemperature ? request.settings.temperature : nil,
+            topP: shouldIncludeTemperature ? request.settings.topP : nil,
             maxOutputTokens: request.settings.maxTokens,
             text: textConfig,
             tools: tools,
