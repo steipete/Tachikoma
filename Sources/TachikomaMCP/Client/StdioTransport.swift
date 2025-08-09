@@ -376,33 +376,29 @@ public final class StdioTransport: MCPTransport {
     }
     
     private func handleResponse(_ data: Data) async {
-        do {
-            // Try to parse as a response with ID
-            if let response = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-               let id = response["id"] as? Int {
-                
-                if let continuation = await state.removePendingRequest(id: id) {
-                    await state.cancelTimeoutTask(id: id)
-                    continuation.resume(returning: data)
-                }
-            } else if let response = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-                      let idString = response["id"] as? String,
-                      let idInt = Int(idString) {
-                if let contByString = await state.removePendingRequestByStringId(idString) {
-                    await state.cancelTimeoutTask(id: idInt)
-                    contByString.resume(returning: data)
-                } else if let contByInt = await state.removePendingRequest(id: idInt) {
-                    await state.cancelTimeoutTask(id: idInt)
-                    contByInt.resume(returning: data)
-                }
-            } else if let response = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-                      let idNull = response["id"], idNull is NSNull {
-                // Some servers return null id for notifications; ignore
+        // Try to parse as a response with ID
+        if let response = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+           let id = response["id"] as? Int {
+            
+            if let continuation = await state.removePendingRequest(id: id) {
+                await state.cancelTimeoutTask(id: id)
+                continuation.resume(returning: data)
             }
-            // Otherwise it might be a notification or other message
-        } catch {
-            logger.error("Failed to parse response: \(error)")
+        } else if let response = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                  let idString = response["id"] as? String,
+                  let idInt = Int(idString) {
+            if let contByString = await state.removePendingRequestByStringId(idString) {
+                await state.cancelTimeoutTask(id: idInt)
+                contByString.resume(returning: data)
+            } else if let contByInt = await state.removePendingRequest(id: idInt) {
+                await state.cancelTimeoutTask(id: idInt)
+                contByInt.resume(returning: data)
+            }
+        } else if let response = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                  let idNull = response["id"], idNull is NSNull {
+            // Some servers return null id for notifications; ignore
         }
+        // Otherwise it might be a notification or other message
     }
 }
 

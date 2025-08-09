@@ -217,7 +217,7 @@ public actor ResponseCache {
         Task {
             while !Task.isCancelled {
                 try? await Task.sleep(nanoseconds: 60_000_000_000) // 60 seconds
-                await performCleanup()
+                performCleanup()
             }
         }
     }

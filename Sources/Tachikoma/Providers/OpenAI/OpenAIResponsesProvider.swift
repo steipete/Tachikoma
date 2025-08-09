@@ -153,7 +153,6 @@ public final class OpenAIResponsesProvider: ModelProvider {
                         throw TachikomaError.apiError("Failed to start streaming: \(errorMessage)")
                     }
                     
-                    var buffer = ""
                     var previousContent = ""  // Track previously sent content for GPT-5 preambles
                     
                     for try await line in bytes.lines {

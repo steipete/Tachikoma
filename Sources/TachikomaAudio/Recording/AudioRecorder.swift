@@ -239,21 +239,17 @@ public final class AudioRecorder: ObservableObject, AudioRecorderProtocol {
     private func checkMicrophonePermission() async -> Bool {
         await withCheckedContinuation { continuation in
             #if os(macOS)
-            if #available(macOS 10.14, *) {
-                switch AVCaptureDevice.authorizationStatus(for: .audio) {
-                case .authorized:
-                    continuation.resume(returning: true)
-                case .notDetermined:
-                    AVCaptureDevice.requestAccess(for: .audio) { granted in
-                        continuation.resume(returning: granted)
-                    }
-                case .denied, .restricted:
-                    continuation.resume(returning: false)
-                @unknown default:
-                    continuation.resume(returning: false)
-                }
-            } else {
+            switch AVCaptureDevice.authorizationStatus(for: .audio) {
+            case .authorized:
                 continuation.resume(returning: true)
+            case .notDetermined:
+                AVCaptureDevice.requestAccess(for: .audio) { granted in
+                    continuation.resume(returning: granted)
+                }
+            case .denied, .restricted:
+                continuation.resume(returning: false)
+            @unknown default:
+                continuation.resume(returning: false)
             }
             #else
             continuation.resume(returning: true)

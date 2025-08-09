@@ -198,7 +198,7 @@ public final class ProviderAdapter: EnhancedModelProvider {
         }
         
         // Apply token limits
-        var validatedSettings = request.settings
+        let validatedSettings = request.settings
         if let maxTokens = request.settings.maxTokens, maxTokens > configuration.maxTokens {
             // Would need to create new settings with updated maxTokens
             // For now, just use the original settings
@@ -266,7 +266,7 @@ public final class ProviderAdapter: EnhancedModelProvider {
             let validatedContent = try message.content.map { part -> ModelMessage.ContentPart in
                 if case .image(let imageContent) = part {
                     // Convert ImageContent to data URL for validation
-                    let dataURL = "data:image/\(imageContent.mimeType ?? "jpeg");base64,\(imageContent.data)"
+                    let dataURL = "data:image/\(imageContent.mimeType);base64,\(imageContent.data)"
                     try validateImageURL(dataURL)
                 }
                 return part
