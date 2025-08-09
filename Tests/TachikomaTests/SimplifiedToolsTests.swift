@@ -5,6 +5,7 @@
 
 import Testing
 @testable import Tachikoma
+@testable import TachikomaAgent
 import Foundation
 
 @Suite("Simplified Tools Tests")

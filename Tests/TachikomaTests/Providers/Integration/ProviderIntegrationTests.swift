@@ -214,7 +214,7 @@ struct ProviderIntegrationTests {
             return
         }
         
-        let model = Model.grok(.grokBeta)
+        let model = Model.grok(.grok4)
         let response = try await generate(TestConfig.shortMessage, using: model, maxTokens: 50, temperature: 0.0)
         
         #expect(response.lowercased().contains("hello"))

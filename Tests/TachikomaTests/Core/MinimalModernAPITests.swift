@@ -1,7 +1,7 @@
 import Foundation
 import Testing
 @testable import Tachikoma
-@testable import Tachikoma
+@testable import TachikomaAgent
 
 @Suite("Minimal Modern API Tests")
 struct MinimalModernAPITests {

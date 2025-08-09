@@ -95,6 +95,7 @@ let package = Package(
             name: "TachikomaTests",
             dependencies: [
                 "Tachikoma",
+                "TachikomaAgent",
                 "TachikomaAudio",
                 .product(name: "Logging", package: "swift-log"),
             ],

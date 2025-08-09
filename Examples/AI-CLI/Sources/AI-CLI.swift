@@ -530,7 +530,7 @@ For detailed documentation, visit: https://github.com/steipete/tachikoma
         
         // Show usage information in a single line
         if let usage = result.usage {
-            var usageStr = "\n📊 Usage: \(usage.inputTokens) in, \(usage.outputTokens) out, \(usage.totalTokens) total"
+            var usageStr = "\n📊 Usage: \(usage.inputTokens) tokens in, \(usage.outputTokens) tokens out, \(usage.totalTokens) tokens total"
             
             // Add cost estimate if available
             if let cost = estimateCost(for: model, usage: usage) {
@@ -721,7 +721,7 @@ For detailed documentation, visit: https://github.com/steipete/tachikoma
         
         // Show final usage information in a single line
         if let usage = usage {
-            var usageStr = "📊 Usage: \(usage.inputTokens) in, \(usage.outputTokens) out, \(usage.totalTokens) total"
+            var usageStr = "📊 Usage: \(usage.inputTokens) tokens in, \(usage.outputTokens) tokens out, \(usage.totalTokens) tokens total"
             
             // Add cost estimate if available
             if let cost = estimateCost(for: model, usage: usage) {
