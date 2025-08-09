@@ -253,11 +253,10 @@ struct AgentCLI: AsyncParsableCommand {
             name: "get_current_time",
             description: "Get the current date and time",
             parameters: AgentToolParameters(
-                type: "object",
                 properties: [:],
                 required: []
             ),
-            execute: { _, _ in
+            execute: { _ in
                 let formatter = DateFormatter()
                 formatter.dateStyle = .full
                 formatter.timeStyle = .long
@@ -271,16 +270,16 @@ struct AgentCLI: AsyncParsableCommand {
             name: "calculate",
             description: "Perform mathematical calculations",
             parameters: AgentToolParameters(
-                type: "object",
                 properties: [
-                    "expression": AgentToolParameters.Property(
+                    "expression": AgentToolParameterProperty(
+                        name: "expression",
                         type: .string,
                         description: "Mathematical expression to evaluate"
                     )
                 ],
                 required: ["expression"]
             ),
-            execute: { args, _ in
+            execute: { args in
                 guard let expression = args["expression"]?.stringValue else {
                     return AnyAgentToolValue(string: "Error: No expression provided")
                 }

@@ -225,8 +225,10 @@ final class MCPToolProvider: DynamicToolProvider {
     func executeTool(name: String, arguments: AgentToolArguments) async throws -> AnyAgentToolValue {
         // Convert arguments to dictionary
         var args: [String: Any] = [:]
-        for (key, value) in arguments.arguments {
-            args[key] = convertToAny(value)
+        for key in arguments.keys {
+            if let value = arguments[key] {
+                args[key] = convertToAny(value)
+            }
         }
         
         // Execute tool on server

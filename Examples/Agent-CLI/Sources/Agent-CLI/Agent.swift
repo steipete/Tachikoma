@@ -104,7 +104,9 @@ final class Agent {
                     // Process tool results in this step
                     for toolResult in step.toolResults {
                         // Notify UI about tool result
-                        eventDelegate?.agentDidEmitEvent(.toolCallCompleted(name: toolResult.toolCallId, result: toolResult.content))
+                        let resultData = try? JSONEncoder().encode(toolResult.result)
+                        let resultString = String(data: resultData ?? Data(), encoding: .utf8) ?? "{}"
+                        eventDelegate?.agentDidEmitEvent(.toolCallCompleted(name: toolResult.toolCallId, result: resultString))
                     }
                 }
             }
