@@ -151,7 +151,12 @@ public final class MCPClient: Sendable {
         logger.debug("Initialized MCP connection: \(initResponse)")
         
         // Send initialized notification (per spec name)
-        try await transport.sendNotification(method: "notifications/initialized", params: EmptyParams())
+        // Some servers (like Context7) may not support this notification
+        do {
+            try await transport.sendNotification(method: "notifications/initialized", params: EmptyParams())
+        } catch {
+            logger.debug("Server may not support notifications/initialized: \(error)")
+        }
         
         // Discover tools
         await discoverTools()

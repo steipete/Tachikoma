@@ -44,7 +44,7 @@ public final class HTTPTransport: MCPTransport {
         let session = URLSession(configuration: cfg)
         await state.setConnection(session: session, url: url, timeout: config.timeout, headers: config.headers ?? [:])
         
-        logger.info("HTTP transport ready: \(url)")
+        logger.info("HTTP transport ready (with SSE support): \(url)")
     }
     
     public func disconnect() async {
@@ -80,7 +80,14 @@ public final class HTTPTransport: MCPTransport {
         let body = HTTPJSONRPCRequest(method: method, params: params, id: id)
         request.httpBody = try JSONEncoder().encode(body)
         
-        let (data, response) = try await urlSession.data(for: request)
+        let data: Data
+        let response: URLResponse
+        do {
+            (data, response) = try await urlSession.data(for: request)
+        } catch {
+            logger.error("HTTP request failed for \(method): \(error)")
+            throw MCPError.executionFailed("HTTP request failed: \(error)")
+        }
         guard let httpResponse = response as? HTTPURLResponse else {
             throw MCPError.executionFailed("Invalid HTTP response")
         }
@@ -91,10 +98,40 @@ public final class HTTPTransport: MCPTransport {
             throw MCPError.executionFailed("HTTP \(httpResponse.statusCode): \(bodyStr)")
         }
         
-        let decoded = try JSONDecoder().decode(HTTPJSONRPCResponse<R>.self, from: data)
-        if let err = decoded.error { throw MCPError.executionFailed(err.message) }
-        guard let result = decoded.result else { throw MCPError.invalidResponse }
-        return result
+        // Check if response is SSE format (Context7 returns text/event-stream)
+        if let contentType = httpResponse.value(forHTTPHeaderField: "Content-Type"),
+           contentType.contains("text/event-stream") {
+            // Parse SSE format: "event: message\ndata: {json}\n\n"
+            guard let responseStr = String(data: data, encoding: .utf8) else {
+                throw MCPError.invalidResponse
+            }
+            
+            // Extract JSON from SSE data field
+            var jsonData: Data?
+            for line in responseStr.split(separator: "\n") {
+                if line.hasPrefix("data:") {
+                    let dataStr = String(line.dropFirst("data:".count)).trimmingCharacters(in: .whitespaces)
+                    jsonData = Data(dataStr.utf8)
+                    break
+                }
+            }
+            
+            guard let jsonData = jsonData else {
+                logger.error("No JSON data found in SSE response: \(responseStr)")
+                throw MCPError.invalidResponse
+            }
+            
+            let decoded = try JSONDecoder().decode(HTTPJSONRPCResponse<R>.self, from: jsonData)
+            if let err = decoded.error { throw MCPError.executionFailed(err.message) }
+            guard let result = decoded.result else { throw MCPError.invalidResponse }
+            return result
+        } else {
+            // Standard JSON response
+            let decoded = try JSONDecoder().decode(HTTPJSONRPCResponse<R>.self, from: data)
+            if let err = decoded.error { throw MCPError.executionFailed(err.message) }
+            guard let result = decoded.result else { throw MCPError.invalidResponse }
+            return result
+        }
     }
     
     public func sendNotification<P: Encodable>(
