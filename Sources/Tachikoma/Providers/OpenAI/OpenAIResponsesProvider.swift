@@ -153,6 +153,35 @@ public final class OpenAIResponsesProvider: ModelProvider {
         return AsyncThrowingStream { continuation in
             Task {
                 do {
+                    #if canImport(FoundationNetworking)
+                    // Linux: Use data task for now (streaming not available)
+                    let (data, response) = try await withCheckedThrowingContinuation { (cont: CheckedContinuation<(Data, URLResponse), Error>) in
+                        URLSession.shared.dataTask(with: finalURLRequest) { data, response, error in
+                            if let error = error {
+                                cont.resume(throwing: error)
+                            } else if let data = data, let response = response {
+                                cont.resume(returning: (data, response))
+                            } else {
+                                cont.resume(throwing: TachikomaError.networkError(NSError(domain: "Invalid response", code: 0)))
+                            }
+                        }.resume()
+                    }
+                    
+                    guard let httpResponse = response as? HTTPURLResponse else {
+                        throw TachikomaError.apiError("Invalid response type")
+                    }
+                    
+                    if httpResponse.statusCode != 200 {
+                        let errorBody = String(data: data, encoding: .utf8) ?? ""
+                        let errorMessage = "HTTP \(httpResponse.statusCode): \(errorBody.prefix(1000))"
+                        throw TachikomaError.apiError("OpenAI Responses API Error: \(errorMessage)")
+                    }
+                    
+                    // Parse the entire response for Linux
+                    let responseText = String(data: data, encoding: .utf8) ?? ""
+                    let lines = responseText.components(separatedBy: "\n")
+                    #else
+                    // macOS/iOS: Use streaming API
                     let (bytes, response) = try await URLSession.shared.bytes(for: finalURLRequest)
                     
                     guard let httpResponse = response as? HTTPURLResponse else {
@@ -253,6 +282,7 @@ public final class OpenAIResponsesProvider: ModelProvider {
                     }
                     
                     continuation.finish()
+                    #endif
                 } catch {
                     continuation.finish(throwing: error)
                 }
