@@ -1,4 +1,5 @@
 import Foundation
+import ExceptionCatcher
 #if canImport(FoundationNetworking)
 import FoundationNetworking
 #endif
@@ -572,7 +573,7 @@ public final class AnthropicProvider: ModelProvider {
                         } else {
                             // Success result - convert to JSON string
                             if let json = try? result.result.toJSON(),
-                               let jsonData = try? JSONSerialization.data(withJSONObject: json, options: .fragmentsAllowed),
+                               let jsonData = try? ExceptionCatcher.catch(callback: { try JSONSerialization.data(withJSONObject: json, options: []) }),
                                let jsonString = String(data: jsonData, encoding: .utf8) {
                                 resultContent = jsonString
                             } else {

@@ -46,6 +46,7 @@ let package = Package(
         .package(url: "https://github.com/apple/swift-log.git", from: "1.0.0"),
         .package(url: "https://github.com/apple/swift-crypto.git", from: "3.0.0"),
         .package(url: "https://github.com/steipete/swift-sdk.git", branch: "main"),
+        .package(url: "https://github.com/sindresorhus/ExceptionCatcher", from: "2.0.0"),
     ],
     targets: [
         // Core Tachikoma module (no MCP dependencies)
@@ -54,6 +55,7 @@ let package = Package(
             dependencies: [
                 .product(name: "Logging", package: "swift-log"),
                 .product(name: "Crypto", package: "swift-crypto"),
+                .product(name: "ExceptionCatcher", package: "ExceptionCatcher"),
             ],
             path: "Sources/Tachikoma",
             swiftSettings: commonSwiftSettings),
