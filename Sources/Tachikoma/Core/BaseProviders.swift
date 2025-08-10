@@ -572,7 +572,7 @@ public final class AnthropicProvider: ModelProvider {
                         } else {
                             // Success result - convert to JSON string
                             if let json = try? result.result.toJSON(),
-                               let jsonData = try? JSONSerialization.data(withJSONObject: json, options: []),
+                               let jsonData = try? JSONSerialization.data(withJSONObject: json, options: .fragmentsAllowed),
                                let jsonString = String(data: jsonData, encoding: .utf8) {
                                 resultContent = jsonString
                             } else {
