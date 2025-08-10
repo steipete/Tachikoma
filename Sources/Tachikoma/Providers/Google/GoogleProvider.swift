@@ -102,18 +102,6 @@ public final class GoogleProvider: ModelProvider {
                     // Parse entire response for Linux
                     let lines = String(data: data, encoding: .utf8)?.components(separatedBy: "\n") ?? []
                     for line in lines {
-                    #else
-                    // macOS/iOS: Use streaming API
-                    let (bytes, response) = try await URLSession.shared.bytes(for: urlRequest)
-                    
-                    guard let httpResponse = response as? HTTPURLResponse,
-                          200..<300 ~= httpResponse.statusCode else {
-                        throw TachikomaError.apiError("Google API request failed")
-                    }
-                    
-                    // Parse SSE stream
-                    for try await line in bytes.lines {
-                    #endif
                         if line.hasPrefix("data: ") {
                             let jsonString = String(line.dropFirst(6))
                             if let data = jsonString.data(using: .utf8),
@@ -129,7 +117,35 @@ public final class GoogleProvider: ModelProvider {
                                 }
                             }
                         }
-                    }  // End of for loop
+                    }  // End of Linux for loop
+                    #else
+                    // macOS/iOS: Use streaming API
+                    let (bytes, response) = try await URLSession.shared.bytes(for: urlRequest)
+                    
+                    guard let httpResponse = response as? HTTPURLResponse,
+                          200..<300 ~= httpResponse.statusCode else {
+                        throw TachikomaError.apiError("Google API request failed")
+                    }
+                    
+                    // Parse SSE stream
+                    for try await line in bytes.lines {
+                        if line.hasPrefix("data: ") {
+                            let jsonString = String(line.dropFirst(6))
+                            if let data = jsonString.data(using: .utf8),
+                               let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                               let candidates = json["candidates"] as? [[String: Any]],
+                               let content = candidates.first?["content"] as? [String: Any],
+                               let parts = content["parts"] as? [[String: Any]] {
+                                
+                                for part in parts {
+                                    if let text = part["text"] as? String {
+                                        continuation.yield(TextStreamDelta.text(text))
+                                    }
+                                }
+                            }
+                        }
+                    }  // End of macOS for loop
+                    #endif
                     
                     continuation.yield(TextStreamDelta.done())
                     continuation.finish()
