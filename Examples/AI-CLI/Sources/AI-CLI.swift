@@ -1,8 +1,3 @@
-//
-//  AI-CLI.swift
-//  Tachikoma
-//
-
 // Comprehensive AI CLI for querying all supported AI providers
 // Supports OpenAI, Anthropic, Google, Mistral, Groq, Grok, and Ollama
 // Compile with: swift build --product ai-cli
@@ -15,8 +10,8 @@ struct CLIConfig {
     var modelString: String?
     var apiMode: OpenAIAPIMode? // For OpenAI models
     var stream: Bool = false
-    var showThinking: Bool = false  // Show reasoning/thinking process
-    var verbose: Bool = false  // Show detailed debug output
+    var showThinking: Bool = false // Show reasoning/thinking process
+    var verbose: Bool = false // Show detailed debug output
     var showHelp: Bool = false
     var showVersion: Bool = false
     var showConfig: Bool = false
@@ -30,30 +25,30 @@ struct AICLI {
         guard let config = parseArguments() else {
             exit(1)
         }
-        
+
         // Handle special commands
         if config.showVersion {
-            showVersion()
+            self.showVersion()
             return
         }
-        
+
         if config.showHelp {
-            showHelp()
+            self.showHelp()
             return
         }
-        
+
         if config.showConfig {
-            showConfiguration(config: config)
+            self.showConfiguration(config: config)
             return
         }
-        
+
         // Validate query
         guard let query = config.query, !query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             print("❌ Error: No query provided")
             print("Use --help for usage information")
             exit(1)
         }
-        
+
         // Parse and validate model
         let model: LanguageModel
         do {
@@ -67,53 +62,53 @@ struct AICLI {
             print("Use --help to see available models")
             exit(1)
         }
-        
+
         // Check API key for the provider
         do {
-            try validateAPIKey(for: model)
+            try self.validateAPIKey(for: model)
         } catch {
             print("❌ \(error)")
-            showAPIKeyInstructions(for: model)
+            self.showAPIKeyInstructions(for: model)
             exit(1)
         }
-        
+
         // Set verbose mode if requested
         if config.verbose {
             TachikomaConfiguration.current.verbose = true
         }
-        
+
         // Display configuration
-        showRequestConfig(model: model, config: config, query: query)
-        
+        self.showRequestConfig(model: model, config: config, query: query)
+
         // Execute the request
         do {
             if config.stream {
-                try await executeStreamingRequest(model: model, config: config, query: query)
+                try await self.executeStreamingRequest(model: model, config: config, query: query)
             } else {
-                try await executeRequest(model: model, config: config, query: query)
+                try await self.executeRequest(model: model, config: config, query: query)
             }
         } catch {
             print("\n❌ Error: \(error)")
-            
+
             // Provide helpful context for common errors
             if let error = error as? TachikomaError {
-                showErrorHelp(for: error, model: model)
+                self.showErrorHelp(for: error, model: model)
             }
             exit(1)
         }
     }
-    
+
     // MARK: - Argument Parsing
-    
+
     static func parseArguments() -> CLIConfig? {
         let args = CommandLine.arguments
         var config = CLIConfig()
         var queryArgs: [String] = []
-        
+
         var i = 1
         while i < args.count {
             let arg = args[i]
-            
+
             switch arg {
             case "--help", "-h":
                 config.showHelp = true
@@ -164,120 +159,120 @@ struct AICLI {
                 }
             }
         }
-        
+
         if !queryArgs.isEmpty {
             config.query = queryArgs.joined(separator: " ")
         }
-        
+
         return config
     }
-    
+
     // MARK: - Help and Information
-    
+
     static func showVersion() {
         print("AI CLI v1.0.0")
         print("Powered by Tachikoma - Universal AI Integration Library")
         print("Supports: OpenAI, Anthropic, Google, Mistral, Groq, Grok, Ollama")
     }
-    
+
     static func showHelp() {
         print("""
-AI CLI - Universal AI Assistant
+        AI CLI - Universal AI Assistant
 
-USAGE:
-    ai-cli [OPTIONS] "your question here"
+        USAGE:
+            ai-cli [OPTIONS] "your question here"
 
-OPTIONS:
-    -m, --model <MODEL>     Specify the AI model to use
-    --api <API>            For OpenAI models: 'chat' or 'responses' (default: responses for GPT-5)
-    -s, --stream           Stream the response (partial support)
-    --thinking             Show reasoning/thinking process (O3, O4, GPT-5 via Responses API)
-    --verbose, -v          Show detailed debug output
-    --config               Show current configuration and exit
-    -h, --help             Show this help message
-    --version              Show version information
+        OPTIONS:
+            -m, --model <MODEL>     Specify the AI model to use
+            --api <API>            For OpenAI models: 'chat' or 'responses' (default: responses for GPT-5)
+            -s, --stream           Stream the response (partial support)
+            --thinking             Show reasoning/thinking process (O3, O4, GPT-5 via Responses API)
+            --verbose, -v          Show detailed debug output
+            --config               Show current configuration and exit
+            -h, --help             Show this help message
+            --version              Show version information
 
-EXAMPLES:
-    # Use default model (GPT-5)
-    ai-cli "What is the capital of France?"
-    
-    # Use specific models
-    ai-cli --model claude "Explain quantum computing"
-    ai-cli --model gpt-4o "Describe this image" 
-    ai-cli --model grok "Tell me a joke"
-    ai-cli --model llama3.3 "Help me debug this code"
-    
-    # OpenAI API selection
-    ai-cli --model gpt-5 --api chat "Use Chat Completions API"
-    ai-cli --model gpt-5 --api responses "Use Responses API"
-    
-    # Streaming responses
-    ai-cli --stream --model claude "Write a short story"
-    
-    # Show thinking process (reasoning models)
-    ai-cli --thinking --model o3 "Solve this logic puzzle"
-    ai-cli --thinking --model gpt-5 "Complex reasoning task"
+        EXAMPLES:
+            # Use default model (GPT-5)
+            ai-cli "What is the capital of France?"
+            
+            # Use specific models
+            ai-cli --model claude "Explain quantum computing"
+            ai-cli --model gpt-4o "Describe this image" 
+            ai-cli --model grok "Tell me a joke"
+            ai-cli --model llama3.3 "Help me debug this code"
+            
+            # OpenAI API selection
+            ai-cli --model gpt-5 --api chat "Use Chat Completions API"
+            ai-cli --model gpt-5 --api responses "Use Responses API"
+            
+            # Streaming responses
+            ai-cli --stream --model claude "Write a short story"
+            
+            # Show thinking process (reasoning models)
+            ai-cli --thinking --model o3 "Solve this logic puzzle"
+            ai-cli --thinking --model gpt-5 "Complex reasoning task"
 
-PROVIDERS & MODELS:
+        PROVIDERS & MODELS:
 
-OpenAI:
-  • gpt-5, gpt-5-mini, gpt-5-nano (GPT-5 series, August 2025)
-  • o3, o3-mini, o3-pro, o4-mini (Latest reasoning models)
-  • gpt-4.1, gpt-4.1-mini (GPT-4.1 series)
-  • gpt-4o, gpt-4o-mini (Multimodal)
-  • gpt-4-turbo, gpt-3.5-turbo (Legacy)
+        OpenAI:
+          • gpt-5, gpt-5-mini, gpt-5-nano (GPT-5 series, August 2025)
+          • o3, o3-mini, o3-pro, o4-mini (Latest reasoning models)
+          • gpt-4.1, gpt-4.1-mini (GPT-4.1 series)
+          • gpt-4o, gpt-4o-mini (Multimodal)
+          • gpt-4-turbo, gpt-3.5-turbo (Legacy)
 
-Anthropic:
-  • claude-opus-4-1-20250805, claude-sonnet-4-20250514 (Claude 4)
-  • claude-3-7-sonnet (Claude 3.7)
-  • claude-3-5-opus, claude-3-5-sonnet, claude-3-5-haiku (Claude 3.5)
+        Anthropic:
+          • claude-opus-4-1-20250805, claude-sonnet-4-20250514 (Claude 4)
+          • claude-3-7-sonnet (Claude 3.7)
+          • claude-3-5-opus, claude-3-5-sonnet, claude-3-5-haiku (Claude 3.5)
 
-Google:
-  • gemini-2.0-flash, gemini-2.0-flash-thinking (Gemini 2.0)
-  • gemini-1.5-pro, gemini-1.5-flash (Gemini 1.5)
+        Google:
+          • gemini-2.0-flash, gemini-2.0-flash-thinking (Gemini 2.0)
+          • gemini-1.5-pro, gemini-1.5-flash (Gemini 1.5)
 
-Mistral:
-  • mistral-large-2, mistral-large, mistral-small
-  • mistral-nemo, codestral
+        Mistral:
+          • mistral-large-2, mistral-large, mistral-small
+          • mistral-nemo, codestral
 
-Groq (Ultra-fast):
-  • llama-3.1-70b, llama-3.1-8b
-  • mixtral-8x7b, gemma2-9b
+        Groq (Ultra-fast):
+          • llama-3.1-70b, llama-3.1-8b
+          • mixtral-8x7b, gemma2-9b
 
-Grok (xAI):
-  • grok-4-0709, grok-3, grok-3-mini
-  • grok-2-image-1212 (Vision support)
+        Grok (xAI):
+          • grok-4-0709, grok-3, grok-3-mini
+          • grok-2-image-1212 (Vision support)
 
-Ollama (Local):
-  • llama3.3, llama3.2, llama3.1 (Recommended)
-  • llava, bakllava (Vision models)
-  • codellama, mistral-nemo, qwen2.5
-  • deepseek-r1, command-r-plus
-  • Custom: any-model:tag
+        Ollama (Local):
+          • llama3.3, llama3.2, llama3.1 (Recommended)
+          • llava, bakllava (Vision models)
+          • codellama, mistral-nemo, qwen2.5
+          • deepseek-r1, command-r-plus
+          • Custom: any-model:tag
 
-SHORTCUTS:
-  • claude, opus → claude-opus-4-1-20250805
-  • gpt, gpt4 → gpt-4.1
-  • grok → grok-4-0709
-  • llama, llama3 → llama3.3
+        SHORTCUTS:
+          • claude, opus → claude-opus-4-1-20250805
+          • gpt, gpt4 → gpt-4.1
+          • grok → grok-4-0709
+          • llama, llama3 → llama3.3
 
-API KEYS:
-Set the appropriate environment variable for your provider:
-  • OPENAI_API_KEY for OpenAI models
-  • ANTHROPIC_API_KEY for Claude models
-  • GOOGLE_API_KEY for Gemini models
-  • MISTRAL_API_KEY for Mistral models
-  • GROQ_API_KEY for Groq models
-  • X_AI_API_KEY or XAI_API_KEY for Grok models
-  • Ollama requires local installation (no API key needed)
+        API KEYS:
+        Set the appropriate environment variable for your provider:
+          • OPENAI_API_KEY for OpenAI models
+          • ANTHROPIC_API_KEY for Claude models
+          • GOOGLE_API_KEY for Gemini models
+          • MISTRAL_API_KEY for Mistral models
+          • GROQ_API_KEY for Groq models
+          • X_AI_API_KEY or XAI_API_KEY for Grok models
+          • Ollama requires local installation (no API key needed)
 
-For detailed documentation, visit: https://github.com/steipete/tachikoma
-""")
+        For detailed documentation, visit: https://github.com/steipete/tachikoma
+        """)
     }
-    
+
     static func showConfiguration(config: CLIConfig) {
         print("🔧 Current Configuration:")
-        
+
         // Model information
         if let modelString = config.modelString {
             do {
@@ -286,14 +281,14 @@ For detailed documentation, visit: https://github.com/steipete/tachikoma
                 print("📱 Model: \(caps.description)")
                 print("🏢 Provider: \(model.providerName)")
                 print("🆔 Model ID: \(model.modelId)")
-                
+
                 // Show capabilities
                 print("✨ Capabilities:")
                 print("   • Vision: \(model.supportsVision ? "✅" : "❌")")
                 print("   • Tools: \(model.supportsTools ? "✅" : "❌")")
                 print("   • Streaming: \(model.supportsStreaming ? "✅" : "❌")")
-                
-                if case .openai(let openaiModel) = model {
+
+                if case let .openai(openaiModel) = model {
                     let mode = config.apiMode ?? OpenAIAPIMode.defaultMode(for: openaiModel)
                     print("🌐 API Mode: \(mode.displayName)")
                 }
@@ -304,47 +299,47 @@ For detailed documentation, visit: https://github.com/steipete/tachikoma
             print("📱 Model: gpt-5 (default)")
             print("🏢 Provider: OpenAI")
         }
-        
+
         // API Key status
         print("\n🔐 API Keys:")
-        checkAPIKeyStatus(provider: "OpenAI", envVar: "OPENAI_API_KEY")
-        checkAPIKeyStatus(provider: "Anthropic", envVar: "ANTHROPIC_API_KEY")
-        checkAPIKeyStatus(provider: "Google", envVar: "GOOGLE_API_KEY")
-        checkAPIKeyStatus(provider: "Mistral", envVar: "MISTRAL_API_KEY")
-        checkAPIKeyStatus(provider: "Groq", envVar: "GROQ_API_KEY")
-        checkAPIKeyStatus(provider: "Grok", envVar: "X_AI_API_KEY")
-        checkAPIKeyStatus(provider: "Grok (alt)", envVar: "XAI_API_KEY")
-        
+        self.checkAPIKeyStatus(provider: "OpenAI", envVar: "OPENAI_API_KEY")
+        self.checkAPIKeyStatus(provider: "Anthropic", envVar: "ANTHROPIC_API_KEY")
+        self.checkAPIKeyStatus(provider: "Google", envVar: "GOOGLE_API_KEY")
+        self.checkAPIKeyStatus(provider: "Mistral", envVar: "MISTRAL_API_KEY")
+        self.checkAPIKeyStatus(provider: "Groq", envVar: "GROQ_API_KEY")
+        self.checkAPIKeyStatus(provider: "Grok", envVar: "X_AI_API_KEY")
+        self.checkAPIKeyStatus(provider: "Grok (alt)", envVar: "XAI_API_KEY")
+
         // Ollama status
         print("   • Ollama: Local (no API key required)")
-        
+
         print("\n💫 Options:")
         print("   • Streaming: \(config.stream ? "enabled" : "disabled")")
     }
-    
+
     static func checkAPIKeyStatus(provider: String, envVar: String) {
         let config = TachikomaConfiguration.current
         let prov = Provider.from(identifier: provider.lowercased())
-        
+
         if let key = config.getAPIKey(for: prov), !key.isEmpty {
-            let masked = maskAPIKey(key)
+            let masked = self.maskAPIKey(key)
             print("   • \(provider): \(masked) (configured)")
         } else if let key = ProcessInfo.processInfo.environment[envVar], !key.isEmpty {
-            let masked = maskAPIKey(key)
+            let masked = self.maskAPIKey(key)
             print("   • \(provider): \(masked) (environment)")
         } else {
             print("   • \(provider): Not set")
         }
     }
-    
+
     // MARK: - API Key Validation
-    
+
     static func validateAPIKey(for model: LanguageModel) throws {
-        let provider = getProvider(for: model)
+        let provider = self.getProvider(for: model)
         let config = TachikomaConfiguration.current
-        
+
         // Check if API key is available (from config or environment)
-        if !config.hasAPIKey(for: provider) && provider.requiresAPIKey {
+        if !config.hasAPIKey(for: provider), provider.requiresAPIKey {
             let envVar = provider.environmentVariable.isEmpty ? "API key" : provider.environmentVariable
             if provider == .grok {
                 // Special case for Grok with alternative variables
@@ -353,7 +348,7 @@ For detailed documentation, visit: https://github.com/steipete/tachikoma
                 throw CLIError.missingAPIKey(envVar)
             }
         }
-        
+
         // Check for unsupported providers
         switch model {
         case .openRouter, .together, .replicate:
@@ -364,26 +359,26 @@ For detailed documentation, visit: https://github.com/steipete/tachikoma
             break
         }
     }
-    
+
     static func getProvider(for model: LanguageModel) -> Provider {
         switch model {
-        case .openai: return .openai
-        case .anthropic: return .anthropic
-        case .google: return .google
-        case .mistral: return .mistral
-        case .groq: return .groq
-        case .grok: return .grok
-        case .ollama: return .ollama
-        case .lmstudio: return .lmstudio
+        case .openai: .openai
+        case .anthropic: .anthropic
+        case .google: .google
+        case .mistral: .mistral
+        case .groq: .groq
+        case .grok: .grok
+        case .ollama: .ollama
+        case .lmstudio: .lmstudio
         case .openRouter, .together, .replicate,
              .openaiCompatible, .anthropicCompatible, .custom:
-            return .custom(model.providerName)
+            .custom(model.providerName)
         }
     }
-    
+
     static func showAPIKeyInstructions(for model: LanguageModel) {
         print("\n💡 Setup Instructions:")
-        
+
         switch model {
         case .openai:
             print("Set your OpenAI API key:")
@@ -420,46 +415,46 @@ For detailed documentation, visit: https://github.com/steipete/tachikoma
             print("This provider requires additional setup.")
         }
     }
-    
+
     // MARK: - Request Execution
-    
+
     static func showRequestConfig(model: LanguageModel, config: CLIConfig, query: String) {
-        let maskedKey = getCurrentAPIKey(for: model).map(maskAPIKey) ?? "Not required"
+        let maskedKey = self.getCurrentAPIKey(for: model).map(self.maskAPIKey) ?? "Not required"
         print("🔐 API Key: \(maskedKey)")
         print("🤖 Model: \(model.modelId)")
         print("🏢 Provider: \(model.providerName)")
-        
-        if case .openai(let openaiModel) = model {
+
+        if case let .openai(openaiModel) = model {
             let apiMode = config.apiMode ?? OpenAIAPIMode.defaultMode(for: openaiModel)
             print("🌐 API: \(apiMode.displayName)")
         }
-        
+
         print("📝 Query: \(query)")
         print("---")
     }
-    
+
     static func executeRequest(model: LanguageModel, config: CLIConfig, query: String) async throws {
         print("🚀 Sending query...")
-        
+
         let startTime = Date()
-        
+
         // Use the global generate function with proper model selection
         let result: GenerateTextResult
         var reasoningText: String? = nil
-        
+
         // Check if we should show thinking for this model
-        let actualApiMode: OpenAIAPIMode? = if case .openai(let openaiModel) = model {
+        let actualApiMode: OpenAIAPIMode? = if case let .openai(openaiModel) = model {
             config.apiMode ?? OpenAIAPIMode.defaultMode(for: openaiModel)
         } else {
             nil
         }
-        
-        let supportsThinking = isReasoningModel(model) && actualApiMode != .chat
-        if config.showThinking && !supportsThinking {
+
+        let supportsThinking = self.isReasoningModel(model) && actualApiMode != .chat
+        if config.showThinking, !supportsThinking {
             print("⚠️  Note: --thinking only works with O3, O4, and GPT-5 models via Responses API")
         }
-        
-        if case .openai(let openaiModel) = model, actualApiMode == .chat {
+
+        if case let .openai(openaiModel) = model, actualApiMode == .chat {
             // Force Chat Completions API (no reasoning available)
             let provider = try OpenAIProvider(model: openaiModel, configuration: TachikomaConfiguration.current)
             let request = ProviderRequest(
@@ -475,8 +470,10 @@ For detailed documentation, visit: https://github.com/steipete/tachikoma
                 steps: [],
                 messages: [.user(query)]
             )
-        } else if case .openai(let openaiModel) = model,
-                  actualApiMode == .responses && config.showThinking {
+        } else if
+            case let .openai(openaiModel) = model,
+            actualApiMode == .responses, config.showThinking
+        {
             // Use Responses API with reasoning extraction for thinking models
             let (response, reasoning) = try await executeResponsesAPIWithReasoning(
                 model: openaiModel,
@@ -490,9 +487,12 @@ For detailed documentation, visit: https://github.com/steipete/tachikoma
                 steps: [],
                 messages: [.user(query)]
             )
-        } else if case .openai(let openaiModel) = model, actualApiMode == .responses {
+        } else if case let .openai(openaiModel) = model, actualApiMode == .responses {
             // Force Responses API (without reasoning extraction)
-            let provider = try OpenAIResponsesProvider(model: openaiModel, configuration: TachikomaConfiguration.current)
+            let provider = try OpenAIResponsesProvider(
+                model: openaiModel,
+                configuration: TachikomaConfiguration.current
+            )
             let request = ProviderRequest(
                 messages: [.user(query)],
                 tools: nil,
@@ -514,11 +514,11 @@ For detailed documentation, visit: https://github.com/steipete/tachikoma
                 settings: GenerationSettings(maxTokens: 2000)
             )
         }
-        
+
         let duration = Date().timeIntervalSince(startTime)
-        
+
         print("✅ Response received in \(String(format: "%.2f", duration))s")
-        
+
         // Display thinking/reasoning if available (before the response)
         if config.showThinking {
             if let reasoning = reasoningText, !reasoning.isEmpty {
@@ -528,41 +528,43 @@ For detailed documentation, visit: https://github.com/steipete/tachikoma
                 print("-------------------")
             } else if supportsThinking {
                 // Show that reasoning occurred but isn't exposed
-                if let usage = result.usage,
-                   let outputDetails = (usage as? Usage)?.outputTokens {
+                if
+                    let usage = result.usage,
+                    let outputDetails = (usage as? Usage)?.outputTokens
+                {
                     print("\n⚠️  Note: Model used internal reasoning but doesn't expose the thinking process.")
                     print("   The model performed reasoning internally as part of generating the response.")
                 }
             }
         }
-        
+
         print("\n💬 Response:")
         print(result.text)
-        
+
         // Show usage information in a single line
         if let usage = result.usage {
             var usageStr = "\n📊 Usage: \(usage.inputTokens) tokens in, \(usage.outputTokens) tokens out, \(usage.totalTokens) tokens total"
-            
+
             // Add cost estimate if available
             if let cost = estimateCost(for: model, usage: usage) {
                 usageStr += " (~$\(String(format: "%.4f", cost)))"
             }
-            
+
             // Add finish reason
             if let finishReason = result.finishReason {
                 usageStr += " [\(finishReason.rawValue)]"
             }
-            
+
             print(usageStr)
         } else if let finishReason = result.finishReason {
             print("\n🎯 Finished: \(finishReason.rawValue)")
         }
     }
-    
+
     // MARK: - Reasoning Support
-    
+
     static func isReasoningModel(_ model: LanguageModel) -> Bool {
-        guard case .openai(let openaiModel) = model else { return false }
+        guard case let .openai(openaiModel) = model else { return false }
         switch openaiModel {
         case .o3, .o3Mini, .o3Pro, .o4Mini, .gpt5, .gpt5Mini, .gpt5Nano:
             return true
@@ -570,28 +572,29 @@ For detailed documentation, visit: https://github.com/steipete/tachikoma
             return false
         }
     }
-    
+
     static func executeResponsesAPIWithReasoning(
         model: LanguageModel.OpenAI,
         query: String
-    ) async throws -> (response: ProviderResponse, reasoning: String?) {
+    ) async throws
+    -> (response: ProviderResponse, reasoning: String?) {
         let config = TachikomaConfiguration.current
         guard let apiKey = config.getAPIKey(for: .openai) else {
             throw TachikomaError.authenticationFailed("OpenAI API key not found")
         }
-        
+
         let baseURL = config.getBaseURL(for: .openai) ?? "https://api.openai.com/v1"
-        
+
         // Build request body for Responses API
         let requestBody: [String: Any] = [
             "model": model.modelId,
             "input": [["role": "user", "content": query]],
             "stream": false,
             "reasoning": [
-                "effort": "high"  // High effort for detailed reasoning
-            ]
+                "effort": "high", // High effort for detailed reasoning
+            ],
         ]
-        
+
         // Make the API call
         let url = URL(string: "\(baseURL)/responses")!
         var request = URLRequest(url: url)
@@ -599,32 +602,34 @@ For detailed documentation, visit: https://github.com/steipete/tachikoma
         request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.httpBody = try JSONSerialization.data(withJSONObject: requestBody)
-        
+
         let (data, response) = try await URLSession.shared.data(for: request)
-        
+
         guard let httpResponse = response as? HTTPURLResponse else {
             throw TachikomaError.networkError(NSError(domain: "Invalid response", code: 0))
         }
-        
+
         guard httpResponse.statusCode == 200 else {
             let errorText = String(data: data, encoding: .utf8) ?? "Unknown error"
             throw TachikomaError.apiError("Responses API Error: \(errorText)")
         }
-        
+
         // Parse the response
-        guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let outputs = json["output"] as? [[String: Any]] else {
+        guard
+            let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+            let outputs = json["output"] as? [[String: Any]] else
+        {
             throw TachikomaError.apiError("Invalid response format")
         }
-        
+
         // Extract reasoning and message
         var reasoningText: String? = nil
         var messageText = ""
         var usage: Usage? = nil
-        
+
         for output in outputs {
             let outputType = output["type"] as? String ?? ""
-            
+
             if outputType == "reasoning" {
                 // Extract reasoning text if available
                 if let summary = output["summary"] as? [[String: Any]] {
@@ -638,13 +643,15 @@ For detailed documentation, visit: https://github.com/steipete/tachikoma
                         reasoningText = reasoningParts.joined(separator: "\n")
                     }
                 }
-                
+
                 // If no summary, try content array (for O3/O4)
                 if reasoningText == nil || reasoningText?.isEmpty == true {
                     if let contentArray = output["content"] as? [[String: Any]] {
                         let reasoningParts = contentArray.compactMap { item -> String? in
-                            if item["type"] as? String == "text",
-                               let text = item["text"] as? String {
+                            if
+                                item["type"] as? String == "text",
+                                let text = item["text"] as? String
+                            {
                                 return text
                             }
                             return nil
@@ -654,7 +661,7 @@ For detailed documentation, visit: https://github.com/steipete/tachikoma
                         }
                     }
                 }
-                
+
                 // If still no reasoning, try raw content string
                 if reasoningText == nil || reasoningText?.isEmpty == true {
                     if let content = output["content"] as? String {
@@ -665,45 +672,47 @@ For detailed documentation, visit: https://github.com/steipete/tachikoma
                 // Extract message content
                 if let contents = output["content"] as? [[String: Any]] {
                     for content in contents {
-                        if content["type"] as? String == "output_text",
-                           let text = content["text"] as? String {
+                        if
+                            content["type"] as? String == "output_text",
+                            let text = content["text"] as? String
+                        {
                             messageText = text
                         }
                     }
                 }
             }
         }
-        
+
         // Extract usage if available
         if let usageData = json["usage"] as? [String: Any] {
             let inputTokens = (usageData["input_tokens"] as? Int) ?? (usageData["prompt_tokens"] as? Int) ?? 0
             let outputTokens = (usageData["output_tokens"] as? Int) ?? (usageData["completion_tokens"] as? Int) ?? 0
             usage = Usage(inputTokens: inputTokens, outputTokens: outputTokens)
         }
-        
+
         let providerResponse = ProviderResponse(
             text: messageText,
             usage: usage,
             finishReason: .stop
         )
-        
+
         return (providerResponse, reasoningText)
     }
-    
+
     static func executeStreamingRequest(model: LanguageModel, config: CLIConfig, query: String) async throws {
         print("🚀 Streaming response...")
         print("\n💬 Response:")
-        
+
         // Use streaming generate function
         let stream = try await streamText(
             model: model,
             messages: [.user(query)],
             settings: GenerationSettings(maxTokens: 2000)
         )
-        
+
         var fullText = ""
         var usage: Usage?
-        
+
         for try await delta in stream.stream {
             switch delta.type {
             case .textDelta:
@@ -716,54 +725,53 @@ For detailed documentation, visit: https://github.com/steipete/tachikoma
                 if let deltaUsage = delta.usage {
                     usage = deltaUsage
                 }
-                break
             case .toolCall, .toolResult, .reasoning:
                 // Handle tool calls if needed in the future
                 continue
             }
-            
+
             // Update usage if available
             if let deltaUsage = delta.usage {
                 usage = deltaUsage
             }
         }
-        
+
         print("\n")
-        
+
         // Show final usage information in a single line
-        if let usage = usage {
+        if let usage {
             var usageStr = "📊 Usage: \(usage.inputTokens) tokens in, \(usage.outputTokens) tokens out, \(usage.totalTokens) tokens total"
-            
+
             // Add cost estimate if available
             if let cost = estimateCost(for: model, usage: usage) {
                 usageStr += " (~$\(String(format: "%.4f", cost)))"
             }
-            
+
             print(usageStr)
         }
     }
-    
+
     // MARK: - Utility Functions
-    
+
     static func getCurrentAPIKey(for model: LanguageModel) -> String? {
-        let provider = getProvider(for: model)
+        let provider = self.getProvider(for: model)
         return TachikomaConfiguration.current.getAPIKey(for: provider)
     }
-    
+
     static func maskAPIKey(_ key: String) -> String {
         guard key.count > 10 else { return "***" }
         let prefix = key.prefix(5)
         let suffix = key.suffix(5)
         return "\(prefix)...\(suffix)"
     }
-    
+
     static func estimateCost(for model: LanguageModel, usage: Usage) -> Double? {
         // Rough cost estimates (as of 2025, prices may vary)
         let inputCostPer1k: Double
         let outputCostPer1k: Double
-        
+
         switch model {
-        case .openai(let openaiModel):
+        case let .openai(openaiModel):
             switch openaiModel {
             case .gpt5: return nil // Pricing TBD
             case .gpt5Mini: return nil // Pricing TBD
@@ -776,7 +784,7 @@ For detailed documentation, visit: https://github.com/steipete/tachikoma
                 outputCostPer1k = 0.0006
             default: return nil
             }
-        case .anthropic(let anthropicModel):
+        case let .anthropic(anthropicModel):
             switch anthropicModel {
             case .opus4, .opus4Thinking:
                 inputCostPer1k = 0.015
@@ -792,19 +800,19 @@ For detailed documentation, visit: https://github.com/steipete/tachikoma
         default:
             return nil
         }
-        
+
         let inputCost = (Double(usage.inputTokens) / 1000.0) * inputCostPer1k
         let outputCost = (Double(usage.outputTokens) / 1000.0) * outputCostPer1k
         return inputCost + outputCost
     }
-    
+
     static func showErrorHelp(for error: TachikomaError, model: LanguageModel) {
         print("\n💡 Troubleshooting:")
-        
+
         switch error {
         case .authenticationFailed:
             print("Authentication failed. Check your API key:")
-            showAPIKeyInstructions(for: model)
+            self.showAPIKeyInstructions(for: model)
         case .rateLimited:
             print("Rate limit exceeded. Try:")
             print("• Wait a moment and retry")
@@ -832,15 +840,15 @@ enum CLIError: Error, LocalizedError {
     case missingAPIKey(String)
     case unsupportedProvider(String)
     case invalidModel(String)
-    
+
     var errorDescription: String? {
         switch self {
-        case .missingAPIKey(let key):
-            return "Missing API key: \(key) environment variable not set"
-        case .unsupportedProvider(let provider):
-            return "Unsupported provider: \(provider)"
-        case .invalidModel(let model):
-            return "Invalid model: \(model)"
+        case let .missingAPIKey(key):
+            "Missing API key: \(key) environment variable not set"
+        case let .unsupportedProvider(provider):
+            "Unsupported provider: \(provider)"
+        case let .invalidModel(model):
+            "Invalid model: \(model)"
         }
     }
 }

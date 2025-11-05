@@ -1,4 +1,4 @@
-// swift-tools-version: 6.0
+// swift-tools-version: 6.2
 // The swift-tools-version declares the minimum version of Swift required to build this package.
 
 import PackageDescription
@@ -45,7 +45,7 @@ let package = Package(
     dependencies: [
         .package(url: "https://github.com/apple/swift-log.git", from: "1.0.0"),
         .package(url: "https://github.com/apple/swift-crypto.git", from: "3.0.0"),
-        .package(url: "https://github.com/steipete/swift-sdk.git", branch: "main"),
+        .package(url: "https://github.com/modelcontextprotocol/swift-sdk.git", from: "0.10.2"),
     ],
     targets: [
         // Core Tachikoma module (no MCP dependencies)
@@ -117,6 +117,18 @@ let package = Package(
             name: "GPT5CLI",
             dependencies: ["Tachikoma"],
             path: "Examples",
+            exclude: [
+                "Advanced",
+                "Agent-CLI",
+                "AI-CLI",
+                "Demos",
+                "HarmonyFeatures.swift",
+                "RealtimeAPIDemo.swift",
+                "RealtimeExample.swift",
+                "RealtimeQuickTest.swift",
+                "RealtimeUsageExamples.swift",
+                "RealtimeVoiceAssistant.swift",
+            ],
             sources: ["GPT5CLI.swift"],
             swiftSettings: commonSwiftSettings),
         
@@ -125,6 +137,9 @@ let package = Package(
             name: "AICLI",
             dependencies: ["Tachikoma"],
             path: "Examples/AI-CLI",
+            exclude: [
+                "README.md",
+            ],
             sources: ["Sources/AI-CLI.swift"],
             swiftSettings: commonSwiftSettings),
     ])

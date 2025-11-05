@@ -1,8 +1,3 @@
-//
-//  TachikomaAudio.swift
-//  TachikomaAudio
-//
-
 import Foundation
 
 /// TachikomaAudio provides comprehensive audio processing capabilities including

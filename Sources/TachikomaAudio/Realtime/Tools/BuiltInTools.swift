@@ -1,8 +1,3 @@
-//
-//  BuiltInTools.swift
-//  Tachikoma
-//
-
 import Foundation
 import Tachikoma
 
@@ -17,7 +12,7 @@ public struct BuiltInTools {
             TimeTool(),
             CalculatorTool(),
             WebSearchTool(),
-            TranslationTool()
+            TranslationTool(),
         ]
     }
 }
@@ -43,20 +38,20 @@ public struct WeatherTool: RealtimeExecutableTool {
                         type: .string,
                         description: "Temperature units: 'celsius' or 'fahrenheit' (default: celsius)",
                         enumValues: ["celsius", "fahrenheit"]
-                    )
+                    ),
                 ],
                 required: ["location"]
             )
         )
     }
-    
+
     public func execute(_ arguments: RealtimeToolArguments) async -> String {
         guard let location = arguments["location"]?.stringValue else {
             return "Error: Location is required"
         }
-        
+
         let units = arguments["units"]?.stringValue ?? "celsius"
-        
+
         // In a real implementation, this would call a weather API
         // For now, return mock data
         let temp = units == "fahrenheit" ? "72°F" : "22°C"
@@ -68,7 +63,7 @@ public struct WeatherTool: RealtimeExecutableTool {
         Wind: 10 km/h NW
         """
     }
-    
+
     public init() {}
 }
 
@@ -93,35 +88,35 @@ public struct TimeTool: RealtimeExecutableTool {
                         type: .string,
                         description: "Time format: '12hour' or '24hour' (default: 24hour)",
                         enumValues: ["12hour", "24hour"]
-                    )
+                    ),
                 ],
                 required: []
             )
         )
     }
-    
+
     public func execute(_ arguments: RealtimeToolArguments) async -> String {
         let timezoneId = arguments["timezone"]?.stringValue ?? TimeZone.current.identifier
         let format = arguments["format"]?.stringValue ?? "24hour"
-        
+
         guard let timezone = TimeZone(identifier: timezoneId) else {
             return "Error: Invalid timezone '\(timezoneId)'"
         }
-        
+
         let formatter = DateFormatter()
         formatter.timeZone = timezone
-        
+
         if format == "12hour" {
             formatter.dateFormat = "h:mm:ss a"
         } else {
             formatter.dateFormat = "HH:mm:ss"
         }
-        
+
         let dateFormatter = DateFormatter()
         dateFormatter.timeZone = timezone
         dateFormatter.dateStyle = .full
         dateFormatter.timeStyle = .none
-        
+
         let now = Date()
         return """
         Current time in \(timezone.identifier):
@@ -129,7 +124,7 @@ public struct TimeTool: RealtimeExecutableTool {
         Date: \(dateFormatter.string(from: now))
         """
     }
-    
+
     public init() {}
 }
 
@@ -148,25 +143,25 @@ public struct CalculatorTool: RealtimeExecutableTool {
                         name: "expression",
                         type: .string,
                         description: "Mathematical expression to evaluate (e.g., '2 + 2', '10 * 5', 'sqrt(16)')"
-                    )
+                    ),
                 ],
                 required: ["expression"]
             )
         )
     }
-    
+
     public func execute(_ arguments: RealtimeToolArguments) async -> String {
         guard let expression = arguments["expression"]?.stringValue else {
             return "Error: Expression is required"
         }
-        
+
         #if canImport(ObjectiveC)
         // Use NSExpression for safe math evaluation (only available on Darwin platforms)
         // Basic sanitization
         let sanitized = expression
             .replacingOccurrences(of: "sqrt", with: "sqrt")
             .replacingOccurrences(of: "^", with: "**")
-        
+
         let mathExpression = NSExpression(format: sanitized)
         if let result = mathExpression.expressionValue(with: nil, context: nil) {
             return "Result: \(result)"
@@ -179,7 +174,7 @@ public struct CalculatorTool: RealtimeExecutableTool {
         return "Error: Math evaluation not supported on this platform"
         #endif
     }
-    
+
     public init() {}
 }
 
@@ -203,39 +198,39 @@ public struct WebSearchTool: RealtimeExecutableTool {
                         name: "maxResults",
                         type: .integer,
                         description: "Maximum number of results to return (default: 5)"
-                    )
+                    ),
                 ],
                 required: ["query"]
             )
         )
     }
-    
+
     public func execute(_ arguments: RealtimeToolArguments) async -> String {
         guard let query = arguments["query"]?.stringValue else {
             return "Error: Query is required"
         }
-        
+
         let maxResults = arguments["maxResults"]?.integerValue ?? 5
-        
+
         // In a real implementation, this would call a search API
         // For now, return mock results
         return """
         Search results for "\(query)" (showing \(maxResults) results):
-        
+
         1. Example Result Title
            Brief description of the search result...
            https://example.com/result1
-        
+
         2. Another Result
            More information about the topic...
            https://example.com/result2
-        
+
         3. Third Result
            Additional relevant information...
            https://example.com/result3
         """
     }
-    
+
     public init() {}
 }
 
@@ -264,44 +259,45 @@ public struct TranslationTool: RealtimeExecutableTool {
                         name: "targetLanguage",
                         type: .string,
                         description: "Target language code (e.g., 'en', 'es', 'fr')"
-                    )
+                    ),
                 ],
                 required: ["text", "targetLanguage"]
             )
         )
     }
-    
+
     public func execute(_ arguments: RealtimeToolArguments) async -> String {
-        guard let text = arguments["text"]?.stringValue,
-              let targetLang = arguments["targetLanguage"]?.stringValue else {
+        guard
+            let text = arguments["text"]?.stringValue,
+            let targetLang = arguments["targetLanguage"]?.stringValue else
+        {
             return "Error: Text and target language are required"
         }
-        
+
         let sourceLang = arguments["sourceLanguage"]?.stringValue ?? "auto"
-        
+
         // In a real implementation, this would call a translation API
         // For now, return a mock translation
-        let mockTranslation: String
-        switch targetLang {
+        let mockTranslation = switch targetLang {
         case "es":
-            mockTranslation = "[Spanish translation of: \(text)]"
+            "[Spanish translation of: \(text)]"
         case "fr":
-            mockTranslation = "[French translation of: \(text)]"
+            "[French translation of: \(text)]"
         case "de":
-            mockTranslation = "[German translation of: \(text)]"
+            "[German translation of: \(text)]"
         case "ja":
-            mockTranslation = "[Japanese translation of: \(text)]"
+            "[Japanese translation of: \(text)]"
         default:
-            mockTranslation = "[\(targetLang.uppercased()) translation of: \(text)]"
+            "[\(targetLang.uppercased()) translation of: \(text)]"
         }
-        
+
         return """
         Translation (\(sourceLang) → \(targetLang)):
         Original: \(text)
         Translated: \(mockTranslation)
         """
     }
-    
+
     public init() {}
 }
 
@@ -310,34 +306,35 @@ public struct TranslationTool: RealtimeExecutableTool {
 @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public final class RealtimeToolRegistry: Sendable {
     private let executor: RealtimeToolExecutor
-    
+
     public init() {
         self.executor = RealtimeToolExecutor()
     }
-    
+
     /// Register all built-in tools
     public func registerBuiltInTools() async {
         for tool in BuiltInTools.all() {
-            await executor.register(tool)
+            await self.executor.register(tool)
         }
     }
-    
+
     /// Register a custom tool
-    public func register<T: RealtimeExecutableTool>(_ tool: T) async {
-        await executor.register(tool)
+    public func register(_ tool: some RealtimeExecutableTool) async {
+        await self.executor.register(tool)
     }
-    
+
     /// Execute a tool
     public func execute(
         toolName: String,
         arguments: String
-    ) async -> String {
-        await executor.executeSimple(
+    ) async
+    -> String {
+        await self.executor.executeSimple(
             toolName: toolName,
             arguments: arguments
         )
     }
-    
+
     /// Get available tools as RealtimeTools for the API
     public func getRealtimeTools() async -> [RealtimeTool] {
         let metadata = await executor.availableTools()
@@ -349,9 +346,9 @@ public final class RealtimeToolRegistry: Sendable {
             )
         }
     }
-    
+
     /// Get execution history
     public func getHistory(limit: Int? = nil) async -> [RealtimeToolExecutor.ToolExecution] {
-        await executor.getHistory(limit: limit)
+        await self.executor.getHistory(limit: limit)
     }
 }

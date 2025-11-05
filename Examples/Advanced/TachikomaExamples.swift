@@ -2,7 +2,6 @@
 
 import Foundation
 import Tachikoma
-import Tachikoma
 
 @main
 struct TachikomaExamples {

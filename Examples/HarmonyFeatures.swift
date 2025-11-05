@@ -1,12 +1,5 @@
 #!/usr/bin/env swift
 
-//
-//  HarmonyFeatures.swift
-//  Tachikoma
-//
-// Example demonstrating OpenAI Harmony-inspired features
-// Run with: swift Examples/HarmonyFeatures.swift
-
 import Foundation
 import Tachikoma
 
@@ -14,17 +7,17 @@ import Tachikoma
 
 func demonstrateMultiChannelResponse() async throws {
     print("=== Multi-Channel Response Demo ===\n")
-    
+
     let result = try await generateText(
         model: .openai(.gpt4o),
         messages: [
-            .user("Explain how recursion works in programming")
+            .user("Explain how recursion works in programming"),
         ],
         settings: GenerationSettings(
             reasoningEffort: .medium
         )
     )
-    
+
     // Process messages by channel
     for message in result.messages {
         if let channel = message.channel {
@@ -39,13 +32,13 @@ func demonstrateMultiChannelResponse() async throws {
 
 func demonstrateReasoningEffort() async throws {
     print("\n=== Reasoning Effort Demo ===\n")
-    
+
     // High effort for complex problem
     print("High effort response:")
     let complexResult = try await generateText(
         model: .openai(.gpt4o),
         messages: [
-            .user("Design a distributed system for real-time collaboration")
+            .user("Design a distributed system for real-time collaboration"),
         ],
         settings: GenerationSettings(
             reasoningEffort: .high,
@@ -53,13 +46,13 @@ func demonstrateReasoningEffort() async throws {
         )
     )
     print("Tokens used: \(complexResult.usage?.totalTokens ?? 0)")
-    
+
     // Low effort for simple query
     print("\nLow effort response:")
     let simpleResult = try await generateText(
         model: .openai(.gpt4o),
         messages: [
-            .user("What is the capital of Japan?")
+            .user("What is the capital of Japan?"),
         ],
         settings: GenerationSettings(
             reasoningEffort: .low
@@ -72,7 +65,7 @@ func demonstrateReasoningEffort() async throws {
 
 func demonstrateRetryHandler() async throws {
     print("\n=== Retry Handler Demo ===\n")
-    
+
     let retryHandler = RetryHandler(
         policy: RetryPolicy(
             maxAttempts: 3,
@@ -83,7 +76,7 @@ func demonstrateRetryHandler() async throws {
             }
         )
     )
-    
+
     do {
         let response = try await retryHandler.execute(
             operation: {
@@ -108,7 +101,7 @@ func demonstrateRetryHandler() async throws {
 
 func demonstrateEnhancedTools() async throws {
     print("\n=== Enhanced Tools Demo ===\n")
-    
+
     // Create tools with namespaces
     let calculatorTool = AgentTool(
         name: "calculate",
@@ -119,7 +112,7 @@ func demonstrateEnhancedTools() async throws {
                     name: "expression",
                     type: .string,
                     description: "Mathematical expression to evaluate"
-                )
+                ),
             ],
             required: ["expression"]
         ),
@@ -131,7 +124,7 @@ func demonstrateEnhancedTools() async throws {
             return .double(42.0)
         }
     )
-    
+
     let weatherTool = AgentTool(
         name: "getWeather",
         description: "Get current weather",
@@ -141,7 +134,7 @@ func demonstrateEnhancedTools() async throws {
                     name: "location",
                     type: .string,
                     description: "City name"
-                )
+                ),
             ],
             required: ["location"]
         ),
@@ -152,15 +145,15 @@ func demonstrateEnhancedTools() async throws {
             return .string("Sunny, 72°F in \(location)")
         }
     )
-    
+
     let result = try await generateText(
         model: .openai(.gpt4o),
         messages: [
-            .user("What's 25 * 4 and what's the weather in Tokyo?")
+            .user("What's 25 * 4 and what's the weather in Tokyo?"),
         ],
         tools: [calculatorTool, weatherTool]
     )
-    
+
     // Show tool calls organized by namespace
     for step in result.steps {
         for toolCall in step.toolCalls {
@@ -176,7 +169,7 @@ func demonstrateEnhancedTools() async throws {
 
 func demonstrateEmbeddings() async throws {
     print("\n=== Embeddings Demo ===\n")
-    
+
     // Single embedding
     let result = try await generateEmbedding(
         model: .openai(.small3),
@@ -186,26 +179,26 @@ func demonstrateEmbeddings() async throws {
             normalizeEmbeddings: true
         )
     )
-    
+
     print("Generated embedding with \(result.dimensions ?? 0) dimensions")
     if let embedding = result.embedding {
         print("First 5 values: \(embedding.prefix(5))")
     }
-    
+
     // Batch embeddings
     let documents = [
         "Machine learning is fascinating",
         "Deep learning uses neural networks",
-        "Natural language processing enables AI to understand text"
+        "Natural language processing enables AI to understand text",
     ]
-    
+
     print("\nBatch embeddings:")
     let batchResults = try await generateEmbeddingsBatch(
         model: .openai(.small3),
         inputs: documents.map { .text($0) },
         concurrency: 3
     )
-    
+
     for (doc, result) in zip(documents, batchResults) {
         print("  \(doc): \(result.dimensions ?? 0) dims")
     }
@@ -215,37 +208,37 @@ func demonstrateEmbeddings() async throws {
 
 func demonstrateResponseCaching() async throws {
     print("\n=== Response Caching Demo ===\n")
-    
+
     let cache = ResponseCache(maxSize: 10, ttl: 60)
-    
+
     // Create a simple request
     let request = ProviderRequest(
         messages: [
-            ModelMessage.user("What is 2+2?")
+            ModelMessage.user("What is 2+2?"),
         ],
         tools: nil,
         settings: .default
     )
-    
+
     // First call - no cache
     print("First call (should miss cache):")
     if let cached = await cache.get(for: request) {
         print("  Found in cache!")
     } else {
         print("  Cache miss - calling API...")
-        
+
         // Simulate API response
         let response = ProviderResponse(
             text: "2+2 equals 4",
             usage: Usage(inputTokens: 10, outputTokens: 5),
             finishReason: .stop
         )
-        
+
         // Store in cache
         await cache.store(response, for: request)
         print("  Stored in cache")
     }
-    
+
     // Second call - should hit cache
     print("\nSecond call (should hit cache):")
     if let cached = await cache.get(for: request) {
@@ -253,7 +246,7 @@ func demonstrateResponseCaching() async throws {
     } else {
         print("  Unexpected cache miss")
     }
-    
+
     // Show cache statistics
     let stats = await cache.statistics()
     print("\nCache Statistics:")
@@ -266,14 +259,14 @@ func demonstrateResponseCaching() async throws {
 
 func demonstrateIntegratedFeatures() async throws {
     print("\n=== Integrated Features Demo ===\n")
-    
+
     // Set up configuration with caching
     let config = TachikomaConfiguration()
     config.setAPIKey("your-api-key", for: .openAI)
-    
+
     // Create retry handler
     let retryHandler = RetryHandler(policy: .default)
-    
+
     // Create enhanced tools
     let tools = [
         AgentTool(
@@ -282,9 +275,9 @@ func demonstrateIntegratedFeatures() async throws {
             parameters: AgentToolParameters(properties: [], required: []),
             namespace: "analytics",
             execute: { _ in .string("Analysis complete") }
-        )
+        ),
     ]
-    
+
     // Generate with all features
     do {
         let result = try await retryHandler.execute {
@@ -292,7 +285,7 @@ func demonstrateIntegratedFeatures() async throws {
                 model: .openai(.gpt4o),
                 messages: [
                     .system("You are a helpful assistant. Use channels to organize your response."),
-                    .user("Analyze the benefits of functional programming")
+                    .user("Analyze the benefits of functional programming"),
                 ],
                 tools: tools,
                 settings: GenerationSettings(
@@ -303,10 +296,10 @@ func demonstrateIntegratedFeatures() async throws {
                 configuration: config
             )
         }
-        
+
         print("Response generated successfully")
         print("Used \(result.usage?.totalTokens ?? 0) tokens")
-        
+
         // Process by channel
         for message in result.messages {
             if message.role == .assistant {
@@ -314,7 +307,7 @@ func demonstrateIntegratedFeatures() async throws {
                 print("[\(channelName.uppercased())] \(message.content.first?.textValue ?? "")")
             }
         }
-        
+
     } catch {
         print("Error: \(error)")
     }
@@ -327,11 +320,11 @@ struct HarmonyFeaturesDemo {
     static func main() async {
         print("Tachikoma - OpenAI Harmony Features Demo\n")
         print("=========================================\n")
-        
+
         do {
             // Note: These demos require API keys to be set
             // You can set them via environment variables or configuration
-            
+
             // Uncomment to run demos:
             // try await demonstrateMultiChannelResponse()
             // try await demonstrateReasoningEffort()
@@ -340,9 +333,9 @@ struct HarmonyFeaturesDemo {
             // try await demonstrateEmbeddings()
             try await demonstrateResponseCaching()
             // try await demonstrateIntegratedFeatures()
-            
+
             print("\n✅ Demo completed successfully!")
-            
+
         } catch {
             print("\n❌ Demo failed: \(error)")
         }
@@ -353,14 +346,14 @@ struct HarmonyFeaturesDemo {
 
 extension AgentToolArgument {
     var stringValue: String? {
-        if case .string(let value) = self {
+        if case let .string(value) = self {
             return value
         }
         return nil
     }
-    
+
     var doubleValue: Double? {
-        if case .double(let value) = self {
+        if case let .double(value) = self {
             return value
         }
         return nil
@@ -369,7 +362,7 @@ extension AgentToolArgument {
 
 extension ModelMessage.ContentPart {
     var textValue: String? {
-        if case .text(let value) = self {
+        if case let .text(value) = self {
             return value
         }
         return nil

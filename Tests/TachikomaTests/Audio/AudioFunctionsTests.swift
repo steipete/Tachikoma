@@ -351,7 +351,11 @@ struct AudioFunctionsTests {
                 let openaiResult = try await transcribe(audioData, using: .openai(.whisper1), configuration: config)
                 #expect(!openaiResult.text.isEmpty)
 
-                let groqResult = try await transcribe(audioData, using: .groq(.whisperLargeV3Turbo), configuration: config)
+                let groqResult = try await transcribe(
+                    audioData,
+                    using: .groq(.whisperLargeV3Turbo),
+                    configuration: config
+                )
                 #expect(!groqResult.text.isEmpty)
 
                 // Test different speech providers

@@ -5,7 +5,6 @@ import FoundationNetworking
 
 // MARK: - Provider Base Classes
 
-
 /// Provider for Anthropic Claude models
 @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public final class AnthropicProvider: ModelProvider {
@@ -54,13 +53,13 @@ public final class AnthropicProvider: ModelProvider {
         // Convert messages to Anthropic format
         let (systemMessage, messages) = try convertMessagesToAnthropic(request.messages)
 
-        let anthropicRequest = AnthropicMessageRequest(
+        let anthropicRequest = try AnthropicMessageRequest(
             model: modelId,
             maxTokens: request.settings.maxTokens ?? 1024,
             temperature: request.settings.temperature,
             system: systemMessage,
             messages: messages,
-            tools: try request.tools?.map { try convertToolToAnthropic($0) },
+            tools: request.tools?.map { try self.convertToolToAnthropic($0) },
             stream: false
         )
 
@@ -68,7 +67,7 @@ public final class AnthropicProvider: ModelProvider {
         encoder.outputFormatting = .prettyPrinted // For debugging
         let requestData = try encoder.encode(anthropicRequest)
         urlRequest.httpBody = requestData
-        
+
         // Debug logging only when explicitly enabled
         let tachikomaConfig = TachikomaConfiguration.current
         if ProcessInfo.processInfo.environment["DEBUG_ANTHROPIC"] != nil || tachikomaConfig.verbose {
@@ -91,18 +90,18 @@ public final class AnthropicProvider: ModelProvider {
 
         guard httpResponse.statusCode == 200 else {
             let errorText = String(data: data, encoding: .utf8) ?? "Unknown error"
-            
+
             // Try to parse Anthropic error format
             if let errorData = try? JSONDecoder().decode(AnthropicErrorResponse.self, from: data) {
                 throw TachikomaError.apiError("Anthropic Error: \(errorData.error.message)")
             }
-            
+
             throw TachikomaError.apiError("Anthropic Error (HTTP \(httpResponse.statusCode)): \(errorText)")
         }
 
         let decoder = JSONDecoder()
         let anthropicResponse = try decoder.decode(AnthropicMessageResponse.self, from: data)
-        
+
         // Debug: Print the response when verbose
         if TachikomaConfiguration.current.verbose {
             if let jsonString = String(data: data, encoding: .utf8) {
@@ -113,10 +112,10 @@ public final class AnthropicProvider: ModelProvider {
 
         let text = anthropicResponse.content.compactMap { content in
             switch content {
-            case .text(let textContent):
-                return textContent.text
+            case let .text(textContent):
+                textContent.text
             case .toolUse:
-                return nil
+                nil
             }
         }.joined()
 
@@ -125,22 +124,20 @@ public final class AnthropicProvider: ModelProvider {
             outputTokens: anthropicResponse.usage.outputTokens
         )
 
-        let finishReason: FinishReason? = {
-            switch anthropicResponse.stopReason {
-            case "end_turn": return .stop
-            case "max_tokens": return .length
-            case "tool_use": return .toolCalls
-            case "stop_sequence": return .stop
-            default: return .other
-            }
-        }()
+        let finishReason: FinishReason? = switch anthropicResponse.stopReason {
+        case "end_turn": .stop
+        case "max_tokens": .length
+        case "tool_use": .toolCalls
+        case "stop_sequence": .stop
+        default: .other
+        }
 
         // Convert tool calls if present
         let toolCalls = anthropicResponse.content.compactMap { content -> AgentToolCall? in
             switch content {
             case .text:
                 return nil
-            case .toolUse(let toolUse):
+            case let .toolUse(toolUse):
                 // Convert input to AnyAgentToolValue dictionary
                 var arguments: [String: AnyAgentToolValue] = [:]
                 if let inputDict = toolUse.input as? [String: Any] {
@@ -154,7 +151,7 @@ public final class AnthropicProvider: ModelProvider {
                         }
                     }
                 }
-                
+
                 return AgentToolCall(
                     id: toolUse.id,
                     name: toolUse.name,
@@ -186,51 +183,53 @@ public final class AnthropicProvider: ModelProvider {
         // Convert messages to Anthropic format
         let (systemMessage, messages) = try convertMessagesToAnthropic(request.messages)
 
-        let anthropicRequest = AnthropicMessageRequest(
+        let anthropicRequest = try AnthropicMessageRequest(
             model: modelId,
             maxTokens: request.settings.maxTokens ?? 1024,
             temperature: request.settings.temperature,
             system: systemMessage,
             messages: messages,
-            tools: try request.tools?.map { try convertToolToAnthropic($0) },
+            tools: request.tools?.map { try self.convertToolToAnthropic($0) },
             stream: true
         )
 
         let encoder = JSONEncoder()
-        encoder.outputFormatting = .prettyPrinted  // For debugging
+        encoder.outputFormatting = .prettyPrinted // For debugging
         let requestData = try encoder.encode(anthropicRequest)
         urlRequest.httpBody = requestData
-        
+
         // Debug logging only when explicitly enabled
         let config = TachikomaConfiguration.current
-        if ProcessInfo.processInfo.environment["DEBUG_ANTHROPIC"] != nil ||
-           config.verbose {
+        if
+            ProcessInfo.processInfo.environment["DEBUG_ANTHROPIC"] != nil ||
+            config.verbose
+        {
             print("\n🔴 DEBUG AnthropicProvider.streamText called with:")
-            print("   Model: \(modelId)")
+            print("   Model: \(self.modelId)")
             print("   Tools count: \(anthropicRequest.tools?.count ?? 0)")
             if let tools = anthropicRequest.tools {
-                print("   Tool names: \(tools.map { $0.name }.joined(separator: ", "))")
+                print("   Tool names: \(tools.map(\.name).joined(separator: ", "))")
             }
             print("   Messages: \(messages.count)")
             print("   System prompt: \(systemMessage?.prefix(100) ?? "none")...")
-            
+
             // Debug: Log the actual messages being sent
             for (idx, msg) in messages.enumerated() {
                 print("   Message \(idx): role=\(msg.role)")
                 for content in msg.content {
                     switch content {
-                    case .text(let text):
+                    case let .text(text):
                         print("     - text: \(text.text.prefix(100))...")
-                    case .toolUse(let tool):
+                    case let .toolUse(tool):
                         print("     - tool_use: id=\(tool.id), name=\(tool.name)")
-                    case .toolResult(let result):
+                    case let .toolResult(result):
                         print("     - tool_result: tool_use_id=\(result.toolUseId)")
                     default:
                         print("     - other content")
                     }
                 }
             }
-            
+
             // Debug: Show first 2000 chars of JSON request
             if let jsonString = String(data: requestData, encoding: .utf8) {
                 print("\n🔴 Anthropic Request JSON (first 2000 chars):")
@@ -241,28 +240,34 @@ public final class AnthropicProvider: ModelProvider {
         // Use URLSession's bytes API for proper streaming
         #if canImport(FoundationNetworking)
         // Linux: Use data task for now (streaming not available)
-        let (data, response) = try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<(Data, URLResponse), Error>) in
+        let (data, response) = try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<
+            (Data, URLResponse),
+            Error
+        >) in
             URLSession.shared.dataTask(with: urlRequest) { data, response, error in
-                if let error = error {
+                if let error {
                     continuation.resume(throwing: error)
-                } else if let data = data, let response = response {
+                } else if let data, let response {
                     continuation.resume(returning: (data, response))
                 } else {
-                    continuation.resume(throwing: TachikomaError.networkError(NSError(domain: "Invalid response", code: 0)))
+                    continuation.resume(throwing: TachikomaError.networkError(NSError(
+                        domain: "Invalid response",
+                        code: 0
+                    )))
                 }
             }.resume()
         }
-        
+
         guard let httpResponse = response as? HTTPURLResponse else {
             throw TachikomaError.networkError(NSError(domain: "Invalid response", code: 0))
         }
-        
+
         guard httpResponse.statusCode == 200 else {
             // Return error data
             let errorText = String(data: data, encoding: .utf8) ?? "Unknown error"
             throw TachikomaError.apiError("Anthropic Error (HTTP \(httpResponse.statusCode)): \(errorText)")
         }
-        
+
         // For Linux, parse the entire response at once
         let lines = String(data: data, encoding: .utf8)?.components(separatedBy: "\n") ?? []
         #else
@@ -287,21 +292,21 @@ public final class AnthropicProvider: ModelProvider {
             Task {
                 var currentToolCall: (id: String, name: String, partialInput: String)?
                 var accumulatedText = ""
-                
+
                 do {
                     for try await line in bytes.lines {
                         // Skip empty lines
                         guard !line.isEmpty else { continue }
-                        
+
                         // Process SSE events
                         if line.hasPrefix("event: ") {
                             // We'll use the event type in the next data line
                             continue
                         }
-                        
+
                         if line.hasPrefix("data: ") {
                             let jsonString = String(line.dropFirst(6))
-                            
+
                             // Check for stream end
                             if jsonString.trimmingCharacters(in: .whitespacesAndNewlines) == "[DONE]" {
                                 // Yield accumulated text if any
@@ -312,28 +317,32 @@ public final class AnthropicProvider: ModelProvider {
                                 continuation.yield(TextStreamDelta.done())
                                 break
                             }
-                            
+
                             guard let data = jsonString.data(using: .utf8) else { continue }
-                            
+
                             do {
                                 let event = try JSONDecoder().decode(AnthropicStreamEvent.self, from: data)
-                                
+
                                 switch event.type {
                                 case "message_start":
                                     // Message is starting
                                     continue
-                                    
+
                                 case "content_block_start":
                                     if let block = event.contentBlock {
                                         if block.type == "tool_use" {
                                             // Starting a tool call
-                                            currentToolCall = (id: block.id ?? "", name: block.name ?? "", partialInput: "")
+                                            currentToolCall = (
+                                                id: block.id ?? "",
+                                                name: block.name ?? "",
+                                                partialInput: ""
+                                            )
                                         } else if block.type == "text" {
                                             // Text block starting
                                             continue
                                         }
                                     }
-                                    
+
                                 case "content_block_delta":
                                     if let delta = event.delta {
                                         if delta.type == "text_delta", let text = delta.text {
@@ -344,7 +353,10 @@ public final class AnthropicProvider: ModelProvider {
                                                 continuation.yield(TextStreamDelta.text(accumulatedText))
                                                 accumulatedText = ""
                                             }
-                                        } else if delta.type == "input_json_delta", let partialJson = delta.partialJson {
+                                        } else if
+                                            delta.type == "input_json_delta",
+                                            let partialJson = delta.partialJson
+                                        {
                                             // Accumulate tool input
                                             if var toolCall = currentToolCall {
                                                 toolCall.partialInput += partialJson
@@ -352,29 +364,34 @@ public final class AnthropicProvider: ModelProvider {
                                             }
                                         }
                                     }
-                                    
+
                                 case "content_block_stop":
                                     // Yield any remaining text
                                     if !accumulatedText.isEmpty {
                                         continuation.yield(TextStreamDelta.text(accumulatedText))
                                         accumulatedText = ""
                                     }
-                                    
+
                                     // Complete tool call if we have one
                                     if let toolCall = currentToolCall {
                                         // Parse the complete JSON input
-                                        if let inputData = toolCall.partialInput.data(using: .utf8),
-                                           let inputJson = try? JSONSerialization.jsonObject(with: inputData) as? [String: Any] {
+                                        if
+                                            let inputData = toolCall.partialInput.data(using: .utf8),
+                                            let inputJson = try? JSONSerialization
+                                                .jsonObject(with: inputData) as? [String: Any]
+                                        {
                                             // Convert to AnyAgentToolValue arguments
                                             var arguments: [String: AnyAgentToolValue] = [:]
                                             for (key, value) in inputJson {
                                                 do {
                                                     arguments[key] = try AnyAgentToolValue.fromJSON(value)
                                                 } catch {
-                                                    print("[WARNING] Failed to convert tool argument '\(key)': \(error)")
+                                                    print(
+                                                        "[WARNING] Failed to convert tool argument '\(key)': \(error)"
+                                                    )
                                                 }
                                             }
-                                            
+
                                             let agentToolCall = AgentToolCall(
                                                 id: toolCall.id,
                                                 name: toolCall.name,
@@ -384,12 +401,12 @@ public final class AnthropicProvider: ModelProvider {
                                         }
                                         currentToolCall = nil
                                     }
-                                    
+
                                 case "message_delta":
                                     // Message-level updates (usage, etc.)
                                     // Usage is typically included in the done event, not separately
                                     continue
-                                    
+
                                 case "message_stop":
                                     // Yield any final accumulated text
                                     if !accumulatedText.isEmpty {
@@ -397,8 +414,7 @@ public final class AnthropicProvider: ModelProvider {
                                         accumulatedText = ""
                                     }
                                     continuation.yield(TextStreamDelta.done())
-                                    break
-                                    
+
                                 default:
                                     // Unknown event type, skip
                                     continue
@@ -418,32 +434,32 @@ public final class AnthropicProvider: ModelProvider {
                     continuation.finish(throwing: error)
                     return
                 }
-                
+
                 continuation.finish()
             }
         }
-        #endif  // End of macOS/iOS streaming implementation
-        
+        #endif // End of macOS/iOS streaming implementation
+
         #if canImport(FoundationNetworking)
         // Linux implementation: Parse the entire response
         return AsyncThrowingStream { continuation in
             Task {
                 var currentToolCall: (id: String, name: String, partialInput: String)?
                 var accumulatedText = ""
-                
+
                 do {
                     for line in lines {
                         // Skip empty lines
                         guard !line.isEmpty else { continue }
-                        
+
                         // Process SSE events
                         if line.hasPrefix("event: ") {
                             continue
                         }
-                        
+
                         if line.hasPrefix("data: ") {
                             let jsonString = String(line.dropFirst(6))
-                            
+
                             // Check for stream end
                             if jsonString.trimmingCharacters(in: .whitespacesAndNewlines) == "[DONE]" {
                                 if !accumulatedText.isEmpty {
@@ -452,12 +468,12 @@ public final class AnthropicProvider: ModelProvider {
                                 continuation.yield(TextStreamDelta.done())
                                 break
                             }
-                            
+
                             guard let data = jsonString.data(using: .utf8) else { continue }
-                            
+
                             do {
                                 let event = try JSONDecoder().decode(AnthropicStreamEvent.self, from: data)
-                                
+
                                 // Process events similar to macOS implementation
                                 switch event.type {
                                 case "content_block_delta":
@@ -471,7 +487,6 @@ public final class AnthropicProvider: ModelProvider {
                                         continuation.yield(TextStreamDelta.text(accumulatedText))
                                     }
                                     continuation.yield(TextStreamDelta.done())
-                                    break
                                 default:
                                     continue
                                 }
@@ -484,7 +499,7 @@ public final class AnthropicProvider: ModelProvider {
                     continuation.finish(throwing: error)
                     return
                 }
-                
+
                 continuation.finish()
             }
         }
@@ -502,15 +517,15 @@ public final class AnthropicProvider: ModelProvider {
             case .system:
                 // Anthropic uses a separate system field
                 systemMessage = message.content.compactMap { part in
-                    if case .text(let text) = part { return text }
+                    if case let .text(text) = part { return text }
                     return nil
                 }.joined()
             case .user:
                 let content = message.content.compactMap { contentPart -> AnthropicContent? in
                     switch contentPart {
-                    case .text(let text):
+                    case let .text(text):
                         return .text(AnthropicContent.TextContent(type: "text", text: text))
-                    case .image(let imageContent):
+                    case let .image(imageContent):
                         return .image(AnthropicContent.ImageContent(
                             type: "image",
                             source: AnthropicContent.ImageSource(
@@ -526,15 +541,15 @@ public final class AnthropicProvider: ModelProvider {
                 anthropicMessages.append(AnthropicMessage(role: "user", content: content))
             case .assistant:
                 var content: [AnthropicContent] = []
-                
+
                 // Process each content part
                 for part in message.content {
                     switch part {
-                    case .text(let text):
+                    case let .text(text):
                         if !text.isEmpty {
                             content.append(.text(AnthropicContent.TextContent(type: "text", text: text)))
                         }
-                    case .toolCall(let toolCall):
+                    case let .toolCall(toolCall):
                         // Convert tool call to Anthropic format
                         var arguments: [String: Any] = [:]
                         for (key, value) in toolCall.arguments {
@@ -552,7 +567,7 @@ public final class AnthropicProvider: ModelProvider {
                         continue
                     }
                 }
-                
+
                 // Only add message if it has content
                 if !content.isEmpty {
                     anthropicMessages.append(AnthropicMessage(role: "assistant", content: content))
@@ -560,33 +575,34 @@ public final class AnthropicProvider: ModelProvider {
             case .tool:
                 // Process tool results
                 var content: [AnthropicContent] = []
-                
+
                 for part in message.content {
                     switch part {
-                    case .toolResult(let result):
+                    case let .toolResult(result):
                         // Convert tool result to Anthropic format
-                        let resultContent: String
-                        if result.isError {
+                        let resultContent: String = if result.isError {
                             // Error result - get the error message
-                            resultContent = result.result.stringValue ?? "Error occurred"
+                            result.result.stringValue ?? "Error occurred"
                         } else {
                             // Success result - convert to JSON string
-                            if let json = try? result.result.toJSON(),
-                               let jsonData = try? JSONSerialization.data(withJSONObject: json, options: []),
-                               let jsonString = String(data: jsonData, encoding: .utf8) {
-                                resultContent = jsonString
+                            if
+                                let json = try? result.result.toJSON(),
+                                let jsonData = try? JSONSerialization.data(withJSONObject: json, options: []),
+                                let jsonString = String(data: jsonData, encoding: .utf8)
+                            {
+                                jsonString
                             } else {
                                 // Fallback to string value if available
-                                resultContent = result.result.stringValue ?? "Success"
+                                result.result.stringValue ?? "Success"
                             }
                         }
-                        
+
                         // Tool results need to be sent as user messages with tool_result blocks
                         content.append(.toolResult(AnthropicContent.ToolResultContent(
                             toolUseId: result.toolCallId,
                             content: resultContent
                         )))
-                    case .text(let text):
+                    case let .text(text):
                         // Sometimes tool messages include text
                         if !text.isEmpty {
                             content.append(.text(AnthropicContent.TextContent(type: "text", text: text)))
@@ -595,7 +611,7 @@ public final class AnthropicProvider: ModelProvider {
                         continue
                     }
                 }
-                
+
                 // Tool results are sent as user messages in Anthropic's format
                 if !content.isEmpty {
                     anthropicMessages.append(AnthropicMessage(role: "user", content: content))
@@ -612,13 +628,13 @@ public final class AnthropicProvider: ModelProvider {
         for (key, prop) in tool.parameters.properties {
             var propDict: [String: Any] = [
                 "type": prop.type.rawValue,
-                "description": prop.description
+                "description": prop.description,
             ]
-            
+
             if let enumValues = prop.enumValues {
                 propDict["enum"] = enumValues
             }
-            
+
             // Add items for array type
             if prop.type == .array {
                 if let items = prop.items {
@@ -634,10 +650,10 @@ public final class AnthropicProvider: ModelProvider {
                     propDict["items"] = ["type": "string"]
                 }
             }
-            
+
             properties[key] = propDict
         }
-        
+
         return AnthropicTool(
             name: tool.name,
             description: tool.description,
@@ -663,7 +679,7 @@ public final class OllamaProvider: ModelProvider {
     public init(model: LanguageModel.Ollama, configuration: TachikomaConfiguration) throws {
         self.model = model
         self.modelId = model.modelId
-        
+
         // Get base URL from configuration or environment or use default
         if let configURL = configuration.getBaseURL(for: .ollama) {
             self.baseURL = configURL
@@ -672,7 +688,7 @@ public final class OllamaProvider: ModelProvider {
         } else {
             self.baseURL = "http://localhost:11434"
         }
-        
+
         // Ollama doesn't typically require an API key for local usage, but allow configuration
         self.apiKey = configuration.getAPIKey(for: .ollama)
 
@@ -703,7 +719,7 @@ public final class OllamaProvider: ModelProvider {
             OllamaChatMessage(
                 role: message.role.rawValue,
                 content: message.content.compactMap { part in
-                    if case .text(let text) = part { return text }
+                    if case let .text(text) = part { return text }
                     return nil
                 }.joined()
             )
@@ -718,10 +734,10 @@ public final class OllamaProvider: ModelProvider {
             )
         }
 
-        let ollamaRequest = OllamaChatRequest(
+        let ollamaRequest = try OllamaChatRequest(
             model: modelId,
             messages: messages,
-            tools: try request.tools?.map { try convertToolToOllama($0) },
+            tools: request.tools?.map { try self.convertToolToOllama($0) },
             stream: false,
             options: options
         )
@@ -737,12 +753,12 @@ public final class OllamaProvider: ModelProvider {
 
         guard httpResponse.statusCode == 200 else {
             let errorText = String(data: data, encoding: .utf8) ?? "Unknown error"
-            
+
             // Try to parse Ollama error format
             if let errorData = try? JSONDecoder().decode(OllamaErrorResponse.self, from: data) {
                 throw TachikomaError.apiError("Ollama Error: \(errorData.error)")
             }
-            
+
             throw TachikomaError.apiError("Ollama Error (HTTP \(httpResponse.statusCode)): \(errorText)")
         }
 
@@ -750,13 +766,13 @@ public final class OllamaProvider: ModelProvider {
         let ollamaResponse = try decoder.decode(OllamaChatResponse.self, from: data)
 
         let text = ollamaResponse.message.content
-        
+
         // Ollama doesn't provide detailed token usage, estimate based on content
         let usage = Usage(
             inputTokens: request.messages.map { $0.content.compactMap { part in
-                    if case .text(let text) = part { return text }
-                    return nil
-                }.joined().count / 4 }.reduce(0, +),
+                if case let .text(text) = part { return text }
+                return nil
+            }.joined().count / 4 }.reduce(0, +),
             outputTokens: text.count / 4
         )
 
@@ -777,7 +793,7 @@ public final class OllamaProvider: ModelProvider {
                         continue
                     }
                 }
-                
+
                 return AgentToolCall(
                     id: "ollama_\(UUID().uuidString)",
                     name: ollamaCall.function.name,
@@ -787,11 +803,13 @@ public final class OllamaProvider: ModelProvider {
         }
 
         // Some Ollama models output tool calls as JSON in the content
-        if toolCalls == nil, text.contains("{") && text.contains("\"function\"") {
+        if toolCalls == nil, text.contains("{"), text.contains("\"function\"") {
             // Try to parse tool calls from content
-            if let data = text.data(using: .utf8),
-               let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-               let functionName = json["function"] as? String {
+            if
+                let data = text.data(using: .utf8),
+                let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                let functionName = json["function"] as? String
+            {
                 // Convert arguments to AnyAgentToolValue format
                 var arguments: [String: AnyAgentToolValue] = [:]
                 for (key, value) in json {
@@ -805,7 +823,7 @@ public final class OllamaProvider: ModelProvider {
                         }
                     }
                 }
-                
+
                 toolCalls = [AgentToolCall(
                     id: "ollama_\(UUID().uuidString)",
                     name: functionName,
@@ -838,7 +856,7 @@ public final class OllamaProvider: ModelProvider {
             OllamaChatMessage(
                 role: message.role.rawValue,
                 content: message.content.compactMap { part in
-                    if case .text(let text) = part { return text }
+                    if case let .text(text) = part { return text }
                     return nil
                 }.joined()
             )
@@ -853,10 +871,10 @@ public final class OllamaProvider: ModelProvider {
             )
         }
 
-        let ollamaRequest = OllamaChatRequest(
+        let ollamaRequest = try OllamaChatRequest(
             model: modelId,
             messages: messages,
-            tools: try request.tools?.map { try convertToolToOllama($0) },
+            tools: request.tools?.map { try self.convertToolToOllama($0) },
             stream: true,
             options: options
         )
@@ -880,17 +898,17 @@ public final class OllamaProvider: ModelProvider {
                 // Split the data by lines for streaming JSON processing
                 let responseString = String(data: data, encoding: .utf8) ?? ""
                 let lines = responseString.components(separatedBy: .newlines)
-                
+
                 for line in lines {
                     guard let data = line.data(using: .utf8) else { continue }
-                    
+
                     do {
                         let chunk = try JSONDecoder().decode(OllamaStreamChunk.self, from: data)
-                        
+
                         if let content = chunk.message.content, !content.isEmpty {
                             continuation.yield(TextStreamDelta.text(content))
                         }
-                        
+
                         if chunk.done {
                             continuation.yield(TextStreamDelta.done())
                             break
@@ -913,22 +931,22 @@ public final class OllamaProvider: ModelProvider {
         for (key, prop) in tool.parameters.properties {
             var propDict: [String: Any] = [
                 "type": prop.type.rawValue,
-                "description": prop.description
+                "description": prop.description,
             ]
-            
+
             if let enumValues = prop.enumValues {
                 propDict["enum"] = enumValues
             }
-            
+
             properties[key] = propDict
         }
-        
+
         let parameters: [String: Any] = [
             "type": tool.parameters.type,
             "properties": properties,
-            "required": tool.parameters.required
+            "required": tool.parameters.required,
         ]
-        
+
         return OllamaTool(
             type: "function",
             function: OllamaTool.Function(

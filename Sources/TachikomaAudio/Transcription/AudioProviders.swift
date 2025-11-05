@@ -1,5 +1,5 @@
 import Foundation
-import Tachikoma  // For TachikomaError and TachikomaConfiguration
+import Tachikoma // For TachikomaError and TachikomaConfiguration
 
 // MARK: - Provider Protocols
 
@@ -98,17 +98,22 @@ public struct SpeechCapabilities: Sendable {
 @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public struct TranscriptionProviderFactory {
     /// Create a transcription provider for the specified model
-    public static func createProvider(for model: TranscriptionModel, configuration: TachikomaConfiguration = TachikomaConfiguration()) throws -> any TranscriptionProvider {
+    public static func createProvider(
+        for model: TranscriptionModel,
+        configuration: TachikomaConfiguration = TachikomaConfiguration()
+    ) throws
+    -> any TranscriptionProvider {
         // Check if API tests are disabled
-        if ProcessInfo.processInfo.environment["TACHIKOMA_DISABLE_API_TESTS"] == "true" ||
-           ProcessInfo.processInfo.environment["TACHIKOMA_TEST_MODE"] == "mock" {
-            
+        if
+            ProcessInfo.processInfo.environment["TACHIKOMA_DISABLE_API_TESTS"] == "true" ||
+            ProcessInfo.processInfo.environment["TACHIKOMA_TEST_MODE"] == "mock"
+        {
             // Even in mock mode, validate API keys if explicitly testing missing key scenarios
             let providerName = model.providerName.lowercased()
             if !configuration.hasAPIKey(for: providerName) {
                 throw TachikomaError.authenticationFailed("\(providerName.uppercased())_API_KEY not found")
             }
-            
+
             return MockTranscriptionProvider(model: model)
         }
 
@@ -129,17 +134,22 @@ public struct TranscriptionProviderFactory {
 @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public struct SpeechProviderFactory {
     /// Create a speech provider for the specified model
-    public static func createProvider(for model: SpeechModel, configuration: TachikomaConfiguration = TachikomaConfiguration()) throws -> any SpeechProvider {
+    public static func createProvider(
+        for model: SpeechModel,
+        configuration: TachikomaConfiguration = TachikomaConfiguration()
+    ) throws
+    -> any SpeechProvider {
         // Check if API tests are disabled
-        if ProcessInfo.processInfo.environment["TACHIKOMA_DISABLE_API_TESTS"] == "true" ||
-           ProcessInfo.processInfo.environment["TACHIKOMA_TEST_MODE"] == "mock" {
-            
+        if
+            ProcessInfo.processInfo.environment["TACHIKOMA_DISABLE_API_TESTS"] == "true" ||
+            ProcessInfo.processInfo.environment["TACHIKOMA_TEST_MODE"] == "mock"
+        {
             // Even in mock mode, validate API keys if explicitly testing missing key scenarios
             let providerName = model.providerName.lowercased()
             if !configuration.hasAPIKey(for: providerName) {
                 throw TachikomaError.authenticationFailed("\(providerName.uppercased())_API_KEY not found")
             }
-            
+
             return MockSpeechProvider(model: model)
         }
 
@@ -160,7 +170,7 @@ public struct AudioConfiguration {
     /// Get API key for a specific provider
     public static func getAPIKey(for provider: String, configuration: TachikomaConfiguration? = nil) -> String? {
         let config = configuration ?? TachikomaConfiguration()
-        
+
         // First check TachikomaConfiguration
         if let key = config.getAPIKey(for: provider) {
             return key
@@ -283,72 +293,80 @@ public final class GroqTranscriptionProvider: TranscriptionProvider {
         guard let apiKey = AudioConfiguration.getAPIKey(for: "groq", configuration: TachikomaConfiguration()) else {
             throw TachikomaError.authenticationFailed("Groq API key not configured")
         }
-        
+
         let url = URL(string: "https://api.groq.com/openai/v1/audio/transcriptions")!
-        
+
         var urlRequest = URLRequest(url: url)
         urlRequest.httpMethod = "POST"
         urlRequest.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
-        
+
         // Create multipart form data
         let boundary = UUID().uuidString
         urlRequest.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
-        
+
         var formData = Data()
-        
+
         // Add audio file
         formData.append("--\(boundary)\r\n".data(using: .utf8)!)
-        formData.append("Content-Disposition: form-data; name=\"file\"; filename=\"audio.\(request.audio.format.rawValue)\"\r\n".data(using: .utf8)!)
+        formData
+            .append(
+                "Content-Disposition: form-data; name=\"file\"; filename=\"audio.\(request.audio.format.rawValue)\"\r\n"
+                    .data(using: .utf8)!
+            )
         formData.append("Content-Type: \(request.audio.format.mimeType)\r\n\r\n".data(using: .utf8)!)
         formData.append(request.audio.data)
         formData.append("\r\n".data(using: .utf8)!)
-        
+
         // Add model
         formData.append("--\(boundary)\r\n".data(using: .utf8)!)
         formData.append("Content-Disposition: form-data; name=\"model\"\r\n\r\n".data(using: .utf8)!)
-        formData.append("\(modelId)\r\n".data(using: .utf8)!)
-        
+        formData.append("\(self.modelId)\r\n".data(using: .utf8)!)
+
         // Add optional parameters
         if let language = request.language {
             formData.append("--\(boundary)\r\n".data(using: .utf8)!)
             formData.append("Content-Disposition: form-data; name=\"language\"\r\n\r\n".data(using: .utf8)!)
             formData.append("\(language)\r\n".data(using: .utf8)!)
         }
-        
+
         if let prompt = request.prompt {
             formData.append("--\(boundary)\r\n".data(using: .utf8)!)
             formData.append("Content-Disposition: form-data; name=\"prompt\"\r\n\r\n".data(using: .utf8)!)
             formData.append("\(prompt)\r\n".data(using: .utf8)!)
         }
-        
+
         if !request.timestampGranularities.isEmpty {
             for granularity in request.timestampGranularities {
                 formData.append("--\(boundary)\r\n".data(using: .utf8)!)
-                formData.append("Content-Disposition: form-data; name=\"timestamp_granularities[]\"\r\n\r\n".data(using: .utf8)!)
+                formData
+                    .append("Content-Disposition: form-data; name=\"timestamp_granularities[]\"\r\n\r\n"
+                        .data(using: .utf8)!)
                 formData.append("\(granularity.rawValue)\r\n".data(using: .utf8)!)
             }
         }
-        
+
         // Close boundary
         formData.append("--\(boundary)--\r\n".data(using: .utf8)!)
-        
+
         urlRequest.httpBody = formData
-        
+
         let (data, response) = try await URLSession.shared.data(for: urlRequest)
-        
-        guard let httpResponse = response as? HTTPURLResponse,
-              (200...299).contains(httpResponse.statusCode) else {
+
+        guard
+            let httpResponse = response as? HTTPURLResponse,
+            (200...299).contains(httpResponse.statusCode) else
+        {
             let errorMessage = String(data: data, encoding: .utf8) ?? "Unknown error"
             throw TachikomaError.apiError("Groq API error: \(errorMessage)")
         }
-        
+
         // Parse response
         struct GroqResponse: Codable {
             let text: String
             let language: String?
             let duration: Double?
             let segments: [Segment]?
-            
+
             struct Segment: Codable {
                 let id: Int
                 let start: Double
@@ -356,9 +374,9 @@ public final class GroqTranscriptionProvider: TranscriptionProvider {
                 let text: String
             }
         }
-        
+
         let groqResponse = try JSONDecoder().decode(GroqResponse.self, from: data)
-        
+
         return TranscriptionResult(
             text: groqResponse.text,
             language: groqResponse.language,
@@ -393,61 +411,63 @@ public final class DeepgramTranscriptionProvider: TranscriptionProvider {
         guard let apiKey = AudioConfiguration.getAPIKey(for: "deepgram", configuration: TachikomaConfiguration()) else {
             throw TachikomaError.authenticationFailed("Deepgram API key not configured")
         }
-        
+
         var urlComponents = URLComponents(string: "https://api.deepgram.com/v1/listen")!
         urlComponents.queryItems = [
-            URLQueryItem(name: "model", value: modelId),
+            URLQueryItem(name: "model", value: self.modelId),
             URLQueryItem(name: "punctuate", value: "true"),
             URLQueryItem(name: "utterances", value: "true"),
-            URLQueryItem(name: "smart_format", value: "true")
+            URLQueryItem(name: "smart_format", value: "true"),
         ]
-        
+
         if !request.timestampGranularities.isEmpty {
             urlComponents.queryItems?.append(URLQueryItem(name: "timestamps", value: "true"))
         }
-        
+
         if let language = request.language {
             urlComponents.queryItems?.append(URLQueryItem(name: "language", value: language))
         }
-        
+
         // Note: speakerDiarization and summarize are not available in current request model
         // These would need to be added to TranscriptionRequest if needed
-        
+
         guard let url = urlComponents.url else {
             throw TachikomaError.invalidInput("Failed to construct Deepgram API URL")
         }
-        
+
         var urlRequest = URLRequest(url: url)
         urlRequest.httpMethod = "POST"
         urlRequest.setValue("Token \(apiKey)", forHTTPHeaderField: "Authorization")
         urlRequest.setValue(request.audio.format.mimeType, forHTTPHeaderField: "Content-Type")
         urlRequest.httpBody = request.audio.data
-        
+
         let (data, response) = try await URLSession.shared.data(for: urlRequest)
-        
-        guard let httpResponse = response as? HTTPURLResponse,
-              (200...299).contains(httpResponse.statusCode) else {
+
+        guard
+            let httpResponse = response as? HTTPURLResponse,
+            (200...299).contains(httpResponse.statusCode) else
+        {
             let errorMessage = String(data: data, encoding: .utf8) ?? "Unknown error"
             throw TachikomaError.apiError("Deepgram API error: \(errorMessage)")
         }
-        
+
         // Parse response
         struct DeepgramResponse: Codable {
             let results: Results
-            
+
             struct Results: Codable {
                 let channels: [Channel]
                 let utterances: [Utterance]?
                 let summary: Summary?
-                
+
                 struct Channel: Codable {
                     let alternatives: [Alternative]
-                    
+
                     struct Alternative: Codable {
                         let transcript: String
                         let confidence: Double
                         let words: [Word]?
-                        
+
                         struct Word: Codable {
                             let word: String
                             let start: Double
@@ -456,7 +476,7 @@ public final class DeepgramTranscriptionProvider: TranscriptionProvider {
                         }
                     }
                 }
-                
+
                 struct Utterance: Codable {
                     let start: Double
                     let end: Double
@@ -464,20 +484,22 @@ public final class DeepgramTranscriptionProvider: TranscriptionProvider {
                     let transcript: String
                     let speaker: Int?
                 }
-                
+
                 struct Summary: Codable {
                     let short: String?
                 }
             }
         }
-        
+
         let deepgramResponse = try JSONDecoder().decode(DeepgramResponse.self, from: data)
-        
-        guard let firstChannel = deepgramResponse.results.channels.first,
-              let bestAlternative = firstChannel.alternatives.first else {
+
+        guard
+            let firstChannel = deepgramResponse.results.channels.first,
+            let bestAlternative = firstChannel.alternatives.first else
+        {
             throw TachikomaError.apiError("No transcription results from Deepgram")
         }
-        
+
         let segments: [TranscriptionSegment]? = deepgramResponse.results.utterances?.map { utterance in
             TranscriptionSegment(
                 text: utterance.transcript,
@@ -487,7 +509,7 @@ public final class DeepgramTranscriptionProvider: TranscriptionProvider {
                 // Note: Speaker diarization info (utterance.speaker) is not included in TranscriptionSegment
             )
         }
-        
+
         return TranscriptionResult(
             text: bestAlternative.transcript,
             language: request.language,
@@ -516,7 +538,10 @@ public final class ElevenLabsTranscriptionProvider: TranscriptionProvider {
     public func transcribe(request: TranscriptionRequest) async throws -> TranscriptionResult {
         // ElevenLabs doesn't have a transcription API yet
         // This is a placeholder for future implementation
-        throw TachikomaError.unsupportedOperation("ElevenLabs transcription is not available - ElevenLabs only supports speech generation")
+        throw TachikomaError
+            .unsupportedOperation(
+                "ElevenLabs transcription is not available - ElevenLabs only supports speech generation"
+            )
     }
 }
 
@@ -532,25 +557,25 @@ public final class ElevenLabsSpeechProvider: SpeechProvider {
             supportsVoiceInstructions: model.supportsVoiceCloning
         )
     }
-    
+
     private func mapVoiceToElevenLabsId(_ voice: VoiceOption) -> String {
         // Map standard voice options to ElevenLabs voice IDs
         // These are default ElevenLabs voices
         switch voice {
         case .alloy:
-            return "21m00Tcm4TlvDq8ikWAM" // Rachel
+            "21m00Tcm4TlvDq8ikWAM" // Rachel
         case .echo:
-            return "AZnzlk1XvdvUeBnXmlld" // Domi
+            "AZnzlk1XvdvUeBnXmlld" // Domi
         case .fable:
-            return "ThT5KcBeYPX3keUQqHPh" // Nicole
+            "ThT5KcBeYPX3keUQqHPh" // Nicole
         case .onyx:
-            return "pNInz6obpgDQGcFmaJgB" // Adam
+            "pNInz6obpgDQGcFmaJgB" // Adam
         case .nova:
-            return "MF3mGyEYCl7XYWbV9V6O" // Elli
+            "MF3mGyEYCl7XYWbV9V6O" // Elli
         case .shimmer:
-            return "LcfcDJNUP1GQjkzn1xUU" // Emily
+            "LcfcDJNUP1GQjkzn1xUU" // Emily
         default:
-            return "21m00Tcm4TlvDq8ikWAM" // Default to Rachel
+            "21m00Tcm4TlvDq8ikWAM" // Default to Rachel
         }
     }
 
@@ -558,22 +583,22 @@ public final class ElevenLabsSpeechProvider: SpeechProvider {
         guard let apiKey = AudioConfiguration.getAPIKey(for: "elevenlabs", configuration: TachikomaConfiguration()) else {
             throw TachikomaError.authenticationFailed("ElevenLabs API key not configured")
         }
-        
+
         // Default voice if not specified - map VoiceOption to ElevenLabs voice ID
-        let voiceId = mapVoiceToElevenLabsId(request.voice)
+        let voiceId = self.mapVoiceToElevenLabsId(request.voice)
         let url = URL(string: "https://api.elevenlabs.io/v1/text-to-speech/\(voiceId)")!
-        
+
         var urlRequest = URLRequest(url: url)
         urlRequest.httpMethod = "POST"
         urlRequest.setValue(apiKey, forHTTPHeaderField: "xi-api-key")
         urlRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        
+
         // Build request body
         struct ElevenLabsRequest: Codable {
             let text: String
             let model_id: String
             let voice_settings: VoiceSettings?
-            
+
             struct VoiceSettings: Codable {
                 let stability: Double
                 let similarity_boost: Double
@@ -581,10 +606,10 @@ public final class ElevenLabsSpeechProvider: SpeechProvider {
                 let use_speaker_boost: Bool?
             }
         }
-        
+
         let requestBody = ElevenLabsRequest(
             text: request.text,
-            model_id: modelId,
+            model_id: self.modelId,
             voice_settings: ElevenLabsRequest.VoiceSettings(
                 stability: 0.5,
                 similarity_boost: 0.75,
@@ -592,17 +617,19 @@ public final class ElevenLabsSpeechProvider: SpeechProvider {
                 use_speaker_boost: nil
             )
         )
-        
+
         urlRequest.httpBody = try JSONEncoder().encode(requestBody)
-        
+
         let (data, response) = try await URLSession.shared.data(for: urlRequest)
-        
-        guard let httpResponse = response as? HTTPURLResponse,
-              (200...299).contains(httpResponse.statusCode) else {
+
+        guard
+            let httpResponse = response as? HTTPURLResponse,
+            (200...299).contains(httpResponse.statusCode) else
+        {
             let errorMessage = String(data: data, encoding: .utf8) ?? "Unknown error"
             throw TachikomaError.apiError("ElevenLabs API error: \(errorMessage)")
         }
-        
+
         // The response is raw audio data
         return SpeechResult(
             audioData: AudioData(data: data, format: .mp3),
@@ -624,10 +651,10 @@ public final class MockTranscriptionProvider: TranscriptionProvider {
     public init(model: TranscriptionModel) {
         self.model = model
         self.modelId = model.modelId
-        
+
         // Set capabilities based on the model
         switch model {
-        case .openai(let openaiModel):
+        case let .openai(openaiModel):
             self.capabilities = TranscriptionCapabilities(
                 supportedFormats: [.flac, .m4a, .mp3, .opus, .aac, .ogg, .wav, .pcm],
                 supportsTimestamps: openaiModel.supportsTimestamps,
@@ -648,26 +675,27 @@ public final class MockTranscriptionProvider: TranscriptionProvider {
     public func transcribe(request: TranscriptionRequest) async throws -> TranscriptionResult {
         // Check for abort signal
         try request.abortSignal?.throwIfCancelled()
-        
+
         // Validate audio data
         if request.audio.data.isEmpty {
             throw TachikomaError.invalidInput("Audio data is empty")
         }
-        
+
         // Check file size limits
         if let maxSize = capabilities.maxFileSize, request.audio.data.count > maxSize {
-            throw TachikomaError.invalidInput("Audio file too large: \(request.audio.data.count) bytes (max: \(maxSize))")
+            throw TachikomaError
+                .invalidInput("Audio file too large: \(request.audio.data.count) bytes (max: \(maxSize))")
         }
-        
+
         // Simulate network delay
         try await Task.sleep(for: .milliseconds(100))
-        
+
         // Check for abort signal again after delay
         try request.abortSignal?.throwIfCancelled()
-        
+
         let mockText = "Mock transcription result for audio file."
         let mockDuration = request.audio.duration ?? 2.0
-        
+
         // Create segments if timestamps are requested
         var segments: [TranscriptionSegment]? = nil
         if request.timestampGranularities.contains(.segment) || request.responseFormat == .verbose {
@@ -679,12 +707,12 @@ public final class MockTranscriptionProvider: TranscriptionProvider {
                     words: request.timestampGranularities.contains(.word) ? [
                         TranscriptionWord(word: "Mock", start: 0.0, end: 0.5),
                         TranscriptionWord(word: "transcription", start: 0.5, end: 1.5),
-                        TranscriptionWord(word: "result", start: 1.5, end: mockDuration)
+                        TranscriptionWord(word: "result", start: 1.5, end: mockDuration),
                     ] : nil
-                )
+                ),
             ]
         }
-        
+
         return TranscriptionResult(
             text: mockText,
             language: request.language ?? "en",
@@ -706,10 +734,10 @@ public final class MockSpeechProvider: SpeechProvider {
     public init(model: SpeechModel) {
         self.model = model
         self.modelId = model.modelId
-        
+
         // Set capabilities based on the model
         switch model {
-        case .openai(let openaiModel):
+        case let .openai(openaiModel):
             self.capabilities = SpeechCapabilities(
                 supportedFormats: openaiModel.supportedFormats,
                 supportedVoices: openaiModel.supportedVoices,
@@ -729,38 +757,38 @@ public final class MockSpeechProvider: SpeechProvider {
     public func generateSpeech(request: SpeechRequest) async throws -> SpeechResult {
         // Check for abort signal
         try request.abortSignal?.throwIfCancelled()
-        
+
         // Validate text
         if request.text.isEmpty {
             throw TachikomaError.invalidInput("Text is empty")
         }
-        
+
         // Check text length limits
         if let maxLength = capabilities.maxTextLength, request.text.count > maxLength {
             throw TachikomaError.invalidInput("Text too long: \(request.text.count) characters (max: \(maxLength))")
         }
-        
+
         // Validate voice
-        if !capabilities.supportedVoices.contains(request.voice) {
+        if !self.capabilities.supportedVoices.contains(request.voice) {
             throw TachikomaError.invalidInput("Unsupported voice: \(request.voice.stringValue)")
         }
-        
+
         // Validate format
-        if !capabilities.supportedFormats.contains(request.format) {
+        if !self.capabilities.supportedFormats.contains(request.format) {
             throw TachikomaError.invalidInput("Unsupported format: \(request.format.rawValue)")
         }
-        
+
         // Validate speed
         if request.speed < 0.25 || request.speed > 4.0 {
             throw TachikomaError.invalidInput("Speed must be between 0.25 and 4.0")
         }
-        
+
         // Simulate network delay
         try await Task.sleep(for: .milliseconds(100))
-        
+
         // Check for abort signal again after delay
         try request.abortSignal?.throwIfCancelled()
-        
+
         // Generate minimal audio data (4 bytes)
         let mockAudioData = Data([0x00, 0x01, 0x02, 0x03])
 

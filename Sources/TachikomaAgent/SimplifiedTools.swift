@@ -1,8 +1,3 @@
-//
-//  SimplifiedTools.swift
-//  Tachikoma
-//
-
 import Foundation
 import Tachikoma
 
@@ -11,16 +6,16 @@ import Tachikoma
 /// Simplified tool builder following AI SDK patterns
 @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public struct SimplifiedToolBuilder {
-    
     /// Create a tool with simplified definition pattern
-    public static func tool<Input: Codable & Sendable, Output: Codable & Sendable>(
+    public static func tool<Input: Codable & Sendable>(
         _ name: String,
         description: String,
         inputSchema: Input.Type,
-        execute: @escaping @Sendable (Input) async throws -> Output
-    ) -> AgentTool {
-        let parameters = generateParameters(from: Input.self)
-        
+        execute: @escaping @Sendable (Input) async throws -> some Codable & Sendable
+    )
+    -> AgentTool {
+        let parameters = self.generateParameters(from: Input.self)
+
         return AgentTool(
             name: name,
             description: description,
@@ -29,25 +24,26 @@ public struct SimplifiedToolBuilder {
             // Convert arguments to Input type
             let jsonData = try JSONSerialization.data(withJSONObject: arguments.toDictionary())
             let input = try JSONDecoder().decode(Input.self, from: jsonData)
-            
+
             // Execute and convert output
             let output = try await execute(input)
             let outputData = try JSONEncoder().encode(output)
             let outputJson = try JSONSerialization.jsonObject(with: outputData)
-            
+
             return try AnyAgentToolValue.fromJSON(outputJson)
         }
     }
-    
+
     /// Create a tool with context support
-    public static func toolWithContext<Input: Codable & Sendable, Output: Codable & Sendable>(
+    public static func toolWithContext<Input: Codable & Sendable>(
         _ name: String,
         description: String,
         inputSchema: Input.Type,
-        execute: @escaping @Sendable (Input, ToolExecutionContext) async throws -> Output
-    ) -> AgentTool {
-        let parameters = generateParameters(from: Input.self)
-        
+        execute: @escaping @Sendable (Input, ToolExecutionContext) async throws -> some Codable & Sendable
+    )
+    -> AgentTool {
+        let parameters = self.generateParameters(from: Input.self)
+
         return AgentTool(
             name: name,
             description: description,
@@ -56,24 +52,25 @@ public struct SimplifiedToolBuilder {
                 // Convert arguments to Input type
                 let jsonData = try JSONSerialization.data(withJSONObject: arguments.toDictionary())
                 let input = try JSONDecoder().decode(Input.self, from: jsonData)
-                
+
                 // Execute with context and convert output
                 let output = try await execute(input, context)
                 let outputData = try JSONEncoder().encode(output)
                 let outputJson = try JSONSerialization.jsonObject(with: outputData)
-                
+
                 return try AnyAgentToolValue.fromJSON(outputJson)
             }
         )
     }
-    
+
     /// Create a simple tool without structured input
     public static func simpleTool(
         _ name: String,
         description: String,
         parameters: [String: String] = [:], // parameter name -> description
         execute: @escaping @Sendable ([String: Any]) async throws -> Any
-    ) -> AgentTool {
+    )
+    -> AgentTool {
         var props: [String: AgentToolParameterProperty] = [:]
         for (key, desc) in parameters {
             props[key] = AgentToolParameterProperty(
@@ -82,12 +79,12 @@ public struct SimplifiedToolBuilder {
                 description: desc
             )
         }
-        
+
         let toolParams = AgentToolParameters(
             properties: props,
             required: Array(parameters.keys)
         )
-        
+
         return AgentTool(
             name: name,
             description: description,
@@ -98,14 +95,14 @@ public struct SimplifiedToolBuilder {
             return try AnyAgentToolValue.fromJSON(result)
         }
     }
-    
+
     /// Generate parameters from Codable type using Mirror reflection
-    private static func generateParameters<T: Codable>(from type: T.Type) -> AgentToolParameters {
+    private static func generateParameters(from type: (some Codable).Type) -> AgentToolParameters {
         // This is a simplified version - in production, we'd use more sophisticated reflection
         // or code generation to extract the actual property types and descriptions
-        
+
         // For now, return a basic object schema
-        return AgentToolParameters(
+        AgentToolParameters(
             properties: [:],
             required: []
         )
@@ -119,16 +116,17 @@ public struct SimplifiedToolBuilder {
 public struct ToolSchemaBuilder {
     private var properties: [AgentToolParameterProperty] = []
     private var required: [String] = []
-    
+
     public init() {}
-    
+
     /// Add a string parameter
     public func string(
         _ name: String,
         description: String,
         required: Bool = false,
         enum values: [String]? = nil
-    ) -> ToolSchemaBuilder {
+    )
+    -> ToolSchemaBuilder {
         var builder = self
         builder.properties.append(AgentToolParameterProperty(
             name: name,
@@ -141,13 +139,14 @@ public struct ToolSchemaBuilder {
         }
         return builder
     }
-    
+
     /// Add a number parameter
     public func number(
         _ name: String,
         description: String,
         required: Bool = false
-    ) -> ToolSchemaBuilder {
+    )
+    -> ToolSchemaBuilder {
         var builder = self
         builder.properties.append(AgentToolParameterProperty(
             name: name,
@@ -159,13 +158,14 @@ public struct ToolSchemaBuilder {
         }
         return builder
     }
-    
+
     /// Add an integer parameter
     public func integer(
         _ name: String,
         description: String,
         required: Bool = false
-    ) -> ToolSchemaBuilder {
+    )
+    -> ToolSchemaBuilder {
         var builder = self
         builder.properties.append(AgentToolParameterProperty(
             name: name,
@@ -177,13 +177,14 @@ public struct ToolSchemaBuilder {
         }
         return builder
     }
-    
+
     /// Add a boolean parameter
     public func boolean(
         _ name: String,
         description: String,
         required: Bool = false
-    ) -> ToolSchemaBuilder {
+    )
+    -> ToolSchemaBuilder {
         var builder = self
         builder.properties.append(AgentToolParameterProperty(
             name: name,
@@ -195,14 +196,15 @@ public struct ToolSchemaBuilder {
         }
         return builder
     }
-    
+
     /// Add an array parameter
     public func array(
         _ name: String,
         description: String,
         itemType: AgentToolParameterProperty.ParameterType = .string,
         required: Bool = false
-    ) -> ToolSchemaBuilder {
+    )
+    -> ToolSchemaBuilder {
         var builder = self
         builder.properties.append(AgentToolParameterProperty(
             name: name,
@@ -215,13 +217,14 @@ public struct ToolSchemaBuilder {
         }
         return builder
     }
-    
+
     /// Add an object parameter
     public func object(
         _ name: String,
         description: String,
         required: Bool = false
-    ) -> ToolSchemaBuilder {
+    )
+    -> ToolSchemaBuilder {
         var builder = self
         builder.properties.append(AgentToolParameterProperty(
             name: name,
@@ -233,32 +236,33 @@ public struct ToolSchemaBuilder {
         }
         return builder
     }
-    
+
     /// Build the parameters
     public func build() -> AgentToolParameters {
         // Convert array of properties to dictionary keyed by name
         var propertiesDict: [String: AgentToolParameterProperty] = [:]
-        for prop in properties {
+        for prop in self.properties {
             propertiesDict[prop.name] = prop
         }
-        return AgentToolParameters(properties: propertiesDict, required: required)
+        return AgentToolParameters(properties: propertiesDict, required: self.required)
     }
 }
 
 // MARK: - Tool Creation Helpers
 
 @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
-public extension AgentTool {
+extension AgentTool {
     /// Create a tool using the schema builder
-    static func create(
+    public static func create(
         name: String,
         description: String,
         schema: (ToolSchemaBuilder) -> ToolSchemaBuilder,
         execute: @escaping @Sendable (AgentToolArguments) async throws -> AnyAgentToolValue
-    ) -> AgentTool {
+    )
+    -> AgentTool {
         let builder = ToolSchemaBuilder()
         let parameters = schema(builder).build()
-        
+
         return AgentTool(
             name: name,
             description: description,
@@ -266,17 +270,18 @@ public extension AgentTool {
             execute: execute
         )
     }
-    
+
     /// Create a tool with context using the schema builder
-    static func createWithContext(
+    public static func createWithContext(
         name: String,
         description: String,
         schema: (ToolSchemaBuilder) -> ToolSchemaBuilder,
         execute: @escaping @Sendable (AgentToolArguments, ToolExecutionContext) async throws -> AnyAgentToolValue
-    ) -> AgentTool {
+    )
+    -> AgentTool {
         let builder = ToolSchemaBuilder()
         let parameters = schema(builder).build()
-        
+
         return AgentTool(
             name: name,
             description: description,
@@ -310,44 +315,44 @@ extension AgentToolArguments {
 // MARK: - Example Usage
 
 /*
-// Example 1: Simple tool with structured input
-struct CalculatorInput: Codable, Sendable {
-    let expression: String
-}
+ // Example 1: Simple tool with structured input
+ struct CalculatorInput: Codable, Sendable {
+     let expression: String
+ }
 
-let calculator = SimplifiedToolBuilder.tool(
-    "calculate",
-    description: "Evaluate a mathematical expression",
-    inputSchema: CalculatorInput.self
-) { input in
-    // Evaluate expression and return result
-    return ["result": evaluateExpression(input.expression)]
-}
+ let calculator = SimplifiedToolBuilder.tool(
+     "calculate",
+     description: "Evaluate a mathematical expression",
+     inputSchema: CalculatorInput.self
+ ) { input in
+     // Evaluate expression and return result
+     return ["result": evaluateExpression(input.expression)]
+ }
 
-// Example 2: Tool with schema builder
-let weatherTool = AgentTool.create(
-    name: "getWeather",
-    description: "Get current weather for a location",
-    schema: { builder in
-        builder
-            .string("location", description: "City name or coordinates", required: true)
-            .string("units", description: "Temperature units", enum: ["celsius", "fahrenheit"])
-    }
-) { arguments in
-    let location = try arguments.stringValue("location")
-    let units = arguments.optionalStringValue("units") ?? "celsius"
-    
-    // Fetch weather and return
-    let weather = await fetchWeather(location: location, units: units)
-    return try AnyAgentToolValue.fromJSON(weather)
-}
+ // Example 2: Tool with schema builder
+ let weatherTool = AgentTool.create(
+     name: "getWeather",
+     description: "Get current weather for a location",
+     schema: { builder in
+         builder
+             .string("location", description: "City name or coordinates", required: true)
+             .string("units", description: "Temperature units", enum: ["celsius", "fahrenheit"])
+     }
+ ) { arguments in
+     let location = try arguments.stringValue("location")
+     let units = arguments.optionalStringValue("units") ?? "celsius"
 
-// Example 3: Simple tool without structured types
-let echoTool = SimplifiedToolBuilder.simpleTool(
-    "echo",
-    description: "Echo back the input message",
-    parameters: ["message": "The message to echo"]
-) { args in
-    return ["echoed": args["message"] ?? ""]
-}
-*/
+     // Fetch weather and return
+     let weather = await fetchWeather(location: location, units: units)
+     return try AnyAgentToolValue.fromJSON(weather)
+ }
+
+ // Example 3: Simple tool without structured types
+ let echoTool = SimplifiedToolBuilder.simpleTool(
+     "echo",
+     description: "Echo back the input message",
+     parameters: ["message": "The message to echo"]
+ ) { args in
+     return ["echoed": args["message"] ?? ""]
+ }
+ */

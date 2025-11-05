@@ -1,8 +1,3 @@
-//
-//  SSETransport.swift
-//  TachikomaMCP
-//
-
 import Foundation
 import Logging
 import MCP
@@ -18,25 +13,38 @@ private actor SSEState {
     var timeoutTasks: [Int: Task<Void, Never>] = [:]
     var requestTimeoutNs: UInt64 = 30_000_000_000 // default 30s
 
-    func setTransport(_ t: HTTPClientTransport?) { transport = t }
-    func getTransport() -> HTTPClientTransport? { transport }
-    func setBaseURL(_ url: URL?) { baseURL = url }
-    func setHeaders(_ h: [String: String]) { headers = h }
-    func setEndpoint(_ url: URL?) { endpointURL = url }
-    func getEndpoint() -> URL? { endpointURL }
-    func getBaseURL() -> URL? { baseURL }
+    func setTransport(_ t: HTTPClientTransport?) { self.transport = t }
+    func getTransport() -> HTTPClientTransport? { self.transport }
+    func setBaseURL(_ url: URL?) { self.baseURL = url }
+    func setHeaders(_ h: [String: String]) { self.headers = h }
+    func setEndpoint(_ url: URL?) { self.endpointURL = url }
+    func getEndpoint() -> URL? { self.endpointURL }
+    func getBaseURL() -> URL? { self.baseURL }
 
-    func getNextId() -> Int { defer { nextId += 1 }; return nextId }
-    func addPending(_ id: Int, _ cont: CheckedContinuation<Data, Swift.Error>) { pendingRequests[id] = cont }
-    func removePending(_ id: Int) -> CheckedContinuation<Data, Swift.Error>? { pendingRequests.removeValue(forKey: id) }
-    func setTimeout(_ seconds: TimeInterval) { requestTimeoutNs = UInt64((seconds > 0 ? seconds : 30) * 1_000_000_000) }
-    func addTimeoutTask(_ id: Int, _ task: Task<Void, Never>) { timeoutTasks[id] = task }
-    func cancelTimeout(_ id: Int) { timeoutTasks.removeValue(forKey: id)?.cancel() }
+    func getNextId() -> Int { defer { nextId += 1 }
+        return self.nextId
+    }
+
+    func addPending(_ id: Int, _ cont: CheckedContinuation<Data, Swift.Error>) { self.pendingRequests[id] = cont }
+    func removePending(_ id: Int) -> CheckedContinuation<Data, Swift.Error>? { self.pendingRequests
+        .removeValue(forKey: id)
+    }
+
+    func setTimeout(_ seconds: TimeInterval) {
+        self.requestTimeoutNs = UInt64((seconds > 0 ? seconds : 30) * 1_000_000_000)
+    }
+
+    func addTimeoutTask(_ id: Int, _ task: Task<Void, Never>) { self.timeoutTasks[id] = task }
+    func cancelTimeout(_ id: Int) { self.timeoutTasks.removeValue(forKey: id)?.cancel() }
     func cancelAll(_ error: Swift.Error) {
-        for (_, c) in pendingRequests { c.resume(throwing: error) }
-        pendingRequests.removeAll()
-        for (_, t) in timeoutTasks { t.cancel() }
-        timeoutTasks.removeAll()
+        for (_, c) in self.pendingRequests {
+            c.resume(throwing: error)
+        }
+        self.pendingRequests.removeAll()
+        for (_, t) in self.timeoutTasks {
+            t.cancel()
+        }
+        self.timeoutTasks.removeAll()
     }
 }
 
@@ -53,46 +61,51 @@ public final class SSETransport: MCPTransport {
             throw MCPError.connectionFailed("Invalid URL: \(config.command)")
         }
         // Per AI SDK, the SSE GET uses Accept: text/event-stream. Also forward any custom headers (e.g., Authorization)
-        var getHeaders: [String: String] = [
-            "Accept": "text/event-stream"
+        var getHeaders = [
+            "Accept": "text/event-stream",
         ]
         if let custom = config.headers {
-            for (k, v) in custom { getHeaders[k] = v }
+            for (k, v) in custom {
+                getHeaders[k] = v
+            }
         }
+        let sessionConfiguration = URLSessionConfiguration.default
+        sessionConfiguration.httpAdditionalHeaders = getHeaders
         let transport = HTTPClientTransport(
             endpoint: url,
-            headers: getHeaders,
+            configuration: sessionConfiguration,
             streaming: true,
             sseInitializationTimeout: min(max(config.timeout, 1), 60)
         )
         try await transport.connect()
-        await state.setTransport(transport)
-        await state.setBaseURL(url)
-        await state.setHeaders(config.headers ?? [:])
+        await self.state.setTransport(transport)
+        await self.state.setBaseURL(url)
+        await self.state.setHeaders(config.headers ?? [:])
         // Set the base URL as the default endpoint (can be overridden by 'endpoint' event)
-        await state.setEndpoint(url)
-        await state.setTimeout(config.timeout)
+        await self.state.setEndpoint(url)
+        await self.state.setTimeout(config.timeout)
         let verifyEndpoint = await state.getEndpoint()
-        logger.info("SSE transport connected: \(url), endpoint set to: \(verifyEndpoint?.absoluteString ?? "nil")")
-        startReading()
+        self.logger.info("SSE transport connected: \(url), endpoint set to: \(verifyEndpoint?.absoluteString ?? "nil")")
+        self.startReading()
     }
 
     public func disconnect() async {
-        logger.info("Disconnecting SSE transport")
+        self.logger.info("Disconnecting SSE transport")
         if let t = await state.getTransport() { await t.disconnect() }
-        await state.cancelAll(MCPError.notConnected)
-        await state.setTransport(nil)
+        await self.state.cancelAll(MCPError.notConnected)
+        await self.state.setTransport(nil)
     }
 
     // Expose underlying swift-sdk HTTP transport for advanced usage
     public func underlyingSDKTransport() async -> HTTPClientTransport? {
-        await state.getTransport()
+        await self.state.getTransport()
     }
 
-    public func sendRequest<P: Encodable, R: Decodable>(
+    public func sendRequest<R: Decodable>(
         method: String,
-        params: P
-    ) async throws -> R {
+        params: some Encodable
+    ) async throws
+    -> R {
         let id = await state.getNextId()
         // Build JSON-RPC request
         var dict: [String: Any] = [:]
@@ -107,22 +120,29 @@ public final class SSETransport: MCPTransport {
         // Ensure endpoint is available - either from 'endpoint' event or base URL
         guard let endpoint = await state.getEndpoint() else {
             let baseURL = await state.getBaseURL()
-            logger.error("SSE endpoint not established before send; method=\(method), baseURL=\(baseURL?.absoluteString ?? "nil")")
+            self.logger
+                .error(
+                    "SSE endpoint not established before send; method=\(method), baseURL=\(baseURL?.absoluteString ?? "nil")"
+                )
             throw MCPError.connectionFailed("SSE endpoint not established")
         }
-        logger.debug("Using endpoint: \(endpoint.absoluteString) for method=\(method)")
+        self.logger.debug("Using endpoint: \(endpoint.absoluteString) for method=\(method)")
 
         // Register pending BEFORE POSTing
-        let responseData = try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Data, Swift.Error>) in
+        let responseData = try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<
+            Data,
+            Swift.Error
+        >) in
             Task { @MainActor in
-                await state.addPending(id, continuation)
+                await self.state.addPending(id, continuation)
                 // Schedule timeout
                 let timeoutTask = Task { [logger] in
                     let ns = await state.requestTimeoutNs
                     try? await Task.sleep(nanoseconds: ns)
                     if let pending = await state.removePending(id) {
                         logger.error("MCP SSE request timed out: method=\(method), id=\(id)")
-                        pending.resume(throwing: MCPError.executionFailed("Request timed out after \(ns / 1_000_000)ms"))
+                        pending
+                            .resume(throwing: MCPError.executionFailed("Request timed out after \(ns / 1_000_000)ms"))
                     }
                 }
                 await state.addTimeoutTask(id, timeoutTask)
@@ -137,12 +157,17 @@ public final class SSETransport: MCPTransport {
                     request.setValue("application/json, text/event-stream", forHTTPHeaderField: "Accept")
                     // Custom headers if any
                     let headers = await state.headers
-                    for (k, v) in headers { request.setValue(v, forHTTPHeaderField: k) }
+                    for (k, v) in headers {
+                        request.setValue(v, forHTTPHeaderField: k)
+                    }
                     do {
                         let (respData, resp) = try await urlSession.data(for: request)
                         if let http = resp as? HTTPURLResponse, http.statusCode >= 400 {
                             let body = String(data: respData, encoding: .utf8) ?? "<non-utf8>"
-                            logger.error("MCP SSE POST error: HTTP \(http.statusCode) for method=\(method), id=\(id) body=\(body)")
+                            logger
+                                .error(
+                                    "MCP SSE POST error: HTTP \(http.statusCode) for method=\(method), id=\(id) body=\(body)"
+                                )
                         } else {
                             logger.debug("MCP SSE POST sent: method=\(method), id=\(id)")
                         }
@@ -161,9 +186,9 @@ public final class SSETransport: MCPTransport {
         return result
     }
 
-    public func sendNotification<P: Encodable>(
+    public func sendNotification(
         method: String,
-        params: P
+        params: some Encodable
     ) async throws {
         let note = JSONRPCNotification(jsonrpc: "2.0", method: method, params: params)
         let data = try JSONEncoder().encode(note)
@@ -175,19 +200,21 @@ public final class SSETransport: MCPTransport {
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("application/json, text/event-stream", forHTTPHeaderField: "Accept")
         let headers = await state.headers
-        for (k, v) in headers { request.setValue(v, forHTTPHeaderField: k) }
-        _ = try? await urlSession.data(for: request)
+        for (k, v) in headers {
+            request.setValue(v, forHTTPHeaderField: k)
+        }
+        _ = try? await self.urlSession.data(for: request)
     }
 
     private func startReading() {
         Task {
             guard let transport = await state.getTransport() else { return }
-            logger.debug("[SSE] Starting to read from transport stream")
+            self.logger.debug("[SSE] Starting to read from transport stream")
             let stream = await transport.receive()
             var buffer = ""
             for try await data in stream {
                 guard let chunk = String(data: data, encoding: .utf8) else {
-                    logger.debug("[SSE] Received non-UTF8 data of size \(data.count)")
+                    self.logger.debug("[SSE] Received non-UTF8 data of size \(data.count)")
                     continue
                 }
                 buffer += chunk
@@ -215,25 +242,27 @@ public final class SSETransport: MCPTransport {
             }
         }
         let dataString = dataLines.joined(separator: "\n")
-        logger.trace("[SSE] event=\(eventType) data=\(dataString)")
+        self.logger.trace("[SSE] event=\(eventType) data=\(dataString)")
         switch eventType {
         case "endpoint":
             // Allow either a plain string URL or a JSON object: { "url": "/rpc" } or { "endpoint": "/rpc" }
             if let base = await state.baseURL {
                 var endpointCandidate: String? = dataString
                 if dataString.trimmingCharacters(in: .whitespacesAndNewlines).hasPrefix("{") {
-                    if let jsonData = dataString.data(using: .utf8),
-                       let obj = try? JSONSerialization.jsonObject(with: jsonData) as? [String: Any] {
+                    if
+                        let jsonData = dataString.data(using: .utf8),
+                        let obj = try? JSONSerialization.jsonObject(with: jsonData) as? [String: Any]
+                    {
                         if let u = obj["url"] as? String { endpointCandidate = u }
                         else if let e = obj["endpoint"] as? String { endpointCandidate = e }
                     }
                 }
                 if let candidate = endpointCandidate, let url = URL(string: candidate, relativeTo: base) {
-                    if url.host == base.host && url.scheme == base.scheme {
-                        await state.setEndpoint(url.absoluteURL)
-                        logger.info("[SSE] Endpoint established: \(url.absoluteString)")
+                    if url.host == base.host, url.scheme == base.scheme {
+                        await self.state.setEndpoint(url.absoluteURL)
+                        self.logger.info("[SSE] Endpoint established: \(url.absoluteString)")
                     } else {
-                        logger.error("[SSE] Endpoint origin mismatch: \(url.absoluteString)")
+                        self.logger.error("[SSE] Endpoint origin mismatch: \(url.absoluteString)")
                     }
                 }
             }
@@ -251,19 +280,19 @@ public final class SSETransport: MCPTransport {
         // Try to parse as JSON object with id
         guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
             if let text = String(data: data, encoding: .utf8) {
-                logger.trace("[SSE] Received non-JSON event: \(text)")
+                self.logger.trace("[SSE] Received non-JSON event: \(text)")
             }
             return
         }
         // id may be int or string; we track by int ids we generate
         if let id = json["id"] as? Int {
             if let pending = await state.removePending(id) {
-                await state.cancelTimeout(id)
+                await self.state.cancelTimeout(id)
                 pending.resume(returning: data)
             }
         } else if let idString = json["id"] as? String, let id = Int(idString) {
             if let pending = await state.removePending(id) {
-                await state.cancelTimeout(id)
+                await self.state.cancelTimeout(id)
                 pending.resume(returning: data)
             }
         }
@@ -271,6 +300,7 @@ public final class SSETransport: MCPTransport {
 }
 
 // MARK: - JSON-RPC Types (local)
+
 private struct JSONRPCRequest<P: Encodable>: Encodable {
     let jsonrpc: String
     let method: String
@@ -294,11 +324,22 @@ private struct JSONRPCResponse<R: Decodable>: Decodable {
 private enum JSONRPCID: Decodable { case int(Int), string(String), null
     init(from decoder: Decoder) throws {
         let c = try decoder.singleValueContainer()
-        if let i = try? c.decode(Int.self) { self = .int(i); return }
-        if let s = try? c.decode(String.self) { self = .string(s); return }
-        if c.decodeNil() { self = .null; return }
-        throw DecodingError.typeMismatch(JSONRPCID.self, .init(codingPath: decoder.codingPath, debugDescription: "Unsupported id type"))
+        if let i = try? c.decode(Int.self) { self = .int(i)
+            return
+        }
+        if let s = try? c.decode(String.self) { self = .string(s)
+            return
+        }
+        if c.decodeNil() { self = .null
+            return
+        }
+        throw DecodingError.typeMismatch(
+            JSONRPCID.self,
+            .init(codingPath: decoder.codingPath, debugDescription: "Unsupported id type")
+        )
     }
 }
 
-private struct JSONRPCError: Decodable { let code: Int; let message: String }
+private struct JSONRPCError: Decodable { let code: Int
+    let message: String
+}

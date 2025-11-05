@@ -212,7 +212,8 @@ public enum ProviderParser {
     private static func parseAnthropicModel(_ modelString: String) -> LanguageModel? {
         switch modelString.lowercased() {
         case "claude-opus-4-1-20250805", "claude-opus-4-20250514", "claude-opus-4", "opus-4": .anthropic(.opus4)
-        case "claude-opus-4-1-20250805-thinking", "claude-opus-4-20250514-thinking", "claude-opus-4-thinking", "opus-4-thinking": .anthropic(.opus4Thinking)
+        case "claude-opus-4-1-20250805-thinking", "claude-opus-4-20250514-thinking", "claude-opus-4-thinking",
+             "opus-4-thinking": .anthropic(.opus4Thinking)
         case "claude-sonnet-4-20250514", "claude-sonnet-4", "sonnet-4": .anthropic(.sonnet4)
         case "claude-sonnet-4-20250514-thinking", "claude-sonnet-4-thinking",
              "sonnet-4-thinking": .anthropic(.sonnet4Thinking)
@@ -243,7 +244,6 @@ public enum ProviderParser {
         case "gpt-oss:120b", "gpt-oss-120b": .ollama(.gptOSS120B)
         case "gpt-oss:20b", "gpt-oss-20b": .ollama(.gptOSS20B)
         // Quantized versions removed - not defined in model enum
-        
         // Llama models
         case "llama3.3", "llama3.3:latest": .ollama(.llama33)
         case "llama3.2", "llama3.2:latest": .ollama(.llama32)

@@ -64,9 +64,9 @@ struct MinimalModernAPITests {
     func agentToolArgumentsParsing() throws {
         let args = AgentToolArguments([
             "name": AnyAgentToolValue(string: "test"),
-            "value": AnyAgentToolValue(int: 42)
+            "value": AnyAgentToolValue(int: 42),
         ])
-        
+
         #expect(try args.stringValue("name") == "test")
         #expect(try args.integerValue("value") == 42)
         #expect(args.optionalStringValue("missing") == nil)

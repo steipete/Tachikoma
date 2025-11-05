@@ -1,11 +1,6 @@
-//
-//  AudioManager.swift
-//  Tachikoma
-//
-
 #if canImport(AVFoundation)
-import Foundation
 @preconcurrency import AVFoundation
+import Foundation
 import Tachikoma
 
 // MARK: - Audio Manager
@@ -15,46 +10,46 @@ import Tachikoma
 @MainActor
 public final class RealtimeAudioManager: NSObject {
     // MARK: - Properties
-    
+
     /// Audio engine for processing
     private let audioEngine = AVAudioEngine()
-    
+
     /// Input node for capturing audio
     private var inputNode: AVAudioInputNode {
-        audioEngine.inputNode
+        self.audioEngine.inputNode
     }
-    
+
     /// Output node for playback
     private var outputNode: AVAudioOutputNode {
-        audioEngine.outputNode
+        self.audioEngine.outputNode
     }
-    
+
     /// Player node for audio playback
     private let playerNode = AVAudioPlayerNode()
-    
+
     /// Audio processor for format conversion
     private let processor: RealtimeAudioProcessor
-    
+
     /// Current recording state
     public private(set) var isRecording = false
-    
+
     /// Current playback state
     public private(set) var isPlaying = false
-    
+
     /// Audio level for UI feedback
     public private(set) var audioLevel: Float = 0
-    
+
     /// Callback for captured audio data
     public var onAudioCaptured: ((Data) async -> Void)?
-    
+
     /// Callback for audio level updates
     public var onAudioLevelUpdate: ((Float) -> Void)?
-    
+
     // Audio session configuration
     #if os(iOS) || os(watchOS) || os(tvOS)
     private let audioSession = AVAudioSession.sharedInstance()
     #endif
-    
+
     // Audio format for API (24kHz PCM16)
     private let apiFormat = AVAudioFormat(
         commonFormat: .pcmFormatInt16,
@@ -62,77 +57,77 @@ public final class RealtimeAudioManager: NSObject {
         channels: 1,
         interleaved: true
     )!
-    
+
     // Buffer for audio playback queue
     private var playbackQueue: [AVAudioPCMBuffer] = []
     private let playbackQueueLock = NSLock()
-    
+
     // MARK: - Initialization
-    
-    public override init() {
+
+    override public init() {
         do {
             self.processor = try RealtimeAudioProcessor()
         } catch {
             fatalError("Failed to initialize audio processor: \(error)")
         }
-        
+
         super.init()
-        setupAudioEngine()
+        self.setupAudioEngine()
     }
-    
+
     // MARK: - Setup
-    
+
     private func setupAudioEngine() {
         // Attach player node
-        audioEngine.attach(playerNode)
-        
+        self.audioEngine.attach(self.playerNode)
+
         // Connect player to output
-        audioEngine.connect(
-            playerNode,
-            to: outputNode,
-            format: apiFormat
+        self.audioEngine.connect(
+            self.playerNode,
+            to: self.outputNode,
+            format: self.apiFormat
         )
-        
+
         // Configure audio session for iOS
         #if os(iOS) || os(watchOS) || os(tvOS)
         do {
-            try audioSession.setCategory(
+            try self.audioSession.setCategory(
                 .playAndRecord,
                 mode: .voiceChat,
                 options: [.defaultToSpeaker, .allowBluetooth]
             )
-            try audioSession.setActive(true)
+            try self.audioSession.setActive(true)
         } catch {
             print("Failed to configure audio session: \(error)")
         }
         #endif
     }
-    
+
     // MARK: - Recording
-    
+
     /// Start recording audio
     public func startRecording() async throws {
-        guard !isRecording else { return }
-        
+        guard !self.isRecording else { return }
+
         // Request microphone permission if needed
         #if os(iOS) || os(watchOS) || os(tvOS)
         let permission = AVAudioSession.sharedInstance().recordPermission
         if permission == .undetermined {
             await withCheckedContinuation { continuation in
-                AVAudioSession.sharedInstance().requestRecordPermission { granted in
+                AVAudioSession.sharedInstance().requestRecordPermission { _ in
                     continuation.resume()
                 }
             }
         }
-        
+
         guard AVAudioSession.sharedInstance().recordPermission == .granted else {
             throw TachikomaError.permissionDenied("Microphone permission denied")
         }
         #endif
-        
+
         // Install tap on input node
-        let inputFormat = inputNode.outputFormat(forBus: 0)
-        inputNode.installTap(
+        let inputFormat = self.inputNode.outputFormat(forBus: 0)
+        self.inputNode.installTap(
             onBus: 0,
             bufferSize: 1024,
             format: inputFormat
@@ -141,130 +136,130 @@ public final class RealtimeAudioManager: NSObject {
                 await self?.processAudioBuffer(buffer)
             }
         }
-        
+
         // Start audio engine
-        if !audioEngine.isRunning {
-            try audioEngine.start()
+        if !self.audioEngine.isRunning {
+            try self.audioEngine.start()
         }
-        
-        isRecording = true
+
+        self.isRecording = true
     }
-    
+
     /// Stop recording audio
     public func stopRecording() {
-        guard isRecording else { return }
-        
+        guard self.isRecording else { return }
+
         // Remove tap
-        inputNode.removeTap(onBus: 0)
-        
+        self.inputNode.removeTap(onBus: 0)
+
         // Stop engine if not playing
-        if !isPlaying && audioEngine.isRunning {
-            audioEngine.stop()
+        if !self.isPlaying, self.audioEngine.isRunning {
+            self.audioEngine.stop()
         }
-        
-        isRecording = false
-        audioLevel = 0
-        onAudioLevelUpdate?(0)
+
+        self.isRecording = false
+        self.audioLevel = 0
+        self.onAudioLevelUpdate?(0)
     }
-    
+
     // MARK: - Playback
-    
+
     /// Play audio data
     public func playAudio(_ data: Data) async throws {
         // Convert data to buffer
         let buffer = try processor.processOutput(data)
-        
+
         // Add to playback queue
         await MainActor.run {
-            playbackQueueLock.withLock {
-                playbackQueue.append(buffer)
+            self.playbackQueueLock.withLock {
+                self.playbackQueue.append(buffer)
             }
         }
-        
+
         // Start playback if not already playing
-        if !isPlaying {
-            await startPlayback()
+        if !self.isPlaying {
+            await self.startPlayback()
         }
     }
-    
+
     /// Start audio playback
     private func startPlayback() async {
-        guard !isPlaying else { return }
-        
+        guard !self.isPlaying else { return }
+
         // Start engine if needed
-        if !audioEngine.isRunning {
+        if !self.audioEngine.isRunning {
             do {
-                try audioEngine.start()
+                try self.audioEngine.start()
             } catch {
                 print("Failed to start audio engine: \(error)")
                 return
             }
         }
-        
-        isPlaying = true
-        playerNode.play()
-        
+
+        self.isPlaying = true
+        self.playerNode.play()
+
         // Process playback queue
         Task {
-            await processPlaybackQueue()
+            await self.processPlaybackQueue()
         }
     }
-    
+
     /// Stop audio playback
     public func stopPlayback() {
-        guard isPlaying else { return }
-        
-        playerNode.stop()
-        
+        guard self.isPlaying else { return }
+
+        self.playerNode.stop()
+
         // Clear playback queue
-        playbackQueueLock.lock()
-        playbackQueue.removeAll()
-        playbackQueueLock.unlock()
-        
+        self.playbackQueueLock.lock()
+        self.playbackQueue.removeAll()
+        self.playbackQueueLock.unlock()
+
         // Stop engine if not recording
-        if !isRecording && audioEngine.isRunning {
-            audioEngine.stop()
+        if !self.isRecording, self.audioEngine.isRunning {
+            self.audioEngine.stop()
         }
-        
-        isPlaying = false
+
+        self.isPlaying = false
     }
-    
+
     // MARK: - Audio Processing
-    
+
     private func processAudioBuffer(_ buffer: AVAudioPCMBuffer) async {
         // Calculate audio level
-        let level = processor.calculateRMS(buffer)
-        audioLevel = level
-        onAudioLevelUpdate?(level)
-        
+        let level = self.processor.calculateRMS(buffer)
+        self.audioLevel = level
+        self.onAudioLevelUpdate?(level)
+
         // Check for silence
-        if processor.detectSilence(buffer) {
+        if self.processor.detectSilence(buffer) {
             // Don't send silent audio to save bandwidth
             return
         }
-        
+
         // Process buffer to API format
         do {
             let data = try processor.processInput(buffer)
-            await onAudioCaptured?(data)
+            await self.onAudioCaptured?(data)
         } catch {
             print("Failed to process audio buffer: \(error)")
         }
     }
-    
+
     private func processPlaybackQueue() async {
-        while isPlaying {
+        while self.isPlaying {
             // Get next buffer from queue
             let buffer = await MainActor.run {
-                playbackQueueLock.withLock {
-                    playbackQueue.isEmpty ? nil : playbackQueue.removeFirst()
+                self.playbackQueueLock.withLock {
+                    self.playbackQueue.isEmpty ? nil : self.playbackQueue.removeFirst()
                 }
             }
-            
-            if let buffer = buffer {
+
+            if let buffer {
                 // Schedule buffer for playback
-                await playerNode.scheduleBuffer(buffer)
-                
+                await self.playerNode.scheduleBuffer(buffer)
+
                 // Wait a bit before checking next buffer
                 try? await Task.sleep(nanoseconds: 10_000_000) // 10ms
             } else {
@@ -273,19 +268,19 @@ public final class RealtimeAudioManager: NSObject {
             }
         }
     }
-    
+
     // MARK: - Utility
-    
+
     /// Reset audio manager
     public func reset() {
-        stopRecording()
-        stopPlayback()
-        
+        self.stopRecording()
+        self.stopPlayback()
+
         // Reset audio level
-        audioLevel = 0
-        onAudioLevelUpdate?(0)
+        self.audioLevel = 0
+        self.onAudioLevelUpdate?(0)
     }
-    
+
     /// Get current audio devices
     public func getAudioDevices() -> (input: String?, output: String?) {
         #if os(macOS)
@@ -295,7 +290,7 @@ public final class RealtimeAudioManager: NSObject {
         return ("Built-in Microphone", "Built-in Speaker")
         #endif
     }
-    
+
     /// Set audio input device (macOS only)
     #if os(macOS)
     public func setInputDevice(_ deviceID: AudioDeviceID) throws {
@@ -318,21 +313,21 @@ extension RealtimeAudioManager {
     public func configureForVoiceChat() {
         #if os(iOS) || os(watchOS) || os(tvOS)
         do {
-            try audioSession.setCategory(
+            try self.audioSession.setCategory(
                 .playAndRecord,
                 mode: .voiceChat,
                 options: [.defaultToSpeaker, .allowBluetooth, .mixWithOthers]
             )
-            
+
             // Optimize for low latency
-            try audioSession.setPreferredIOBufferDuration(0.005) // 5ms buffer
-            try audioSession.setPreferredSampleRate(48000) // Device native rate
+            try self.audioSession.setPreferredIOBufferDuration(0.005) // 5ms buffer
+            try self.audioSession.setPreferredSampleRate(48000) // Device native rate
         } catch {
             print("Failed to configure audio session for voice chat: \(error)")
         }
         #endif
     }
-    
+
     /// Enable echo cancellation
     public func setEchoCancellation(_ enabled: Bool) {
         #if os(iOS) || os(watchOS) || os(tvOS)
@@ -340,15 +335,15 @@ extension RealtimeAudioManager {
         // This is a placeholder for more advanced configuration
         #endif
     }
-    
+
     /// Set voice processing (noise suppression, etc.)
     public func setVoiceProcessing(_ enabled: Bool) {
         #if os(iOS) || os(watchOS) || os(tvOS)
         do {
             if enabled {
-                try audioSession.setMode(.voiceChat)
+                try self.audioSession.setMode(.voiceChat)
             } else {
-                try audioSession.setMode(.default)
+                try self.audioSession.setMode(.default)
             }
         } catch {
             print("Failed to set voice processing: \(error)")
@@ -356,6 +351,5 @@ extension RealtimeAudioManager {
         #endif
     }
 }
-
 
 #endif // canImport(AVFoundation)

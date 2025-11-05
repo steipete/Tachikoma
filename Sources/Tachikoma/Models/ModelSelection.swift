@@ -63,10 +63,20 @@ public struct ModelSelector {
         // GPT-5 models (latest)
         case "gpt-5", "gpt5":
             return .gpt5
+        case "gpt-5-pro", "gpt5-pro", "gpt5pro":
+            return .gpt5Pro
         case "gpt-5-mini", "gpt5-mini", "gpt5mini":
             return .gpt5Mini
         case "gpt-5-nano", "gpt5-nano", "gpt5nano":
             return .gpt5Nano
+        case "gpt-5-thinking", "gpt5-thinking", "gpt5thinking":
+            return .gpt5Thinking
+        case "gpt-5-thinking-mini", "gpt5-thinking-mini", "gpt5thinkingmini":
+            return .gpt5ThinkingMini
+        case "gpt-5-thinking-nano", "gpt5-thinking-nano", "gpt5thinkingnano":
+            return .gpt5ThinkingNano
+        case "gpt-5-chat-latest", "gpt5-chat-latest":
+            return .gpt5ChatLatest
         // Direct matches
         case "gpt-4o", "gpt4o":
             return .gpt4o
@@ -85,10 +95,12 @@ public struct ModelSelector {
         case "o4-mini", "o4mini":
             return .o4Mini
         // Shortcuts
-        case "gpt", "gpt4", "gpt-4":
-            return .gpt41 // Default to latest GPT-4 variant
+        case "gpt":
+            return .gpt5Mini // Default to cost-optimised GPT-5
+        case "gpt4", "gpt-4":
+            return .gpt4o // Default to latest GPT-4 variant
         case "openai":
-            return .gpt5 // Default to GPT-5 now
+            return .gpt5Mini // Default to GPT-5 Mini now
         default:
             // Check if it's an OpenAI model ID
             if input.hasPrefix("gpt") || input.hasPrefix("o3") || input.hasPrefix("o4") {

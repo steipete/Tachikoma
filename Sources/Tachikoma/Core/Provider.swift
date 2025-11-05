@@ -1,8 +1,3 @@
-//
-//  Provider.swift
-//  Tachikoma
-//
-
 import Foundation
 
 /// Type-safe provider enumeration supporting both standard and custom AI providers.
@@ -17,7 +12,7 @@ import Foundation
 /// // Type-safe standard providers
 /// config.setAPIKey("sk-...", for: .openai)
 /// config.setAPIKey("sk-...", for: .anthropic)
-/// 
+///
 /// // Custom providers
 /// config.setAPIKey("key", for: .custom("my-provider"))
 /// ```
@@ -25,125 +20,125 @@ import Foundation
 public enum Provider: Sendable, Hashable, Codable {
     /// OpenAI provider (GPT models, DALL-E, etc.)
     case openai
-    
+
     /// Anthropic provider (Claude models)
     case anthropic
-    
+
     /// Grok provider (X.AI models)
     case grok
-    
+
     /// Groq provider (ultra-fast inference)
     case groq
-    
+
     /// Mistral AI provider
     case mistral
-    
+
     /// Google provider (Gemini models)
     case google
-    
+
     /// Ollama provider (local model hosting)
     case ollama
-    
+
     /// LMStudio provider (local model hosting with GUI)
     case lmstudio
-    
+
     /// Custom provider with user-defined identifier
     case custom(String)
-    
+
     /// String identifier for this provider
     public var identifier: String {
         switch self {
-        case .openai: return "openai"
-        case .anthropic: return "anthropic"
-        case .grok: return "grok"
-        case .groq: return "groq"
-        case .mistral: return "mistral"
-        case .google: return "google"
-        case .ollama: return "ollama"
-        case .lmstudio: return "lmstudio"
-        case .custom(let id): return id
+        case .openai: "openai"
+        case .anthropic: "anthropic"
+        case .grok: "grok"
+        case .groq: "groq"
+        case .mistral: "mistral"
+        case .google: "google"
+        case .ollama: "ollama"
+        case .lmstudio: "lmstudio"
+        case let .custom(id): id
         }
     }
-    
+
     /// Human-readable display name
     public var displayName: String {
         switch self {
-        case .openai: return "OpenAI"
-        case .anthropic: return "Anthropic"
-        case .grok: return "Grok"
-        case .groq: return "Groq"
-        case .mistral: return "Mistral"
-        case .google: return "Google"
-        case .ollama: return "Ollama"
-        case .lmstudio: return "LMStudio"
-        case .custom(let id): return id.capitalized
+        case .openai: "OpenAI"
+        case .anthropic: "Anthropic"
+        case .grok: "Grok"
+        case .groq: "Groq"
+        case .mistral: "Mistral"
+        case .google: "Google"
+        case .ollama: "Ollama"
+        case .lmstudio: "LMStudio"
+        case let .custom(id): id.capitalized
         }
     }
-    
+
     /// Environment variable name for API key (empty for custom providers)
     public var environmentVariable: String {
         switch self {
-        case .openai: return "OPENAI_API_KEY"
-        case .anthropic: return "ANTHROPIC_API_KEY"
-        case .grok: return "X_AI_API_KEY"
-        case .groq: return "GROQ_API_KEY"
-        case .mistral: return "MISTRAL_API_KEY"
-        case .google: return "GOOGLE_API_KEY"
-        case .ollama: return "OLLAMA_API_KEY"
-        case .lmstudio: return "" // LMStudio doesn't need API keys
-        case .custom: return "" // Custom providers manage their own env vars
+        case .openai: "OPENAI_API_KEY"
+        case .anthropic: "ANTHROPIC_API_KEY"
+        case .grok: "X_AI_API_KEY"
+        case .groq: "GROQ_API_KEY"
+        case .mistral: "MISTRAL_API_KEY"
+        case .google: "GOOGLE_API_KEY"
+        case .ollama: "OLLAMA_API_KEY"
+        case .lmstudio: "" // LMStudio doesn't need API keys
+        case .custom: "" // Custom providers manage their own env vars
         }
     }
-    
+
     /// Alternative environment variable names (for compatibility)
     public var alternativeEnvironmentVariables: [String] {
         switch self {
-        case .grok: return ["XAI_API_KEY"] // Alternative Grok API key name
-        default: return []
+        case .grok: ["XAI_API_KEY"] // Alternative Grok API key name
+        default: []
         }
     }
-    
+
     /// Default base URL for this provider (nil for custom providers)
     public var defaultBaseURL: String? {
         switch self {
-        case .openai: return "https://api.openai.com/v1"
-        case .anthropic: return "https://api.anthropic.com"
-        case .grok: return "https://api.x.ai/v1"
-        case .groq: return "https://api.groq.com/openai/v1"
-        case .mistral: return "https://api.mistral.ai/v1"
-        case .google: return "https://generativelanguage.googleapis.com/v1beta"
-        case .ollama: return "http://localhost:11434"
-        case .lmstudio: return "http://localhost:1234/v1"
-        case .custom: return nil
+        case .openai: "https://api.openai.com/v1"
+        case .anthropic: "https://api.anthropic.com"
+        case .grok: "https://api.x.ai/v1"
+        case .groq: "https://api.groq.com/openai/v1"
+        case .mistral: "https://api.mistral.ai/v1"
+        case .google: "https://generativelanguage.googleapis.com/v1beta"
+        case .ollama: "http://localhost:11434"
+        case .lmstudio: "http://localhost:1234/v1"
+        case .custom: nil
         }
     }
-    
+
     /// Whether this provider requires an API key
     public var requiresAPIKey: Bool {
         switch self {
-        case .ollama: return false // Ollama typically doesn't require API key
-        case .lmstudio: return false // LMStudio doesn't require API key
-        case .custom: return true // Assume custom providers need keys
-        default: return true
+        case .ollama: false // Ollama typically doesn't require API key
+        case .lmstudio: false // LMStudio doesn't require API key
+        case .custom: true // Assume custom providers need keys
+        default: true
         }
     }
-    
+
     /// All standard providers (excludes custom)
     public static var standardProviders: [Provider] {
         [.openai, .anthropic, .grok, .groq, .mistral, .google, .ollama]
     }
-    
+
     /// Create provider from string identifier
     public static func from(identifier: String) -> Provider {
         switch identifier.lowercased() {
-        case "openai": return .openai
-        case "anthropic": return .anthropic
-        case "grok": return .grok
-        case "groq": return .groq
-        case "mistral": return .mistral
-        case "google": return .google
-        case "ollama": return .ollama
-        default: return .custom(identifier)
+        case "openai": .openai
+        case "anthropic": .anthropic
+        case "grok": .grok
+        case "groq": .groq
+        case "mistral": .mistral
+        case "google": .google
+        case "ollama": .ollama
+        default: .custom(identifier)
         }
     }
 }
@@ -156,27 +151,27 @@ extension Provider {
     /// Checks primary environment variable first, then alternatives
     public func loadAPIKeyFromEnvironment() -> String? {
         let environment = ProcessInfo.processInfo.environment
-        
+
         // Check primary environment variable
-        if !environmentVariable.isEmpty {
+        if !self.environmentVariable.isEmpty {
             if let key = environment[environmentVariable], !key.isEmpty {
                 return key
             }
         }
-        
+
         // Check alternative environment variables
-        for altVar in alternativeEnvironmentVariables {
+        for altVar in self.alternativeEnvironmentVariables {
             if let key = environment[altVar], !key.isEmpty {
                 return key
             }
         }
-        
+
         return nil
     }
-    
+
     /// Check if API key is available in environment
     public var hasEnvironmentAPIKey: Bool {
-        loadAPIKeyFromEnvironment() != nil
+        self.loadAPIKeyFromEnvironment() != nil
     }
 }
 
@@ -189,9 +184,9 @@ extension Provider {
         let identifier = try container.decode(String.self)
         self = Provider.from(identifier: identifier)
     }
-    
+
     public func encode(to encoder: Encoder) throws {
         var container = encoder.singleValueContainer()
-        try container.encode(identifier)
+        try container.encode(self.identifier)
     }
 }

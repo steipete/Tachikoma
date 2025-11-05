@@ -510,8 +510,13 @@ public struct ModelCostCalculator: Sendable {
             case .o3Pro: (120.00, 480.00)
             case .o4Mini: (1.50, 6.00)
             case .gpt5: (5.00, 20.00) // GPT-5 pricing estimate
+            case .gpt5Pro: (12.00, 48.00) // Higher reasoning budget
             case .gpt5Mini: (1.00, 4.00) // GPT-5 Mini pricing estimate
             case .gpt5Nano: (0.50, 2.00) // GPT-5 Nano pricing estimate
+            case .gpt5Thinking: (16.00, 64.00) // Extended reasoning premium
+            case .gpt5ThinkingMini: (4.00, 16.00)
+            case .gpt5ThinkingNano: (1.50, 6.00)
+            case .gpt5ChatLatest: (2.50, 10.00)
             case .gpt41: (2.50, 10.00)
             case .gpt41Mini: (0.15, 0.60)
             case .gpt4o: (2.50, 10.00)
@@ -526,9 +531,11 @@ public struct ModelCostCalculator: Sendable {
             switch anthropicModel {
             case .opus4, .opus4Thinking: (15.00, 75.00)
             case .sonnet4, .sonnet4Thinking: (3.00, 15.00)
+            case .sonnet45: (4.00, 18.00)
             case .sonnet37: (3.00, 15.00)
             case .opus35: (15.00, 75.00)
             case .sonnet35: (3.00, 15.00)
+            case .haiku45: (1.20, 6.00)
             case .haiku35: (0.80, 4.00)
             case .opus3: (15.00, 75.00)
             case .sonnet3: (3.00, 15.00)

@@ -1,8 +1,3 @@
-//
-//  OpenAIProvider.swift
-//  Tachikoma
-//
-
 import Foundation
 
 /// Provider for OpenAI models

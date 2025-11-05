@@ -1,12 +1,7 @@
-//
-//  AudioRecorder.swift
-//  TachikomaAudio
-//
-
-import Foundation
 import AVFoundation
+import Foundation
 import os.log
-import Tachikoma  // For TachikomaError
+import Tachikoma // For TachikomaError
 
 /// Protocol for audio recording functionality
 @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
@@ -29,7 +24,6 @@ private let logger = Logger(subsystem: "com.tachikoma.audio", category: "AudioRe
 @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 @MainActor
 public final class AudioRecorder: ObservableObject, AudioRecorderProtocol {
-
     // MARK: - Properties
 
     private var audioEngine: AVAudioEngine?
@@ -76,7 +70,7 @@ public final class AudioRecorder: ObservableObject, AudioRecorderProtocol {
 
     /// Start recording audio from the microphone
     public func startRecording() async throws {
-        guard !isRecording else {
+        guard !self.isRecording else {
             throw AudioRecordingError.alreadyRecording
         }
 
@@ -92,7 +86,7 @@ public final class AudioRecorder: ObservableObject, AudioRecorderProtocol {
         // Create temporary file for recording
         let tempDir = FileManager.default.temporaryDirectory
         let fileName = "recording_\(Date().timeIntervalSince1970).wav"
-        recordingURL = tempDir.appendingPathComponent(fileName)
+        self.recordingURL = tempDir.appendingPathComponent(fileName)
 
         guard let url = recordingURL else {
             throw AudioRecordingError.failedToCreateFile
@@ -100,7 +94,7 @@ public final class AudioRecorder: ObservableObject, AudioRecorderProtocol {
 
         // Setup audio engine
         audioEngine = AVAudioEngine()
-        guard let audioEngine = audioEngine else {
+        guard let audioEngine else {
             throw AudioRecordingError.audioEngineError("Failed to create audio engine")
         }
 
@@ -111,7 +105,7 @@ public final class AudioRecorder: ObservableObject, AudioRecorderProtocol {
         audioFile = try AVAudioFile(forWriting: url, settings: recordingFormat.settings)
 
         // Install tap on a background queue to avoid inheriting any actor/queue context
-        guard let audioFile = audioFile else {
+        guard let audioFile else {
             throw AudioRecordingError.failedToCreateFile
         }
 
@@ -123,40 +117,40 @@ public final class AudioRecorder: ObservableObject, AudioRecorderProtocol {
         try audioEngine.start()
 
         // Update state
-        isRecording = true
-        isPaused = false
-        recordingStartTime = Date()
-        pausedDuration = 0
+        self.isRecording = true
+        self.isPaused = false
+        self.recordingStartTime = Date()
+        self.pausedDuration = 0
 
         // Start duration timer
-        startDurationTimer()
+        self.startDurationTimer()
 
         logger.info("Started audio recording")
     }
 
     /// Stop recording and return the recorded audio
     public func stopRecording() async throws -> AudioData {
-        guard isRecording else {
+        guard self.isRecording else {
             throw AudioRecordingError.notRecording
         }
 
         // Stop the audio engine
-        audioEngine?.stop()
-        audioEngine?.inputNode.removeTap(onBus: 0)
-        audioEngine = nil
+        self.audioEngine?.stop()
+        self.audioEngine?.inputNode.removeTap(onBus: 0)
+        self.audioEngine = nil
 
         // Close the audio file
-        audioFile = nil
+        self.audioFile = nil
 
         // Stop the timer
-        stopDurationTimer()
+        self.stopDurationTimer()
 
         // Update state
-        isRecording = false
-        isPaused = false
-        recordingDuration = 0
-        recordingStartTime = nil
-        pausedDuration = 0
+        self.isRecording = false
+        self.isPaused = false
+        self.recordingDuration = 0
+        self.recordingStartTime = nil
+        self.pausedDuration = 0
 
         logger.info("Stopped audio recording")
 
@@ -177,30 +171,30 @@ public final class AudioRecorder: ObservableObject, AudioRecorderProtocol {
 
     /// Cancel recording without returning data
     public func cancelRecording() async {
-        guard isRecording else { return }
+        guard self.isRecording else { return }
 
         // Stop the audio engine
-        audioEngine?.stop()
-        audioEngine?.inputNode.removeTap(onBus: 0)
-        audioEngine = nil
+        self.audioEngine?.stop()
+        self.audioEngine?.inputNode.removeTap(onBus: 0)
+        self.audioEngine = nil
 
         // Close the audio file
-        audioFile = nil
+        self.audioFile = nil
 
         // Stop the timer
-        stopDurationTimer()
+        self.stopDurationTimer()
 
         // Update state
-        isRecording = false
-        isPaused = false
-        recordingDuration = 0
-        recordingStartTime = nil
-        pausedDuration = 0
+        self.isRecording = false
+        self.isPaused = false
+        self.recordingDuration = 0
+        self.recordingStartTime = nil
+        self.pausedDuration = 0
 
         // Clean up the temporary file
         if let url = recordingURL {
             try? FileManager.default.removeItem(at: url)
-            recordingURL = nil
+            self.recordingURL = nil
         }
 
         logger.info("Cancelled audio recording")
@@ -208,27 +202,27 @@ public final class AudioRecorder: ObservableObject, AudioRecorderProtocol {
 
     /// Pause the current recording
     public func pauseRecording() async {
-        guard isRecording && !isPaused else { return }
+        guard self.isRecording, !self.isPaused else { return }
 
-        audioEngine?.pause()
-        isPaused = true
-        pauseStartTime = Date()
+        self.audioEngine?.pause()
+        self.isPaused = true
+        self.pauseStartTime = Date()
 
         logger.info("Paused audio recording")
     }
 
     /// Resume a paused recording
     public func resumeRecording() async {
-        guard isRecording && isPaused else { return }
+        guard self.isRecording, self.isPaused else { return }
 
         if let pauseStart = pauseStartTime {
-            pausedDuration += Date().timeIntervalSince(pauseStart)
+            self.pausedDuration += Date().timeIntervalSince(pauseStart)
         }
 
         do {
-            try audioEngine?.start()
-            isPaused = false
-            pauseStartTime = nil
+            try self.audioEngine?.start()
+            self.isPaused = false
+            self.pauseStartTime = nil
 
             logger.info("Resumed audio recording")
         } catch {
@@ -274,11 +268,11 @@ public final class AudioRecorder: ObservableObject, AudioRecorderProtocol {
     }
 
     private func startDurationTimer() {
-        stopDurationTimer()
+        self.stopDurationTimer()
 
-        let startTime = recordingStartTime
-        recordingTimer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in
-            guard let self = self, let startTime = startTime else { return }
+        let startTime = self.recordingStartTime
+        self.recordingTimer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in
+            guard let self, let startTime else { return }
 
             Task { @MainActor in
                 let elapsed = Date().timeIntervalSince(startTime) - self.pausedDuration
@@ -294,8 +288,8 @@ public final class AudioRecorder: ObservableObject, AudioRecorderProtocol {
     }
 
     private func stopDurationTimer() {
-        recordingTimer?.invalidate()
-        recordingTimer = nil
+        self.recordingTimer?.invalidate()
+        self.recordingTimer = nil
     }
 }
 
@@ -305,25 +299,27 @@ public final class AudioRecorder: ObservableObject, AudioRecorderProtocol {
 private final class ThreadSafeAudioFile: @unchecked Sendable {
     private let audioFile: AVAudioFile
     private let lock = NSLock()
-    
+
     init(audioFile: AVAudioFile) {
         self.audioFile = audioFile
     }
-    
+
     func write(from buffer: AVAudioPCMBuffer) throws {
-        lock.lock()
+        self.lock.lock()
         defer { lock.unlock() }
-        try audioFile.write(from: buffer)
+        try self.audioFile.write(from: buffer)
     }
 }
 
 // MARK: - Realtime helper (free function, not MainActor-isolated)
 
-private func installInputTapNonisolated(inputNode: AVAudioInputNode,
-                                       format: AVAudioFormat,
-                                       audioFile: AVAudioFile) {
+private func installInputTapNonisolated(
+    inputNode: AVAudioInputNode,
+    format: AVAudioFormat,
+    audioFile: AVAudioFile
+) {
     let threadSafeFile = ThreadSafeAudioFile(audioFile: audioFile)
-    
+
     inputNode.installTap(onBus: 0, bufferSize: 1024, format: format) { buffer, _ in
         do {
             try threadSafeFile.write(from: buffer)
@@ -350,21 +346,21 @@ public enum AudioRecordingError: LocalizedError {
     public var errorDescription: String? {
         switch self {
         case .alreadyRecording:
-            return "Already recording audio"
+            "Already recording audio"
         case .notRecording:
-            return "Not currently recording"
+            "Not currently recording"
         case .microphonePermissionDenied:
-            return "Microphone permission denied"
-        case .audioEngineError(let message):
-            return "Audio engine error: \(message)"
+            "Microphone permission denied"
+        case let .audioEngineError(message):
+            "Audio engine error: \(message)"
         case .failedToCreateFile:
-            return "Failed to create recording file"
+            "Failed to create recording file"
         case .noRecordingAvailable:
-            return "No recording available"
+            "No recording available"
         case .recordingTooShort:
-            return "Recording is too short"
+            "Recording is too short"
         case .recordingTooLong:
-            return "Recording exceeded maximum duration"
+            "Recording exceeded maximum duration"
         }
     }
 }
@@ -393,6 +389,6 @@ extension AudioRecorder {
 @available(macOS 13.0, *)
 extension AudioRecorder {
     /// No-op on macOS where `AVAudioSession` is not used
-    private func configureAudioSession() { }
+    private func configureAudioSession() {}
 }
 #endif

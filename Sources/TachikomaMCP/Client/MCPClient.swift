@@ -1,11 +1,7 @@
-//
-//  MCPClient.swift
-//  TachikomaMCP
-//
-
 import Foundation
-import MCP
 import Logging
+import MCP
+
 // Shared JSON-RPC types for HTTP transport
 struct HTTPJSONRPCRequest<P: Encodable>: Encodable {
     let jsonrpc = "2.0"
@@ -21,21 +17,22 @@ struct HTTPJSONRPCResponse<R: Decodable>: Decodable {
     let id: Int?
 }
 
-struct HTTPJSONRPCError: Decodable { let code: Int; let message: String }
-
+struct HTTPJSONRPCError: Decodable { let code: Int
+    let message: String
+}
 
 /// Configuration for an MCP server connection
 public struct MCPServerConfig: Sendable, Codable {
-    public var transport: String          // "stdio", "http", "sse"
-    public var command: String            // executable path or URL for HTTP/SSE
-    public var args: [String]             // command arguments (stdio) or unused
-    public var env: [String: String]      // environment variables
+    public var transport: String // "stdio", "http", "sse"
+    public var command: String // executable path or URL for HTTP/SSE
+    public var args: [String] // command arguments (stdio) or unused
+    public var env: [String: String] // environment variables
     public var headers: [String: String]? // optional HTTP headers (HTTP/SSE)
-    public var enabled: Bool              // enable/disable server
-    public var timeout: TimeInterval      // connection timeout
-    public var autoReconnect: Bool        // auto-reconnect on failure
-    public var description: String?       // human-readable description
-    
+    public var enabled: Bool // enable/disable server
+    public var timeout: TimeInterval // connection timeout
+    public var autoReconnect: Bool // auto-reconnect on failure
+    public var description: String? // human-readable description
+
     public init(
         transport: String = "stdio",
         command: String,
@@ -64,19 +61,19 @@ private actor MCPClientState {
     var transport: (any MCPTransport)?
     var tools: [Tool] = []
     var isConnected: Bool = false
-    
+
     func setTransport(_ transport: (any MCPTransport)?) {
         self.transport = transport
     }
-    
+
     func getTransport() -> (any MCPTransport)? {
-        return transport
+        self.transport
     }
-    
+
     func setConnected(_ connected: Bool) {
         self.isConnected = connected
     }
-    
+
     func setTools(_ tools: [Tool]) {
         self.tools = tools
     }
@@ -89,7 +86,7 @@ public final class MCPClient: Sendable {
     private let client: Client
     private let state = MCPClientState()
     private let name: String
-    
+
     public init(name: String, config: MCPServerConfig) {
         self.name = name
         self.config = config
@@ -99,18 +96,18 @@ public final class MCPClient: Sendable {
             version: "1.0.0"
         )
     }
-    
+
     /// Connect to the MCP server
     public func connect() async throws {
-        guard config.enabled else {
+        guard self.config.enabled else {
             throw MCPError.serverDisabled
         }
-        
-        logger.info("Connecting to MCP server '\(name)'")
-        
+
+        self.logger.info("Connecting to MCP server '\(self.name)'")
+
         // Create appropriate transport based on config
         let transport: any MCPTransport
-        switch config.transport.lowercased() {
+        switch self.config.transport.lowercased() {
         case "stdio":
             // Always use standard stdio transport now that we've fixed the reading issue
             transport = StdioTransport()
@@ -119,14 +116,14 @@ public final class MCPClient: Sendable {
         case "http":
             transport = HTTPTransport()
         default:
-            throw MCPError.unsupportedTransport(config.transport)
+            throw MCPError.unsupportedTransport(self.config.transport)
         }
-        
-        await state.setTransport(transport)
-        
+
+        await self.state.setTransport(transport)
+
         // Connect transport
-        try await transport.connect(config: config)
-        
+        try await transport.connect(config: self.config)
+
         // Initialize MCP handshake
         let initParams = InitializeParams(
             protocolVersion: "2025-03-26",
@@ -138,88 +135,96 @@ public final class MCPClient: Sendable {
             initResponse = try await transport.sendRequest(method: "initialize", params: initParams)
         } catch {
             // Fallback 1: Older protocol version
-            let oldParams = InitializeParams(protocolVersion: "2024-11-05", clientInfo: initParams.clientInfo, capabilities: initParams.capabilities)
+            let oldParams = InitializeParams(
+                protocolVersion: "2024-11-05",
+                clientInfo: initParams.clientInfo,
+                capabilities: initParams.capabilities
+            )
             do {
                 initResponse = try await transport.sendRequest(method: "initialize", params: oldParams)
             } catch {
                 // Fallback 2: snake_case protocol_version with older version
-                let snake = InitializeParamsSnake(protocolVersion: oldParams.protocolVersion, clientInfo: initParams.clientInfo, capabilities: initParams.capabilities)
+                let snake = InitializeParamsSnake(
+                    protocolVersion: oldParams.protocolVersion,
+                    clientInfo: initParams.clientInfo,
+                    capabilities: initParams.capabilities
+                )
                 initResponse = try await transport.sendRequest(method: "initialize", params: snake)
             }
         }
-        
-        logger.debug("Initialized MCP connection: \(initResponse)")
-        
+
+        self.logger.debug("Initialized MCP connection: \(initResponse)")
+
         // Send initialized notification (per spec name)
         // Some servers (like Context7) may not support this notification
         do {
             try await transport.sendNotification(method: "notifications/initialized", params: EmptyParams())
         } catch {
-            logger.debug("Server may not support notifications/initialized: \(error)")
+            self.logger.debug("Server may not support notifications/initialized: \(error)")
         }
-        
+
         // Discover tools
-        await discoverTools()
-        
-        await state.setConnected(true)
+        await self.discoverTools()
+
+        await self.state.setConnected(true)
     }
-    
+
     /// Disconnect from the MCP server
     public func disconnect() async {
-        logger.info("Disconnecting from MCP server '\(name)'")
+        self.logger.info("Disconnecting from MCP server '\(self.name)'")
         if let transport = await state.getTransport() {
             await transport.disconnect()
         }
-        await state.setConnected(false)
-        await state.setTools([])
+        await self.state.setConnected(false)
+        await self.state.setTools([])
     }
-    
+
     /// Check if the client is connected
     public var isConnected: Bool {
         get async {
-            await state.isConnected
+            await self.state.isConnected
         }
     }
-    
+
     /// Get available tools
     public var tools: [Tool] {
         get async {
-            await state.tools
+            await self.state.tools
         }
     }
-    
+
     /// Discover available tools from the server
     private func discoverTools() async {
         do {
             guard let transport = await state.getTransport() else {
                 throw MCPError.notConnected
             }
-            
+
             let response: ToolsListResponse = try await transport.sendRequest(
                 method: "tools/list",
                 params: EmptyParams()
             )
-            
-            await state.setTools(response.tools)
-            logger.info("Discovered \(response.tools.count) tools from '\(name)'")
+
+            await self.state.setTools(response.tools)
+            self.logger.info("Discovered \(response.tools.count) tools from '\(self.name)'")
         } catch {
-            logger.error("Failed to discover tools: \(error)")
+            self.logger.error("Failed to discover tools: \(error)")
         }
     }
-    
+
     /// Execute a tool by name
     public func executeTool(name: String, arguments: [String: Any]) async throws -> ToolResponse {
         guard let transport = await state.getTransport() else {
             throw MCPError.notConnected
         }
-        
-        guard await isConnected else {
+
+        guard await self.isConnected else {
             throw MCPError.notConnected
         }
-        
+
         // Convert arguments to MCP Value
         let args = ToolArguments(raw: arguments)
-        
+
         // Send tool execution request
         let response: ToolCallResponse = try await transport.sendRequest(
             method: "tools/call",
@@ -228,7 +233,7 @@ public final class MCPClient: Sendable {
                 arguments: args.rawValue
             )
         )
-        
+
         // Convert response to ToolResponse
         return ToolResponse(
             content: response.content,
@@ -244,7 +249,7 @@ struct InitializeParams: Codable {
     let clientInfo: ClientInfo
     let capabilities: ClientCapabilities
     enum CodingKeys: String, CodingKey {
-        case protocolVersion = "protocolVersion"
+        case protocolVersion
         case clientInfo
         case capabilities
     }
@@ -265,12 +270,12 @@ struct InitializeParamsSnake: Codable {
 struct InitializeResponse: Decodable {
     let serverInfo: ServerInfo?
     let capabilities: ServerCapabilities?
-    
+
     struct ServerInfo: Decodable {
         let name: String
         let version: String?
     }
-    
+
     struct ServerCapabilities: Decodable {
         // Simplified for now - can be expanded as needed
     }
@@ -311,21 +316,21 @@ public enum MCPError: LocalizedError {
     case invalidResponse
     case connectionFailed(String)
     case executionFailed(String)
-    
+
     public var errorDescription: String? {
         switch self {
         case .serverDisabled:
-            return "MCP server is disabled"
-        case .unsupportedTransport(let transport):
-            return "Unsupported transport: \(transport)"
+            "MCP server is disabled"
+        case let .unsupportedTransport(transport):
+            "Unsupported transport: \(transport)"
         case .notConnected:
-            return "MCP client is not connected"
+            "MCP client is not connected"
         case .invalidResponse:
-            return "Invalid response from MCP server"
-        case .connectionFailed(let reason):
-            return "Connection failed: \(reason)"
-        case .executionFailed(let reason):
-            return "Execution failed: \(reason)"
+            "Invalid response from MCP server"
+        case let .connectionFailed(reason):
+            "Connection failed: \(reason)"
+        case let .executionFailed(reason):
+            "Execution failed: \(reason)"
         }
     }
 }

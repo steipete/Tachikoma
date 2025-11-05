@@ -1,5 +1,5 @@
 import Foundation
-import Tachikoma  // For TachikomaError
+import Tachikoma // For TachikomaError
 
 // MARK: - Audio Data Types
 

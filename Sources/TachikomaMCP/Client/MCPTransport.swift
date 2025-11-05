@@ -1,8 +1,3 @@
-//
-//  MCPTransport.swift
-//  TachikomaMCP
-//
-
 import Foundation
 import MCP
 
@@ -10,20 +5,21 @@ import MCP
 public protocol MCPTransport: Sendable {
     /// Connect to the MCP server
     func connect(config: MCPServerConfig) async throws
-    
+
     /// Disconnect from the MCP server
     func disconnect() async
-    
+
     /// Send a request and wait for response
-    func sendRequest<P: Encodable, R: Decodable>(
+    func sendRequest<R: Decodable>(
         method: String,
-        params: P
-    ) async throws -> R
-    
+        params: some Encodable
+    ) async throws
+        -> R
+
     /// Send a notification (no response expected)
-    func sendNotification<P: Encodable>(
+    func sendNotification(
         method: String,
-        params: P
+        params: some Encodable
     ) async throws
 }
 

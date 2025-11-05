@@ -1,8 +1,3 @@
-//
-//  Embeddings.swift
-//  Tachikoma
-//
-
 import Foundation
 
 // MARK: - Embeddings API
@@ -14,20 +9,21 @@ public func generateEmbedding(
     input: EmbeddingInput,
     settings: EmbeddingSettings = .default,
     configuration: TachikomaConfiguration = TachikomaConfiguration()
-) async throws -> EmbeddingResult {
+) async throws
+-> EmbeddingResult {
     let provider = try EmbeddingProviderFactory.createProvider(for: model, configuration: configuration)
-    
+
     let request = EmbeddingRequest(
         input: input,
         settings: settings
     )
-    
+
     let response = try await provider.generateEmbedding(request: request)
-    
+
     // Track usage
     let sessionId = "embedding-\(UUID().uuidString)"
     _ = UsageTracker.shared.startSession(sessionId)
-    
+
     if let usage = response.usage {
         UsageTracker.shared.recordUsage(
             sessionId: sessionId,
@@ -36,9 +32,9 @@ public func generateEmbedding(
             operation: .embedding
         )
     }
-    
+
     _ = UsageTracker.shared.endSession(sessionId)
-    
+
     return response
 }
 
@@ -50,33 +46,34 @@ public func generateEmbeddingsBatch(
     settings: EmbeddingSettings = .default,
     concurrency: Int = 5,
     configuration: TachikomaConfiguration = TachikomaConfiguration()
-) async throws -> [EmbeddingResult] {
+) async throws
+-> [EmbeddingResult] {
     let provider = try EmbeddingProviderFactory.createProvider(for: model, configuration: configuration)
-    
+
     // Use TaskGroup for controlled concurrency
     return try await withThrowingTaskGroup(of: (Int, EmbeddingResult).self) { group in
         // Limit concurrent requests
         let semaphore = EmbeddingAsyncSemaphore(value: concurrency)
-        
+
         for (index, input) in inputs.enumerated() {
             group.addTask {
                 await semaphore.wait()
                 defer { Task { await semaphore.signal() } }
-                
+
                 let request = EmbeddingRequest(input: input, settings: settings)
                 let result = try await provider.generateEmbedding(request: request)
                 return (index, result)
             }
         }
-        
+
         // Collect results in order
         var results: [(Int, EmbeddingResult)] = []
         for try await result in group {
             results.append(result)
         }
-        
+
         // Sort by index and extract results
-        return results.sorted { $0.0 < $1.0 }.map { $0.1 }
+        return results.sorted { $0.0 < $1.0 }.map(\.1)
     }
 }
 
@@ -89,34 +86,34 @@ public enum EmbeddingModel: Sendable {
     case cohere(CohereEmbedding)
     case voyage(VoyageEmbedding)
     case custom(String)
-    
+
     public enum OpenAIEmbedding: String, Sendable, CaseIterable {
         case ada002 = "text-embedding-ada-002"
         case small3 = "text-embedding-3-small"
         case large3 = "text-embedding-3-large"
     }
-    
+
     public enum CohereEmbedding: String, Sendable, CaseIterable {
         case english3 = "embed-english-v3.0"
         case multilingual3 = "embed-multilingual-v3.0"
         case englishLight3 = "embed-english-light-v3.0"
         case multilingualLight3 = "embed-multilingual-light-v3.0"
     }
-    
+
     public enum VoyageEmbedding: String, Sendable, CaseIterable {
         case voyage2 = "voyage-2"
         case voyage2Code = "voyage-code-2"
         case voyage2Large = "voyage-large-2"
     }
-    
+
     /// Convert to LanguageModel for usage tracking
     func toLanguageModel() -> LanguageModel {
         switch self {
         case .openai:
-            return .openai(.gpt4o) // Placeholder for tracking
+            .openai(.gpt4o) // Placeholder for tracking
         case .cohere, .voyage, .custom:
             // Return a dummy model for tracking purposes
-            return .openai(.gpt4o)
+            .openai(.gpt4o)
         }
     }
 }
@@ -127,15 +124,15 @@ public enum EmbeddingInput: Sendable {
     case text(String)
     case texts([String])
     case tokens([Int])
-    
+
     var asTexts: [String] {
         switch self {
-        case .text(let string):
-            return [string]
-        case .texts(let strings):
-            return strings
+        case let .text(string):
+            [string]
+        case let .texts(strings):
+            strings
         case .tokens:
-            return [] // Provider will handle token conversion
+            [] // Provider will handle token conversion
         }
     }
 }
@@ -146,13 +143,13 @@ public struct EmbeddingSettings: Sendable, Codable {
     public let dimensions: Int?
     public let normalizeEmbeddings: Bool
     public let truncate: TruncationStrategy?
-    
+
     public enum TruncationStrategy: String, Sendable, Codable {
         case start
         case end
         case none
     }
-    
+
     public init(
         dimensions: Int? = nil,
         normalizeEmbeddings: Bool = true,
@@ -162,7 +159,7 @@ public struct EmbeddingSettings: Sendable, Codable {
         self.normalizeEmbeddings = normalizeEmbeddings
         self.truncate = truncate
     }
-    
+
     public static let `default` = EmbeddingSettings()
 }
 
@@ -173,7 +170,7 @@ public struct EmbeddingResult: Sendable {
     public let model: String
     public let usage: Usage?
     public let metadata: EmbeddingMetadata?
-    
+
     public init(
         embeddings: [[Double]],
         model: String,
@@ -185,15 +182,15 @@ public struct EmbeddingResult: Sendable {
         self.usage = usage
         self.metadata = metadata
     }
-    
+
     /// Get first embedding (convenience for single text input)
     public var embedding: [Double]? {
-        embeddings.first
+        self.embeddings.first
     }
-    
+
     /// Number of dimensions in embeddings
     public var dimensions: Int? {
-        embeddings.first?.count
+        self.embeddings.first?.count
     }
 }
 
@@ -202,7 +199,7 @@ public struct EmbeddingResult: Sendable {
 public struct EmbeddingMetadata: Sendable, Codable {
     public let truncated: Bool
     public let normalizedL2: Bool
-    
+
     public init(truncated: Bool = false, normalizedL2: Bool = false) {
         self.truncated = truncated
         self.normalizedL2 = normalizedL2
@@ -231,25 +228,26 @@ struct EmbeddingProviderFactory {
     static func createProvider(
         for model: EmbeddingModel,
         configuration: TachikomaConfiguration
-    ) throws -> EmbeddingProvider {
+    ) throws
+    -> EmbeddingProvider {
         switch model {
-        case .openai(let openAIModel):
+        case let .openai(openAIModel):
             return OpenAIEmbeddingProvider(
                 model: openAIModel,
                 apiKey: configuration.getAPIKey(for: "openai"),
                 baseURL: configuration.getBaseURL(for: "openai")
             )
-        case .cohere(let cohereModel):
+        case let .cohere(cohereModel):
             return CohereEmbeddingProvider(
                 model: cohereModel,
                 apiKey: configuration.getAPIKey(for: "cohere") ?? ProcessInfo.processInfo.environment["COHERE_API_KEY"]
             )
-        case .voyage(let voyageModel):
+        case let .voyage(voyageModel):
             return VoyageEmbeddingProvider(
                 model: voyageModel,
                 apiKey: configuration.getAPIKey(for: "voyage") ?? ProcessInfo.processInfo.environment["VOYAGE_API_KEY"]
             )
-        case .custom(let modelId):
+        case let .custom(modelId):
             throw TachikomaError.unsupportedOperation("Custom embedding model '\(modelId)' not implemented")
         }
     }
@@ -261,27 +259,27 @@ struct EmbeddingProviderFactory {
 private actor EmbeddingAsyncSemaphore {
     private var value: Int
     private var waiters: [CheckedContinuation<Void, Never>] = []
-    
+
     init(value: Int) {
         self.value = value
     }
-    
+
     func wait() async {
-        if value > 0 {
-            value -= 1
+        if self.value > 0 {
+            self.value -= 1
         } else {
             await withCheckedContinuation { continuation in
-                waiters.append(continuation)
+                self.waiters.append(continuation)
             }
         }
     }
-    
+
     func signal() {
         if let waiter = waiters.first {
-            waiters.removeFirst()
+            self.waiters.removeFirst()
             waiter.resume()
         } else {
-            value += 1
+            self.value += 1
         }
     }
 }

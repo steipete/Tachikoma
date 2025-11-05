@@ -1,8 +1,3 @@
-//
-//  MCPTool.swift
-//  TachikomaMCP
-//
-
 import Foundation
 import MCP
 import Tachikoma
@@ -11,13 +6,13 @@ import Tachikoma
 public protocol MCPTool: Sendable {
     /// The unique name of the tool
     var name: String { get }
-    
+
     /// A human-readable description of what the tool does
     var description: String { get }
-    
+
     /// JSON Schema defining the input parameters
     var inputSchema: Value { get }
-    
+
     /// Execute the tool with the given arguments
     func execute(arguments: ToolArguments) async throws -> ToolResponse
 }
@@ -25,16 +20,16 @@ public protocol MCPTool: Sendable {
 /// Wrapper for tool arguments received from MCP
 public struct ToolArguments: Sendable {
     private let raw: Value
-    
+
     public init(raw: [String: Any]) {
         // Convert [String: Any] to Value for Sendable compliance
         self.raw = .object(raw.mapValues { convertToValue($0) })
     }
-    
+
     public init(value: Value) {
         self.raw = value
     }
-    
+
     /// Expose arguments as a plain dictionary for bridging to non-Sendable APIs
     public var rawDictionary: [String: Any] {
         guard case let .object(dict) = raw else { return [:] }
@@ -51,13 +46,13 @@ public struct ToolArguments: Sendable {
             }
         }
     }
-    
+
     /// Decode arguments into a specific type
     public func decode<T: Decodable>(_ type: T.Type) throws -> T {
         let data = try JSONEncoder().encode(self.raw)
         return try JSONDecoder().decode(type, from: data)
     }
-    
+
     /// Get a specific value by key
     public func getValue(for key: String) -> Value? {
         if case let .object(dict) = raw {
@@ -65,7 +60,7 @@ public struct ToolArguments: Sendable {
         }
         return nil
     }
-    
+
     /// Check if arguments are empty
     public var isEmpty: Bool {
         if case let .object(dict) = raw {
@@ -73,9 +68,9 @@ public struct ToolArguments: Sendable {
         }
         return true
     }
-    
+
     // MARK: - Convenience methods for common types
-    
+
     /// Get a string value
     public func getString(_ key: String) -> String? {
         guard let value = getValue(for: key) else { return nil }
@@ -92,7 +87,7 @@ public struct ToolArguments: Sendable {
             return nil
         }
     }
-    
+
     /// Get a number (Int or Double) as Double
     public func getNumber(_ key: String) -> Double? {
         guard let value = getValue(for: key) else { return nil }
@@ -107,7 +102,7 @@ public struct ToolArguments: Sendable {
             return nil
         }
     }
-    
+
     /// Get an integer value
     public func getInt(_ key: String) -> Int? {
         guard let value = getValue(for: key) else { return nil }
@@ -122,7 +117,7 @@ public struct ToolArguments: Sendable {
             return nil
         }
     }
-    
+
     /// Get a boolean value
     public func getBool(_ key: String) -> Bool? {
         guard let value = getValue(for: key) else { return nil }
@@ -137,7 +132,7 @@ public struct ToolArguments: Sendable {
             return nil
         }
     }
-    
+
     /// Get an array of strings
     public func getStringArray(_ key: String) -> [String]? {
         guard let value = getValue(for: key) else { return nil }
@@ -151,23 +146,23 @@ public struct ToolArguments: Sendable {
         }
         return nil
     }
-    
+
     /// Get the raw Value
     public var rawValue: Value {
-        raw
+        self.raw
     }
 }
 
 private func ValueToAny(_ value: Value) -> Any {
     switch value {
-    case let .string(s): return s
-    case let .int(i): return i
-    case let .double(d): return d
-    case let .bool(b): return b
-    case let .array(arr): return arr.map { ValueToAny($0) }
-    case let .object(obj): return obj.mapValues { ValueToAny($0) }
-    case .null: return NSNull()
-    case let .data(mime, data): return ["type": "data", "mimeType": mime ?? "application/octet-stream", "data": data]
+    case let .string(s): s
+    case let .int(i): i
+    case let .double(d): d
+    case let .bool(b): b
+    case let .array(arr): arr.map { ValueToAny($0) }
+    case let .object(obj): obj.mapValues { ValueToAny($0) }
+    case .null: NSNull()
+    case let .data(mime, data): ["type": "data", "mimeType": mime ?? "application/octet-stream", "data": data]
     }
 }
 
@@ -199,43 +194,47 @@ public struct ToolResponse: Sendable {
     public let content: [MCP.Tool.Content]
     public let isError: Bool
     public let meta: Value?
-    
+
     public init(content: [MCP.Tool.Content], isError: Bool = false, meta: Value? = nil) {
         self.content = content
         self.isError = isError
         self.meta = meta
     }
-    
+
     /// Create a text response
     public static func text(_ text: String, meta: Value? = nil) -> ToolResponse {
         ToolResponse(
             content: [.text(text)],
             isError: false,
-            meta: meta)
+            meta: meta
+        )
     }
-    
+
     /// Create an error response
     public static func error(_ message: String, meta: Value? = nil) -> ToolResponse {
         ToolResponse(
             content: [.text(message)],
             isError: true,
-            meta: meta)
+            meta: meta
+        )
     }
-    
+
     /// Create an image response
     public static func image(data: Data, mimeType: String = "image/png", meta: Value? = nil) -> ToolResponse {
         ToolResponse(
             content: [.image(data: data.base64EncodedString(), mimeType: mimeType, metadata: nil)],
             isError: false,
-            meta: meta)
+            meta: meta
+        )
     }
-    
+
     /// Create a multi-content response
     public static func multiContent(_ contents: [MCP.Tool.Content], meta: Value? = nil) -> ToolResponse {
         ToolResponse(
             content: contents,
             isError: false,
-            meta: meta)
+            meta: meta
+        )
     }
 }
 

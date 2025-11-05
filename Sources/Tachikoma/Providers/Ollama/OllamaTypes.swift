@@ -64,15 +64,18 @@ struct OllamaToolCall: Codable {
                 self.arguments = try Self.decodeAnyDictionary(from: nestedContainer)
             }
             // Fallback: decode arguments as Data then parse (legacy format)
-            else if let data = try? container.decode(Data.self, forKey: .arguments),
-                    let dict = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+            else if
+                let data = try? container.decode(Data.self, forKey: .arguments),
+                let dict = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
+            {
                 self.arguments = dict
             } else {
                 self.arguments = [:]
             }
         }
-        
-        private static func decodeAnyDictionary(from container: KeyedDecodingContainer<AnyCodingKey>) throws -> [String: Any] {
+
+        private static func decodeAnyDictionary(from container: KeyedDecodingContainer<AnyCodingKey>) throws
+        -> [String: Any] {
             var result: [String: Any] = [:]
             for key in container.allKeys {
                 if let stringValue = try? container.decode(String.self, forKey: key) {
@@ -220,4 +223,3 @@ struct OllamaStreamChunk: Codable {
 struct OllamaErrorResponse: Codable {
     let error: String
 }
-

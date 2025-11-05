@@ -1,8 +1,3 @@
-//
-//  ToolBuilder.swift
-//  Tachikoma
-//
-
 import Foundation
 import Tachikoma
 
@@ -12,32 +7,32 @@ import Tachikoma
 @resultBuilder
 public struct ToolBuilder {
     public static func buildBlock(_ tools: AgentTool...) -> [AgentTool] {
-        return tools
+        tools
     }
 
     public static func buildArray(_ tools: [AgentTool]) -> [AgentTool] {
-        return tools
+        tools
     }
 
     public static func buildOptional(_ tool: AgentTool?) -> [AgentTool] {
-        return tool.map { [$0] } ?? []
+        tool.map { [$0] } ?? []
     }
 
     public static func buildEither(first tool: AgentTool) -> [AgentTool] {
-        return [tool]
+        [tool]
     }
 
     public static func buildEither(second tool: AgentTool) -> [AgentTool] {
-        return [tool]
+        [tool]
     }
 
     public static func buildExpression(_ tool: AgentTool) -> AgentTool {
-        return tool
+        tool
     }
 }
 
 /// Creates a tool using a simplified API similar to Vercel AI SDK
-/// 
+///
 /// Example:
 /// ```swift
 /// let weatherTool = tool(
@@ -59,18 +54,19 @@ public func tool(
     description: String,
     parameters: [String: ParameterDefinition] = [:],
     execute: @escaping @Sendable (AgentToolArguments) async throws -> AnyAgentToolValue
-) -> AgentTool {
+)
+-> AgentTool {
     // Convert parameter definitions to AgentToolParameterProperty
     var properties: [String: AgentToolParameterProperty] = [:]
     var required: [String] = []
-    
+
     for (key, definition) in parameters {
         properties[key] = definition.toProperty(name: key)
         if definition.isRequired {
             required.append(key)
         }
     }
-    
+
     // Generate name from description if not provided
     let toolName = name ?? description
         .lowercased()
@@ -78,7 +74,7 @@ public func tool(
         .replacingOccurrences(of: "[^a-z0-9_]", with: "", options: .regularExpression)
         .prefix(50)
         .trimmingCharacters(in: .init(charactersIn: "_"))
-    
+
     return AgentTool(
         name: String(toolName),
         description: description,
@@ -94,37 +90,37 @@ public struct ParameterDefinition {
     let description: String
     let isRequired: Bool
     let enumValues: [String]?
-    
+
     public static func string(description: String, required: Bool = true) -> ParameterDefinition {
         ParameterDefinition(type: .string, description: description, isRequired: required, enumValues: nil)
     }
-    
+
     public static func number(description: String, required: Bool = true) -> ParameterDefinition {
         ParameterDefinition(type: .number, description: description, isRequired: required, enumValues: nil)
     }
-    
+
     public static func boolean(description: String, required: Bool = true) -> ParameterDefinition {
         ParameterDefinition(type: .boolean, description: description, isRequired: required, enumValues: nil)
     }
-    
+
     public static func array(description: String, required: Bool = true) -> ParameterDefinition {
         ParameterDefinition(type: .array, description: description, isRequired: required, enumValues: nil)
     }
-    
+
     public static func object(description: String, required: Bool = true) -> ParameterDefinition {
         ParameterDefinition(type: .object, description: description, isRequired: required, enumValues: nil)
     }
-    
+
     public static func `enum`(_ values: [String], description: String, required: Bool = true) -> ParameterDefinition {
         ParameterDefinition(type: .string, description: description, isRequired: required, enumValues: values)
     }
-    
+
     func toProperty(name: String) -> AgentToolParameterProperty {
         AgentToolParameterProperty(
             name: name,
-            type: type,
-            description: description,
-            enumValues: enumValues
+            type: self.type,
+            description: self.description,
+            enumValues: self.enumValues
         )
     }
 }
@@ -136,13 +132,14 @@ public func createTool(
     parameters: [AgentToolParameterProperty] = [],
     required: [String] = [],
     execute: @escaping @Sendable (AgentToolArguments) async throws -> AnyAgentToolValue
-) -> AgentTool {
+)
+-> AgentTool {
     // Convert array of properties to dictionary keyed by name
     var properties: [String: AgentToolParameterProperty] = [:]
     for param in parameters {
         properties[param.name] = param
     }
-    
+
     return AgentTool(
         name: name,
         description: description,
@@ -156,14 +153,14 @@ public func createTool(
 private struct ConcreteAgentTool<I: AgentToolValue, O: AgentToolValue>: AgentToolProtocol {
     typealias Input = I
     typealias Output = O
-    
+
     let name: String
     let description: String
     let schema: AgentToolSchema
     let executeFunc: @Sendable (I, ToolExecutionContext) async throws -> O
-    
+
     func execute(_ input: I, context: ToolExecutionContext) async throws -> O {
-        try await executeFunc(input, context)
+        try await self.executeFunc(input, context)
     }
 }
 
@@ -175,17 +172,18 @@ public func agentTool<I: AgentToolValue, O: AgentToolValue>(
     input: I.Type,
     output: O.Type,
     execute: @escaping @Sendable (I, ToolExecutionContext) async throws -> O
-) -> AnyAgentTool {
+)
+-> AnyAgentTool {
     // Generate schema based on input type
     let schema = AgentToolSchema(properties: [:], required: [])
-    
+
     let concrete = ConcreteAgentTool(
         name: name,
         description: description,
         schema: schema,
         executeFunc: execute
     )
-    
+
     return AnyAgentTool(concrete)
 }
 
@@ -196,8 +194,9 @@ public func stringTool(
     parameter: String,
     parameterDescription: String,
     execute: @escaping @Sendable (String) async throws -> String
-) -> AgentTool {
-    return createTool(
+)
+-> AgentTool {
+    createTool(
         name: name,
         description: description,
         parameters: [
@@ -205,7 +204,7 @@ public func stringTool(
                 name: parameter,
                 type: .string,
                 description: parameterDescription
-            )
+            ),
         ],
         required: [parameter]
     ) { args in
@@ -222,8 +221,9 @@ public func numberTool(
     parameter: String,
     parameterDescription: String,
     execute: @escaping @Sendable (Double) async throws -> Double
-) -> AgentTool {
-    return createTool(
+)
+-> AgentTool {
+    createTool(
         name: name,
         description: description,
         parameters: [
@@ -231,7 +231,7 @@ public func numberTool(
                 name: parameter,
                 type: .number,
                 description: parameterDescription
-            )
+            ),
         ],
         required: [parameter]
     ) { args in
@@ -248,8 +248,9 @@ public func booleanTool(
     parameter: String,
     parameterDescription: String,
     execute: @escaping @Sendable (Bool) async throws -> Bool
-) -> AgentTool {
-    return createTool(
+)
+-> AgentTool {
+    createTool(
         name: name,
         description: description,
         parameters: [
@@ -257,7 +258,7 @@ public func booleanTool(
                 name: parameter,
                 type: .boolean,
                 description: parameterDescription
-            )
+            ),
         ],
         required: [parameter]
     ) { args in
@@ -272,8 +273,9 @@ public func noParamTool(
     name: String,
     description: String,
     execute: @escaping @Sendable () async throws -> String
-) -> AgentTool {
-    return createTool(
+)
+-> AgentTool {
+    createTool(
         name: name,
         description: description,
         parameters: [],
@@ -291,11 +293,12 @@ public func multiStringTool(
     parameters: [(name: String, description: String)],
     required: [String] = [],
     execute: @escaping @Sendable ([String: String]) async throws -> String
-) -> AgentTool {
-    let toolParams = parameters.map { (name, desc) in
+)
+-> AgentTool {
+    let toolParams = parameters.map { name, desc in
         AgentToolParameterProperty(name: name, type: .string, description: desc)
     }
-    
+
     return createTool(
         name: name,
         description: description,

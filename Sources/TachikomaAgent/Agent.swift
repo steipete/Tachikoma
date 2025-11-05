@@ -215,7 +215,7 @@ public final class AgentSessionManager: @unchecked Sendable {
 
     /// Helper function to extract text from content part
     private func extractTextFromContentPart(_ contentPart: ModelMessage.ContentPart?) -> String? {
-        guard let contentPart = contentPart else { return nil }
+        guard let contentPart else { return nil }
         switch contentPart {
         case let .text(text):
             return text
@@ -230,18 +230,18 @@ public final class AgentSessionManager: @unchecked Sendable {
 
     /// Get the sessions storage directory
     private func getSessionsDirectory() -> URL {
-        let url = fileManager.userDirectory
+        let url = self.fileManager.userDirectory
             .appendingPathComponent(".peekaboo/agent_sessions")
 
         // Ensure the directory exists
-        try? fileManager.createDirectory(at: url, withIntermediateDirectories: true)
+        try? self.fileManager.createDirectory(at: url, withIntermediateDirectories: true)
 
         return url
     }
 
     /// Get the file path for a specific session
     private func getSessionFilePath(for sessionId: String) -> URL {
-        getSessionsDirectory().appendingPathComponent("\(sessionId).json")
+        self.getSessionsDirectory().appendingPathComponent("\(sessionId).json")
     }
 
     /// Create a new agent session
@@ -309,13 +309,15 @@ public final class AgentSessionManager: @unchecked Sendable {
 
     /// List all sessions from disk
     public func listSessions() -> [SessionSummary] {
-        let sessionsDir = getSessionsDirectory()
+        let sessionsDir = self.getSessionsDirectory()
 
-        guard let sessionFiles = try? fileManager.contentsOfDirectory(
-            at: sessionsDir,
-            includingPropertiesForKeys: [.creationDateKey, .contentModificationDateKey],
-            options: .skipsHiddenFiles
-        ) else {
+        guard
+            let sessionFiles = try? fileManager.contentsOfDirectory(
+                at: sessionsDir,
+                includingPropertiesForKeys: [.creationDateKey, .contentModificationDateKey],
+                options: .skipsHiddenFiles
+            ) else
+        {
             return []
         }
 
@@ -369,9 +371,9 @@ public final class AgentSessionManager: @unchecked Sendable {
 
     /// Load a session from disk
     public func loadSession(id: String) async throws -> AgentSession? {
-        let filePath = getSessionFilePath(for: id)
+        let filePath = self.getSessionFilePath(for: id)
 
-        guard fileManager.fileExists(atPath: filePath.path) else {
+        guard self.fileManager.fileExists(atPath: filePath.path) else {
             return nil
         }
 
@@ -395,7 +397,7 @@ public final class AgentSessionManager: @unchecked Sendable {
             return session
         } catch {
             // Remove corrupted session file
-            try? fileManager.removeItem(at: filePath)
+            try? self.fileManager.removeItem(at: filePath)
             return nil
         }
     }
@@ -408,14 +410,14 @@ public final class AgentSessionManager: @unchecked Sendable {
         }
 
         // Remove from disk
-        let filePath = getSessionFilePath(for: id)
-        try? fileManager.removeItem(at: filePath)
+        let filePath = self.getSessionFilePath(for: id)
+        try? self.fileManager.removeItem(at: filePath)
     }
 
     /// Save a session to disk and memory
     public func saveSession(_ session: AgentSession) async throws {
         // Save to disk
-        let filePath = getSessionFilePath(for: session.id)
+        let filePath = self.getSessionFilePath(for: session.id)
         let data = try JSONEncoder().encode(session)
         try data.write(to: filePath, options: .atomic)
 

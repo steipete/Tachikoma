@@ -61,7 +61,7 @@ struct ProviderSystemTests {
         await TestHelpers.withEmptyTestConfiguration { config in
             // Test the actual provider constructors directly since ProviderFactory
             // uses MockProvider in test mode to avoid hitting real APIs
-            
+
             #expect(throws: TachikomaError.self) {
                 try OpenAIProvider(model: .gpt4o, configuration: config)
             }
@@ -137,7 +137,7 @@ struct ProviderSystemTests {
             messages: [ModelMessage(role: .user, content: [
                 .text("Describe this image"),
                 .image(imageContent),
-            ]),],
+            ])],
             tools: nil,
             settings: .default
         )

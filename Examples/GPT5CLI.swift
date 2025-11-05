@@ -1,8 +1,3 @@
-//
-//  GPT5CLI.swift
-//  Tachikoma
-//
-
 // CLI for querying GPT-5 with both Chat Completions and Responses API support
 // Compile with: swift build --product gpt5cli
 // Run with: .build/debug/gpt5cli [--api chat|responses] [--model gpt-5|gpt-5-mini|gpt-5-nano] "Your question here"
@@ -17,13 +12,13 @@ struct GPT5CLI {
     static func main() async {
         // Parse command line arguments
         let args = CommandLine.arguments
-        var apiMode = OpenAIAPIMode.responses  // Default to Responses API for GPT-5
-        var modelName = "gpt-5"  // Default model
+        var apiMode = OpenAIAPIMode.responses // Default to Responses API for GPT-5
+        var modelName = "gpt-5" // Default model
         var queryArgs: [String] = []
-        
+
         var i = 1
         while i < args.count {
-            if args[i] == "--api" && i + 1 < args.count {
+            if args[i] == "--api", i + 1 < args.count {
                 if let mode = OpenAIAPIMode(rawValue: args[i + 1]) {
                     apiMode = mode
                     i += 2
@@ -31,7 +26,7 @@ struct GPT5CLI {
                     print("Error: Invalid API mode. Use 'chat' or 'responses'")
                     exit(1)
                 }
-            } else if args[i] == "--model" && i + 1 < args.count {
+            } else if args[i] == "--model", i + 1 < args.count {
                 modelName = args[i + 1]
                 i += 2
             } else if args[i].starts(with: "--") {
@@ -43,35 +38,35 @@ struct GPT5CLI {
                 i += 1
             }
         }
-        
+
         guard !queryArgs.isEmpty else {
             print("Usage: \(args[0]) [--api chat|responses] [--model gpt-5|gpt-5-mini|gpt-5-nano] <query>")
             print("Example: \(args[0]) --api chat \"What is the capital of France?\"")
             print("Example: \(args[0]) --api responses --model gpt-5-mini \"Explain quantum computing\"")
             exit(1)
         }
-        
+
         let query = queryArgs.joined(separator: " ")
-        
+
         // Check for API key
         guard let apiKey = ProcessInfo.processInfo.environment["OPENAI_API_KEY"] else {
             print("Error: OPENAI_API_KEY environment variable not set")
             print("Set it with: export OPENAI_API_KEY='your-api-key'")
             exit(1)
         }
-        
+
         // Display configuration
-        let maskedKey = maskAPIKey(apiKey)
+        let maskedKey = self.maskAPIKey(apiKey)
         print("🔐 API Key: \(maskedKey)")
         print("🤖 Model: \(modelName)")
         print("🌐 API: \(apiMode.displayName)")
         print("---")
-        
+
         do {
             print("🚀 Sending query...")
             print("📝 Query: \(query)")
             print("---")
-            
+
             // Determine the model
             let openAIModel: LanguageModel.OpenAI
             switch modelName.lowercased() {
@@ -85,7 +80,7 @@ struct GPT5CLI {
                 print("Warning: Unknown model '\(modelName)', using gpt-5")
                 openAIModel = .gpt5
             }
-            
+
             // Generate response based on API mode
             let config = TachikomaConfiguration.current
             let messages: [ModelMessage] = [.user(query)]
@@ -94,9 +89,9 @@ struct GPT5CLI {
                 tools: nil,
                 settings: GenerationSettings(maxTokens: 2000)
             )
-            
+
             let providerResponse: ProviderResponse
-            
+
             if apiMode == .chat {
                 // Force Chat Completions API by creating OpenAIProvider directly
                 let provider = try OpenAIProvider(model: openAIModel, configuration: config)
@@ -108,7 +103,7 @@ struct GPT5CLI {
                 providerResponse = try await provider.generateText(request: request)
                 print("✅ Using Responses API")
             }
-            
+
             // Create a simple response object for display
             let response = GenerateTextResult(
                 text: providerResponse.text,
@@ -117,11 +112,11 @@ struct GPT5CLI {
                 steps: [],
                 messages: messages
             )
-            
+
             // Print the response
             print("\n💬 Response:")
             print(response.text)
-            
+
             // Print usage information if available
             if let usage = response.usage {
                 print("\n📊 Usage:")
@@ -129,13 +124,13 @@ struct GPT5CLI {
                 print("  Output tokens: \(usage.outputTokens)")
                 print("  Total tokens: \(usage.totalTokens)")
             }
-            
+
         } catch {
             print("\n❌ Error: \(error)")
             exit(1)
         }
     }
-    
+
     static func maskAPIKey(_ key: String) -> String {
         guard key.count > 10 else { return "***" }
         let prefix = key.prefix(5)

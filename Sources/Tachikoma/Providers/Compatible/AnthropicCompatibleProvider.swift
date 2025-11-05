@@ -1,8 +1,3 @@
-//
-//  AnthropicCompatibleProvider.swift
-//  Tachikoma
-//
-
 import Foundation
 
 /// Provider for Anthropic-compatible APIs
@@ -22,7 +17,7 @@ public final class AnthropicCompatibleProvider: ModelProvider {
             self.apiKey = key
         } else if
             let key = ProcessInfo.processInfo.environment["ANTHROPIC_COMPATIBLE_API_KEY"] ??
-                ProcessInfo.processInfo.environment["API_KEY"]
+            ProcessInfo.processInfo.environment["API_KEY"]
         {
             self.apiKey = key
         } else {

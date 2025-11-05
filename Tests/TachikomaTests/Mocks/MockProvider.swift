@@ -1,8 +1,3 @@
-//
-//  MockProvider.swift
-//  Tachikoma
-//
-
 import Foundation
 @testable import Tachikoma
 
@@ -46,7 +41,11 @@ public final class MockProvider: ModelProvider {
         }.joined(separator: " ")
 
         // Generate mock response based on provider type
-        let mockResponse = generateMockResponse(for: model, prompt: promptText, hasTools: request.tools?.isEmpty == false)
+        let mockResponse = self.generateMockResponse(
+            for: self.model,
+            prompt: promptText,
+            hasTools: request.tools?.isEmpty == false
+        )
 
         // Handle tool calls if requested
         var toolCalls: [AgentToolCall]?
@@ -55,7 +54,7 @@ public final class MockProvider: ModelProvider {
                 id: "mock_tool_call_123",
                 name: tools.first?.name ?? "mock_tool",
                 arguments: ["query": AnyAgentToolValue(string: "mock query")]
-            ),]
+            )]
         }
 
         return ProviderResponse(
@@ -91,42 +90,42 @@ public final class MockProvider: ModelProvider {
         switch model {
         case .openai:
             if hasTools {
-                return "OpenAI response for '\(prompt)' with model \(model.modelId). Using tool_call to help answer."
+                "OpenAI response for '\(prompt)' with model \(model.modelId). Using tool_call to help answer."
             } else {
-                return "OpenAI response for '\(prompt)' with model \(model.modelId)."
+                "OpenAI response for '\(prompt)' with model \(model.modelId)."
             }
 
         case .anthropic:
             if prompt.contains("quantum physics") {
-                return "Quantum physics is a fundamental theory in physics that describes the behavior of matter and energy " +
-                       "at the atomic and subatomic level."
+                "Quantum physics is a fundamental theory in physics that describes the behavior of matter and energy " +
+                    "at the atomic and subatomic level."
             } else if prompt.contains("2+2") {
-                return "2+2 equals 4."
+                "2+2 equals 4."
             } else if prompt.contains("Hello world") {
-                return "Hello! How can I help you today?"
+                "Hello! How can I help you today?"
             } else if prompt.contains("What do you see?") {
-                return "I can see a test image that appears to be encoded in base64 format."
+                "I can see a test image that appears to be encoded in base64 format."
             } else {
-                return "I'm Claude, an AI assistant created by Anthropic. I'm here to help with a variety of tasks."
+                "I'm Claude, an AI assistant created by Anthropic. I'm here to help with a variety of tasks."
             }
 
         case .google:
-            return "Google Gemini response for '\(prompt)' with model \(model.modelId)."
+            "Google Gemini response for '\(prompt)' with model \(model.modelId)."
 
         case .mistral:
-            return "Mistral response for '\(prompt)' with model \(model.modelId)."
+            "Mistral response for '\(prompt)' with model \(model.modelId)."
 
         case .groq:
-            return "Groq response for '\(prompt)' with model \(model.modelId)."
+            "Groq response for '\(prompt)' with model \(model.modelId)."
 
         case .grok:
-            return "Grok response for '\(prompt)' with model \(model.modelId)."
+            "Grok response for '\(prompt)' with model \(model.modelId)."
 
         case .ollama:
-            return "Ollama response for '\(prompt)' with model \(model.modelId)."
+            "Ollama response for '\(prompt)' with model \(model.modelId)."
 
         default:
-            return "Mock response for '\(prompt)' with model \(model.modelId)."
+            "Mock response for '\(prompt)' with model \(model.modelId)."
         }
     }
 }

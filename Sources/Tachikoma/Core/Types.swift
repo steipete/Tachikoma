@@ -60,7 +60,7 @@ public struct APICallError: Error, LocalizedError, Sendable {
     public let errorType: ErrorType
     public let message: String
     public let retryAfter: TimeInterval?
-    
+
     public enum ErrorType: String, Sendable, Codable {
         case rateLimitExceeded = "rate_limit_exceeded"
         case invalidRequest = "invalid_request"
@@ -68,10 +68,10 @@ public struct APICallError: Error, LocalizedError, Sendable {
         case modelNotFound = "model_not_found"
         case serverError = "server_error"
         case networkError = "network_error"
-        case timeout = "timeout"
-        case unknown = "unknown"
+        case timeout
+        case unknown
     }
-    
+
     public init(
         statusCode: Int? = nil,
         responseBody: String? = nil,
@@ -91,23 +91,23 @@ public struct APICallError: Error, LocalizedError, Sendable {
         self.message = message
         self.retryAfter = retryAfter
     }
-    
+
     public var errorDescription: String? {
         var description = "[\(provider)] \(message)"
-        if let statusCode = statusCode {
+        if let statusCode {
             description += " (HTTP \(statusCode))"
         }
-        if let modelId = modelId {
+        if let modelId {
             description += " [Model: \(modelId)]"
         }
         return description
     }
-    
+
     /// Check if an error is an APICallError
     public static func isInstance(_ error: Error) -> Bool {
-        return error is APICallError || (error as? TachikomaError)?.apiCallError != nil
+        error is APICallError || (error as? TachikomaError)?.apiCallError != nil
     }
-    
+
     /// Extract APICallError from any error
     public static func extract(from error: Error) -> APICallError? {
         if let apiError = error as? APICallError {
@@ -127,7 +127,7 @@ public struct RetryError: Error, LocalizedError, Sendable {
     public let lastError: Error?
     public let errors: [Error]
     public let attempts: Int
-    
+
     public init(
         reason: String,
         lastError: Error? = nil,
@@ -139,13 +139,13 @@ public struct RetryError: Error, LocalizedError, Sendable {
         self.errors = errors
         self.attempts = attempts
     }
-    
+
     public var errorDescription: String? {
         var description = "Retry failed: \(reason)"
-        if attempts > 0 {
-            description += " after \(attempts) attempts"
+        if self.attempts > 0 {
+            description += " after \(self.attempts) attempts"
         }
-        if let lastError = lastError {
+        if let lastError {
             description += ". Last error: \(lastError.localizedDescription)"
         }
         return description
@@ -167,23 +167,23 @@ extension TachikomaError {
 /// OpenAI API mode selection
 @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public enum OpenAIAPIMode: String, Sendable, CaseIterable {
-    case chat = "chat"
-    case responses = "responses"
-    
+    case chat
+    case responses
+
     public var displayName: String {
         switch self {
-        case .chat: return "Chat Completions API"
-        case .responses: return "Responses API"
+        case .chat: "Chat Completions API"
+        case .responses: "Responses API"
         }
     }
-    
+
     /// Determine default API mode for a given model
     public static func defaultMode(for model: LanguageModel.OpenAI) -> OpenAIAPIMode {
         switch model {
         case .o3, .o3Mini, .o3Pro, .o4Mini, .gpt5, .gpt5Mini, .gpt5Nano:
-            return .responses  // Reasoning models and GPT-5 default to Responses API
+            .responses // Reasoning models and GPT-5 default to Responses API
         default:
-            return .chat  // All other models use Chat Completions API
+            .chat // All other models use Chat Completions API
         }
     }
 }
@@ -379,7 +379,7 @@ extension GenerationSettings: Codable {
         case seed
         case providerOptions
     }
-    
+
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         self.maxTokens = try container.decodeIfPresent(Int.self, forKey: .maxTokens)
@@ -394,19 +394,19 @@ extension GenerationSettings: Codable {
         self.providerOptions = try container.decodeIfPresent(ProviderOptions.self, forKey: .providerOptions) ?? .init()
         self.stopConditions = nil // Can't decode function types
     }
-    
+
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
-        try container.encodeIfPresent(maxTokens, forKey: .maxTokens)
-        try container.encodeIfPresent(temperature, forKey: .temperature)
-        try container.encodeIfPresent(topP, forKey: .topP)
-        try container.encodeIfPresent(topK, forKey: .topK)
-        try container.encodeIfPresent(frequencyPenalty, forKey: .frequencyPenalty)
-        try container.encodeIfPresent(presencePenalty, forKey: .presencePenalty)
-        try container.encodeIfPresent(stopSequences, forKey: .stopSequences)
-        try container.encodeIfPresent(reasoningEffort, forKey: .reasoningEffort)
-        try container.encodeIfPresent(seed, forKey: .seed)
-        try container.encode(providerOptions, forKey: .providerOptions)
+        try container.encodeIfPresent(self.maxTokens, forKey: .maxTokens)
+        try container.encodeIfPresent(self.temperature, forKey: .temperature)
+        try container.encodeIfPresent(self.topP, forKey: .topP)
+        try container.encodeIfPresent(self.topK, forKey: .topK)
+        try container.encodeIfPresent(self.frequencyPenalty, forKey: .frequencyPenalty)
+        try container.encodeIfPresent(self.presencePenalty, forKey: .presencePenalty)
+        try container.encodeIfPresent(self.stopSequences, forKey: .stopSequences)
+        try container.encodeIfPresent(self.reasoningEffort, forKey: .reasoningEffort)
+        try container.encodeIfPresent(self.seed, forKey: .seed)
+        try container.encode(self.providerOptions, forKey: .providerOptions)
         // Don't encode stopConditions since it can't be serialized
     }
 }
@@ -419,7 +419,7 @@ public struct StreamTextResult: Sendable {
     public let stream: AsyncThrowingStream<TextStreamDelta, Error>
     public let model: LanguageModel
     public let settings: GenerationSettings
-    
+
     public init(
         stream: AsyncThrowingStream<TextStreamDelta, Error>,
         model: LanguageModel,
@@ -429,14 +429,15 @@ public struct StreamTextResult: Sendable {
         self.model = model
         self.settings = settings
     }
-    
+
     /// Convert stream to UI message stream response format (following Vercel AI SDK pattern)
     public func toUIMessageStreamResponse(
         sendReasoning: Bool = false,
         headers: [String: String]? = nil
-    ) -> UIMessageStreamResponse {
+    )
+    -> UIMessageStreamResponse {
         UIMessageStreamResponse(
-            stream: stream,
+            stream: self.stream,
             sendReasoning: sendReasoning,
             headers: headers
         )
@@ -449,7 +450,7 @@ public struct UIMessageStreamResponse: Sendable {
     public let stream: AsyncThrowingStream<TextStreamDelta, Error>
     public let sendReasoning: Bool
     public let headers: [String: String]?
-    
+
     public init(
         stream: AsyncThrowingStream<TextStreamDelta, Error>,
         sendReasoning: Bool = false,
@@ -471,15 +472,15 @@ public struct TextStreamDelta: Sendable {
     public let toolResult: AgentToolResult?
     public let usage: Usage?
     public let finishReason: FinishReason?
-    
+
     public enum StreamEventType: String, Sendable, Codable {
         case textDelta = "text_delta"
         case toolCall = "tool_call"
         case toolResult = "tool_result"
-        case reasoning = "reasoning"
-        case done = "done"
+        case reasoning
+        case done
     }
-    
+
     public init(
         type: StreamEventType,
         content: String? = nil,
@@ -497,20 +498,20 @@ public struct TextStreamDelta: Sendable {
         self.usage = usage
         self.finishReason = finishReason
     }
-    
+
     // Convenience constructors
     public static func text(_ content: String, channel: ResponseChannel? = nil) -> TextStreamDelta {
         TextStreamDelta(type: .textDelta, content: content, channel: channel)
     }
-    
+
     public static func reasoning(_ content: String) -> TextStreamDelta {
         TextStreamDelta(type: .reasoning, content: content, channel: .thinking)
     }
-    
+
     public static func tool(_ call: AgentToolCall) -> TextStreamDelta {
         TextStreamDelta(type: .toolCall, toolCall: call)
     }
-    
+
     public static func done(usage: Usage? = nil, finishReason: FinishReason? = nil) -> TextStreamDelta {
         TextStreamDelta(type: .done, usage: usage, finishReason: finishReason)
     }
@@ -526,7 +527,7 @@ public struct GenerateTextResult: Sendable {
     public let finishReason: FinishReason?
     public let steps: [GenerationStep]
     public let messages: [ModelMessage]
-    
+
     public init(
         text: String,
         usage: Usage? = nil,
@@ -551,7 +552,7 @@ public struct GenerationStep: Sendable {
     public let toolResults: [AgentToolResult]
     public let usage: Usage?
     public let finishReason: FinishReason?
-    
+
     public init(
         stepIndex: Int,
         text: String,
@@ -575,7 +576,7 @@ public struct GenerateObjectResult<T: Codable & Sendable>: Sendable {
     public let object: T
     public let usage: Usage?
     public let finishReason: FinishReason?
-    
+
     public init(
         object: T,
         usage: Usage? = nil,
@@ -592,10 +593,10 @@ public struct GenerateObjectResult<T: Codable & Sendable>: Sendable {
 /// Response channel for multi-channel outputs (inspired by OpenAI Harmony)
 @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public enum ResponseChannel: String, Sendable, Codable, CaseIterable {
-    case thinking     // Chain of thought reasoning
-    case analysis     // Deep analysis of the problem
-    case commentary   // Meta-commentary about the response
-    case final       // Final answer to the user
+    case thinking // Chain of thought reasoning
+    case analysis // Deep analysis of the problem
+    case commentary // Meta-commentary about the response
+    case final // Final answer to the user
 }
 
 /// Reasoning effort level for models that support it (o3, opus-4, etc.)
@@ -612,7 +613,7 @@ public struct MessageMetadata: Sendable, Codable, Equatable {
     public let conversationId: String?
     public let turnId: String?
     public let customData: [String: String]?
-    
+
     public init(
         conversationId: String? = nil,
         turnId: String? = nil,

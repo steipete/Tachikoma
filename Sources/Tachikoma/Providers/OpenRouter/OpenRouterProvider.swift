@@ -1,8 +1,3 @@
-//
-//  OpenRouterProvider.swift
-//  Tachikoma
-//
-
 import Foundation
 
 /// Provider for OpenRouter models

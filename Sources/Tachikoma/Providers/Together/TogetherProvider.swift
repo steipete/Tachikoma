@@ -1,8 +1,3 @@
-//
-//  TogetherProvider.swift
-//  Tachikoma
-//
-
 import Foundation
 
 /// Provider for Together AI models

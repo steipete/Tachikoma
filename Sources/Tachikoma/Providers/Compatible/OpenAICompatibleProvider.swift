@@ -1,8 +1,3 @@
-//
-//  OpenAICompatibleProvider.swift
-//  Tachikoma
-//
-
 import Foundation
 
 /// Provider for OpenAI-compatible APIs
@@ -22,7 +17,7 @@ public final class OpenAICompatibleProvider: ModelProvider {
             self.apiKey = key
         } else if
             let key = ProcessInfo.processInfo.environment["OPENAI_COMPATIBLE_API_KEY"] ??
-                ProcessInfo.processInfo.environment["API_KEY"]
+            ProcessInfo.processInfo.environment["API_KEY"]
         {
             self.apiKey = key
         } else {
@@ -40,7 +35,7 @@ public final class OpenAICompatibleProvider: ModelProvider {
 
     public func generateText(request: ProviderRequest) async throws -> ProviderResponse {
         // Use OpenAI-compatible implementation
-        return try await OpenAICompatibleHelper.generateText(
+        try await OpenAICompatibleHelper.generateText(
             request: request,
             modelId: self.modelId,
             baseURL: self.baseURL!,
@@ -51,7 +46,7 @@ public final class OpenAICompatibleProvider: ModelProvider {
 
     public func streamText(request: ProviderRequest) async throws -> AsyncThrowingStream<TextStreamDelta, Error> {
         // Use OpenAI-compatible streaming implementation
-        return try await OpenAICompatibleHelper.streamText(
+        try await OpenAICompatibleHelper.streamText(
             request: request,
             modelId: self.modelId,
             baseURL: self.baseURL!,

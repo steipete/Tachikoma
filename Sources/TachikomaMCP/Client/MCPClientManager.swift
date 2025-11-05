@@ -1,7 +1,7 @@
 import Foundation
+import MCP
 import os.log
 import Tachikoma
-import MCP
 
 /// Instantiable manager for MCP client connections and configuration.
 /// Owns parsing of mcpClients from the host profile config.json (JSONC) and
@@ -9,9 +9,11 @@ import MCP
 @MainActor
 public final class TachikomaMCPClientManager {
     // MARK: Shared (optional)
+
     public static let shared = TachikomaMCPClientManager()
 
     // MARK: Profile/config wiring
+
     /// Name of the profile directory under $HOME (defaults to TachikomaConfiguration.profileDirectoryName)
     public var profileDirectoryName: String {
         get { TachikomaConfiguration.profileDirectoryName }
@@ -19,6 +21,7 @@ public final class TachikomaMCPClientManager {
     }
 
     // MARK: Internal state
+
     private let logger = os.Logger(subsystem: "tachikoma.mcp", category: "client-manager")
     private var connections: [String: MCPClient] = [:]
     private var effectiveConfigs: [String: MCPServerConfig] = [:]
@@ -27,65 +30,69 @@ public final class TachikomaMCPClientManager {
     public init() {}
 
     // MARK: Default registration
+
     public func registerDefaultServers(_ defaults: [String: MCPServerConfig]) {
         self.defaultConfigs = defaults
     }
 
     // MARK: Initialization
+
     public func initializeFromProfile(connect: Bool = true) async {
         let fileConfigs = self.loadFileConfigs()
-        let merged = self.merge(defaults: defaultConfigs, file: fileConfigs)
+        let merged = self.merge(defaults: self.defaultConfigs, file: fileConfigs)
         await self.apply(configs: merged, connect: connect)
     }
 
     public func initialize(with userConfigs: [String: MCPServerConfig], connect: Bool = true) async {
-        let merged = self.merge(defaults: defaultConfigs, file: userConfigs)
+        let merged = self.merge(defaults: self.defaultConfigs, file: userConfigs)
         await self.apply(configs: merged, connect: connect)
     }
 
     // MARK: Lifecycle
+
     public func addServer(name: String, config: MCPServerConfig) async throws {
-        effectiveConfigs[name] = config
-        if connections[name] == nil { connections[name] = MCPClient(name: name, config: config) }
-        if config.enabled { try await connections[name]?.connect() }
+        self.effectiveConfigs[name] = config
+        if self.connections[name] == nil { self.connections[name] = MCPClient(name: name, config: config) }
+        if config.enabled { try await self.connections[name]?.connect() }
     }
 
     public func removeServer(name: String) async {
         if let client = connections[name] {
             await client.disconnect()
-            connections.removeValue(forKey: name)
+            self.connections.removeValue(forKey: name)
         }
-        effectiveConfigs.removeValue(forKey: name)
+        self.effectiveConfigs.removeValue(forKey: name)
     }
 
     public func enableServer(name: String) async throws {
         guard var cfg = effectiveConfigs[name] else { return }
         cfg.enabled = true
-        effectiveConfigs[name] = cfg
-        if connections[name] == nil { connections[name] = MCPClient(name: name, config: cfg) }
-        try await connections[name]?.connect()
+        self.effectiveConfigs[name] = cfg
+        if self.connections[name] == nil { self.connections[name] = MCPClient(name: name, config: cfg) }
+        try await self.connections[name]?.connect()
     }
 
     public func disableServer(name: String) async {
         guard var cfg = effectiveConfigs[name] else { return }
         cfg.enabled = false
-        effectiveConfigs[name] = cfg
+        self.effectiveConfigs[name] = cfg
         if let client = connections[name] { await client.disconnect() }
     }
 
     public func listServerNames() -> [String] {
-        Array(effectiveConfigs.keys).sorted()
+        Array(self.effectiveConfigs.keys).sorted()
     }
 
     public func getServerConfig(name: String) -> MCPServerConfig? {
-        effectiveConfigs[name]
+        self.effectiveConfigs[name]
     }
 
     public func getAllServerConfigs() -> [String: MCPServerConfig] {
-        effectiveConfigs
+        self.effectiveConfigs
     }
 
     // MARK: Queries
+
     public func isServerConnected(name: String) async -> Bool {
         guard let client = connections[name] else { return false }
         return await client.isConnected
@@ -98,7 +105,7 @@ public final class TachikomaMCPClientManager {
 
     public func getAllTools() async -> [Tool] {
         var all: [Tool] = []
-        for name in listServerNames() {
+        for name in self.listServerNames() {
             let tools = await getServerTools(name: name)
             if !tools.isEmpty { all.append(contentsOf: tools) }
         }
@@ -106,7 +113,12 @@ public final class TachikomaMCPClientManager {
     }
 
     // Execute a tool on a specific server
-    public func executeTool(serverName: String, toolName: String, arguments: [String: Any]) async throws -> ToolResponse {
+    public func executeTool(
+        serverName: String,
+        toolName: String,
+        arguments: [String: Any]
+    ) async throws
+    -> ToolResponse {
         guard let client = connections[serverName] else {
             throw MCPError.executionFailed("Server '\(serverName)' not found")
         }
@@ -122,7 +134,7 @@ public final class TachikomaMCPClientManager {
     /// Get external tools grouped by server name
     public func getExternalToolsByServer() async -> [String: [Tool]] {
         var result: [String: [Tool]] = [:]
-        for (name, client) in connections {
+        for (name, client) in self.connections {
             let tools = await client.tools
             if !tools.isEmpty { result[name] = tools }
         }
@@ -130,7 +142,8 @@ public final class TachikomaMCPClientManager {
     }
 
     // MARK: Health/Info (lightweight)
-    public func getServerNames() -> [String] { Array(effectiveConfigs.keys).sorted() }
+
+    public func getServerNames() -> [String] { Array(self.effectiveConfigs.keys).sorted() }
 
     public func getServerInfo(name: String) async -> (config: MCPServerConfig, connected: Bool)? {
         guard let cfg = effectiveConfigs[name] else { return nil }
@@ -141,7 +154,7 @@ public final class TachikomaMCPClientManager {
     /// Build Tachikoma AgentTools for all connected servers
     public func getAllAgentTools() async -> [AgentTool] {
         var all: [AgentTool] = []
-        for (_, client) in connections {
+        for (_, client) in self.connections {
             // Only attempt if connected
             if await client.isConnected {
                 let provider = MCPToolProvider(client: client)
@@ -165,6 +178,7 @@ public final class TachikomaMCPClientManager {
     }
 
     // MARK: Health checks
+
     /// Probe a specific server with a timeout. Attempts to connect if not connected.
     /// Returns tuple: (connected, toolCount, responseTime, error)
     public func probeServer(name: String, timeoutMs: Int = 5000) async -> (Bool, Int, TimeInterval, String?) {
@@ -189,7 +203,7 @@ public final class TachikomaMCPClientManager {
                     return (false, error.localizedDescription)
                 }
             }
-            
+
             group.addTask {
                 do {
                     try await Task.sleep(nanoseconds: UInt64(timeoutMs) * 1_000_000)
@@ -199,20 +213,20 @@ public final class TachikomaMCPClientManager {
                     return (true, nil)
                 }
             }
-            
+
             // Wait for the first task to complete
             guard let firstResult = await group.next() else {
                 return (false, "unknown error")
             }
-            
+
             // Cancel all remaining tasks immediately
             group.cancelAll()
-            
+
             return firstResult
         }
-        
+
         let responseTime = Date().timeIntervalSince(start)
-        
+
         if result.0 {
             // Connection succeeded
             let tools = await client.tools
@@ -228,19 +242,21 @@ public final class TachikomaMCPClientManager {
     public func probeAllServers(timeoutMs: Int = 5000) async -> [String: (Bool, Int, TimeInterval, String?)] {
         var results: [String: (Bool, Int, TimeInterval, String?)] = [:]
         await withTaskGroup(of: (String, (Bool, Int, TimeInterval, String?)).self) { group in
-            for name in listServerNames() {
+            for name in self.listServerNames() {
                 group.addTask { [weak self] in
                     let res = await self?.probeServer(name: name, timeoutMs: timeoutMs) ?? (false, 0, 0, "not found")
                     return (name, res)
                 }
             }
-            for await (name, res) in group { results[name] = res }
+            for await (name, res) in group {
+                results[name] = res
+            }
         }
         return results
     }
 
-
     // MARK: Persistence
+
     /// Persist the current effectiveConfigs back to the profile config file under mcpClients.
     public func persist() throws {
         var json = self.loadRawConfigJSON() ?? [:]
@@ -249,8 +265,8 @@ public final class TachikomaMCPClientManager {
 
         // Build mcpClients object
         var mcpDict: [String: Any] = [:]
-        for (name, cfg) in effectiveConfigs {
-                            let obj: [String: Any?] = [
+        for (name, cfg) in self.effectiveConfigs {
+            let obj: [String: Any?] = [
                 "transport": cfg.transport,
                 "command": cfg.command,
                 "args": cfg.args,
@@ -259,7 +275,7 @@ public final class TachikomaMCPClientManager {
                 "enabled": cfg.enabled,
                 "timeout": cfg.timeout,
                 "autoReconnect": cfg.autoReconnect,
-                "description": cfg.description
+                "description": cfg.description,
             ]
             mcpDict[name] = obj.compactMapValues { $0 }
         }
@@ -273,16 +289,20 @@ public final class TachikomaMCPClientManager {
     }
 
     // MARK: Helpers
+
     private func apply(configs: [String: MCPServerConfig], connect: Bool = true) async {
         // Disconnect removed servers
         let toRemove = Set(connections.keys).subtracting(Set(configs.keys))
-        for name in toRemove { await connections[name]?.disconnect(); connections.removeValue(forKey: name) }
+        for name in toRemove {
+            await self.connections[name]?.disconnect()
+            self.connections.removeValue(forKey: name)
+        }
 
         // Create/Update and connect enabled
-        effectiveConfigs = configs
+        self.effectiveConfigs = configs
         for (name, cfg) in configs {
-            if connections[name] == nil {
-                connections[name] = MCPClient(name: name, config: cfg)
+            if self.connections[name] == nil {
+                self.connections[name] = MCPClient(name: name, config: cfg)
             }
         }
 
@@ -299,7 +319,11 @@ public final class TachikomaMCPClientManager {
         }
     }
 
-    private func merge(defaults D: [String: MCPServerConfig], file F: [String: MCPServerConfig]) -> [String: MCPServerConfig] {
+    private func merge(
+        defaults D: [String: MCPServerConfig],
+        file F: [String: MCPServerConfig]
+    )
+    -> [String: MCPServerConfig] {
         var result: [String: MCPServerConfig] = [:]
         let keys = Set(D.keys).union(F.keys)
         for k in keys {
@@ -326,6 +350,7 @@ public final class TachikomaMCPClientManager {
     }
 
     // MARK: File loading
+
     private func loadFileConfigs() -> [String: MCPServerConfig] {
         guard let json = self.loadRawConfigJSON() else { return [:] }
         guard let mcp = json["mcpClients"] as? [String: Any] else { return [:] }
@@ -367,7 +392,7 @@ public final class TachikomaMCPClientManager {
                 return try JSONSerialization.jsonObject(with: data) as? [String: Any]
             }
         } catch {
-            logger.error("Failed to load config.json: \(error.localizedDescription)")
+            self.logger.error("Failed to load config.json: \(error.localizedDescription)")
         }
         return nil
     }
@@ -391,6 +416,7 @@ public final class TachikomaMCPClientManager {
     }
 
     // MARK: JSONC + ENV utilities (shared minimal)
+
     static func stripJSONComments(from json: String) -> String {
         var result = ""
         var inString = false
@@ -402,15 +428,43 @@ public final class TachikomaMCPClientManager {
         while i < chars.count {
             let c = chars[i]
             let n: Character? = i + 1 < chars.count ? chars[i + 1] : nil
-            if escapeNext { result.append(c); escapeNext = false; i += 1; continue }
-            if c == "\\" && inString { escapeNext = true; result.append(c); i += 1; continue }
-            if c == "\"" && !inSingle && !inMulti { inString.toggle(); result.append(c); i += 1; continue }
-            if inString { result.append(c); i += 1; continue }
-            if c == "/" && n == "/" && !inMulti { inSingle = true; i += 2; continue }
-            if c == "/" && n == "*" && !inSingle { inMulti = true; i += 2; continue }
-            if c == "\n" && inSingle { inSingle = false; result.append(c); i += 1; continue }
-            if c == "*" && n == "/" && inMulti { inMulti = false; i += 2; continue }
-            if !inSingle && !inMulti { result.append(c) }
+            if escapeNext { result.append(c)
+                escapeNext = false
+                i += 1
+                continue
+            }
+            if c == "\\", inString { escapeNext = true
+                result.append(c)
+                i += 1
+                continue
+            }
+            if c == "\"", !inSingle, !inMulti { inString.toggle()
+                result.append(c)
+                i += 1
+                continue
+            }
+            if inString { result.append(c)
+                i += 1
+                continue
+            }
+            if c == "/", n == "/", !inMulti { inSingle = true
+                i += 2
+                continue
+            }
+            if c == "/", n == "*", !inSingle { inMulti = true
+                i += 2
+                continue
+            }
+            if c == "\n", inSingle { inSingle = false
+                result.append(c)
+                i += 1
+                continue
+            }
+            if c == "*", n == "/", inMulti { inMulti = false
+                i += 2
+                continue
+            }
+            if !inSingle, !inMulti { result.append(c) }
             i += 1
         }
         return result
@@ -425,7 +479,12 @@ public final class TachikomaMCPClientManager {
         for m in matches {
             let nameRange = m.range(at: 1)
             let fullRange = m.range(at: 0)
-            if nameRange.location != NSNotFound, let swiftName = Range(nameRange, in: text), let swiftFull = Range(fullRange, in: text) {
+            if
+                nameRange.location != NSNotFound, let swiftName = Range(nameRange, in: text), let swiftFull = Range(
+                    fullRange,
+                    in: text
+                )
+            {
                 let name = String(text[swiftName])
                 if let val = ProcessInfo.processInfo.environment[name] {
                     result.replaceSubrange(swiftFull, with: val)

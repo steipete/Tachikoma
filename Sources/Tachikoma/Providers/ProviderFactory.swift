@@ -6,7 +6,11 @@ import Foundation
 @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public struct ProviderFactory {
     /// Create a provider for the specified language model
-    public static func createProvider(for model: LanguageModel, configuration: TachikomaConfiguration) throws -> any ModelProvider {
+    public static func createProvider(
+        for model: LanguageModel,
+        configuration: TachikomaConfiguration
+    ) throws
+    -> any ModelProvider {
         switch model {
         case let .openai(openaiModel):
             // Use Responses API for reasoning models (o3, o4) and GPT-5
@@ -65,9 +69,17 @@ public struct ProviderFactory {
                 if let custom = CustomProviderRegistry.shared.get(parsed.provider) {
                     switch custom.kind {
                     case .openai:
-                        return try OpenAICompatibleProvider(modelId: parsed.model, baseURL: custom.baseURL, configuration: configuration)
+                        return try OpenAICompatibleProvider(
+                            modelId: parsed.model,
+                            baseURL: custom.baseURL,
+                            configuration: configuration
+                        )
                     case .anthropic:
-                        return try AnthropicCompatibleProvider(modelId: parsed.model, baseURL: custom.baseURL, configuration: configuration)
+                        return try AnthropicCompatibleProvider(
+                            modelId: parsed.model,
+                            baseURL: custom.baseURL,
+                            configuration: configuration
+                        )
                     }
                 }
             }
@@ -78,12 +90,6 @@ public struct ProviderFactory {
 
 // MARK: - Third-Party Aggregators
 
-
-
-
 // MARK: - Compatible Providers
 
-
-
 // MARK: - Mock Provider for Testing
-

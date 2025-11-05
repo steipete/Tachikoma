@@ -1,8 +1,3 @@
-//
-//  RealtimeQuickTest.swift
-//  Tachikoma
-//
-
 import Foundation
 import Tachikoma
 import TachikomaAudio
@@ -14,7 +9,7 @@ import TachikomaAudio
 func testRealtimeConfiguration() async throws {
     print("🧪 Testing Realtime API Configuration...")
     print("=" * 50)
-    
+
     // Test 1: Session Configuration
     print("\n1️⃣ Testing Session Configuration:")
     let voiceConfig = SessionConfiguration.voiceConversation(
@@ -25,7 +20,7 @@ func testRealtimeConfiguration() async throws {
     print("   ✅ Voice: \(voiceConfig.voice)")
     print("   ✅ Turn Detection: \(voiceConfig.turnDetection?.type.rawValue ?? "none")")
     print("   ✅ Modalities: \(voiceConfig.modalities?.toArray.joined(separator: ", ") ?? "none")")
-    
+
     // Test 2: Turn Detection
     print("\n2️⃣ Testing Turn Detection Configuration:")
     let vad = RealtimeTurnDetection.serverVAD
@@ -33,14 +28,14 @@ func testRealtimeConfiguration() async throws {
     print("   ✅ Threshold: \(vad.threshold ?? 0)")
     print("   ✅ Silence Duration: \(vad.silenceDurationMs ?? 0)ms")
     print("   ✅ Create Response: \(vad.createResponse ?? false)")
-    
+
     // Test 3: Response Modalities
     print("\n3️⃣ Testing Response Modalities:")
     let modalities = ResponseModality.all
     print("   ✅ Contains text: \(modalities.contains(.text))")
     print("   ✅ Contains audio: \(modalities.contains(.audio))")
     print("   ✅ Array format: \(modalities.toArray.joined(separator: ", "))")
-    
+
     // Test 4: Conversation Settings
     print("\n4️⃣ Testing Conversation Settings:")
     let settings = ConversationSettings.production
@@ -48,7 +43,7 @@ func testRealtimeConfiguration() async throws {
     print("   ✅ Max attempts: \(settings.maxReconnectAttempts)")
     print("   ✅ Buffer audio: \(settings.bufferWhileDisconnected)")
     print("   ✅ Echo cancellation: \(settings.enableEchoCancellation)")
-    
+
     // Test 5: Tool Creation
     print("\n5️⃣ Testing Tool Creation:")
     let tool = RealtimeTool(
@@ -60,7 +55,7 @@ func testRealtimeConfiguration() async throws {
                     name: "input",
                     type: .string,
                     description: "Test input"
-                )
+                ),
             ],
             required: ["input"]
         )
@@ -68,7 +63,7 @@ func testRealtimeConfiguration() async throws {
     print("   ✅ Tool name: \(tool.name)")
     print("   ✅ Parameters: \(tool.parameters.properties.count)")
     print("   ✅ Required: \(tool.parameters.required.joined(separator: ", "))")
-    
+
     // Test 6: Event Creation
     print("\n6️⃣ Testing Event Creation:")
     let event = RealtimeClientEvent.responseCreate(
@@ -79,19 +74,19 @@ func testRealtimeConfiguration() async throws {
             temperature: 0.8
         )
     )
-    if case .responseCreate(let createEvent) = event {
+    if case let .responseCreate(createEvent) = event {
         print("   ✅ Event type: responseCreate")
         print("   ✅ Modalities: \(createEvent.modalities?.joined(separator: ", ") ?? "none")")
         print("   ✅ Temperature: \(createEvent.temperature ?? 0)")
     }
-    
+
     // Test 7: Audio Format
     print("\n7️⃣ Testing Audio Formats:")
     let formats: [RealtimeAudioFormat] = [.pcm16, .g711Ulaw, .g711Alaw]
     for format in formats {
         print("   ✅ Format: \(format.rawValue)")
     }
-    
+
     // Test 8: Conversation Item
     print("\n8️⃣ Testing Conversation Items:")
     let item = ConversationItem(
@@ -103,7 +98,7 @@ func testRealtimeConfiguration() async throws {
     print("   ✅ Item ID: \(item.id)")
     print("   ✅ Type: \(item.type)")
     print("   ✅ Content: \(item.content?.first?.text ?? "none")")
-    
+
     print("\n" + "=" * 50)
     print("✅ All configuration tests passed!")
     print("\n📝 Note: This test validates configuration without API calls.")
@@ -114,7 +109,7 @@ func testRealtimeConfiguration() async throws {
 // Extension for string multiplication
 extension String {
     static func * (string: String, count: Int) -> String {
-        return String(repeating: string, count: count)
+        String(repeating: string, count: count)
     }
 }
 

@@ -1,18 +1,11 @@
-//
-//  ProviderTests.swift
-//  TachikomaTests
-//
-
 import Foundation
 import Testing
 @testable import Tachikoma
 
-@Suite("Provider Enum Tests") 
+@Suite("Provider Enum Tests")
 struct ProviderTests {
-    
     @Suite("Provider Properties Tests")
     struct ProviderPropertiesTests {
-        
         @Test("Standard providers have correct identifiers")
         func standardProviderIdentifiers() {
             #expect(Provider.openai.identifier == "openai")
@@ -23,13 +16,13 @@ struct ProviderTests {
             #expect(Provider.google.identifier == "google")
             #expect(Provider.ollama.identifier == "ollama")
         }
-        
+
         @Test("Custom provider has correct identifier")
         func customProviderIdentifier() {
             let customProvider = Provider.custom("my-custom-provider")
             #expect(customProvider.identifier == "my-custom-provider")
         }
-        
+
         @Test("Display names are human-readable")
         func displayNames() {
             #expect(Provider.openai.displayName == "OpenAI")
@@ -41,7 +34,7 @@ struct ProviderTests {
             #expect(Provider.ollama.displayName == "Ollama")
             #expect(Provider.custom("test").displayName == "Test")
         }
-        
+
         @Test("Environment variables are correct")
         func environmentVariables() {
             #expect(Provider.openai.environmentVariable == "OPENAI_API_KEY")
@@ -53,14 +46,14 @@ struct ProviderTests {
             #expect(Provider.ollama.environmentVariable == "OLLAMA_API_KEY")
             #expect(Provider.custom("test").environmentVariable == "")
         }
-        
+
         @Test("Alternative environment variables")
         func alternativeEnvironmentVariables() {
             #expect(Provider.grok.alternativeEnvironmentVariables == ["XAI_API_KEY"])
             #expect(Provider.openai.alternativeEnvironmentVariables.isEmpty)
             #expect(Provider.anthropic.alternativeEnvironmentVariables.isEmpty)
         }
-        
+
         @Test("Default base URLs")
         func defaultBaseURLs() {
             #expect(Provider.openai.defaultBaseURL == "https://api.openai.com/v1")
@@ -72,7 +65,7 @@ struct ProviderTests {
             #expect(Provider.ollama.defaultBaseURL == "http://localhost:11434")
             #expect(Provider.custom("test").defaultBaseURL == nil)
         }
-        
+
         @Test("API key requirements")
         func apiKeyRequirements() {
             #expect(Provider.openai.requiresAPIKey == true)
@@ -85,10 +78,9 @@ struct ProviderTests {
             #expect(Provider.custom("test").requiresAPIKey == true) // Assume custom providers need keys
         }
     }
-    
+
     @Suite("Provider Factory Tests")
     struct ProviderFactoryTests {
-        
         @Test("Create provider from identifier - standard providers")
         func createStandardProviders() {
             #expect(Provider.from(identifier: "openai") == .openai)
@@ -99,54 +91,53 @@ struct ProviderTests {
             #expect(Provider.from(identifier: "google") == .google)
             #expect(Provider.from(identifier: "ollama") == .ollama)
         }
-        
+
         @Test("Create provider from identifier - case insensitive")
         func createProvidersCase() {
             #expect(Provider.from(identifier: "OpenAI") == .openai)
             #expect(Provider.from(identifier: "ANTHROPIC") == .anthropic)
             #expect(Provider.from(identifier: "Grok") == .grok)
         }
-        
+
         @Test("Create provider from identifier - custom providers")
         func createCustomProviders() {
             let provider1 = Provider.from(identifier: "custom-provider")
             let provider2 = Provider.from(identifier: "unknown-provider")
-            
-            if case .custom(let id1) = provider1 {
+
+            if case let .custom(id1) = provider1 {
                 #expect(id1 == "custom-provider")
             } else {
                 Issue.record("Expected custom provider")
             }
-            
-            if case .custom(let id2) = provider2 {
+
+            if case let .custom(id2) = provider2 {
                 #expect(id2 == "unknown-provider")
             } else {
                 Issue.record("Expected custom provider")
             }
         }
-        
+
         @Test("Standard providers list")
         func standardProvidersList() {
             let expected: [Provider] = [.openai, .anthropic, .grok, .groq, .mistral, .google, .ollama]
             #expect(Provider.standardProviders == expected)
         }
     }
-    
+
     @Suite("Environment Variable Loading Tests")
     struct EnvironmentVariableTests {
-        
         @Test("Load API key from primary environment variable")
         func loadFromPrimaryEnvironment() {
             // Mock environment for testing
             let originalEnv = ProcessInfo.processInfo.environment
-            
+
             // Test with mocked environment
             let mockEnv = ["OPENAI_API_KEY": "test-openai-key"]
-            
+
             // We can't easily mock ProcessInfo.processInfo.environment in tests,
             // so we'll test the logic indirectly through TachikomaConfiguration
         }
-        
+
         @Test("Load API key from alternative environment variable")
         func loadFromAlternativeEnvironment() {
             // Test that Grok provider loads from XAI_API_KEY when X_AI_API_KEY is not available
@@ -154,7 +145,7 @@ struct ProviderTests {
             #expect(provider.environmentVariable == "X_AI_API_KEY")
             #expect(provider.alternativeEnvironmentVariables == ["XAI_API_KEY"])
         }
-        
+
         @Test("Custom providers don't have environment variables")
         func customProviderNoEnvironment() {
             let customProvider = Provider.custom("test")
@@ -162,66 +153,63 @@ struct ProviderTests {
             #expect(customProvider.alternativeEnvironmentVariables.isEmpty)
         }
     }
-    
-    @Suite("Codable Tests")  
+
+    @Suite("Codable Tests")
     struct CodableTests {
-        
         @Test("Provider encodes to identifier string")
         func providerEncoding() throws {
             let encoder = JSONEncoder()
-            
+
             let openaiData = try encoder.encode(Provider.openai)
             let openaiString = String(data: openaiData, encoding: .utf8)
             #expect(openaiString == "\"openai\"")
-            
+
             let customData = try encoder.encode(Provider.custom("my-provider"))
             let customString = String(data: customData, encoding: .utf8)
             #expect(customString == "\"my-provider\"")
         }
-        
+
         @Test("Provider decodes from identifier string")
         func providerDecoding() throws {
             let decoder = JSONDecoder()
-            
+
             let openaiData = "\"openai\"".data(using: .utf8)!
             let openaiProvider = try decoder.decode(Provider.self, from: openaiData)
             #expect(openaiProvider == .openai)
-            
+
             let customData = "\"my-provider\"".data(using: .utf8)!
             let customProvider = try decoder.decode(Provider.self, from: customData)
-            if case .custom(let id) = customProvider {
+            if case let .custom(id) = customProvider {
                 #expect(id == "my-provider")
             } else {
                 Issue.record("Expected custom provider")
             }
         }
     }
-    
+
     @Suite("Equality Tests")
     struct EqualityTests {
-        
         @Test("Standard providers equality")
         func standardProvidersEquality() {
             #expect(Provider.openai == Provider.openai)
             #expect(Provider.anthropic == Provider.anthropic)
             #expect(Provider.openai != Provider.anthropic)
         }
-        
+
         @Test("Custom providers equality")
         func customProvidersEquality() {
             let custom1 = Provider.custom("test")
             let custom2 = Provider.custom("test")
             let custom3 = Provider.custom("different")
-            
+
             #expect(custom1 == custom2)
             #expect(custom1 != custom3)
             #expect(custom1 != Provider.openai)
         }
     }
-    
+
     @Suite("Hashable Tests")
     struct HashableTests {
-        
         @Test("Provider hashable implementation")
         func providerHashable() {
             let providers: Set<Provider> = [
@@ -229,9 +217,9 @@ struct ProviderTests {
                 .anthropic,
                 .grok,
                 .custom("test1"),
-                .custom("test2")
+                .custom("test2"),
             ]
-            
+
             #expect(providers.count == 5)
             #expect(providers.contains(.openai))
             #expect(providers.contains(.custom("test1")))

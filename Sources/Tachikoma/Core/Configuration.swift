@@ -7,6 +7,7 @@ import Foundation
 @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public final class TachikomaConfiguration: @unchecked Sendable {
     // MARK: - Profile Directory (for config/credentials)
+
     /// Name of the profile directory under the user's HOME used to store
     /// configuration and credentials (e.g. \.tachikoma, \.peekaboo).
     /// Defaults to ".tachikoma". Host applications (like Peekaboo) should set this
@@ -23,7 +24,7 @@ public final class TachikomaConfiguration: @unchecked Sendable {
     /// Thread-safe storage for the default configuration
     private static let defaultLock = NSLock()
     private nonisolated(unsafe) static var _default: TachikomaConfiguration?
-    
+
     /// Optional default configuration set by the application
     public static var `default`: TachikomaConfiguration? {
         get {
@@ -33,21 +34,21 @@ public final class TachikomaConfiguration: @unchecked Sendable {
             defaultLock.withLock { _default = newValue }
         }
     }
-    
+
     /// Singleton created once when needed (if no default is set)
     private static let autoInstance = TachikomaConfiguration()
-    
+
     /// The current effective default configuration
     /// Returns user-set default or auto-created singleton
     public static var current: TachikomaConfiguration {
-        Self.default ?? Self.autoInstance
+        Self.default ?? autoInstance
     }
-    
+
     /// Resolves configuration with proper fallback chain
     /// Priority: provided > default > auto singleton
     @inlinable
     public static func resolve(_ provided: TachikomaConfiguration? = nil) -> TachikomaConfiguration {
-        provided ?? Self.current
+        provided ?? self.current
     }
 
     /// Create a new configuration instance
@@ -57,7 +58,7 @@ public final class TachikomaConfiguration: @unchecked Sendable {
             self.loadConfiguration()
         }
     }
-    
+
     /// Create a configuration with specific API keys
     public convenience init(apiKeys: [String: String], baseURLs: [String: String] = [:]) {
         self.init(loadFromEnvironment: false)
@@ -86,12 +87,12 @@ public final class TachikomaConfiguration: @unchecked Sendable {
             if let configuredKey = self._apiKeys[provider.identifier] {
                 return configuredKey
             }
-            
+
             // Fall back to environment variable only if loadFromEnvironment is true
             if self._loadFromEnvironment {
                 return provider.loadAPIKeyFromEnvironment()
             }
-            
+
             return nil
         }
     }
@@ -108,49 +109,49 @@ public final class TachikomaConfiguration: @unchecked Sendable {
     public func hasAPIKey(for provider: Provider) -> Bool {
         self.getAPIKey(for: provider) != nil
     }
-    
+
     /// Check if provider has a configured API key (not from environment)
     public func hasConfiguredAPIKey(for provider: Provider) -> Bool {
         self.lock.withLock {
-            return self._apiKeys[provider.identifier] != nil
+            self._apiKeys[provider.identifier] != nil
         }
     }
-    
+
     /// Check if provider has an environment API key available
     public func hasEnvironmentAPIKey(for provider: Provider) -> Bool {
         provider.hasEnvironmentAPIKey
     }
-    
+
     // MARK: - String-based API (for compatibility with Mac app that doesn't import Provider enum)
-    
+
     /// Set an API key for a specific provider using string identifier
     public func setAPIKey(_ key: String, for providerString: String) {
         let provider = Provider.from(identifier: providerString)
-        setAPIKey(key, for: provider)
+        self.setAPIKey(key, for: provider)
     }
-    
+
     /// Get an API key for a specific provider using string identifier
     public func getAPIKey(for providerString: String) -> String? {
         let provider = Provider.from(identifier: providerString)
-        return getAPIKey(for: provider)
+        return self.getAPIKey(for: provider)
     }
-    
+
     /// Set a custom base URL for a provider using string identifier
     public func setBaseURL(_ url: String, for providerString: String) {
         let provider = Provider.from(identifier: providerString)
-        setBaseURL(url, for: provider)
+        self.setBaseURL(url, for: provider)
     }
-    
+
     /// Get the base URL for a provider using string identifier
     public func getBaseURL(for providerString: String) -> String? {
         let provider = Provider.from(identifier: providerString)
-        return getBaseURL(for: provider)
+        return self.getBaseURL(for: provider)
     }
-    
+
     /// Check if an API key is available for a provider using string identifier
     public func hasAPIKey(for providerString: String) -> Bool {
         let provider = Provider.from(identifier: providerString)
-        return hasAPIKey(for: provider)
+        return self.hasAPIKey(for: provider)
     }
 
     // MARK: - Base URL Configuration
@@ -170,7 +171,7 @@ public final class TachikomaConfiguration: @unchecked Sendable {
             if let configuredURL = self._baseURLs[provider.identifier] {
                 return configuredURL
             }
-            
+
             // Fall back to default URL for standard providers
             return provider.defaultBaseURL
         }
@@ -191,14 +192,14 @@ public final class TachikomaConfiguration: @unchecked Sendable {
             self._defaultSettings = settings
         }
     }
-    
+
     /// Set verbose mode for debug logging
     public func setVerbose(_ verbose: Bool) {
         self.lock.withLock {
             self._verbose = verbose
         }
     }
-    
+
     /// Get/set verbose mode setting
     public var verbose: Bool {
         get {
@@ -256,9 +257,9 @@ public final class TachikomaConfiguration: @unchecked Sendable {
     /// Load configuration from credentials file
     private func loadFromCredentials() {
         #if os(Windows)
-        let homeDirectory = ProcessInfo.processInfo.environment["USERPROFILE"] ?? 
-                           (ProcessInfo.processInfo.environment["HOMEDRIVE"] ?? "" + 
-                            (ProcessInfo.processInfo.environment["HOMEPATH"] ?? ""))
+        let homeDirectory = ProcessInfo.processInfo.environment["USERPROFILE"] ??
+            (ProcessInfo.processInfo.environment["HOMEDRIVE"] ?? "" +
+                (ProcessInfo.processInfo.environment["HOMEPATH"] ?? ""))
         guard !homeDirectory.isEmpty else { return }
         #else
         guard let homeDirectory = ProcessInfo.processInfo.environment["HOME"] else {
@@ -325,9 +326,9 @@ public final class TachikomaConfiguration: @unchecked Sendable {
     /// Save current configuration to credentials file
     public func saveCredentials() throws {
         #if os(Windows)
-        let homeDirectory = ProcessInfo.processInfo.environment["USERPROFILE"] ?? 
-                           (ProcessInfo.processInfo.environment["HOMEDRIVE"] ?? "" + 
-                            (ProcessInfo.processInfo.environment["HOMEPATH"] ?? ""))
+        let homeDirectory = ProcessInfo.processInfo.environment["USERPROFILE"] ??
+            (ProcessInfo.processInfo.environment["HOMEDRIVE"] ?? "" +
+                (ProcessInfo.processInfo.environment["HOMEPATH"] ?? ""))
         guard !homeDirectory.isEmpty else {
             throw TachikomaError.invalidConfiguration("USERPROFILE directory not found")
         }
@@ -367,7 +368,6 @@ public final class TachikomaConfiguration: @unchecked Sendable {
         try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: credentialsPath)
         #endif
     }
-
 
     // MARK: - Utility Methods
 
@@ -419,7 +419,11 @@ extension NSLock {
 @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 extension ProviderFactory {
     /// Create a provider with configuration
-    public static func createConfiguredProvider(for model: LanguageModel, configuration: TachikomaConfiguration) throws -> any ModelProvider {
+    public static func createConfiguredProvider(
+        for model: LanguageModel,
+        configuration: TachikomaConfiguration
+    ) throws
+    -> any ModelProvider {
         let provider = try createProvider(for: model, configuration: configuration)
         return provider
     }

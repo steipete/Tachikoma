@@ -1,8 +1,3 @@
-//
-//  ModelProvider.swift
-//  Tachikoma
-//
-
 import Foundation
 
 // MARK: - Model Provider Protocol

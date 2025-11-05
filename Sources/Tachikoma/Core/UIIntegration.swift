@@ -1,8 +1,3 @@
-//
-//  UIIntegration.swift
-//  Tachikoma
-//
-
 import Foundation
 
 // MARK: - UI Message Types
@@ -17,7 +12,7 @@ public struct UIMessage: Sendable, Codable {
     public let toolCalls: [AgentToolCall]?
     public let metadata: [String: String]
     public let timestamp: Date
-    
+
     public init(
         id: String = UUID().uuidString,
         role: ModelMessage.Role,
@@ -46,7 +41,7 @@ public struct UIAttachment: Sendable, Codable {
     public let data: Data?
     public let mimeType: String
     public let name: String?
-    
+
     public enum AttachmentType: String, Sendable, Codable {
         case image
         case document
@@ -54,7 +49,7 @@ public struct UIAttachment: Sendable, Codable {
         case video
         case file
     }
-    
+
     public init(
         id: String = UUID().uuidString,
         type: AttachmentType,
@@ -88,12 +83,12 @@ public enum UIMessageChunk: Sendable {
 // MARK: - Message Conversion
 
 @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
-public extension Array where Element == UIMessage {
+extension [UIMessage] {
     /// Convert UI messages to model messages for API calls
-    func toModelMessages() -> [ModelMessage] {
+    public func toModelMessages() -> [ModelMessage] {
         self.map { uiMessage in
             var contentParts: [ModelMessage.ContentPart] = [.text(uiMessage.content)]
-            
+
             // Add attachments as content parts
             for attachment in uiMessage.attachments {
                 if attachment.type == .image {
@@ -115,14 +110,14 @@ public extension Array where Element == UIMessage {
                     }
                 }
             }
-            
+
             // Add tool calls
             if let toolCalls = uiMessage.toolCalls {
                 for toolCall in toolCalls {
                     contentParts.append(.toolCall(toolCall))
                 }
             }
-            
+
             return ModelMessage(
                 role: uiMessage.role,
                 content: contentParts
@@ -132,19 +127,19 @@ public extension Array where Element == UIMessage {
 }
 
 @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
-public extension Array where Element == ModelMessage {
+extension [ModelMessage] {
     /// Convert model messages to UI messages for display
-    func toUIMessages() -> [UIMessage] {
+    public func toUIMessages() -> [UIMessage] {
         self.map { modelMessage in
             var content = ""
             var attachments: [UIAttachment] = []
             var toolCalls: [AgentToolCall] = []
-            
+
             for part in modelMessage.content {
                 switch part {
-                case .text(let text):
+                case let .text(text):
                     content += text
-                case .image(let imageContent):
+                case let .image(imageContent):
                     // Check if it's base64 data or a URL
                     if imageContent.data.starts(with: "http") {
                         // It's a URL stored in the data field
@@ -165,13 +160,13 @@ public extension Array where Element == ModelMessage {
                             ))
                         }
                     }
-                case .toolCall(let call):
+                case let .toolCall(call):
                     toolCalls.append(call)
-                case .toolResult(let result):
+                case let .toolResult(result):
                     content += "\n[Tool Result: \(result.result)]"
                 }
             }
-            
+
             return UIMessage(
                 role: modelMessage.role,
                 content: content,
@@ -185,9 +180,9 @@ public extension Array where Element == ModelMessage {
 // MARK: - Streaming Extensions
 
 @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
-public extension StreamTextResult {
+extension StreamTextResult {
     /// Convert streaming result to UI message chunks for real-time updates
-    func toUIMessageStream() -> AsyncStream<UIMessageChunk> {
+    public func toUIMessageStream() -> AsyncStream<UIMessageChunk> {
         AsyncStream { continuation in
             Task {
                 do {
@@ -217,9 +212,9 @@ public extension StreamTextResult {
             }
         }
     }
-    
+
     /// Convert streaming result to simple text stream
-    func toTextStream() -> AsyncStream<String> {
+    public func toTextStream() -> AsyncStream<String> {
         AsyncStream { continuation in
             Task {
                 do {
@@ -236,9 +231,9 @@ public extension StreamTextResult {
             }
         }
     }
-    
+
     /// Collect all text from stream into a single string
-    func collectText() async throws -> String {
+    public func collectText() async throws -> String {
         var result = ""
         for try await delta in self.stream {
             if delta.type == .textDelta, let content = delta.content {
@@ -256,7 +251,7 @@ public struct UIStreamResponse: Sendable {
     public let stream: AsyncStream<UIMessageChunk>
     public let messageId: String
     public let role: ModelMessage.Role
-    
+
     public init(
         stream: AsyncStream<UIMessageChunk>,
         messageId: String = UUID().uuidString,
@@ -266,31 +261,31 @@ public struct UIStreamResponse: Sendable {
         self.messageId = messageId
         self.role = role
     }
-    
+
     /// Collect complete message from stream
     public func collectMessage() async -> UIMessage {
         var content = ""
         var toolCalls: [AgentToolCall] = []
         var currentToolCall: (id: String, name: String, arguments: String)?
-        
-        for await chunk in stream {
+
+        for await chunk in self.stream {
             switch chunk {
-            case .text(let text):
+            case let .text(text):
                 content += text
-            case .toolCallStart(let id, let name):
+            case let .toolCallStart(id, name):
                 currentToolCall = (id, name, "")
-            case .toolCallArgument(let id, let argument):
+            case let .toolCallArgument(id, argument):
                 if currentToolCall?.id == id {
                     currentToolCall?.arguments += argument
                 }
-            case .toolCallEnd(let id):
+            case let .toolCallEnd(id):
                 if let tool = currentToolCall, tool.id == id {
                     let args: [String: Any] = (try? JSONSerialization.jsonObject(
                         with: tool.arguments.data(using: .utf8) ?? Data()
                     ) as? [String: Any]) ?? [:]
-                    
+
                     do {
-                        toolCalls.append(try AgentToolCall(
+                        try toolCalls.append(AgentToolCall(
                             id: tool.id,
                             name: tool.name,
                             arguments: args
@@ -307,10 +302,10 @@ public struct UIStreamResponse: Sendable {
                 break
             }
         }
-        
+
         return UIMessage(
-            id: messageId,
-            role: role,
+            id: self.messageId,
+            role: self.role,
             content: content,
             toolCalls: toolCalls.isEmpty ? nil : toolCalls
         )

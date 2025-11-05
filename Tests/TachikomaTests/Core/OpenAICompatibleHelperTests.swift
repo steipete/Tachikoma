@@ -1,21 +1,16 @@
-//
-//  OpenAICompatibleHelperTests.swift
-//  Tachikoma
-//
-
-import Testing
 import Foundation
+import Testing
 @testable import Tachikoma
 
 @Test("OpenAICompatibleHelper streaming implementation")
 @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
-func testStreamingImplementation() async throws {
+func streamingImplementation() async throws {
     // This test verifies that the streaming implementation uses proper async streaming
     // and doesn't buffer the entire response before processing
-    
+
     // Create a mock URLSession that simulates streaming responses
     let mockSession = MockStreamingURLSession()
-    
+
     // Test that the helper properly processes SSE format
     let sseData = """
     data: {"choices":[{"delta":{"content":"Hello"}}]}
@@ -23,7 +18,7 @@ func testStreamingImplementation() async throws {
     data: {"choices":[{"delta":{"content":"world"}}]}
     data: [DONE]
     """
-    
+
     // Verify that each chunk is processed independently
     // (This would require refactoring to inject URLSession, keeping simple for now)
     #expect(true) // Placeholder for now
@@ -31,7 +26,7 @@ func testStreamingImplementation() async throws {
 
 @Test("GPT-5 max_completion_tokens parameter encoding")
 @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
-func testGPT5MaxCompletionTokensEncoding() throws {
+func gPT5MaxCompletionTokensEncoding() throws {
     // Test that GPT-5 models use max_completion_tokens instead of max_tokens
     let gpt5Request = OpenAIChatRequest(
         model: "gpt-5",
@@ -42,15 +37,15 @@ func testGPT5MaxCompletionTokensEncoding() throws {
         stream: false,
         stop: nil
     )
-    
+
     let encoder = JSONEncoder()
     let data = try encoder.encode(gpt5Request)
     let json = try JSONSerialization.jsonObject(with: data) as? [String: Any]
-    
+
     // GPT-5 should use max_completion_tokens
     #expect(json?["max_completion_tokens"] != nil)
     #expect(json?["max_tokens"] == nil)
-    
+
     // Test non-GPT-5 model
     let gpt4Request = OpenAIChatRequest(
         model: "gpt-4",
@@ -61,10 +56,10 @@ func testGPT5MaxCompletionTokensEncoding() throws {
         stream: false,
         stop: nil
     )
-    
+
     let gpt4Data = try encoder.encode(gpt4Request)
     let gpt4Json = try JSONSerialization.jsonObject(with: gpt4Data) as? [String: Any]
-    
+
     // GPT-4 should use max_tokens
     #expect(gpt4Json?["max_tokens"] != nil)
     #expect(gpt4Json?["max_completion_tokens"] == nil)
@@ -72,9 +67,9 @@ func testGPT5MaxCompletionTokensEncoding() throws {
 
 @Test("OpenAIChatRequest decode handles both max_tokens and max_completion_tokens")
 @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
-func testOpenAIChatRequestDecoding() throws {
+func openAIChatRequestDecoding() throws {
     let decoder = JSONDecoder()
-    
+
     // Test decoding with max_tokens
     let maxTokensJSON = """
     {
@@ -83,10 +78,10 @@ func testOpenAIChatRequestDecoding() throws {
         "max_tokens": 100
     }
     """
-    
+
     let maxTokensRequest = try decoder.decode(OpenAIChatRequest.self, from: Data(maxTokensJSON.utf8))
     #expect(maxTokensRequest.maxTokens == 100)
-    
+
     // Test decoding with max_completion_tokens
     let maxCompletionTokensJSON = """
     {
@@ -95,14 +90,14 @@ func testOpenAIChatRequestDecoding() throws {
         "max_completion_tokens": 200
     }
     """
-    
+
     let maxCompletionRequest = try decoder.decode(OpenAIChatRequest.self, from: Data(maxCompletionTokensJSON.utf8))
     #expect(maxCompletionRequest.maxTokens == 200)
 }
 
 @Test("Streaming response chunks are processed incrementally")
 @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
-func testStreamingChunksProcessedIncrementally() async throws {
+func streamingChunksProcessedIncrementally() async throws {
     // Test that streaming chunks are yielded as they arrive, not buffered
     let chunks = [
         OpenAIStreamChunk(
@@ -128,9 +123,9 @@ func testStreamingChunksProcessedIncrementally() async throws {
                 delta: OpenAIStreamChunk.Delta(role: nil, content: "!", toolCalls: nil),
                 finishReason: "stop"
             )]
-        )
+        ),
     ]
-    
+
     // Verify chunks have expected content
     #expect(chunks[0].choices.first?.delta.content == "Hello")
     #expect(chunks[1].choices.first?.delta.content == " world")
@@ -140,7 +135,7 @@ func testStreamingChunksProcessedIncrementally() async throws {
 
 @Test("Tool calls are properly handled in streaming")
 @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
-func testStreamingToolCalls() async throws {
+func streamingToolCalls() async throws {
     // Test that tool calls in streaming responses are properly parsed
     let toolCallChunk = OpenAIStreamChunk(
         id: "chunk_tool",
@@ -158,13 +153,13 @@ func testStreamingToolCalls() async throws {
                             name: "calculate",
                             arguments: "{\"expression\":\"2+2\"}"
                         )
-                    )
+                    ),
                 ]
             ),
             finishReason: nil
         )]
     )
-    
+
     let toolCalls = toolCallChunk.choices.first?.delta.toolCalls
     #expect(toolCalls?.count == 1)
     #expect(toolCalls?.first?.function?.name == "calculate")
@@ -173,7 +168,7 @@ func testStreamingToolCalls() async throws {
 
 @Test("Error responses are properly handled")
 @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
-func testErrorResponseHandling() throws {
+func errorResponseHandling() throws {
     let errorJSON = """
     {
         "error": {
@@ -183,10 +178,10 @@ func testErrorResponseHandling() throws {
         }
     }
     """
-    
+
     let decoder = JSONDecoder()
     let errorResponse = try decoder.decode(OpenAIErrorResponse.self, from: Data(errorJSON.utf8))
-    
+
     #expect(errorResponse.error.message.contains("Unsupported parameter"))
     #expect(errorResponse.error.type == "invalid_request_error")
     #expect(errorResponse.error.code == "unsupported_parameter")
@@ -202,9 +197,9 @@ private class MockStreamingURLSession {
                     "data: {\"choices\":[{\"delta\":{\"content\":\"Hello\"}}]}",
                     "data: {\"choices\":[{\"delta\":{\"content\":\" \"}}]}",
                     "data: {\"choices\":[{\"delta\":{\"content\":\"world\"}}]}",
-                    "data: [DONE]"
+                    "data: [DONE]",
                 ]
-                
+
                 for chunk in chunks {
                     continuation.yield(chunk)
                     try? await Task.sleep(nanoseconds: 10_000_000) // 10ms delay

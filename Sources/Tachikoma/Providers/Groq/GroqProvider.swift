@@ -1,8 +1,3 @@
-//
-//  GroqProvider.swift
-//  Tachikoma
-//
-
 import Foundation
 
 /// Provider for Groq models
@@ -37,7 +32,7 @@ public final class GroqProvider: ModelProvider {
 
     public func generateText(request: ProviderRequest) async throws -> ProviderResponse {
         // Use OpenAI-compatible implementation for Groq
-        return try await OpenAICompatibleHelper.generateText(
+        try await OpenAICompatibleHelper.generateText(
             request: request,
             modelId: self.modelId,
             baseURL: self.baseURL!,
@@ -48,7 +43,7 @@ public final class GroqProvider: ModelProvider {
 
     public func streamText(request: ProviderRequest) async throws -> AsyncThrowingStream<TextStreamDelta, Error> {
         // Use OpenAI-compatible streaming for Groq
-        return try await OpenAICompatibleHelper.streamText(
+        try await OpenAICompatibleHelper.streamText(
             request: request,
             modelId: self.modelId,
             baseURL: self.baseURL!,

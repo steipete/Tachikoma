@@ -1,8 +1,3 @@
-//
-//  OpenAIResponsesTypes.swift
-//  Tachikoma
-//
-
 import Foundation
 
 // MARK: - Responses API Types
@@ -15,14 +10,14 @@ struct OpenAIResponsesRequest: Codable {
     let temperature: Double?
     let topP: Double?
     let maxOutputTokens: Int?
-    
+
     // Response format and text configuration
-    let text: TextConfig?  // GPT-5 text configuration with verbosity
-    
+    let text: TextConfig? // GPT-5 text configuration with verbosity
+
     // Tool configuration
     let tools: [ResponsesTool]?
     let toolChoice: String?
-    
+
     // Provider-specific options
     let metadata: [String: String]?
     let parallelToolCalls: Bool?
@@ -32,16 +27,16 @@ struct OpenAIResponsesRequest: Codable {
     let instructions: String?
     let serviceTier: String?
     let include: [String]?
-    
+
     // Reasoning configuration (for o3/o4/GPT-5)
     let reasoning: ReasoningConfig?
-    
+
     // Truncation for long inputs
     let truncation: String?
-    
+
     // Streaming support
     let stream: Bool?
-    
+
     enum CodingKeys: String, CodingKey {
         case model
         case input
@@ -68,26 +63,26 @@ struct OpenAIResponsesRequest: Codable {
 /// Text verbosity levels for GPT-5
 @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 enum TextVerbosity: String, Codable, Sendable {
-    case low = "low"
-    case medium = "medium"
-    case high = "high"
+    case low
+    case medium
+    case high
 }
 
 /// Internal reasoning effort levels for OpenAI responses provider
 @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 enum OpenAIReasoningEffort: String, Codable, Sendable {
-    case minimal = "minimal"
-    case low = "low"
-    case medium = "medium"
-    case high = "high"
+    case minimal
+    case low
+    case medium
+    case high
 }
 
 /// Reasoning summary modes for reasoning models
 @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 enum ReasoningSummary: String, Codable, Sendable {
-    case concise = "concise"
-    case detailed = "detailed"
-    case auto = "auto"
+    case concise
+    case detailed
+    case auto
 }
 
 /// Text configuration for GPT-5 models
@@ -107,29 +102,29 @@ struct ReasoningConfig: Codable, Sendable {
 @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 struct ResponseFormat: Codable {
     let format: ResponseFormatType
-    
+
     enum ResponseFormatType: Codable {
         case jsonObject
         case jsonSchema(JSONSchemaFormat)
-        
+
         private enum CodingKeys: String, CodingKey {
             case type
         }
-        
+
         func encode(to encoder: Encoder) throws {
             switch self {
             case .jsonObject:
                 var container = encoder.container(keyedBy: CodingKeys.self)
                 try container.encode("json_object", forKey: .type)
-            case .jsonSchema(let schema):
+            case let .jsonSchema(schema):
                 try schema.encode(to: encoder)
             }
         }
-        
+
         init(from decoder: Decoder) throws {
             let container = try decoder.container(keyedBy: CodingKeys.self)
             let type = try container.decode(String.self, forKey: .type)
-            
+
             switch type {
             case "json_object":
                 self = .jsonObject
@@ -140,7 +135,8 @@ struct ResponseFormat: Codable {
                 throw DecodingError.dataCorruptedError(
                     forKey: .type,
                     in: container,
-                    debugDescription: "Unknown response format type: \(type)")
+                    debugDescription: "Unknown response format type: \(type)"
+                )
             }
         }
     }
@@ -153,8 +149,8 @@ struct JSONSchemaFormat: Codable {
     let strict: Bool
     let name: String
     let description: String?
-    let schema: [String: Any]  // Can't be Sendable due to Any
-    
+    let schema: [String: Any] // Can't be Sendable due to Any
+
     enum CodingKeys: String, CodingKey {
         case type
         case strict
@@ -162,29 +158,29 @@ struct JSONSchemaFormat: Codable {
         case description
         case schema
     }
-    
+
     func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
-        try container.encode(type, forKey: .type)
-        try container.encode(strict, forKey: .strict)
-        try container.encode(name, forKey: .name)
-        try container.encodeIfPresent(description, forKey: .description)
-        
+        try container.encode(self.type, forKey: .type)
+        try container.encode(self.strict, forKey: .strict)
+        try container.encode(self.name, forKey: .name)
+        try container.encodeIfPresent(self.description, forKey: .description)
+
         // Encode schema as JSON data
-        let schemaData = try JSONSerialization.data(withJSONObject: schema)
+        let schemaData = try JSONSerialization.data(withJSONObject: self.schema)
         let schemaJSON = try JSONSerialization.jsonObject(with: schemaData)
         try container.encode(AnyEncodable(schemaJSON), forKey: .schema)
     }
-    
+
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        strict = try container.decode(Bool.self, forKey: .strict)
-        name = try container.decode(String.self, forKey: .name)
-        description = try container.decodeIfPresent(String.self, forKey: .description)
-        
+        self.strict = try container.decode(Bool.self, forKey: .strict)
+        self.name = try container.decode(String.self, forKey: .name)
+        self.description = try container.decodeIfPresent(String.self, forKey: .description)
+
         // Decode schema as Any
         let anySchema = try container.decode(AnyDecodable.self, forKey: .schema)
-        schema = anySchema.value as? [String: Any] ?? [:]
+        self.schema = anySchema.value as? [String: Any] ?? [:]
     }
 }
 
@@ -193,22 +189,22 @@ struct JSONSchemaFormat: Codable {
 struct ResponsesMessage: Codable, Sendable {
     let role: String
     let content: ResponsesContent
-    
+
     enum ResponsesContent: Codable, Sendable {
         case text(String)
         case parts([ResponsesContentPart])
-        
+
         func encode(to encoder: Encoder) throws {
             switch self {
-            case .text(let text):
+            case let .text(text):
                 var container = encoder.singleValueContainer()
                 try container.encode(text)
-            case .parts(let parts):
+            case let .parts(parts):
                 var container = encoder.singleValueContainer()
                 try container.encode(parts)
             }
         }
-        
+
         init(from decoder: Decoder) throws {
             if let text = try? decoder.singleValueContainer().decode(String.self) {
                 self = .text(text)
@@ -226,13 +222,13 @@ struct ResponsesContentPart: Codable, Sendable {
     let type: String
     let text: String?
     let imageUrl: ImageURL?
-    
+
     enum CodingKeys: String, CodingKey {
         case type
         case text
         case imageUrl = "image_url"
     }
-    
+
     struct ImageURL: Codable, Sendable {
         let url: String
         let detail: String?
@@ -242,48 +238,48 @@ struct ResponsesContentPart: Codable, Sendable {
 /// Tool definition for Responses API
 @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 struct ResponsesTool: Codable {
-    let name: String  // Add name at root level for GPT-5 compatibility
+    let name: String // Add name at root level for GPT-5 compatibility
     let type: String
     let function: ToolFunction?
-    
+
     struct ToolFunction: Codable {
         let name: String
         let description: String?
-        let parameters: [String: Any]?  // Can't be Sendable due to Any
-        
+        let parameters: [String: Any]? // Can't be Sendable due to Any
+
         init(name: String, description: String? = nil, parameters: [String: Any]? = nil) {
             self.name = name
             self.description = description
             self.parameters = parameters
         }
-        
+
         enum CodingKeys: String, CodingKey {
             case name
             case description
             case parameters
         }
-        
+
         func encode(to encoder: Encoder) throws {
             var container = encoder.container(keyedBy: CodingKeys.self)
-            try container.encode(name, forKey: .name)
-            try container.encodeIfPresent(description, forKey: .description)
-            
+            try container.encode(self.name, forKey: .name)
+            try container.encodeIfPresent(self.description, forKey: .description)
+
             if let params = parameters {
                 let paramsData = try JSONSerialization.data(withJSONObject: params)
                 let paramsJSON = try JSONSerialization.jsonObject(with: paramsData)
                 try container.encode(AnyEncodable(paramsJSON), forKey: .parameters)
             }
         }
-        
+
         init(from decoder: Decoder) throws {
             let container = try decoder.container(keyedBy: CodingKeys.self)
-            name = try container.decode(String.self, forKey: .name)
-            description = try container.decodeIfPresent(String.self, forKey: .description)
-            
+            self.name = try container.decode(String.self, forKey: .name)
+            self.description = try container.decodeIfPresent(String.self, forKey: .description)
+
             if let anyParams = try container.decodeIfPresent(AnyDecodable.self, forKey: .parameters) {
-                parameters = anyParams.value as? [String: Any]
+                self.parameters = anyParams.value as? [String: Any]
             } else {
-                parameters = nil
+                self.parameters = nil
             }
         }
     }
@@ -296,21 +292,21 @@ struct ResponsesTool: Codable {
 struct OpenAIResponsesResponse: Codable, Sendable {
     let id: String
     let object: String
-    let createdAt: Int?  // GPT-5 uses created_at
-    let created: Int?    // O3 uses created
+    let createdAt: Int? // GPT-5 uses created_at
+    let created: Int? // O3 uses created
     let status: String?
     let model: String
-    let output: [ResponsesOutput]?  // GPT-5 uses output array
+    let output: [ResponsesOutput]? // GPT-5 uses output array
     let choices: [ResponsesChoice]? // O3 uses choices array
     let usage: ResponsesUsage?
     let metadata: ResponsesMetadata?
-    
+
     enum CodingKeys: String, CodingKey {
         case id, object, status, model, output, choices, usage, metadata
         case createdAt = "created_at"
         case created
     }
-    
+
     // GPT-5 output format
     struct ResponsesOutput: Codable, Sendable {
         let id: String
@@ -319,21 +315,21 @@ struct OpenAIResponsesResponse: Codable, Sendable {
         let content: [OutputContent]?
         let role: String?
         // Summary can be array, which we'll decode but not use for now
-        
+
         struct OutputContent: Codable, Sendable {
             let type: String
             let text: String?
             // Annotations and logprobs are arrays we don't need for basic text generation
         }
     }
-    
+
     // O3 choices format (kept for compatibility)
     struct ResponsesChoice: Codable, Sendable {
         let index: Int
         let message: ResponsesOutputMessage
         let finishReason: String?
-        let logprobs: String?  // null for now
-        
+        let logprobs: String? // null for now
+
         enum CodingKeys: String, CodingKey {
             case index
             case message
@@ -341,13 +337,13 @@ struct OpenAIResponsesResponse: Codable, Sendable {
             case logprobs
         }
     }
-    
+
     struct ResponsesOutputMessage: Codable, Sendable {
         let role: String
         let content: String?
         let toolCalls: [ResponsesToolCall]?
         let refusal: String?
-        
+
         enum CodingKeys: String, CodingKey {
             case role
             case content
@@ -355,18 +351,18 @@ struct OpenAIResponsesResponse: Codable, Sendable {
             case refusal
         }
     }
-    
+
     struct ResponsesToolCall: Codable, Sendable {
         let id: String
         let type: String
         let function: ResponsesToolFunction
-        
+
         struct ResponsesToolFunction: Codable, Sendable {
             let name: String
             let arguments: String
         }
     }
-    
+
     struct ResponsesUsage: Codable, Sendable {
         let inputTokens: Int?
         let outputTokens: Int?
@@ -376,7 +372,7 @@ struct OpenAIResponsesResponse: Codable, Sendable {
         let reasoningTokens: Int?
         let inputTokensDetails: TokenDetails?
         let outputTokensDetails: OutputTokenDetails?
-        
+
         enum CodingKeys: String, CodingKey {
             case inputTokens = "input_tokens"
             case outputTokens = "output_tokens"
@@ -387,28 +383,28 @@ struct OpenAIResponsesResponse: Codable, Sendable {
             case inputTokensDetails = "input_tokens_details"
             case outputTokensDetails = "output_tokens_details"
         }
-        
+
         struct TokenDetails: Codable, Sendable {
             let cachedTokens: Int?
-            
+
             enum CodingKeys: String, CodingKey {
                 case cachedTokens = "cached_tokens"
             }
         }
-        
+
         struct OutputTokenDetails: Codable, Sendable {
             let reasoningTokens: Int?
-            
+
             enum CodingKeys: String, CodingKey {
                 case reasoningTokens = "reasoning_tokens"
             }
         }
     }
-    
+
     struct ResponsesMetadata: Codable, Sendable {
         let responseId: String?
         let reasoningItemIds: [String]?
-        
+
         enum CodingKeys: String, CodingKey {
             case responseId = "response_id"
             case reasoningItemIds = "reasoning_item_ids"
@@ -426,7 +422,7 @@ struct GPT5StreamEvent: Codable, Sendable {
     let itemId: String?
     let outputIndex: Int?
     let contentIndex: Int?
-    
+
     enum CodingKeys: String, CodingKey {
         case type
         case delta
@@ -444,41 +440,40 @@ struct OpenAIResponsesStreamChunk: Codable, Sendable {
     let created: Int
     let model: String
     let choices: [StreamChoice]
-    
+
     struct StreamChoice: Codable, Sendable {
         let index: Int
         let delta: StreamDelta
         let finishReason: String?
-        
+
         enum CodingKeys: String, CodingKey {
             case index
             case delta
             case finishReason = "finish_reason"
         }
     }
-    
+
     struct StreamDelta: Codable, Sendable {
         let role: String?
         let content: String?
         let toolCalls: [StreamToolCall]?
-        
+
         enum CodingKeys: String, CodingKey {
             case role
             case content
             case toolCalls = "tool_calls"
         }
     }
-    
+
     struct StreamToolCall: Codable, Sendable {
         let index: Int
         let id: String?
         let type: String?
         let function: StreamToolFunction?
-        
+
         struct StreamToolFunction: Codable, Sendable {
             let name: String?
             let arguments: String?
         }
     }
 }
-

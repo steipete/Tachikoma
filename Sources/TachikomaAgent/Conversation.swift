@@ -8,7 +8,7 @@ import Tachikoma
 public final class Conversation: @unchecked Sendable {
     private let lock = NSLock()
     private var _messages: [ConversationMessage] = []
-    
+
     /// The configuration used by this conversation
     public let configuration: TachikomaConfiguration
 
@@ -92,9 +92,13 @@ public final class Conversation: @unchecked Sendable {
 
         return response.text
     }
-    
+
     /// Continue the conversation with a model, streaming the response
-    public func continueConversationStreaming(using model: LanguageModel? = nil, tools: [AgentTool]? = nil) async throws -> AsyncThrowingStream<String, Error> {
+    public func continueConversationStreaming(
+        using model: LanguageModel? = nil,
+        tools: [AgentTool]? = nil
+    ) async throws
+    -> AsyncThrowingStream<String, Error> {
         // Convert conversation messages to model messages
         let modelMessages = self.messages.map { conversationMessage in
             ModelMessage(
@@ -109,7 +113,7 @@ public final class Conversation: @unchecked Sendable {
         let responseStream = try await streamText(
             model: model ?? .default,
             messages: modelMessages,
-            tools: tools ?? [],  // Use provided tools or empty array
+            tools: tools ?? [], // Use provided tools or empty array
             settings: .default,
             configuration: self.configuration
         )

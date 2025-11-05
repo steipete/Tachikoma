@@ -27,7 +27,9 @@ public final class CustomProviderRegistry: @unchecked Sendable {
             guard let dict = anyVal as? [String: Any] else { continue }
             let typeStr = (dict["type"] as? String)?.lowercased() ?? "openai"
             let kind: CustomProviderInfo.Kind = (typeStr == "anthropic") ? .anthropic : .openai
-            guard let options = dict["options"] as? [String: Any], let baseURL = options["baseURL"] as? String else { continue }
+            guard
+                let options = dict["options"] as? [String: Any],
+                let baseURL = options["baseURL"] as? String else { continue }
             let headers = options["headers"] as? [String: String] ?? [:]
             var models: [String: String] = [:]
             if let modelsDict = dict["models"] as? [String: Any] {
@@ -37,15 +39,23 @@ public final class CustomProviderRegistry: @unchecked Sendable {
             }
             out[id] = CustomProviderInfo(id: id, kind: kind, baseURL: baseURL, headers: headers, models: models)
         }
-        lock.lock(); defer { lock.unlock() }
+        self.lock.lock()
+        defer { lock.unlock() }
         self.providers = out
     }
 
-    public func list() -> [String: CustomProviderInfo] { lock.lock(); defer { lock.unlock() }; return providers }
+    public func list() -> [String: CustomProviderInfo] { self.lock.lock()
+        defer { lock.unlock() }
+        return self.providers
+    }
 
-    public func get(_ id: String) -> CustomProviderInfo? { lock.lock(); defer { lock.unlock() }; return providers[id] }
+    public func get(_ id: String) -> CustomProviderInfo? { self.lock.lock()
+        defer { lock.unlock() }
+        return self.providers[id]
+    }
 
     // MARK: - Helpers
+
     private static func profileDirectoryPath() -> String {
         #if os(Windows)
         let home = ProcessInfo.processInfo.environment["USERPROFILE"] ?? ""
@@ -55,22 +65,56 @@ public final class CustomProviderRegistry: @unchecked Sendable {
         return "\(home)/\(TachikomaConfiguration.profileDirectoryName)"
     }
 
-    private static func profileConfigPath() -> String { "\(profileDirectoryPath())/config.json" }
+    private static func profileConfigPath() -> String { "\(self.profileDirectoryPath())/config.json" }
 
     private static func stripJSONComments(from json: String) -> String {
-        var result = ""; var inString = false; var escape = false; var inSL = false; var inML = false
-        let chars = Array(json); var i = 0
+        var result = ""
+        var inString = false
+        var escape = false
+        var inSL = false
+        var inML = false
+        let chars = Array(json)
+        var i = 0
         while i < chars.count {
-            let c = chars[i]; let n: Character? = i+1 < chars.count ? chars[i+1] : nil
-            if escape { result.append(c); escape = false; i += 1; continue }
-            if c == "\\" && inString { escape = true; result.append(c); i += 1; continue }
-            if c == "\"" && !inSL && !inML { inString.toggle(); result.append(c); i += 1; continue }
-            if inString { result.append(c); i += 1; continue }
-            if c == "/" && n == "/" && !inML { inSL = true; i += 2; continue }
-            if c == "/" && n == "*" && !inSL { inML = true; i += 2; continue }
-            if c == "\n" && inSL { inSL = false; result.append(c); i += 1; continue }
-            if c == "*" && n == "/" && inML { inML = false; i += 2; continue }
-            if !inSL && !inML { result.append(c) }
+            let c = chars[i]
+            let n: Character? = i + 1 < chars.count ? chars[i + 1] : nil
+            if escape { result.append(c)
+                escape = false
+                i += 1
+                continue
+            }
+            if c == "\\", inString { escape = true
+                result.append(c)
+                i += 1
+                continue
+            }
+            if c == "\"", !inSL, !inML { inString.toggle()
+                result.append(c)
+                i += 1
+                continue
+            }
+            if inString { result.append(c)
+                i += 1
+                continue
+            }
+            if c == "/", n == "/", !inML { inSL = true
+                i += 2
+                continue
+            }
+            if c == "/", n == "*", !inSL { inML = true
+                i += 2
+                continue
+            }
+            if c == "\n", inSL { inSL = false
+                result.append(c)
+                i += 1
+                continue
+            }
+            if c == "*", n == "/", inML { inML = false
+                i += 2
+                continue
+            }
+            if !inSL, !inML { result.append(c) }
             i += 1
         }
         return result
@@ -85,7 +129,12 @@ public final class CustomProviderRegistry: @unchecked Sendable {
         for m in matches {
             let nameRange = m.range(at: 1)
             let fullRange = m.range(at: 0)
-            if nameRange.location != NSNotFound, let swiftName = Range(nameRange, in: text), let swiftFull = Range(fullRange, in: text) {
+            if
+                nameRange.location != NSNotFound, let swiftName = Range(nameRange, in: text), let swiftFull = Range(
+                    fullRange,
+                    in: text
+                )
+            {
                 let name = String(text[swiftName])
                 if let val = ProcessInfo.processInfo.environment[name] {
                     result.replaceSubrange(swiftFull, with: val)
@@ -96,16 +145,16 @@ public final class CustomProviderRegistry: @unchecked Sendable {
     }
 
     private static func loadRawConfigJSON() -> [String: Any]? {
-        let path = profileConfigPath()
+        let path = self.profileConfigPath()
         guard FileManager.default.fileExists(atPath: path) else { return nil }
         do {
             let raw = try String(contentsOfFile: path)
-            let cleaned = stripJSONComments(from: raw)
-            let expanded = expandEnvironmentVariables(in: cleaned)
+            let cleaned = self.stripJSONComments(from: raw)
+            let expanded = self.expandEnvironmentVariables(in: cleaned)
             if let data = expanded.data(using: .utf8) {
                 return try JSONSerialization.jsonObject(with: data) as? [String: Any]
             }
-        } catch { }
+        } catch {}
         return nil
     }
 }

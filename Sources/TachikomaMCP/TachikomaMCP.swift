@@ -1,8 +1,3 @@
-//
-//  TachikomaMCP.swift
-//  TachikomaMCP
-//
-
 import MCP
 
 // Re-export all public APIs from TachikomaMCP module

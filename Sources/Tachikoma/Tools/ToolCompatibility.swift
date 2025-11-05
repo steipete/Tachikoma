@@ -1,8 +1,3 @@
-//  
-//  ToolCompatibility.swift
-//  Tachikoma
-//
-
 import Foundation
 
 // MARK: - Tool Creation Helper
@@ -14,13 +9,14 @@ public func createTool(
     parameters: [AgentToolParameterProperty] = [],
     required: [String] = [],
     execute: @escaping @Sendable (AgentToolArguments) async throws -> AnyAgentToolValue
-) -> AgentTool {
+)
+-> AgentTool {
     // Convert array of properties to dictionary keyed by name
     var properties: [String: AgentToolParameterProperty] = [:]
     for param in parameters {
         properties[param.name] = param
     }
-    
+
     return AgentTool(
         name: name,
         description: description,
@@ -31,10 +27,10 @@ public func createTool(
 
 // MARK: - Convenience Functions
 
-public extension AgentTool {
+extension AgentTool {
     /// Convert to a AgentToolDefinition for external APIs
-    var definition: AgentToolDefinition {
-        return AgentToolDefinition(
+    public var definition: AgentToolDefinition {
+        AgentToolDefinition(
             name: name,
             description: description,
             parameters: parameters
@@ -53,12 +49,12 @@ public let calculatorTool = createTool(
             name: "expression",
             type: .string,
             description: "Mathematical expression to evaluate (e.g., '2 + 2', 'sqrt(16)', 'sin(pi/2)')"
-        )
+        ),
     ],
     required: ["expression"]
 ) { args in
     let expression = try args.stringValue("expression")
-    
+
     // Basic math evaluation - cross-platform implementation
     let result = try evaluateExpression(expression)
     return AnyAgentToolValue(string: "Result: \(result)")
@@ -87,7 +83,7 @@ public let weatherTool = createTool(
             name: "location",
             type: .string,
             description: "The city or location to get weather for"
-        )
+        ),
     ],
     required: ["location"]
 ) { args in
@@ -103,31 +99,31 @@ public func toolParametersToJSON(_ parameters: AgentToolParameters) throws -> [S
     var schema: [String: Any] = [
         "type": "object",
         "properties": [:],
-        "required": parameters.required
+        "required": parameters.required,
     ]
-    
+
     var properties: [String: Any] = [:]
     for (propertyName, property) in parameters.properties {
         var propSchema: [String: Any] = [
             "type": property.type.rawValue,
-            "description": property.description
+            "description": property.description,
         ]
-        
+
         if let enumValues = property.enumValues {
             propSchema["enum"] = enumValues
         }
-        
+
         // Handle array items if present
         if property.type == .array, let items = property.items {
             let itemsSchema: [String: Any] = [
-                "type": items.type
+                "type": items.type,
             ]
             propSchema["items"] = itemsSchema
         }
-        
+
         properties[propertyName] = propSchema
     }
-    
+
     schema["properties"] = properties
     return schema
 }
@@ -135,11 +131,11 @@ public func toolParametersToJSON(_ parameters: AgentToolParameters) throws -> [S
 /// Convert JSON arguments to AgentToolArguments
 public func jsonToToolArguments(_ json: [String: Any]) -> AgentToolArguments {
     var arguments: [String: AnyAgentToolValue] = [:]
-    
+
     for (key, value) in json {
         arguments[key] = jsonValueToToolArgument(value)
     }
-    
+
     return AgentToolArguments(arguments)
 }
 
@@ -153,101 +149,104 @@ public func jsonValueToToolArgument(_ value: Any) -> AnyAgentToolValue {
     }
 }
 
-
-
-
 // MARK: - AgentToolError for TachikomaBuilders Compatibility
 
 /// Extended AgentToolError with additional compatibility cases
 extension AgentToolError {
     public static func invalidJSON(_ message: String) -> AgentToolError {
-        return .invalidInput("Invalid JSON: \(message)")
+        .invalidInput("Invalid JSON: \(message)")
     }
-    
+
     public static func networkError(_ message: String) -> AgentToolError {
-        return .executionFailed("Network error: \(message)")
+        .executionFailed("Network error: \(message)")
     }
-    
+
     public static func authenticationError(_ message: String) -> AgentToolError {
-        return .executionFailed("Authentication error: \(message)")
+        .executionFailed("Authentication error: \(message)")
     }
-    
+
     public static func toolNotFound(_ toolName: String) -> AgentToolError {
-        return .invalidInput("Tool not found: \(toolName)")
+        .invalidInput("Tool not found: \(toolName)")
     }
 }
 
 // MARK: - Parameter Schema for TachikomaBuilders Compatibility
 
 /// Helper for creating parameter schemas
-public struct ParameterSchema {
+public enum ParameterSchema {
     public static func string(
         name: String,
         description: String,
         required: Bool = false,
         enumValues: [String]? = nil
-    ) -> AgentToolParameterProperty {
-        return AgentToolParameterProperty(
+    )
+    -> AgentToolParameterProperty {
+        AgentToolParameterProperty(
             name: name,
             type: .string,
             description: description,
             enumValues: enumValues
         )
     }
-    
+
     public static func number(
         name: String,
         description: String,
         required: Bool = false
-    ) -> AgentToolParameterProperty {
-        return AgentToolParameterProperty(
+    )
+    -> AgentToolParameterProperty {
+        AgentToolParameterProperty(
             name: name,
             type: .number,
             description: description
         )
     }
-    
+
     public static func integer(
         name: String,
         description: String,
         required: Bool = false
-    ) -> AgentToolParameterProperty {
-        return AgentToolParameterProperty(
+    )
+    -> AgentToolParameterProperty {
+        AgentToolParameterProperty(
             name: name,
             type: .integer,
             description: description
         )
     }
-    
+
     public static func boolean(
         name: String,
         description: String,
         required: Bool = false
-    ) -> AgentToolParameterProperty {
-        return AgentToolParameterProperty(
+    )
+    -> AgentToolParameterProperty {
+        AgentToolParameterProperty(
             name: name,
             type: .boolean,
             description: description
         )
     }
-    
+
     public static func array(
         name: String,
         description: String,
         required: Bool = false
-    ) -> AgentToolParameterProperty {
-        return AgentToolParameterProperty(
+    )
+    -> AgentToolParameterProperty {
+        AgentToolParameterProperty(
             name: name,
             type: .array,
             description: description
         )
     }
-    
+
     public static func object(
         name: String,
         description: String
-    ) -> AgentToolParameterProperty {
-        return AgentToolParameterProperty(
+    )
+    -> AgentToolParameterProperty {
+        AgentToolParameterProperty(
             name: name,
             type: .object,
             description: description
@@ -260,39 +259,44 @@ public struct ParameterSchema {
 /// Simple cross-platform math expression evaluator
 private func evaluateExpression(_ expression: String) throws -> Double {
     let cleanExpression = expression.trimmingCharacters(in: .whitespacesAndNewlines)
-    
+
     // Parse simple binary operations using string manipulation
-    let operators = [("+", { (a: Double, b: Double) in a + b }),
-                     ("-", { (a: Double, b: Double) in a - b }),
-                     ("*", { (a: Double, b: Double) in a * b }),
-                     ("/", { (a: Double, b: Double) in a / b })]
-    
+    let operators = [
+        ("+", { (a: Double, b: Double) in a + b }),
+        ("-", { (a: Double, b: Double) in a - b }),
+        ("*", { (a: Double, b: Double) in a * b }),
+        ("/", { (a: Double, b: Double) in a / b }),
+    ]
+
     for (op, operation) in operators {
         // Split by operator
         let components = cleanExpression.split(separator: Character(op), maxSplits: 1)
         if components.count == 2 {
             let leftStr = components[0].trimmingCharacters(in: .whitespaces)
             let rightStr = components[1].trimmingCharacters(in: .whitespaces)
-            
+
             // Check if both sides are valid numbers
             if let leftNum = Double(leftStr), let rightNum = Double(rightStr) {
                 return operation(leftNum, rightNum)
             }
         }
     }
-    
+
     // Handle single numbers
     if let number = Double(cleanExpression) {
         return number
     }
-    
+
     // Handle basic functions
-    if cleanExpression.hasPrefix("sqrt(") && cleanExpression.hasSuffix(")") {
+    if cleanExpression.hasPrefix("sqrt("), cleanExpression.hasSuffix(")") {
         let inner = String(cleanExpression.dropFirst(5).dropLast(1))
         if let number = Double(inner) {
             return sqrt(number)
         }
     }
-    
-    throw AgentToolError.executionFailed("Unsupported mathematical expression: \(cleanExpression). Supported: basic arithmetic (+, -, *, /), sqrt()")
+
+    throw AgentToolError
+        .executionFailed(
+            "Unsupported mathematical expression: \(cleanExpression). Supported: basic arithmetic (+, -, *, /), sqrt()"
+        )
 }

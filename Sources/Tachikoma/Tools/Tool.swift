@@ -1,8 +1,3 @@
-//
-//  Tool.swift
-//  Tachikoma
-//
-
 // This file imports and re-exports all tool-related functionality
 // that has been organized into separate files for better maintainability.
 
@@ -18,5 +13,5 @@
 
 // This file serves as documentation of the tool system organization:
 // - ToolTypes.swift: Core tool definitions and types
-// - ToolBuilder.swift: Result builder and convenience functions  
+// - ToolBuilder.swift: Result builder and convenience functions
 // - ToolCompatibility.swift: Legacy compatibility and common tools

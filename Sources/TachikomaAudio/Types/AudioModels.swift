@@ -1,5 +1,5 @@
 import Foundation
-import Tachikoma  // For model types
+import Tachikoma // For model types
 
 // MARK: - Audio Model Types
 

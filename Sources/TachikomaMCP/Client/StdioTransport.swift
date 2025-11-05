@@ -1,11 +1,6 @@
-//
-//  StdioTransport.swift
-//  TachikomaMCP
-//
-
 import Foundation
-import MCP
 import Logging
+import MCP
 
 // Actor to manage mutable state for Sendable conformance
 private actor StdioTransportState {
@@ -17,60 +12,60 @@ private actor StdioTransportState {
     var pendingRequests: [String: CheckedContinuation<Data, Swift.Error>] = [:]
     var timeoutTasks: [Int: Task<Void, Never>] = [:]
     var requestTimeoutNs: UInt64 = 30_000_000_000 // default 30s
-    
+
     func setProcess(_ process: Process?, input: Pipe?, output: Pipe?, error: Pipe?) {
         self.process = process
         self.inputPipe = input
         self.outputPipe = output
         self.errorPipe = error
     }
-    
+
     func getNextId() -> Int {
-        let id = nextId
-        nextId += 1
+        let id = self.nextId
+        self.nextId += 1
         return id
     }
-    
+
     func addPendingRequest(id: Int, continuation: CheckedContinuation<Data, Swift.Error>) {
-        pendingRequests[String(id)] = continuation
+        self.pendingRequests[String(id)] = continuation
     }
-    
+
     func removePendingRequest(id: Int) -> CheckedContinuation<Data, Swift.Error>? {
-        return pendingRequests.removeValue(forKey: String(id))
+        self.pendingRequests.removeValue(forKey: String(id))
     }
-    
+
     func removePendingRequestByStringId(_ id: String) -> CheckedContinuation<Data, Swift.Error>? {
-        return pendingRequests.removeValue(forKey: id)
+        self.pendingRequests.removeValue(forKey: id)
     }
-    
+
     func setRequestTimeout(seconds: TimeInterval) {
         let ns = seconds > 0 ? seconds * 1_000_000_000 : 30_000_000_000
-        requestTimeoutNs = UInt64(ns)
+        self.requestTimeoutNs = UInt64(ns)
     }
-    
+
     func addTimeoutTask(id: Int, task: Task<Void, Never>) {
-        timeoutTasks[id] = task
+        self.timeoutTasks[id] = task
     }
-    
+
     func cancelTimeoutTask(id: Int) {
         if let task = timeoutTasks.removeValue(forKey: id) {
             task.cancel()
         }
     }
-    
+
     func cancelAllRequests() {
-        for (_, continuation) in pendingRequests {
+        for (_, continuation) in self.pendingRequests {
             continuation.resume(throwing: MCPError.notConnected)
         }
-        pendingRequests.removeAll()
+        self.pendingRequests.removeAll()
     }
-    
+
     func getInputPipe() -> Pipe? {
-        return inputPipe
+        self.inputPipe
     }
-    
+
     func getOutputPipe() -> Pipe? {
-        return outputPipe
+        self.outputPipe
     }
 }
 
@@ -78,28 +73,28 @@ private actor StdioTransportState {
 public final class StdioTransport: MCPTransport {
     private let state = StdioTransportState()
     private let logger = Logger(label: "tachikoma.mcp.stdio")
-    
+
     public init() {}
-    
+
     public func connect(config: MCPServerConfig) async throws {
-        logger.info("Starting stdio transport with command: \(config.command)")
-        
+        self.logger.info("Starting stdio transport with command: \(config.command)")
+
         let process = Process()
         let inputPipe = Pipe()
         let outputPipe = Pipe()
         let errorPipe = Pipe()
-        
+
         process.standardInput = inputPipe
         process.standardOutput = outputPipe
         // Keep stderr separate; mixing can corrupt frame boundaries
         process.standardError = errorPipe
-        
+
         // Parse command and arguments
         let components = config.command.split(separator: " ").map(String.init)
         guard !components.isEmpty else {
             throw MCPError.executionFailed("Invalid command")
         }
-        
+
         // Set executable path
         if components[0].starts(with: "/") {
             process.executableURL = URL(fileURLWithPath: components[0])
@@ -112,15 +107,17 @@ public final class StdioTransport: MCPTransport {
             whichProcess.standardError = FileHandle.nullDevice
             whichProcess.launchPath = "/usr/bin/which"
             whichProcess.arguments = [components[0]]
-            
+
             do {
                 try whichProcess.run()
                 whichProcess.waitUntilExit()
-                
+
                 if whichProcess.terminationStatus == 0 {
                     let data = whichPipe.fileHandleForReading.readDataToEndOfFile()
-                    if let path = String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines),
-                       !path.isEmpty {
+                    if
+                        let path = String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines),
+                        !path.isEmpty
+                    {
                         process.executableURL = URL(fileURLWithPath: path)
                         process.arguments = config.args.isEmpty ? Array(components.dropFirst()) : config.args
                     } else {
@@ -133,24 +130,24 @@ public final class StdioTransport: MCPTransport {
                 throw MCPError.connectionFailed("Failed to locate command: \(components[0])")
             }
         }
-        
+
         // Set environment - always inherit current environment and merge custom vars
         process.environment = ProcessInfo.processInfo.environment.merging(config.env) { _, new in new }
-        
+
         // Start process
         do {
             try process.run()
         } catch {
             throw MCPError.connectionFailed("Failed to start process: \(error)")
         }
-        
-        await state.setProcess(process, input: inputPipe, output: outputPipe, error: errorPipe)
-        await state.setRequestTimeout(seconds: config.timeout)
-        
+
+        await self.state.setProcess(process, input: inputPipe, output: outputPipe, error: errorPipe)
+        await self.state.setRequestTimeout(seconds: config.timeout)
+
         // Start reading output
-        logger.info("About to start reading output")
-        startReadingOutput()
-        logger.info("Called startReadingOutput")
+        self.logger.info("About to start reading output")
+        self.startReadingOutput()
+        self.logger.info("Called startReadingOutput")
         // Drain and log stderr separately (non-blocking)
         Task {
             let fh = errorPipe.fileHandleForReading
@@ -162,24 +159,25 @@ public final class StdioTransport: MCPTransport {
                 }
             }
         }
-        
-        logger.info("Stdio transport connected")
+
+        self.logger.info("Stdio transport connected")
     }
-    
+
     public func disconnect() async {
-        logger.info("Disconnecting stdio transport")
+        self.logger.info("Disconnecting stdio transport")
         let process = await state.process
         process?.terminate()
-        await state.setProcess(nil, input: nil, output: nil, error: nil)
-        await state.cancelAllRequests()
+        await self.state.setProcess(nil, input: nil, output: nil, error: nil)
+        await self.state.cancelAllRequests()
     }
-    
-    public func sendRequest<P: Encodable, R: Decodable>(
+
+    public func sendRequest<R: Decodable>(
         method: String,
-        params: P
-    ) async throws -> R {
+        params: some Encodable
+    ) async throws
+    -> R {
         let id = await state.getNextId()
-        
+
         // Create JSON-RPC request with canonical key order
         var dict: [String: Any] = [:]
         dict["jsonrpc"] = "2.0"
@@ -190,14 +188,14 @@ public final class StdioTransport: MCPTransport {
         dict["id"] = id
         let data = try JSONSerialization.data(withJSONObject: dict)
         if method == "initialize", let json = String(data: data, encoding: .utf8) {
-            logger.info("[MCP stdio] → initialize payload: \(json)")
+            self.logger.info("[MCP stdio] → initialize payload: \(json)")
         }
-        try await send(data)
-        
+        try await self.send(data)
+
         // Wait for response with timeout
         let responseData = try await withCheckedThrowingContinuation { continuation in
             Task { @MainActor in
-                await state.addPendingRequest(id: id, continuation: continuation)
+                await self.state.addPendingRequest(id: id, continuation: continuation)
                 // Schedule timeout task
                 let timeoutTask = Task { [logger] in
                     let ns = await state.requestTimeoutNs
@@ -205,30 +203,31 @@ public final class StdioTransport: MCPTransport {
                     // On timeout, try to remove pending and resume throwing
                     if let pending = await state.removePendingRequest(id: id) {
                         logger.error("MCP stdio request timed out: method=\(method), id=\(id)")
-                        pending.resume(throwing: MCPError.executionFailed("Request timed out after \(ns / 1_000_000)ms"))
+                        pending
+                            .resume(throwing: MCPError.executionFailed("Request timed out after \(ns / 1_000_000)ms"))
                     }
                 }
                 await state.addTimeoutTask(id: id, task: timeoutTask)
             }
         }
-        
+
         // Decode response
         let response = try JSONDecoder().decode(JSONRPCResponse<R>.self, from: responseData)
-        
+
         if let error = response.error {
             throw MCPError.executionFailed(error.message)
         }
-        
+
         guard let result = response.result else {
             throw MCPError.invalidResponse
         }
-        
+
         return result
     }
-    
-    public func sendNotification<P: Encodable>(
+
+    public func sendNotification(
         method: String,
-        params: P
+        params: some Encodable
     ) async throws {
         // Create JSON-RPC notification (no id)
         let notification = JSONRPCNotification(
@@ -236,12 +235,12 @@ public final class StdioTransport: MCPTransport {
             method: method,
             params: params
         )
-        
+
         // Encode and send
         let data = try JSONEncoder().encode(notification)
-        try await send(data)
+        try await self.send(data)
     }
-    
+
     private func send(_ data: Data) async throws {
         guard let inputPipe = await state.getInputPipe() else {
             throw MCPError.notConnected
@@ -250,54 +249,54 @@ public final class StdioTransport: MCPTransport {
         // Just send the JSON followed by a newline
         try inputPipe.fileHandleForWriting.write(contentsOf: data)
         try inputPipe.fileHandleForWriting.write(contentsOf: "\n".data(using: .utf8)!)
-        
+
         // Log what we sent for debugging
         if let json = String(data: data, encoding: .utf8) {
-            logger.debug("[MCP stdio] → sent: \(json)")
+            self.logger.debug("[MCP stdio] → sent: \(json)")
         }
     }
-    
+
     private func startReadingOutput() {
         Task {
-            guard let outputPipe = await state.getOutputPipe() else { 
-                logger.error("[MCP stdio] No output pipe available")
-                return 
+            guard let outputPipe = await state.getOutputPipe() else {
+                self.logger.error("[MCP stdio] No output pipe available")
+                return
             }
-            
-            logger.info("[MCP stdio] Starting to read output")
+
+            self.logger.info("[MCP stdio] Starting to read output")
             let fileHandle = outputPipe.fileHandleForReading
             var buffer = Data()
-            
+
             while true {
                 autoreleasepool {
                     // Use availableData which doesn't block if no data is available
-                    logger.info("[MCP stdio] Attempting to read...")
+                    self.logger.info("[MCP stdio] Attempting to read...")
                     let chunk = fileHandle.availableData
-                    
+
                     if chunk.isEmpty {
-                        logger.info("[MCP stdio] No data available, sleeping...")
+                        self.logger.info("[MCP stdio] No data available, sleeping...")
                         // Sleep briefly before trying again
                         Thread.sleep(forTimeInterval: 0.01)
                     } else {
                         buffer.append(chunk)
-                        
+
                         // Log raw data for debugging
                         if let raw = String(data: chunk, encoding: .utf8) {
-                            logger.info("[MCP stdio] ← raw chunk: \(raw)")
+                            self.logger.info("[MCP stdio] ← raw chunk: \(raw)")
                         }
-                        
+
                         // Process complete lines (newline-delimited JSON)
                         while let newlineRange = buffer.firstRange(of: Data("\n".utf8)) {
                             let lineData = buffer[..<newlineRange.lowerBound]
                             buffer.removeSubrange(..<newlineRange.upperBound)
-                            
+
                             if !lineData.isEmpty {
                                 // Log what we received for debugging
                                 if let json = String(data: lineData, encoding: .utf8) {
-                                    logger.info("[MCP stdio] ← received: \(json)")
+                                    self.logger.info("[MCP stdio] ← received: \(json)")
                                 }
                                 Task {
-                                    await handleResponse(lineData)
+                                    await self.handleResponse(lineData)
                                 }
                             }
                         }
@@ -350,7 +349,8 @@ public final class StdioTransport: MCPTransport {
         guard let headerEnd = headerEndRange?.lowerBound else { return nil }
         let headersData = headerSegment[..<headerEnd]
         let headersString = String(data: headersData, encoding: .utf8) ?? ""
-        let lines = headersString.replacingOccurrences(of: "\r\n", with: "\n").components(separatedBy: "\n").filter { !$0.isEmpty }
+        let lines = headersString.replacingOccurrences(of: "\r\n", with: "\n").components(separatedBy: "\n")
+            .filter { !$0.isEmpty }
 
         var headers: [String: String] = [:]
         for line in lines {
@@ -368,34 +368,39 @@ public final class StdioTransport: MCPTransport {
         var remaining = length
         while remaining > 0 {
             let chunk = try fileHandle.read(upToCount: remaining)
-            guard let chunk = chunk, !chunk.isEmpty else { break }
+            guard let chunk, !chunk.isEmpty else { break }
             body.append(chunk)
             remaining -= chunk.count
         }
         return (headers, body)
     }
-    
+
     private func handleResponse(_ data: Data) async {
         // Try to parse as a response with ID
-        if let response = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-           let id = response["id"] as? Int {
-            
+        if
+            let response = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+            let id = response["id"] as? Int
+        {
             if let continuation = await state.removePendingRequest(id: id) {
-                await state.cancelTimeoutTask(id: id)
+                await self.state.cancelTimeoutTask(id: id)
                 continuation.resume(returning: data)
             }
-        } else if let response = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-                  let idString = response["id"] as? String,
-                  let idInt = Int(idString) {
+        } else if
+            let response = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+            let idString = response["id"] as? String,
+            let idInt = Int(idString)
+        {
             if let contByString = await state.removePendingRequestByStringId(idString) {
-                await state.cancelTimeoutTask(id: idInt)
+                await self.state.cancelTimeoutTask(id: idInt)
                 contByString.resume(returning: data)
             } else if let contByInt = await state.removePendingRequest(id: idInt) {
-                await state.cancelTimeoutTask(id: idInt)
+                await self.state.cancelTimeoutTask(id: idInt)
                 contByInt.resume(returning: data)
             }
-        } else if let response = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-                  let idNull = response["id"], idNull is NSNull {
+        } else if
+            let response = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+            let idNull = response["id"], idNull is NSNull
+        {
             // Some servers return null id for notifications; ignore
         }
         // Otherwise it might be a notification or other message
@@ -430,10 +435,19 @@ private enum JSONRPCID: Decodable {
     case null
     init(from decoder: Decoder) throws {
         let container = try decoder.singleValueContainer()
-        if let i = try? container.decode(Int.self) { self = .int(i); return }
-        if let s = try? container.decode(String.self) { self = .string(s); return }
-        if container.decodeNil() { self = .null; return }
-        throw DecodingError.typeMismatch(JSONRPCID.self, .init(codingPath: decoder.codingPath, debugDescription: "Unsupported id type"))
+        if let i = try? container.decode(Int.self) { self = .int(i)
+            return
+        }
+        if let s = try? container.decode(String.self) { self = .string(s)
+            return
+        }
+        if container.decodeNil() { self = .null
+            return
+        }
+        throw DecodingError.typeMismatch(
+            JSONRPCID.self,
+            .init(codingPath: decoder.codingPath, debugDescription: "Unsupported id type")
+        )
     }
 }
 

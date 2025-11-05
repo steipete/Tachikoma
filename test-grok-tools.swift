@@ -4,7 +4,8 @@ import Foundation
 
 // Test Grok API with tools
 
-let apiKey = ProcessInfo.processInfo.environment["X_AI_API_KEY"] ?? ProcessInfo.processInfo.environment["XAI_API_KEY"] ?? ""
+let apiKey = ProcessInfo.processInfo.environment["X_AI_API_KEY"] ?? ProcessInfo.processInfo
+    .environment["XAI_API_KEY"] ?? ""
 
 guard !apiKey.isEmpty else {
     print("Error: X_AI_API_KEY or XAI_API_KEY not set")
@@ -55,11 +56,11 @@ print("Request body: \(body)")
 let semaphore = DispatchSemaphore(value: 0)
 
 let task = URLSession.shared.dataTask(with: request) { data, response, error in
-    if let error = error {
+    if let error {
         print("❌ Error: \(error)")
     } else if let httpResponse = response as? HTTPURLResponse {
         print("Response status: \(httpResponse.statusCode)")
-        if let data = data, let responseText = String(data: data, encoding: .utf8) {
+        if let data, let responseText = String(data: data, encoding: .utf8) {
             print("Response body: \(responseText)")
         }
     }

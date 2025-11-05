@@ -1,8 +1,3 @@
-//
-//  RealtimeToolExecutor.swift
-//  Tachikoma
-//
-
 import Foundation
 import Tachikoma
 
@@ -12,19 +7,19 @@ import Tachikoma
 @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public actor RealtimeToolExecutor {
     // MARK: - Properties
-    
+
     private var tools: [String: RealtimeToolWrapper] = [:]
     private var executionHistory: [ToolExecution] = []
     private let maxHistorySize = 100
-    
+
     // MARK: - Types
-    
+
     /// Wrapper for a tool with metadata
     private struct RealtimeToolWrapper {
         let tool: any RealtimeExecutableTool
         let metadata: ToolMetadata
     }
-    
+
     /// Metadata about a tool
     public struct ToolMetadata: Sendable {
         public let name: String
@@ -32,7 +27,7 @@ public actor RealtimeToolExecutor {
         public let version: String
         public let category: ToolCategory
         public let parameters: AgentToolParameters
-        
+
         public enum ToolCategory: String, Sendable {
             case utility
             case information
@@ -40,7 +35,7 @@ public actor RealtimeToolExecutor {
             case system
             case custom
         }
-        
+
         public init(
             name: String,
             description: String,
@@ -55,7 +50,7 @@ public actor RealtimeToolExecutor {
             self.parameters = parameters
         }
     }
-    
+
     /// Record of a tool execution
     public struct ToolExecution: Sendable, Codable {
         public let id: String
@@ -64,62 +59,63 @@ public actor RealtimeToolExecutor {
         public let result: ExecutionResult
         public let timestamp: Date
         public let duration: TimeInterval
-        
+
         public enum ExecutionResult: Sendable, Codable {
             case success(String)
             case failure(String)
             case timeout
         }
     }
-    
+
     // MARK: - Initialization
-    
+
     public init() {}
-    
+
     // MARK: - Tool Registration
-    
+
     /// Register a tool for execution
-    public func register<T: RealtimeExecutableTool>(_ tool: T) {
+    public func register(_ tool: some RealtimeExecutableTool) {
         let metadata = tool.metadata
-        tools[metadata.name] = RealtimeToolWrapper(
+        self.tools[metadata.name] = RealtimeToolWrapper(
             tool: tool,
             metadata: metadata
         )
     }
-    
+
     /// Register multiple tools
-    public func registerTools<T: RealtimeExecutableTool>(_ tools: [T]) {
+    public func registerTools(_ tools: [some RealtimeExecutableTool]) {
         for tool in tools {
-            register(tool)
+            self.register(tool)
         }
     }
-    
+
     /// Unregister a tool
     public func unregister(toolName: String) {
-        tools.removeValue(forKey: toolName)
+        self.tools.removeValue(forKey: toolName)
     }
-    
+
     /// Get all registered tools
     public func availableTools() -> [ToolMetadata] {
-        tools.values.map { $0.metadata }
+        self.tools.values.map(\.metadata)
     }
-    
+
     /// Get tool metadata
     public func getToolMetadata(name: String) -> ToolMetadata? {
-        tools[name]?.metadata
+        self.tools[name]?.metadata
     }
-    
+
     // MARK: - Tool Execution
-    
+
     /// Execute a tool by name with arguments
     public func execute(
         toolName: String,
         arguments: String,
         timeout: TimeInterval = 30
-    ) async -> ToolExecution {
+    ) async
+    -> ToolExecution {
         let startTime = Date()
         let executionId = UUID().uuidString
-        
+
         // Find the tool
         guard let wrapper = tools[toolName] else {
             let execution = ToolExecution(
@@ -130,14 +126,14 @@ public actor RealtimeToolExecutor {
                 timestamp: startTime,
                 duration: Date().timeIntervalSince(startTime)
             )
-            addToHistory(execution)
+            self.addToHistory(execution)
             return execution
         }
-        
+
         // Parse arguments
         let parsedArgs: RealtimeToolArguments
         do {
-            parsedArgs = try parseArguments(arguments, for: wrapper.metadata.parameters)
+            parsedArgs = try self.parseArguments(arguments, for: wrapper.metadata.parameters)
         } catch {
             let execution = ToolExecution(
                 id: executionId,
@@ -147,21 +143,21 @@ public actor RealtimeToolExecutor {
                 timestamp: startTime,
                 duration: Date().timeIntervalSince(startTime)
             )
-            addToHistory(execution)
+            self.addToHistory(execution)
             return execution
         }
-        
+
         // Execute with timeout
         let task = Task {
             await wrapper.tool.execute(parsedArgs)
         }
-        
+
         // Create timeout task
         let timeoutTask = Task {
             try? await Task.sleep(nanoseconds: UInt64(timeout * 1_000_000_000))
             task.cancel()
         }
-        
+
         // Wait for result
         let result = await withTaskCancellationHandler {
             let executionResult = await task.value
@@ -171,7 +167,7 @@ public actor RealtimeToolExecutor {
             task.cancel()
             timeoutTask.cancel()
         }
-        
+
         if task.isCancelled {
             let execution = ToolExecution(
                 id: executionId,
@@ -181,10 +177,10 @@ public actor RealtimeToolExecutor {
                 timestamp: startTime,
                 duration: Date().timeIntervalSince(startTime)
             )
-            addToHistory(execution)
+            self.addToHistory(execution)
             return execution
         }
-        
+
         // Success
         let execution = ToolExecution(
             id: executionId,
@@ -194,76 +190,78 @@ public actor RealtimeToolExecutor {
             timestamp: startTime,
             duration: Date().timeIntervalSince(startTime)
         )
-        addToHistory(execution)
+        self.addToHistory(execution)
         return execution
     }
-    
+
     /// Execute a tool and return just the result string
     public func executeSimple(
         toolName: String,
         arguments: String,
         timeout: TimeInterval = 30
-    ) async -> String {
+    ) async
+    -> String {
         let execution = await execute(
             toolName: toolName,
             arguments: arguments,
             timeout: timeout
         )
-        
+
         switch execution.result {
-        case .success(let result):
+        case let .success(result):
             return result
-        case .failure(let error):
+        case let .failure(error):
             return "Error: \(error)"
         case .timeout:
             return "Error: Tool execution timed out"
         }
     }
-    
+
     // MARK: - History Management
-    
+
     /// Get execution history
     public func getHistory(limit: Int? = nil) -> [ToolExecution] {
-        if let limit = limit {
-            return Array(executionHistory.suffix(limit))
+        if let limit {
+            return Array(self.executionHistory.suffix(limit))
         }
-        return executionHistory
+        return self.executionHistory
     }
-    
+
     /// Clear execution history
     public func clearHistory() {
-        executionHistory.removeAll()
+        self.executionHistory.removeAll()
     }
-    
+
     private func addToHistory(_ execution: ToolExecution) {
-        executionHistory.append(execution)
-        
+        self.executionHistory.append(execution)
+
         // Trim history if needed
-        if executionHistory.count > maxHistorySize {
-            executionHistory.removeFirst(executionHistory.count - maxHistorySize)
+        if self.executionHistory.count > self.maxHistorySize {
+            self.executionHistory.removeFirst(self.executionHistory.count - self.maxHistorySize)
         }
     }
-    
+
     // MARK: - Private Methods
-    
+
     private func parseArguments(
         _ jsonString: String,
         for parameters: AgentToolParameters
-    ) throws -> RealtimeToolArguments {
+    ) throws
+    -> RealtimeToolArguments {
         guard let data = jsonString.data(using: .utf8) else {
             throw TachikomaError.invalidInput("Invalid JSON string")
         }
-        
+
         let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] ?? [:]
         var arguments = RealtimeToolArguments()
-        
+
         // Parse each parameter
         for (key, value) in json {
             guard let parameterDef = parameters.properties[key] else {
                 // Skip unknown parameters
                 continue
             }
-            
+
             // Convert based on type
             switch parameterDef.type {
             case .string:
@@ -304,8 +302,10 @@ public actor RealtimeToolExecutor {
             case .object:
                 if let dictValue = value as? [String: Any] {
                     // For simplicity, convert to JSON string
-                    if let jsonData = try? JSONSerialization.data(withJSONObject: dictValue),
-                       let jsonString = String(data: jsonData, encoding: .utf8) {
+                    if
+                        let jsonData = try? JSONSerialization.data(withJSONObject: dictValue),
+                        let jsonString = String(data: jsonData, encoding: .utf8)
+                    {
                         arguments[key] = .object(jsonString)
                     }
                 }
@@ -314,14 +314,14 @@ public actor RealtimeToolExecutor {
                 break
             }
         }
-        
+
         // Validate required parameters
         for requiredParam in parameters.required {
             if arguments[requiredParam] == nil {
                 throw TachikomaError.invalidInput("Missing required parameter: \(requiredParam)")
             }
         }
-        
+
         return arguments
     }
 }
@@ -333,7 +333,7 @@ public actor RealtimeToolExecutor {
 public protocol RealtimeExecutableTool: Sendable {
     /// Tool metadata
     var metadata: RealtimeToolExecutor.ToolMetadata { get }
-    
+
     /// Execute the tool with given arguments
     func execute(_ arguments: RealtimeToolArguments) async -> String
 }
@@ -353,40 +353,40 @@ public enum RealtimeToolArgument: Sendable, Codable {
     case boolean(Bool)
     case array([RealtimeToolArgument])
     case object(String) // JSON string for complex objects
-    
+
     /// Get string value if available
     public var stringValue: String? {
-        if case .string(let value) = self { return value }
+        if case let .string(value) = self { return value }
         return nil
     }
-    
+
     /// Get number value if available
     public var numberValue: Double? {
-        if case .number(let value) = self { return value }
+        if case let .number(value) = self { return value }
         return nil
     }
-    
+
     /// Get integer value if available
     public var integerValue: Int? {
-        if case .integer(let value) = self { return value }
+        if case let .integer(value) = self { return value }
         return nil
     }
-    
+
     /// Get boolean value if available
     public var booleanValue: Bool? {
-        if case .boolean(let value) = self { return value }
+        if case let .boolean(value) = self { return value }
         return nil
     }
-    
+
     /// Get array value if available
     public var arrayValue: [RealtimeToolArgument]? {
-        if case .array(let value) = self { return value }
+        if case let .array(value) = self { return value }
         return nil
     }
-    
+
     /// Get object value if available
     public var objectValue: String? {
-        if case .object(let value) = self { return value }
+        if case let .object(value) = self { return value }
         return nil
     }
 }

@@ -5,7 +5,7 @@ import Testing
 @Suite("Tool System Tests")
 struct ToolSystemTests {
     // MARK: - AgentTool Tests
-    
+
     @Test("AgentTool Creation")
     func agentToolCreation() throws {
         // Create a simple tool using createTool helper
@@ -19,10 +19,10 @@ struct ToolSystemTests {
                     description: "First number"
                 ),
                 AgentToolParameterProperty(
-                    name: "b", 
+                    name: "b",
                     type: .integer,
                     description: "Second number"
-                )
+                ),
             ],
             required: ["a", "b"]
         ) { args in
@@ -30,13 +30,13 @@ struct ToolSystemTests {
             let b = try args.integerValue("b")
             return AnyAgentToolValue(int: a + b)
         }
-        
+
         #expect(addTool.name == "add")
         #expect(addTool.description == "Add two numbers")
         #expect(addTool.parameters.properties.count == 2)
         #expect(addTool.parameters.required == ["a", "b"])
     }
-    
+
     @Test("Tool Execution")
     func toolExecution() async throws {
         // Create calculator tool
@@ -48,7 +48,7 @@ struct ToolSystemTests {
                     name: "expression",
                     type: .string,
                     description: "Mathematical expression"
-                )
+                ),
             ],
             required: ["expression"]
         ) { args in
@@ -59,42 +59,42 @@ struct ToolSystemTests {
             }
             return AnyAgentToolValue(string: "Unknown expression")
         }
-        
+
         // Test execution
         let args = AgentToolArguments(["expression": AnyAgentToolValue(string: "2 + 2")])
         let context = ToolExecutionContext()
         let result = try await calculatorTool.execute(args, context: context)
-        
+
         if let value = result.stringValue {
             #expect(value == "4")
         } else {
             Issue.record("Expected string result")
         }
     }
-    
+
     @Test("Built-in Tools")
     func builtInTools() async throws {
         // Test weatherTool
         #expect(weatherTool.name == "get_weather")
-        
+
         // Test timeTool
         #expect(timeTool.name == "get_current_time")
-        
+
         // Test calculatorTool
         #expect(calculatorTool.name == "calculate")
-        
+
         // Execute time tool (doesn't require external services)
         let args = AgentToolArguments([:])
         let context = ToolExecutionContext()
         let result = try await timeTool.execute(args, context: context)
-        
+
         if let timeString = result.stringValue {
             #expect(!timeString.isEmpty)
         } else {
             Issue.record("Expected string result from time tool")
         }
     }
-    
+
     @Test("Tool Parameter Types")
     func toolParameterTypes() {
         // Test all parameter types
@@ -128,15 +128,15 @@ struct ToolSystemTests {
                 name: "object_param",
                 type: .object,
                 description: "An object parameter"
-            )
+            ),
         ]
-        
+
         for param in params {
             #expect(!param.name.isEmpty)
             #expect(!param.description.isEmpty)
         }
     }
-    
+
     @Test("Tool Arguments")
     func toolArguments() throws {
         let args = AgentToolArguments([
@@ -145,21 +145,21 @@ struct ToolSystemTests {
             "double": AnyAgentToolValue(double: 3.14),
             "bool": AnyAgentToolValue(bool: true),
             "array": AnyAgentToolValue(array: [AnyAgentToolValue(string: "a"), AnyAgentToolValue(string: "b")]),
-            "object": AnyAgentToolValue(object: ["nested": AnyAgentToolValue(string: "value")])
+            "object": AnyAgentToolValue(object: ["nested": AnyAgentToolValue(string: "value")]),
         ])
-        
+
         #expect(try args.stringValue("string") == "hello")
         #expect(try args.integerValue("int") == 42)
         #expect(try args.numberValue("double") == 3.14)
         #expect(try args.booleanValue("bool") == true)
-        
+
         // Test array access
         if let arr = args["array"]?.arrayValue {
             #expect(arr.count == 2)
         } else {
             Issue.record("Expected array")
         }
-        
+
         // Test object access
         if let obj = args["object"]?.objectValue {
             #expect(obj["nested"]?.stringValue == "value")
@@ -167,11 +167,11 @@ struct ToolSystemTests {
             Issue.record("Expected object")
         }
     }
-    
+
     @Test("Tool Error Handling")
     func toolErrorHandling() throws {
         let args = AgentToolArguments([:])
-        
+
         // Test missing required argument
         do {
             _ = try args.stringValue("missing")
@@ -179,7 +179,7 @@ struct ToolSystemTests {
         } catch {
             // Expected
         }
-        
+
         // Test wrong type
         let wrongTypeArgs = AgentToolArguments(["value": AnyAgentToolValue(int: 42)])
         do {

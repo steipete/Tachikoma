@@ -1,8 +1,3 @@
-//
-//  GoogleProvider.swift
-//  Tachikoma
-//
-
 import Foundation
 #if canImport(FoundationNetworking)
 import FoundationNetworking
@@ -44,7 +39,7 @@ public final class GoogleProvider: ModelProvider {
         var fullText = ""
         var usage: Usage?
         var finishReason: FinishReason = .stop
-        
+
         for try await delta in stream {
             if case .textDelta = delta.type, let content = delta.content {
                 fullText += content
@@ -54,7 +49,7 @@ public final class GoogleProvider: ModelProvider {
                 finishReason = delta.finishReason ?? .stop
             }
         }
-        
+
         return ProviderResponse(
             text: fullText,
             usage: usage,
@@ -66,50 +61,65 @@ public final class GoogleProvider: ModelProvider {
         // Google Gemini API implementation
         // Note: This is a placeholder implementation that needs proper Google API integration
         // The actual implementation would use Google's generateContent endpoint with stream=true
-        
-        return AsyncThrowingStream { continuation in
+
+        AsyncThrowingStream { continuation in
             Task {
                 do {
                     // Convert messages to Google format
                     let googleRequest = try self.buildGoogleRequest(request)
-                    
+
                     // Make streaming request to Google API
-                    let url = URL(string: "\(self.baseURL!)/models/\(self.modelId):streamGenerateContent?key=\(self.apiKey!)")!
+                    let url =
+                        URL(
+                            string: "\(self.baseURL!)/models/\(self.modelId):streamGenerateContent?key=\(self.apiKey!)"
+                        )!
                     var urlRequest = URLRequest(url: url)
                     urlRequest.httpMethod = "POST"
                     urlRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
                     urlRequest.httpBody = try JSONEncoder().encode(googleRequest)
-                    
+
                     #if canImport(FoundationNetworking)
                     // Linux: Use data task
-                    let (data, response) = try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<(Data, URLResponse), Error>) in
+                    let (
+                        data,
+                        response
+                    ) = try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<
+                        (Data, URLResponse),
+                        Error
+                    >) in
                         URLSession.shared.dataTask(with: urlRequest) { data, response, error in
-                            if let error = error {
+                            if let error {
                                 continuation.resume(throwing: error)
-                            } else if let data = data, let response = response {
+                            } else if let data, let response {
                                 continuation.resume(returning: (data, response))
                             } else {
-                                continuation.resume(throwing: TachikomaError.networkError(NSError(domain: "Invalid response", code: 0)))
+                                continuation.resume(throwing: TachikomaError.networkError(NSError(
+                                    domain: "Invalid response",
+                                    code: 0
+                                )))
                             }
                         }.resume()
                     }
-                    
-                    guard let httpResponse = response as? HTTPURLResponse,
-                          200..<300 ~= httpResponse.statusCode else {
+
+                    guard
+                        let httpResponse = response as? HTTPURLResponse,
+                        200..<300 ~= httpResponse.statusCode else
+                    {
                         throw TachikomaError.apiError("Google API request failed")
                     }
-                    
+
                     // Parse entire response for Linux
                     let lines = String(data: data, encoding: .utf8)?.components(separatedBy: "\n") ?? []
                     for line in lines {
                         if line.hasPrefix("data: ") {
                             let jsonString = String(line.dropFirst(6))
-                            if let data = jsonString.data(using: .utf8),
-                               let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-                               let candidates = json["candidates"] as? [[String: Any]],
-                               let content = candidates.first?["content"] as? [String: Any],
-                               let parts = content["parts"] as? [[String: Any]] {
-                                
+                            if
+                                let data = jsonString.data(using: .utf8),
+                                let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                                let candidates = json["candidates"] as? [[String: Any]],
+                                let content = candidates.first?["content"] as? [String: Any],
+                                let parts = content["parts"] as? [[String: Any]]
+                            {
                                 for part in parts {
                                     if let text = part["text"] as? String {
                                         continuation.yield(TextStreamDelta.text(text))
@@ -117,26 +127,29 @@ public final class GoogleProvider: ModelProvider {
                                 }
                             }
                         }
-                    }  // End of Linux for loop
+                    } // End of Linux for loop
                     #else
                     // macOS/iOS: Use streaming API
                     let (bytes, response) = try await URLSession.shared.bytes(for: urlRequest)
-                    
-                    guard let httpResponse = response as? HTTPURLResponse,
-                          200..<300 ~= httpResponse.statusCode else {
+
+                    guard
+                        let httpResponse = response as? HTTPURLResponse,
+                        200..<300 ~= httpResponse.statusCode else
+                    {
                         throw TachikomaError.apiError("Google API request failed")
                     }
-                    
+
                     // Parse SSE stream
                     for try await line in bytes.lines {
                         if line.hasPrefix("data: ") {
                             let jsonString = String(line.dropFirst(6))
-                            if let data = jsonString.data(using: .utf8),
-                               let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-                               let candidates = json["candidates"] as? [[String: Any]],
-                               let content = candidates.first?["content"] as? [String: Any],
-                               let parts = content["parts"] as? [[String: Any]] {
-                                
+                            if
+                                let data = jsonString.data(using: .utf8),
+                                let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                                let candidates = json["candidates"] as? [[String: Any]],
+                                let content = candidates.first?["content"] as? [String: Any],
+                                let parts = content["parts"] as? [[String: Any]]
+                            {
                                 for part in parts {
                                     if let text = part["text"] as? String {
                                         continuation.yield(TextStreamDelta.text(text))
@@ -144,9 +157,9 @@ public final class GoogleProvider: ModelProvider {
                                 }
                             }
                         }
-                    }  // End of macOS for loop
+                    } // End of macOS for loop
                     #endif
-                    
+
                     continuation.yield(TextStreamDelta.done())
                     continuation.finish()
                 } catch {
@@ -155,44 +168,44 @@ public final class GoogleProvider: ModelProvider {
             }
         }
     }
-    
+
     private func buildGoogleRequest(_ request: ProviderRequest) throws -> GoogleGenerateRequest {
         // Convert messages to Google format
         var contents: [[String: Any]] = []
-        
+
         for message in request.messages {
             var parts: [[String: Any]] = []
-            
+
             for contentPart in message.content {
                 switch contentPart {
-                case .text(let text):
+                case let .text(text):
                     parts.append(["text": text])
-                case .image(let imageContent):
+                case let .image(imageContent):
                     parts.append([
                         "inline_data": [
                             "mime_type": imageContent.mimeType,
-                            "data": imageContent.data
-                        ]
+                            "data": imageContent.data,
+                        ],
                     ])
                 default:
                     break
                 }
             }
-            
+
             let role = message.role == .assistant ? "model" : "user"
             contents.append([
                 "role": role,
-                "parts": parts
+                "parts": parts,
             ])
         }
-        
+
         return GoogleGenerateRequest(
             contents: contents,
             generationConfig: [
                 "temperature": request.settings.temperature ?? 0.7,
                 "maxOutputTokens": request.settings.maxTokens ?? 2048,
                 "topP": request.settings.topP ?? 0.95,
-                "topK": request.settings.topK ?? 40
+                "topK": request.settings.topK ?? 40,
             ]
         )
     }
@@ -202,14 +215,14 @@ public final class GoogleProvider: ModelProvider {
 private struct GoogleGenerateRequest: Encodable {
     let contents: [[String: Any]]
     let generationConfig: [String: Any]
-    
+
     func encode(to encoder: Encoder) throws {
         // Properly encode as JSON objects, not strings
         let data = try JSONSerialization.data(withJSONObject: [
-            "contents": contents,
-            "generationConfig": generationConfig
+            "contents": self.contents,
+            "generationConfig": self.generationConfig,
         ])
-        
+
         if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
             var container = encoder.container(keyedBy: DynamicCodingKey.self)
             for (key, value) in json {
@@ -218,5 +231,3 @@ private struct GoogleGenerateRequest: Encodable {
         }
     }
 }
-
-

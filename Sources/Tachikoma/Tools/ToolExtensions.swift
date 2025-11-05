@@ -1,16 +1,13 @@
-//
-//  ToolExtensions.swift
-//  Tachikoma
-//
-
 import Foundation
 
 // MARK: - Tool Implementation Types
+
 // Core tool types (AgentTool, AgentToolArguments, etc.) are now in Core/ToolTypes.swift
 
 // Type aliases for tool methods
 public typealias ToolMethod = @Sendable (AgentToolArguments) async throws -> AnyAgentToolValue
-public typealias ContextualToolMethod = @Sendable (AgentToolArguments, ToolExecutionContext) async throws -> AnyAgentToolValue
+public typealias ContextualToolMethod = @Sendable (AgentToolArguments, ToolExecutionContext) async throws
+    -> AnyAgentToolValue
 public typealias ToolMethodCreator = @Sendable (String, String, AgentToolParameters, ToolMethod) -> AgentTool
 
 // MARK: - Tool Protocol System
@@ -20,11 +17,11 @@ public typealias ToolMethodCreator = @Sendable (String, String, AgentToolParamet
 public protocol AgentToolProtocol: Sendable {
     associatedtype Input: AgentToolValue
     associatedtype Output: AgentToolValue
-    
+
     var name: String { get }
     var description: String { get }
     var schema: AgentToolSchema { get }
-    
+
     func execute(_ input: Input, context: ToolExecutionContext) async throws -> Output
 }
 
@@ -33,7 +30,7 @@ public protocol AgentToolProtocol: Sendable {
 public struct AgentToolSchema: Sendable, Codable {
     public let properties: [String: AgentPropertySchema]
     public let required: [String]
-    
+
     public init(properties: [String: AgentPropertySchema], required: [String] = []) {
         self.properties = properties
         self.required = required
@@ -46,7 +43,7 @@ public struct AgentPropertySchema: Sendable, Codable {
     public let type: AgentValueType
     public let description: String
     public let enumValues: [String]?
-    
+
     public init(type: AgentValueType, description: String, enumValues: [String]? = nil) {
         self.type = type
         self.description = description
@@ -99,11 +96,11 @@ public struct AnyAgentTool: Sendable {
     private let _description: String
     private let _schema: AgentToolSchema
     private let _execute: @Sendable (AnyAgentToolValue, ToolExecutionContext) async throws -> AnyAgentToolValue
-    
-    public var name: String { _name }
-    public var description: String { _description }
-    public var schema: AgentToolSchema { _schema }
-    
+
+    public var name: String { self._name }
+    public var description: String { self._description }
+    public var schema: AgentToolSchema { self._schema }
+
     public init<T: AgentToolProtocol>(_ tool: T) {
         self._name = tool.name
         self._description = tool.description
@@ -115,14 +112,18 @@ public struct AnyAgentTool: Sendable {
             return try AnyAgentToolValue(output)
         }
     }
-    
+
     public func execute(_ arguments: [String: Any], context: ToolExecutionContext) async throws -> AnyAgentToolValue {
         let input = try AnyAgentToolValue.fromDictionary(arguments)
-        return try await _execute(input, context)
+        return try await self._execute(input, context)
     }
-    
-    public func execute(_ arguments: AnyAgentToolValue, context: ToolExecutionContext) async throws -> AnyAgentToolValue {
-        return try await _execute(arguments, context)
+
+    public func execute(
+        _ arguments: AnyAgentToolValue,
+        context: ToolExecutionContext
+    ) async throws
+    -> AnyAgentToolValue {
+        try await self._execute(arguments, context)
     }
 }
 
@@ -232,14 +233,14 @@ public enum AgentToolError: Error, LocalizedError, Sendable {
 
     public var errorDescription: String? {
         switch self {
-        case .missingParameter(let param):
-            return "Missing required parameter: \(param)"
-        case .invalidParameterType(let param, let expected, let actual):
-            return "Invalid parameter type for '\(param)': expected \(expected), got \(actual)"
-        case .executionFailed(let message):
-            return "Tool execution failed: \(message)"
-        case .invalidInput(let message):
-            return "Invalid input: \(message)"
+        case let .missingParameter(param):
+            "Missing required parameter: \(param)"
+        case let .invalidParameterType(param, expected, actual):
+            "Invalid parameter type for '\(param)': expected \(expected), got \(actual)"
+        case let .executionFailed(message):
+            "Tool execution failed: \(message)"
+        case let .invalidInput(message):
+            "Invalid input: \(message)"
         }
     }
 }

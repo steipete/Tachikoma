@@ -1,5 +1,5 @@
 import Foundation
-import Tachikoma  // For TachikomaError
+import Tachikoma // For TachikomaError
 #if canImport(FoundationNetworking)
 import FoundationNetworking
 #endif
@@ -149,7 +149,7 @@ extension OpenAITranscriptionProvider {
                 body.append("--\(boundary)\r\n".data(using: .utf8)!)
                 body
                     .append("Content-Disposition: form-data; name=\"timestamp_granularities[]\"\r\n\r\n"
-                                .data(using: .utf8)!
+                        .data(using: .utf8)!
                     )
                 body.append(granularity.rawValue.data(using: .utf8)!)
                 body.append("\r\n".data(using: .utf8)!)

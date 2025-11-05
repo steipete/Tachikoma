@@ -41,19 +41,18 @@ public func generateText(
             settings: settings
         )
 
-        let response: ProviderResponse
-        if let timeout = timeout {
-            response = try await withTimeout(timeout) {
+        let response: ProviderResponse = if let timeout {
+            try await withTimeout(timeout) {
                 try await provider.generateText(request: request)
             }
         } else {
-            response = try await provider.generateText(request: request)
+            try await provider.generateText(request: request)
         }
 
         // Track usage with proper session management
         if let usage = response.usage {
             let actualSessionId = sessionId ?? "generation-\(UUID().uuidString)"
-            
+
             // Start session if not already started
             if sessionId == nil {
                 _ = UsageTracker.shared.startSession(actualSessionId)
@@ -66,7 +65,7 @@ public func generateText(
                 usage: usage,
                 operation: operationType
             )
-            
+
             // Only end session if we created it
             if sessionId == nil {
                 _ = UsageTracker.shared.endSession(actualSessionId)
@@ -111,7 +110,7 @@ public func generateText(
                         // Debug: Log tool call details in verbose mode
                         if
                             ProcessInfo.processInfo.arguments.contains("--verbose") ||
-                                ProcessInfo.processInfo.arguments.contains("-v")
+                            ProcessInfo.processInfo.arguments.contains("-v")
                         {
                             print(
                                 "DEBUG Generation.swift: Executing tool '\(toolCall.name)' with \(toolCall.arguments.count) arguments:"
@@ -130,7 +129,7 @@ public func generateText(
                             stepIndex: stepIndex,
                             metadata: ["toolCallId": toolCall.id]
                         )
-                        
+
                         // Convert arguments to AgentToolArguments
                         let toolArguments = AgentToolArguments(toolCall.arguments)
                         let result = try await tool.execute(toolArguments, context: context)
@@ -143,7 +142,10 @@ public func generateText(
                             content: [.toolResult(toolResult)]
                         ))
                     } catch {
-                        let errorResult = AgentToolResult.error(toolCallId: toolCall.id, error: error.localizedDescription)
+                        let errorResult = AgentToolResult.error(
+                            toolCallId: toolCall.id,
+                            error: error.localizedDescription
+                        )
                         toolResults.append(errorResult)
 
                         currentMessages.append(ModelMessage(
@@ -178,7 +180,7 @@ public func generateText(
     // Extract final text from last step
     var finalText = allSteps.last?.text ?? ""
     var finalFinishReason = allSteps.last?.finishReason ?? .other
-    
+
     // Apply stop conditions if configured
     if let stopCondition = settings.stopConditions {
         // Check if we should stop and truncate the text
@@ -186,13 +188,19 @@ public func generateText(
             // Truncate text based on the type of stop condition
             if let stringStop = stopCondition as? StringStopCondition {
                 // For string stop conditions, truncate at the stop string
-                if let range = finalText.range(of: stringStop.stopString, 
-                                              options: stringStop.caseSensitive ? [] : .caseInsensitive) {
+                if
+                    let range = finalText.range(
+                        of: stringStop.stopString,
+                        options: stringStop.caseSensitive ? [] : .caseInsensitive
+                    )
+                {
                     finalText = String(finalText[..<range.lowerBound])
                 }
                 finalFinishReason = .stop
-            } else if stopCondition is TokenCountStopCondition ||
-                      stopCondition is TimeoutStopCondition {
+            } else if
+                stopCondition is TokenCountStopCondition ||
+                stopCondition is TimeoutStopCondition
+            {
                 // For token/time limits, the text is already at the right length
                 finalFinishReason = .length
             } else if let regexStop = stopCondition as? RegexStopCondition {
@@ -243,11 +251,11 @@ public func streamText(
 -> StreamTextResult {
     // Debug logging only when explicitly enabled via environment variable or verbose flag
     let debugEnabled = ProcessInfo.processInfo.environment["DEBUG_TACHIKOMA"] != nil ||
-                      configuration.verbose
+        configuration.verbose
     if debugEnabled {
         print("\n🔵 DEBUG streamText: Creating provider for model: \(model)")
         print("🔵 DEBUG streamText: Model details: \(model.description)")
-        if case .openai(let openaiModel) = model {
+        if case let .openai(openaiModel) = model {
             print("🔵 DEBUG streamText: OpenAI model enum case: \(openaiModel)")
             print("🔵 DEBUG streamText: OpenAI model modelId: \(openaiModel.modelId)")
         }
@@ -255,7 +263,9 @@ public func streamText(
     let provider = try ProviderFactory.createProvider(for: model, configuration: configuration)
     if debugEnabled {
         print("🔵 DEBUG streamText: Provider created: \(type(of: provider))")
-        print("🔵 DEBUG streamText: Provider modelId: \((provider as? AnthropicProvider)?.modelId ?? (provider as? OpenAIProvider)?.modelId ?? (provider as? OpenAIResponsesProvider)?.modelId ?? "unknown")")
+        print(
+            "🔵 DEBUG streamText: Provider modelId: \((provider as? AnthropicProvider)?.modelId ?? (provider as? OpenAIProvider)?.modelId ?? (provider as? OpenAIResponsesProvider)?.modelId ?? "unknown")"
+        )
     }
 
     let request = ProviderRequest(
@@ -265,7 +275,7 @@ public func streamText(
     )
 
     var stream: AsyncThrowingStream<TextStreamDelta, Error>
-    if let timeout = timeout {
+    if let timeout {
         // Wrap stream with timeout for initial connection
         if debugEnabled {
             print("🔵 DEBUG streamText: Calling provider.streamText with timeout and \(request.tools?.count ?? 0) tools")
@@ -279,7 +289,7 @@ public func streamText(
         }
         stream = try await provider.streamText(request: request)
     }
-    
+
     // Apply stop conditions if configured
     if let stopCondition = settings.stopConditions {
         // Wrap the stream with stop condition checking
@@ -297,7 +307,7 @@ public func streamText(
     let capturedSessionId = actualSessionId
     let capturedStream = stream
     let shouldEndSession = sessionId == nil
-    
+
     let trackedStream = AsyncThrowingStream<TextStreamDelta, Error> { continuation in
         Task {
             do {
@@ -380,13 +390,12 @@ public func generateObject<T: Codable & Sendable>(
         outputFormat: .json
     )
 
-    let response: ProviderResponse
-    if let timeout = timeout {
-        response = try await withTimeout(timeout) {
+    let response: ProviderResponse = if let timeout {
+        try await withTimeout(timeout) {
             try await provider.generateText(request: request)
         }
     } else {
-        response = try await provider.generateText(request: request)
+        try await provider.generateText(request: request)
     }
 
     // Parse the JSON response into the expected type
@@ -428,7 +437,7 @@ public func streamObject<T: Codable & Sendable>(
 ) async throws
 -> StreamObjectResult<T> {
     let provider = try ProviderFactory.createProvider(for: model, configuration: configuration)
-    
+
     // Create request with JSON output format
     let request = ProviderRequest(
         messages: messages,
@@ -436,10 +445,10 @@ public func streamObject<T: Codable & Sendable>(
         settings: settings,
         outputFormat: .json
     )
-    
+
     // Get the text stream from the provider
     let stream = try await provider.streamText(request: request)
-    
+
     // Create a new stream that attempts to parse partial JSON objects
     let objectStream = AsyncThrowingStream<ObjectStreamDelta<T>, Error> { continuation in
         Task {
@@ -447,17 +456,17 @@ public func streamObject<T: Codable & Sendable>(
                 var accumulatedText = ""
                 var lastValidObject: T?
                 var hasStarted = false
-                
+
                 for try await delta in stream {
                     if case .textDelta = delta.type, let content = delta.content {
                         accumulatedText += content
-                        
+
                         // Signal stream start
                         if !hasStarted {
                             hasStarted = true
                             continuation.yield(ObjectStreamDelta(type: .start))
                         }
-                        
+
                         // Attempt to parse the accumulated JSON
                         if let jsonData = accumulatedText.data(using: .utf8) {
                             // Try to parse as complete object
@@ -480,8 +489,10 @@ public func streamObject<T: Codable & Sendable>(
                         }
                     } else if case .done = delta.type {
                         // Final parse attempt
-                        if let jsonData = accumulatedText.data(using: .utf8),
-                           let finalObject = try? JSONDecoder().decode(T.self, from: jsonData) {
+                        if
+                            let jsonData = accumulatedText.data(using: .utf8),
+                            let finalObject = try? JSONDecoder().decode(T.self, from: jsonData)
+                        {
                             continuation.yield(ObjectStreamDelta(
                                 type: .complete,
                                 object: finalObject,
@@ -502,14 +513,14 @@ public func streamObject<T: Codable & Sendable>(
                         continuation.yield(ObjectStreamDelta(type: .done))
                     }
                 }
-                
+
                 continuation.finish()
             } catch {
                 continuation.finish(throwing: error)
             }
         }
     }
-    
+
     return StreamObjectResult(
         objectStream: objectStream,
         model: model,
@@ -522,34 +533,36 @@ public func streamObject<T: Codable & Sendable>(
 private func attemptPartialParse<T: Codable>(_ type: T.Type, from json: String) -> T? {
     // Try various strategies to parse partial JSON
     let strategies = [
-        json,                                    // Original
-        json + "}",                             // Missing closing brace
-        json + "\"}",                           // Missing quote and brace
-        json + "]",                             // Missing closing bracket
-        json + "]}",                            // Missing bracket and brace
-        fixPartialJSON(json)                    // Custom fix attempt
+        json, // Original
+        json + "}", // Missing closing brace
+        json + "\"}", // Missing quote and brace
+        json + "]", // Missing closing bracket
+        json + "]}", // Missing bracket and brace
+        fixPartialJSON(json), // Custom fix attempt
     ]
-    
+
     for strategy in strategies {
-        if let data = strategy.data(using: .utf8),
-           let object = try? JSONDecoder().decode(T.self, from: data) {
+        if
+            let data = strategy.data(using: .utf8),
+            let object = try? JSONDecoder().decode(T.self, from: data)
+        {
             return object
         }
     }
-    
+
     return nil
 }
 
 /// Fix common issues in partial JSON
 private func fixPartialJSON(_ json: String) -> String {
     var fixed = json.trimmingCharacters(in: .whitespacesAndNewlines)
-    
+
     // Count brackets and braces
-    let openBraces = fixed.filter { $0 == "{" }.count
-    let closeBraces = fixed.filter { $0 == "}" }.count
-    let openBrackets = fixed.filter { $0 == "[" }.count
-    let closeBrackets = fixed.filter { $0 == "]" }.count
-    
+    let openBraces = fixed.count(where: { $0 == "{" })
+    let closeBraces = fixed.count(where: { $0 == "}" })
+    let openBrackets = fixed.count(where: { $0 == "[" })
+    let closeBrackets = fixed.count(where: { $0 == "]" })
+
     // Add missing closing characters
     if openBrackets > closeBrackets {
         fixed += String(repeating: "]", count: openBrackets - closeBrackets)
@@ -557,21 +570,21 @@ private func fixPartialJSON(_ json: String) -> String {
     if openBraces > closeBraces {
         fixed += String(repeating: "}", count: openBraces - closeBraces)
     }
-    
+
     // Fix trailing comma
     if fixed.hasSuffix(",") {
         fixed.removeLast()
     }
-    
+
     // Ensure quotes are balanced for the last property
     if let lastQuoteIndex = fixed.lastIndex(of: "\"") {
         let afterQuote = String(fixed[fixed.index(after: lastQuoteIndex)...])
-        if afterQuote.contains(":") && !afterQuote.contains("\"") {
+        if afterQuote.contains(":"), !afterQuote.contains("\"") {
             // Likely missing closing quote for string value
             fixed += "\""
         }
     }
-    
+
     return fixed
 }
 
@@ -758,7 +771,7 @@ public struct StreamObjectResult<T: Codable & Sendable>: Sendable {
     public let model: LanguageModel
     public let settings: GenerationSettings
     public let schema: T.Type
-    
+
     public init(
         objectStream: AsyncThrowingStream<ObjectStreamDelta<T>, Error>,
         model: LanguageModel,
@@ -773,19 +786,20 @@ public struct StreamObjectResult<T: Codable & Sendable>: Sendable {
 }
 
 // MARK: - AsyncSequence Conformance for StreamObjectResult
+
 extension StreamObjectResult: AsyncSequence {
     public typealias Element = ObjectStreamDelta<T>
-    
+
     public struct AsyncIterator: AsyncIteratorProtocol {
         var iterator: AsyncThrowingStream<ObjectStreamDelta<T>, Error>.AsyncIterator
-        
+
         public mutating func next() async throws -> ObjectStreamDelta<T>? {
-            try await iterator.next()
+            try await self.iterator.next()
         }
     }
-    
+
     public func makeAsyncIterator() -> AsyncIterator {
-        AsyncIterator(iterator: objectStream.makeAsyncIterator())
+        AsyncIterator(iterator: self.objectStream.makeAsyncIterator())
     }
 }
 
@@ -796,15 +810,15 @@ public struct ObjectStreamDelta<T: Codable & Sendable>: Sendable {
     public let object: T?
     public let rawText: String?
     public let error: Error?
-    
+
     public enum DeltaType: Sendable, Equatable {
-        case start          // Stream has started
-        case partial        // Partial object update
-        case complete       // Complete object received
-        case done          // Stream has finished
-        case error         // An error occurred
+        case start // Stream has started
+        case partial // Partial object update
+        case complete // Complete object received
+        case done // Stream has finished
+        case error // An error occurred
     }
-    
+
     public init(
         type: DeltaType,
         object: T? = nil,

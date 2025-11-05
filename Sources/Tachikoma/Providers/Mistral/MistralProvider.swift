@@ -1,8 +1,3 @@
-//
-//  MistralProvider.swift
-//  Tachikoma
-//
-
 import Foundation
 
 /// Provider for Mistral models
@@ -37,7 +32,7 @@ public final class MistralProvider: ModelProvider {
 
     public func generateText(request: ProviderRequest) async throws -> ProviderResponse {
         // Use OpenAI-compatible implementation for Mistral
-        return try await OpenAICompatibleHelper.generateText(
+        try await OpenAICompatibleHelper.generateText(
             request: request,
             modelId: self.modelId,
             baseURL: self.baseURL!,
@@ -48,7 +43,7 @@ public final class MistralProvider: ModelProvider {
 
     public func streamText(request: ProviderRequest) async throws -> AsyncThrowingStream<TextStreamDelta, Error> {
         // Use OpenAI-compatible streaming for Mistral
-        return try await OpenAICompatibleHelper.streamText(
+        try await OpenAICompatibleHelper.streamText(
             request: request,
             modelId: self.modelId,
             baseURL: self.baseURL!,

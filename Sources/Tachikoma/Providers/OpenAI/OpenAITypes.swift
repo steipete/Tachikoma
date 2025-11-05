@@ -9,15 +9,23 @@ struct OpenAIChatRequest: Codable {
     let maxTokens: Int?
     let tools: [OpenAITool]?
     let stream: Bool?
-    let stop: [String]?  // Native stop sequences support
+    let stop: [String]? // Native stop sequences support
 
     enum CodingKeys: String, CodingKey {
         case model, messages, temperature, tools, stream, stop
         case maxTokens = "max_tokens"
         case maxCompletionTokens = "max_completion_tokens"
     }
-    
-    init(model: String, messages: [OpenAIChatMessage], temperature: Double? = nil, maxTokens: Int? = nil, tools: [OpenAITool]? = nil, stream: Bool? = nil, stop: [String]? = nil) {
+
+    init(
+        model: String,
+        messages: [OpenAIChatMessage],
+        temperature: Double? = nil,
+        maxTokens: Int? = nil,
+        tools: [OpenAITool]? = nil,
+        stream: Bool? = nil,
+        stop: [String]? = nil
+    ) {
         self.model = model
         self.messages = messages
         self.temperature = temperature
@@ -26,41 +34,41 @@ struct OpenAIChatRequest: Codable {
         self.stream = stream
         self.stop = stop
     }
-    
+
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        model = try container.decode(String.self, forKey: .model)
-        messages = try container.decode([OpenAIChatMessage].self, forKey: .messages)
-        temperature = try container.decodeIfPresent(Double.self, forKey: .temperature)
-        
+        self.model = try container.decode(String.self, forKey: .model)
+        self.messages = try container.decode([OpenAIChatMessage].self, forKey: .messages)
+        self.temperature = try container.decodeIfPresent(Double.self, forKey: .temperature)
+
         // Try both max_tokens and max_completion_tokens
         if let maxTokens = try container.decodeIfPresent(Int.self, forKey: .maxTokens) {
             self.maxTokens = maxTokens
         } else {
             self.maxTokens = try container.decodeIfPresent(Int.self, forKey: .maxCompletionTokens)
         }
-        
-        tools = try container.decodeIfPresent([OpenAITool].self, forKey: .tools)
-        stream = try container.decodeIfPresent(Bool.self, forKey: .stream)
-        stop = try container.decodeIfPresent([String].self, forKey: .stop)
+
+        self.tools = try container.decodeIfPresent([OpenAITool].self, forKey: .tools)
+        self.stream = try container.decodeIfPresent(Bool.self, forKey: .stream)
+        self.stop = try container.decodeIfPresent([String].self, forKey: .stop)
     }
-    
+
     func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
-        try container.encode(model, forKey: .model)
-        try container.encode(messages, forKey: .messages)
-        try container.encodeIfPresent(temperature, forKey: .temperature)
-        
+        try container.encode(self.model, forKey: .model)
+        try container.encode(self.messages, forKey: .messages)
+        try container.encodeIfPresent(self.temperature, forKey: .temperature)
+
         // Use max_completion_tokens for GPT-5 models, max_tokens for others
-        if model.hasPrefix("gpt-5") {
-            try container.encodeIfPresent(maxTokens, forKey: .maxCompletionTokens)
+        if self.model.hasPrefix("gpt-5") {
+            try container.encodeIfPresent(self.maxTokens, forKey: .maxCompletionTokens)
         } else {
-            try container.encodeIfPresent(maxTokens, forKey: .maxTokens)
+            try container.encodeIfPresent(self.maxTokens, forKey: .maxTokens)
         }
-        
-        try container.encodeIfPresent(tools, forKey: .tools)
-        try container.encodeIfPresent(stream, forKey: .stream)
-        try container.encodeIfPresent(stop, forKey: .stop)
+
+        try container.encodeIfPresent(self.tools, forKey: .tools)
+        try container.encodeIfPresent(self.stream, forKey: .stream)
+        try container.encodeIfPresent(self.stop, forKey: .stop)
     }
 }
 
@@ -150,17 +158,21 @@ enum OpenAIChatMessageContent: Codable {
             let imageUrl = try container.decode(ImageUrl.self, forKey: .imageUrl)
             self = .imageUrl(ImageUrlContent(type: type, imageUrl: imageUrl))
         default:
-            throw DecodingError.dataCorruptedError(forKey: .type, in: container, debugDescription: "Unsupported content type: \(type)")
+            throw DecodingError.dataCorruptedError(
+                forKey: .type,
+                in: container,
+                debugDescription: "Unsupported content type: \(type)"
+            )
         }
     }
 
     func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         switch self {
-        case .text(let content):
+        case let .text(content):
             try container.encode(content.type, forKey: .type)
             try container.encode(content.text, forKey: .text)
-        case .imageUrl(let content):
+        case let .imageUrl(content):
             try container.encode(content.type, forKey: .type)
             try container.encode(content.imageUrl, forKey: .imageUrl)
         }
@@ -284,18 +296,18 @@ struct OpenAIStreamChunk: Codable {
         let role: String?
         let content: String?
         let toolCalls: [ToolCall]?
-        
+
         enum CodingKeys: String, CodingKey {
             case role, content
             case toolCalls = "tool_calls"
         }
-        
+
         struct ToolCall: Codable {
             let index: Int?
             let id: String?
             let type: String?
             let function: Function?
-            
+
             struct Function: Codable {
                 let name: String?
                 let arguments: String?

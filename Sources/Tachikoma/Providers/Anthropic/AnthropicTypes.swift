@@ -11,7 +11,7 @@ enum JSONValue: Codable {
     case array([JSONValue])
     case object([String: JSONValue])
     case null
-    
+
     init?(value: Any) {
         if let string = value as? String {
             self = .string(string)
@@ -31,19 +31,19 @@ enum JSONValue: Codable {
             return nil
         }
     }
-    
+
     var value: Any {
         switch self {
-        case .string(let s): return s
-        case .int(let i): return i
-        case .double(let d): return d
-        case .bool(let b): return b
-        case .array(let a): return a.map { $0.value }
-        case .object(let o): return o.mapValues { $0.value }
-        case .null: return NSNull()
+        case let .string(s): s
+        case let .int(i): i
+        case let .double(d): d
+        case let .bool(b): b
+        case let .array(a): a.map(\.value)
+        case let .object(o): o.mapValues { $0.value }
+        case .null: NSNull()
         }
     }
-    
+
     init(from decoder: Decoder) throws {
         let container = try decoder.singleValueContainer()
         if let string = try? container.decode(String.self) {
@@ -64,16 +64,16 @@ enum JSONValue: Codable {
             throw DecodingError.dataCorruptedError(in: container, debugDescription: "Cannot decode JSONValue")
         }
     }
-    
+
     func encode(to encoder: Encoder) throws {
         var container = encoder.singleValueContainer()
         switch self {
-        case .string(let s): try container.encode(s)
-        case .int(let i): try container.encode(i)
-        case .double(let d): try container.encode(d)
-        case .bool(let b): try container.encode(b)
-        case .array(let a): try container.encode(a)
-        case .object(let o): try container.encode(o)
+        case let .string(s): try container.encode(s)
+        case let .int(i): try container.encode(i)
+        case let .double(d): try container.encode(d)
+        case let .bool(b): try container.encode(b)
+        case let .array(a): try container.encode(a)
+        case let .object(o): try container.encode(o)
         case .null: try container.encodeNil()
         }
     }
@@ -127,70 +127,70 @@ enum AnthropicContent: Codable {
             case mediaType = "media_type"
         }
     }
-    
+
     struct ToolUseContent: Codable {
         let type: String
         let id: String
         let name: String
         let input: [String: Any]
-        
+
         init(type: String = "tool_use", id: String, name: String, input: [String: Any]) {
             self.type = type
             self.id = id
             self.name = name
             self.input = input
         }
-        
+
         init(from decoder: Decoder) throws {
             let container = try decoder.container(keyedBy: CodingKeys.self)
             self.type = try container.decode(String.self, forKey: .type)
             self.id = try container.decode(String.self, forKey: .id)
             self.name = try container.decode(String.self, forKey: .name)
-            
+
             // Use custom decoder for Any
             let inputDecoder = try container.superDecoder(forKey: .input)
             self.input = try Self.decodeAnyDict(from: inputDecoder)
         }
-        
+
         func encode(to encoder: Encoder) throws {
             var container = encoder.container(keyedBy: CodingKeys.self)
-            try container.encode(type, forKey: .type)
-            try container.encode(id, forKey: .id)
-            try container.encode(name, forKey: .name)
-            
+            try container.encode(self.type, forKey: .type)
+            try container.encode(self.id, forKey: .id)
+            try container.encode(self.name, forKey: .name)
+
             // Use custom encoder for Any
             let inputEncoder = container.superEncoder(forKey: .input)
-            try Self.encodeAnyDict(input, to: inputEncoder)
+            try Self.encodeAnyDict(self.input, to: inputEncoder)
         }
-        
+
         // Helper methods for encoding/decoding [String: Any]
         private static func decodeAnyDict(from decoder: Decoder) throws -> [String: Any] {
             let container = try decoder.singleValueContainer()
             return try container.decode([String: JSONValue].self).mapValues { $0.value }
         }
-        
+
         private static func encodeAnyDict(_ dict: [String: Any], to encoder: Encoder) throws {
             var container = encoder.singleValueContainer()
             let jsonDict = dict.compactMapValues { JSONValue(value: $0) }
             try container.encode(jsonDict)
         }
-        
+
         enum CodingKeys: String, CodingKey {
             case type, id, name, input
         }
     }
-    
+
     struct ToolResultContent: Codable {
         let type: String
         let toolUseId: String
         let content: String
-        
+
         init(type: String = "tool_result", toolUseId: String, content: String) {
             self.type = type
             self.toolUseId = toolUseId
             self.content = content
         }
-        
+
         enum CodingKeys: String, CodingKey {
             case type
             case toolUseId = "tool_use_id"
@@ -309,7 +309,7 @@ struct AnthropicInputSchema: Codable {
                 // Encode arrays properly as actual arrays, not JSON strings
                 var arrayContainer = container.nestedUnkeyedContainer(forKey: codingKey)
                 for element in arrayValue {
-                    try encodeAnyElement(element, to: &arrayContainer)
+                    try self.encodeAnyElement(element, to: &arrayContainer)
                 }
             case let dictValue as [String: Any]:
                 // Encode nested objects properly as nested containers
@@ -321,7 +321,7 @@ struct AnthropicInputSchema: Codable {
             }
         }
     }
-    
+
     private func encodeAnyElement(_ value: Any, to container: inout UnkeyedEncodingContainer) throws {
         switch value {
         case let stringValue as String:
@@ -336,12 +336,12 @@ struct AnthropicInputSchema: Codable {
             // Nested arrays
             var nestedContainer = container.nestedUnkeyedContainer()
             for element in arrayValue {
-                try encodeAnyElement(element, to: &nestedContainer)
+                try self.encodeAnyElement(element, to: &nestedContainer)
             }
         case let dictValue as [String: Any]:
             // Dictionary within array
             var nestedContainer = container.nestedContainer(keyedBy: AnyCodingKey.self)
-            try encodeAnyDictionary(dictValue, to: &nestedContainer)
+            try self.encodeAnyDictionary(dictValue, to: &nestedContainer)
         default:
             // Fallback: convert to string
             try container.encode(String(describing: value))
@@ -490,7 +490,7 @@ struct AnthropicStreamEvent: Codable {
     let contentBlock: AnthropicStreamContentBlock?
     let delta: AnthropicStreamDelta?
     let usage: AnthropicUsage?
-    
+
     enum CodingKeys: String, CodingKey {
         case type, message, index
         case contentBlock = "content_block"
@@ -512,23 +512,25 @@ struct AnthropicStreamContentBlock: Codable {
     let name: String?
     let text: String?
     let input: Any?
-    
+
     enum CodingKeys: String, CodingKey {
         case type, id, name, text, input
     }
-    
+
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         self.type = try container.decode(String.self, forKey: .type)
         self.id = try? container.decode(String.self, forKey: .id)
         self.name = try? container.decode(String.self, forKey: .name)
         self.text = try? container.decode(String.self, forKey: .text)
-        
+
         // Decode input as generic JSON if present
         if container.contains(.input) {
             // Try to decode as Data and convert to JSON object
-            if let data = try? container.decode(Data.self, forKey: .input),
-               let obj = try? JSONSerialization.jsonObject(with: data) {
+            if
+                let data = try? container.decode(Data.self, forKey: .input),
+                let obj = try? JSONSerialization.jsonObject(with: data)
+            {
                 self.input = obj
             } else {
                 self.input = nil
@@ -537,14 +539,14 @@ struct AnthropicStreamContentBlock: Codable {
             self.input = nil
         }
     }
-    
+
     func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
-        try container.encode(type, forKey: .type)
-        try container.encodeIfPresent(id, forKey: .id)
-        try container.encodeIfPresent(name, forKey: .name)
-        try container.encodeIfPresent(text, forKey: .text)
-        if let input = input {
+        try container.encode(self.type, forKey: .type)
+        try container.encodeIfPresent(self.id, forKey: .id)
+        try container.encodeIfPresent(self.name, forKey: .name)
+        try container.encodeIfPresent(self.text, forKey: .text)
+        if let input {
             let data = try JSONSerialization.data(withJSONObject: input)
             try container.encode(data, forKey: .input)
         }
@@ -557,7 +559,7 @@ struct AnthropicStreamDelta: Codable {
     let partialJson: String?
     let stopReason: String?
     let stopSequence: String?
-    
+
     enum CodingKeys: String, CodingKey {
         case type, text
         case partialJson = "partial_json"
@@ -575,4 +577,3 @@ struct AnthropicErrorResponse: Codable {
         let message: String
     }
 }
-

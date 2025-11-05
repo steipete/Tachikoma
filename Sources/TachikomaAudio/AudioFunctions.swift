@@ -1,5 +1,5 @@
 import Foundation
-import Tachikoma  // For TachikomaConfiguration and types
+import Tachikoma // For TachikomaConfiguration and types
 
 // MARK: - Global Audio Functions
 
@@ -337,14 +337,22 @@ public func availableSpeechModels() -> [SpeechModel] {
 
 /// Get capabilities for a transcription model
 @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
-public func capabilities(for model: TranscriptionModel, configuration: TachikomaConfiguration = TachikomaConfiguration()) throws -> TranscriptionCapabilities {
+public func capabilities(
+    for model: TranscriptionModel,
+    configuration: TachikomaConfiguration = TachikomaConfiguration()
+) throws
+-> TranscriptionCapabilities {
     let provider = try TranscriptionProviderFactory.createProvider(for: model, configuration: configuration)
     return provider.capabilities
 }
 
 /// Get capabilities for a speech model
 @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
-public func capabilities(for model: SpeechModel, configuration: TachikomaConfiguration = TachikomaConfiguration()) throws -> SpeechCapabilities {
+public func capabilities(
+    for model: SpeechModel,
+    configuration: TachikomaConfiguration = TachikomaConfiguration()
+) throws
+-> SpeechCapabilities {
     let provider = try SpeechProviderFactory.createProvider(for: model, configuration: configuration)
     return provider.capabilities
 }

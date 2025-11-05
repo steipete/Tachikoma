@@ -15,7 +15,7 @@ enum TestHelpers {
     /// Standard test API keys for consistent testing
     static let standardTestKeys: [String: String] = [
         "openai": "test-key",
-        "anthropic": "test-key", 
+        "anthropic": "test-key",
         "grok": "test-key",
         "groq": "test-key",
         "mistral": "test-key",
@@ -24,12 +24,12 @@ enum TestHelpers {
 
     /// Create a configuration with standard test API keys
     static func createStandardTestConfiguration() -> TachikomaConfiguration {
-        createTestConfiguration(apiKeys: standardTestKeys)
+        self.createTestConfiguration(apiKeys: self.standardTestKeys)
     }
 
     /// Create a configuration with no API keys (for testing missing key scenarios)
     static func createEmptyTestConfiguration() -> TachikomaConfiguration {
-        createTestConfiguration(apiKeys: [:])
+        self.createTestConfiguration(apiKeys: [:])
     }
 
     /// Create a configuration with specific API keys present and others missing
@@ -37,7 +37,7 @@ enum TestHelpers {
         let keys = present.reduce(into: [String: String]()) { result, provider in
             result[provider] = "test-key"
         }
-        return createTestConfiguration(apiKeys: keys)
+        return self.createTestConfiguration(apiKeys: keys)
     }
 
     /// Execute a test block with a specific configuration
@@ -45,24 +45,27 @@ enum TestHelpers {
     static func withTestConfiguration<T>(
         apiKeys: [String: String] = [:],
         _ body: (TachikomaConfiguration) async throws -> T
-    ) async rethrows -> T {
-        let config = createTestConfiguration(apiKeys: apiKeys)
+    ) async rethrows
+    -> T {
+        let config = self.createTestConfiguration(apiKeys: apiKeys)
         return try await body(config)
     }
 
     /// Execute a test with standard test API keys
     static func withStandardTestConfiguration<T>(
         _ body: (TachikomaConfiguration) async throws -> T
-    ) async rethrows -> T {
-        let config = createStandardTestConfiguration()
+    ) async rethrows
+    -> T {
+        let config = self.createStandardTestConfiguration()
         return try await body(config)
     }
 
-    /// Execute a test with no API keys (for testing missing key scenarios) 
+    /// Execute a test with no API keys (for testing missing key scenarios)
     static func withEmptyTestConfiguration<T>(
         _ body: (TachikomaConfiguration) async throws -> T
-    ) async rethrows -> T {
-        let config = createEmptyTestConfiguration()
+    ) async rethrows
+    -> T {
+        let config = self.createEmptyTestConfiguration()
         return try await body(config)
     }
 
@@ -70,8 +73,9 @@ enum TestHelpers {
     static func withSelectiveTestConfiguration<T>(
         present: [String],
         _ body: (TachikomaConfiguration) async throws -> T
-    ) async rethrows -> T {
-        let config = createSelectiveTestConfiguration(present: present)
+    ) async rethrows
+    -> T {
+        let config = self.createSelectiveTestConfiguration(present: present)
         return try await body(config)
     }
 }
