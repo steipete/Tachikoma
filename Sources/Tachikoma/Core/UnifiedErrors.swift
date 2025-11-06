@@ -327,6 +327,7 @@ extension Error {
 
 @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 extension ModelError {
+    /// Bridge Tachikoma model errors into the shared unified error envelope used across clients.
     func toUnifiedError() -> TachikomaUnifiedError {
         switch self {
         case let .invalidRequest(message):

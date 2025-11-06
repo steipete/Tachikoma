@@ -10,7 +10,9 @@ public protocol ModelProvider: Sendable {
     var apiKey: String? { get }
     var capabilities: ModelCapabilities { get }
 
+    /// Execute a single-shot generation request against the provider.
     func generateText(request: ProviderRequest) async throws -> ProviderResponse
+    /// Stream partial responses for providers that support incremental output.
     func streamText(request: ProviderRequest) async throws -> AsyncThrowingStream<TextStreamDelta, Error>
 }
 

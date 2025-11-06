@@ -9,6 +9,7 @@ public protocol TranscriptionProvider: Sendable {
     var modelId: String { get }
     var capabilities: TranscriptionCapabilities { get }
 
+    /// Convert audio input into text (and metadata) using the provider's model.
     func transcribe(request: TranscriptionRequest) async throws -> TranscriptionResult
 }
 
@@ -18,6 +19,7 @@ public protocol SpeechProvider: Sendable {
     var modelId: String { get }
     var capabilities: SpeechCapabilities { get }
 
+    /// Generate speech audio for the provided request payload.
     func generateSpeech(request: SpeechRequest) async throws -> SpeechResult
 }
 

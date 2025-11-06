@@ -11,10 +11,15 @@ public protocol AudioRecorderProtocol: Sendable {
     var isAvailable: Bool { get }
     var recordingDuration: TimeInterval { get }
 
+    /// Begin capturing audio input using the recorder's current configuration.
     func startRecording() async throws
+    /// Stop capturing audio and return the recorded payload.
     func stopRecording() async throws -> AudioData
+    /// Abort recording without producing an artifact.
     func cancelRecording() async
+    /// Temporarily halt recording while preserving the existing capture.
     func pauseRecording() async
+    /// Resume a paused recording session.
     func resumeRecording() async
 }
 

@@ -21,6 +21,7 @@ struct OpenAIEmbeddingProvider: EmbeddingProvider, ModelProvider {
         throw TachikomaError.unsupportedOperation("Streaming not supported for embedding models")
     }
 
+    /// Call OpenAI's embeddings endpoint and translate the response into Tachikoma's embedding result.
     func generateEmbedding(request: EmbeddingRequest) async throws -> EmbeddingResult {
         guard let apiKey else {
             throw TachikomaError.authenticationFailed("OpenAI API key not configured")

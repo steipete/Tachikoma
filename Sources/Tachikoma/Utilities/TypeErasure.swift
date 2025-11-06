@@ -12,6 +12,7 @@ struct AnyEncodable: Encodable {
         self.value = value
     }
 
+    /// Recursively encode arbitrary JSON-compatible values while preserving type fidelity.
     func encode(to encoder: Encoder) throws {
         var container = encoder.singleValueContainer()
 
@@ -74,6 +75,7 @@ struct AnyDecodable: Decodable {
         self.value = value
     }
 
+    /// Recursively decode arbitrary JSON structures into heterogenous Swift values.
     init(from decoder: Decoder) throws {
         let container = try decoder.singleValueContainer()
 

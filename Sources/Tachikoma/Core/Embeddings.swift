@@ -212,6 +212,7 @@ public struct EmbeddingMetadata: Sendable, Codable {
 /// Protocol for embedding providers
 @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 protocol EmbeddingProvider: Sendable {
+    /// Produce embeddings for the given input using provider-specific settings.
     func generateEmbedding(request: EmbeddingRequest) async throws -> EmbeddingResult
 }
 
@@ -226,6 +227,7 @@ struct EmbeddingRequest: Sendable {
 
 @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 struct EmbeddingProviderFactory {
+    /// Instantiate the embedding provider that matches the requested model and configuration.
     static func createProvider(
         for model: EmbeddingModel,
         configuration: TachikomaConfiguration
