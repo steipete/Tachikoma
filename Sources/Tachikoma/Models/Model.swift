@@ -1139,7 +1139,11 @@ extension LanguageModel {
             return .anthropic(.opus35)
         }
 
-        if dotted.contains("claude-haiku-4.5") || compact.contains("claudehaiku45") {
+        if
+            normalized.contains("claude-haiku-4.5") ||
+            dotted.contains("claude-haiku-4-5") ||
+            compact.contains("claudehaiku45")
+        {
             return .anthropic(.haiku45)
         }
 
