@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Pruned Anthropic model support to the Claude 4.x line (Opus 4, Sonnet 4 / 4.5, Haiku 4.5) to match current API availability and reduce maintenance burden.
 - `TachikomaConfiguration` now loads credentials first and lets environment variables override them so operators can supersede stored settings without editing credentials files.
 - `TachikomaConfiguration` can optionally override the provider factory so test harnesses can inject mock providers without affecting production defaults, improving hermetic test runs.
+- Implemented OpenRouter, Together, Replicate, and Anthropic-compatible providers on top of the shared helpers so aggregator models no longer throw “not yet implemented” errors and honour custom base URLs/headers.
 - `Provider.environmentValue` falls back to classic `getenv` lookups when the modern configuration reader returns no value, ensuring environment overrides succeed on macOS 14 deployments.
 
 ### Fixed
@@ -24,6 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Integration suites now respect real API keys loaded from the environment, covering Anthropic Sonnet 4 tool-calling, OpenAI GPT‑5 responses, Grok/Grok vision flows, and Google/Mistral smoke tests.
 - Full `INTEGRATION_TESTS=1 swift test` runs complete without recorded issues, including agent ergonomics and audio suites.
 - Added provider-level network E2E coverage using local `URLProtocol` stubs plus new OpenAI Responses API tests (request encoding + streaming) so critical serialization paths are exercised without live traffic.
+- `ProviderEndToEndTests` now exercise every provider flavor (OpenRouter/Together/Replicate, OpenAI/Anthropic compatible, etc.), pushing overall line coverage above 40 % while keeping the suite deterministic via URLProtocol stubs.
 
 ### Planned Features
 - Enhanced caching with persistence and TTL

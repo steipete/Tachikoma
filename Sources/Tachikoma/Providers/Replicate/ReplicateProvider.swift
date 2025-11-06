@@ -7,10 +7,16 @@ public final class ReplicateProvider: ModelProvider {
     public let baseURL: String?
     public let apiKey: String?
     public let capabilities: ModelCapabilities
+    private let session: URLSession
 
-    public init(modelId: String, configuration: TachikomaConfiguration) throws {
+    public init(
+        modelId: String,
+        configuration: TachikomaConfiguration,
+        session: URLSession = .shared
+    ) throws {
         self.modelId = modelId
         self.baseURL = configuration.getBaseURL(for: .custom("replicate")) ?? "https://api.replicate.com/v1"
+        self.session = session
 
         if let key = configuration.getAPIKey(for: .custom("replicate")) {
             self.apiKey = key
@@ -28,10 +34,38 @@ public final class ReplicateProvider: ModelProvider {
     }
 
     public func generateText(request: ProviderRequest) async throws -> ProviderResponse {
-        throw TachikomaError.unsupportedOperation("Replicate provider not yet implemented")
+        guard let baseURL, let apiKey else {
+            throw TachikomaError.invalidConfiguration("Replicate provider missing base URL or API key")
+        }
+
+        var headers = [String: String]()
+        if ProcessInfo.processInfo.environment["REPLICATE_PREFERRED_OUTPUT"] == "turbo" {
+            headers["Prefer"] = "wait=false"
+        }
+
+        return try await OpenAICompatibleHelper.generateText(
+            request: request,
+            modelId: self.modelId,
+            baseURL: baseURL,
+            apiKey: apiKey,
+            providerName: "Replicate",
+            additionalHeaders: headers,
+            session: self.session
+        )
     }
 
     public func streamText(request: ProviderRequest) async throws -> AsyncThrowingStream<TextStreamDelta, Error> {
-        throw TachikomaError.unsupportedOperation("Replicate streaming not yet implemented")
+        guard let baseURL, let apiKey else {
+            throw TachikomaError.invalidConfiguration("Replicate provider missing base URL or API key")
+        }
+
+        return try await OpenAICompatibleHelper.streamText(
+            request: request,
+            modelId: self.modelId,
+            baseURL: baseURL,
+            apiKey: apiKey,
+            providerName: "Replicate",
+            session: self.session
+        )
     }
 }

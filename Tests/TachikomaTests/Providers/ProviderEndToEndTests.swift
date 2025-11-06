@@ -2,6 +2,12 @@ import Foundation
 import Testing
 @testable import Tachikoma
 
+#if canImport(Darwin)
+import Darwin
+#elseif canImport(Glibc)
+import Glibc
+#endif
+
 @Suite("Provider Network E2E Tests", .serialized)
 struct ProviderEndToEndTests {
     // MARK: - OpenAI Responses (GPT-5)
@@ -123,6 +129,98 @@ struct ProviderEndToEndTests {
             )
             let response = try await provider.generateText(request: Self.basicRequest)
             #expect(response.text == "LMStudio result")
+        }
+    }
+
+    // MARK: - Aggregators & Compatible Providers
+
+    @Test("OpenRouter provider uses OpenAI-compatible flow")
+    func openRouterProvider() async throws {
+        try await NetworkMocking.withMockedNetwork { request in
+            #expect(request.url?.path == "/api/v1/chat/completions")
+            #expect(request.value(forHTTPHeaderField: "HTTP-Referer") == "https://peekaboo.app")
+            return NetworkMocking.jsonResponse(for: request, data: Self.chatCompletionPayload(text: "OpenRouter reply"))
+        } operation: {
+            let config = Self.makeConfiguration { config in
+                config.setAPIKey("live-openrouter", for: "openrouter")
+                config.setBaseURL("https://mock.openrouter.test/api/v1", for: "openrouter")
+            }
+            let provider = try OpenRouterProvider(modelId: "openrouter/google/gemma-2", configuration: config)
+            let response = try await provider.generateText(request: Self.basicRequest)
+            #expect(response.text == "OpenRouter reply")
+        }
+    }
+
+    @Test("Together provider uses OpenAI-compatible flow")
+    func togetherProvider() async throws {
+        try await NetworkMocking.withMockedNetwork { request in
+            let path = request.url?.path ?? ""
+            #expect(path.hasSuffix("/chat/completions"))
+            return NetworkMocking.jsonResponse(for: request, data: Self.chatCompletionPayload(text: "Together result"))
+        } operation: {
+            let config = Self.makeConfiguration { config in
+                config.setAPIKey("live-together", for: "together")
+            }
+            let provider = try TogetherProvider(modelId: "togethercomputer/llama-3.1", configuration: config)
+            let response = try await provider.generateText(request: Self.basicRequest)
+            #expect(response.text == "Together result")
+        }
+    }
+
+    @Test("Replicate provider uses OpenAI-compatible flow")
+    func replicateProvider() async throws {
+        try await NetworkMocking.withMockedNetwork { request in
+            let path = request.url?.path ?? ""
+            #expect(path.hasSuffix("/chat/completions"))
+            return NetworkMocking.jsonResponse(for: request, data: Self.chatCompletionPayload(text: "Replicate result"))
+        } operation: {
+            setenv("REPLICATE_PREFERRED_OUTPUT", "turbo", 1)
+            defer { unsetenv("REPLICATE_PREFERRED_OUTPUT") }
+
+            let config = Self.makeConfiguration { config in
+                config.setAPIKey("live-replicate", for: "replicate")
+            }
+            let provider = try ReplicateProvider(modelId: "meta/llama-guard", configuration: config)
+            let response = try await provider.generateText(request: Self.basicRequest)
+            #expect(response.text == "Replicate result")
+        }
+    }
+
+    @Test("OpenAI-compatible provider hits custom base URL")
+    func openAICompatibleProvider() async throws {
+        try await NetworkMocking.withMockedNetwork { request in
+            #expect(request.url?.absoluteString == "https://compatible.test/chat/completions")
+            return NetworkMocking.jsonResponse(for: request, data: Self.chatCompletionPayload(text: "Compatible success"))
+        } operation: {
+            let config = Self.makeConfiguration { config in
+                config.setAPIKey("live-compatible", for: "openai_compatible")
+            }
+            let provider = try OpenAICompatibleProvider(
+                modelId: "any-model",
+                baseURL: "https://compatible.test",
+                configuration: config
+            )
+            let response = try await provider.generateText(request: Self.basicRequest)
+            #expect(response.text == "Compatible success")
+        }
+    }
+
+    @Test("Anthropic-compatible provider decodes responses")
+    func anthropicCompatibleProvider() async throws {
+        try await NetworkMocking.withMockedNetwork { request in
+            #expect(request.url?.path == "/v1/messages")
+            return NetworkMocking.jsonResponse(for: request, data: Self.anthropicPayload(text: "Compat Claude"))
+        } operation: {
+            let config = Self.makeConfiguration { config in
+                config.setAPIKey("live-anthropic-compat", for: "anthropic_compatible")
+            }
+            let provider = try AnthropicCompatibleProvider(
+                modelId: "claude-compat-4",
+                baseURL: "https://compat.anthropic.test",
+                configuration: config
+            )
+            let response = try await provider.generateText(request: Self.basicRequest)
+            #expect(response.text == "Compat Claude")
         }
     }
 

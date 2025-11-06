@@ -7,10 +7,12 @@ public final class AnthropicCompatibleProvider: ModelProvider {
     public let baseURL: String?
     public let apiKey: String?
     public let capabilities: ModelCapabilities
+    private let configuration: TachikomaConfiguration
 
     public init(modelId: String, baseURL: String, configuration: TachikomaConfiguration) throws {
         self.modelId = modelId
         self.baseURL = baseURL
+        self.configuration = configuration
 
         // Try to get API key from configuration, otherwise try common environment variable patterns
         if let key = configuration.getAPIKey(for: .custom("anthropic_compatible")) {
@@ -25,7 +27,7 @@ public final class AnthropicCompatibleProvider: ModelProvider {
         }
 
         self.capabilities = ModelCapabilities(
-            supportsVision: false,
+            supportsVision: true,
             supportsTools: true,
             supportsStreaming: true,
             contextLength: 200_000,
@@ -34,10 +36,32 @@ public final class AnthropicCompatibleProvider: ModelProvider {
     }
 
     public func generateText(request: ProviderRequest) async throws -> ProviderResponse {
-        throw TachikomaError.unsupportedOperation("Anthropic-compatible provider not yet implemented")
+        let provider = try self.makeAnthropicProvider()
+        return try await provider.generateText(request: request)
     }
 
     public func streamText(request: ProviderRequest) async throws -> AsyncThrowingStream<TextStreamDelta, Error> {
-        throw TachikomaError.unsupportedOperation("Anthropic-compatible streaming not yet implemented")
+        let provider = try self.makeAnthropicProvider()
+        return try await provider.streamText(request: request)
+    }
+
+    private func makeAnthropicProvider() throws -> AnthropicProvider {
+        guard let apiKey = self.apiKey else {
+            throw TachikomaError.authenticationFailed("ANTHROPIC_COMPATIBLE_API_KEY not found")
+        }
+
+        let compatConfig = TachikomaConfiguration(loadFromEnvironment: false)
+        compatConfig.setAPIKey(apiKey, for: .anthropic)
+        if let baseURL {
+            compatConfig.setBaseURL(baseURL, for: .anthropic)
+        }
+
+        // Propagate verbose flag/settings from original configuration if set
+        compatConfig.setVerbose(self.configuration.verbose)
+
+        return try AnthropicProvider(
+            model: .custom(self.modelId),
+            configuration: compatConfig
+        )
     }
 }

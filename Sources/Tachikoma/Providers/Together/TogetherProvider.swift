@@ -7,10 +7,16 @@ public final class TogetherProvider: ModelProvider {
     public let baseURL: String?
     public let apiKey: String?
     public let capabilities: ModelCapabilities
+    private let session: URLSession
 
-    public init(modelId: String, configuration: TachikomaConfiguration) throws {
+    public init(
+        modelId: String,
+        configuration: TachikomaConfiguration,
+        session: URLSession = .shared
+    ) throws {
         self.modelId = modelId
         self.baseURL = configuration.getBaseURL(for: .custom("together")) ?? "https://api.together.xyz/v1"
+        self.session = session
 
         if let key = configuration.getAPIKey(for: .custom("together")) {
             self.apiKey = key
@@ -19,7 +25,7 @@ public final class TogetherProvider: ModelProvider {
         }
 
         self.capabilities = ModelCapabilities(
-            supportsVision: false,
+            supportsVision: true,
             supportsTools: true,
             supportsStreaming: true,
             contextLength: 128_000,
@@ -28,10 +34,32 @@ public final class TogetherProvider: ModelProvider {
     }
 
     public func generateText(request: ProviderRequest) async throws -> ProviderResponse {
-        throw TachikomaError.unsupportedOperation("Together provider not yet implemented")
+        guard let baseURL, let apiKey else {
+            throw TachikomaError.invalidConfiguration("Together provider missing base URL or API key")
+        }
+
+        return try await OpenAICompatibleHelper.generateText(
+            request: request,
+            modelId: self.modelId,
+            baseURL: baseURL,
+            apiKey: apiKey,
+            providerName: "Together",
+            session: self.session
+        )
     }
 
     public func streamText(request: ProviderRequest) async throws -> AsyncThrowingStream<TextStreamDelta, Error> {
-        throw TachikomaError.unsupportedOperation("Together streaming not yet implemented")
+        guard let baseURL, let apiKey else {
+            throw TachikomaError.invalidConfiguration("Together provider missing base URL or API key")
+        }
+
+        return try await OpenAICompatibleHelper.streamText(
+            request: request,
+            modelId: self.modelId,
+            baseURL: baseURL,
+            apiKey: apiKey,
+            providerName: "Together",
+            session: self.session
+        )
     }
 }
