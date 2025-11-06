@@ -1,3 +1,4 @@
+#if LIVE_PROVIDER_TESTS
 import Foundation
 import Testing
 @testable import Tachikoma
@@ -315,3 +316,4 @@ struct ProviderIntegrationTests {
         return false
     }
 }
+#endif

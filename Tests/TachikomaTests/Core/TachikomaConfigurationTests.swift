@@ -554,4 +554,57 @@ struct TachikomaConfigurationTests {
             TachikomaConfiguration.default = nil
         }
     }
+
+    @Suite("Provider Factory Override Tests")
+    struct ProviderFactoryOverrideTests {
+        @Test("Custom factory override takes precedence")
+        func customFactoryOverrideTakesPrecedence() async throws {
+            let config = TachikomaConfiguration(loadFromEnvironment: false)
+            config.setAPIKey("mock-key", for: .openai)
+
+            var capturedModel: LanguageModel?
+
+            config.setProviderFactoryOverride { model, _ in
+                capturedModel = model
+                return DummyProvider()
+            }
+
+            let provider = try config.makeProvider(for: .openai(.gpt4o))
+            #expect(provider is DummyProvider)
+            #expect(capturedModel == .openai(.gpt4o))
+        }
+
+        @Test("makeProvider falls back to real provider without override")
+        func makeProviderUsesRealFactory() async throws {
+            let config = TachikomaConfiguration(loadFromEnvironment: false)
+            config.setAPIKey("mock-key", for: .openai)
+
+            let provider = try config.makeProvider(for: .openai(.gpt4o))
+            #expect(provider is OpenAIProvider)
+        }
+    }
+}
+
+private struct DummyProvider: ModelProvider {
+    let modelId = "dummy"
+    let baseURL: String? = nil
+    let apiKey: String? = nil
+    let capabilities = ModelCapabilities(
+        supportsVision: false,
+        supportsTools: false,
+        supportsStreaming: false,
+        contextLength: 1,
+        maxOutputTokens: 1
+    )
+
+    func generateText(request: ProviderRequest) async throws -> ProviderResponse {
+        ProviderResponse(text: "dummy")
+    }
+
+    func streamText(request: ProviderRequest) async throws -> AsyncThrowingStream<TextStreamDelta, Error> {
+        AsyncThrowingStream { continuation in
+            continuation.yield(TextStreamDelta.text("dummy"))
+            continuation.finish()
+        }
+    }
 }

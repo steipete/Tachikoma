@@ -24,11 +24,12 @@ xcrun llvm-cov report \
 
 ## 2. Live provider smoke tests
 
-- **Command**: `INTEGRATION_TESTS=1 swift test --parallel`
+- **Command**: `INTEGRATION_TESTS=1 swift test --parallel -Xswiftc -DLIVE_PROVIDER_TESTS`
+- **Shortcut**: `pnpm run tachikoma:test:integration` from the repo root (exports `INTEGRATION_TESTS=1`, sources `~/.profile`, and adds the compile flag).
 - **What runs**: `ProviderIntegrationTests` (OpenAI, Anthropic, Google, Groq, Grok, Mistral) plus any suites that check `ProcessInfo.processInfo.environment` for real keys.
 - **Required env vars**:
   - `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GOOGLE_API_KEY`, `MISTRAL_API_KEY`, `GROQ_API_KEY`, `X_AI_API_KEY` / `XAI_API_KEY`, etc.
-- **Notes**: wields actual HTTP calls and tool invocations, so only run when keys are set and you’re ready to burn quota. Use `tmux` as described in `AGENTS.md` to avoid lost logs.
+- **Notes**: wields actual HTTP calls and tool invocations, so only run when keys are set and you’re ready to burn quota. Requires the compile-time flag `-DLIVE_PROVIDER_TESTS`; without it the integration suite is excluded from the test build. Use `tmux` as described in `AGENTS.md` to avoid lost logs.
 
 ### Example
 
