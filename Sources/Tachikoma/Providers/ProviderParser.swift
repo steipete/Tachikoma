@@ -224,9 +224,15 @@ public enum ProviderParser {
         case "claude-sonnet-4-20250514-thinking", "claude-sonnet-4-thinking",
              "sonnet-4-thinking": .anthropic(.sonnet4Thinking)
         case "claude-3.7-sonnet", "claude-37-sonnet": .anthropic(.sonnet37)
-        case "claude-3-5-haiku", "claude-35-haiku": .anthropic(.haiku35)
-        case "claude-3-5-sonnet", "claude-35-sonnet": .anthropic(.sonnet35)
-        case "claude-3-5-opus", "claude-35-opus": .anthropic(.opus35)
+        case "claude-3-5-haiku", "claude-3-5-haiku-20241022", "claude-3-5-haiku-latest",
+             "claude-35-haiku", "claude-3.5-haiku", "claude-3.5-haiku-20241022",
+             "claude-3.5-haiku-latest": .anthropic(.haiku35)
+        case "claude-3-5-sonnet", "claude-3-5-sonnet-20241022", "claude-3-5-sonnet-latest",
+             "claude-35-sonnet", "claude-3.5-sonnet", "claude-3.5-sonnet-20241022",
+             "claude-3.5-sonnet-latest": .anthropic(.sonnet35)
+        case "claude-3-5-opus", "claude-3-5-opus-20241022", "claude-3-5-opus-latest",
+             "claude-35-opus", "claude-3.5-opus", "claude-3.5-opus-20241022",
+             "claude-3.5-opus-latest": .anthropic(.opus35)
         default:
             // Handle custom models
             .anthropic(.custom(modelString))

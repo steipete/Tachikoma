@@ -136,7 +136,7 @@ struct ProviderIntegrationTests {
             return
         }
 
-        let model = Model.anthropic(.haiku35)
+        let model = Model.anthropic(.sonnet4)
         let response = try await generate(TestConfig.shortMessage, using: model, maxTokens: 50, temperature: 0.0)
 
         #expect(response.lowercased().contains("hello"))
@@ -150,7 +150,7 @@ struct ProviderIntegrationTests {
             return
         }
 
-        let model = Model.anthropic(.haiku35)
+        let model = Model.anthropic(.sonnet4)
         let config = TachikomaConfiguration()
         let provider = try await ProviderFactory.createProvider(for: model, configuration: config)
 
