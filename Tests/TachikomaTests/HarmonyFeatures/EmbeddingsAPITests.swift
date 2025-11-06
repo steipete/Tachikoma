@@ -236,4 +236,34 @@ struct EmbeddingsAPITests {
         #expect(request.input.asTexts == ["Test input"])
         #expect(request.settings.dimensions == 128)
     }
+
+    @Test("EmbeddingProviderFactory produces expected providers")
+    func embeddingProviderFactoryProducesExpectedProviders() throws {
+        let configuration = TachikomaConfiguration()
+
+        let openAIProvider = try EmbeddingProviderFactory.createProvider(
+            for: .openai(.small3),
+            configuration: configuration
+        )
+        #expect(openAIProvider is OpenAIEmbeddingProvider)
+
+        let cohereProvider = try EmbeddingProviderFactory.createProvider(
+            for: .cohere(.english3),
+            configuration: configuration
+        )
+        #expect(cohereProvider is CohereEmbeddingProvider)
+
+        let voyageProvider = try EmbeddingProviderFactory.createProvider(
+            for: .voyage(.voyage2),
+            configuration: configuration
+        )
+        #expect(voyageProvider is VoyageEmbeddingProvider)
+
+        do {
+            _ = try EmbeddingProviderFactory.createProvider(for: .custom("experimental"), configuration: configuration)
+            Issue.record("Expected unsupported operation for custom embedding model")
+        } catch TachikomaError.unsupportedOperation(let message) {
+            #expect(message.contains("experimental"))
+        }
+    }
 }

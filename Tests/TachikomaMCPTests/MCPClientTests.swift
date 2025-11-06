@@ -51,11 +51,7 @@ struct MCPClientTests {
             description: "Test"
         )
 
-        let client = MCPClient(name: "test-client", config: config)
-
-        // Just verify it initializes without crashing
-        // Note: name and serverConfig are private, so we can't test them directly
-        #expect(client != nil)
+        _ = MCPClient(name: "test-client", config: config)
     }
 
     @Test("MCPError descriptions")
@@ -125,6 +121,52 @@ struct MCPClientTests {
         #expect(args.getBool("active") == true)
     }
 
+    @Test("ToolArguments raw dictionary preserves nested structures")
+    func toolArgumentsRawDictionary() {
+        let value = Value.object([
+            "text": .string("hello"),
+            "number": .int(5),
+            "options": .object([
+                "enabled": .bool(true),
+                "threshold": .double(0.75),
+            ]),
+            "list": .array([
+                .string("first"),
+                .int(2),
+                .object(["deep": .string("value")]),
+            ]),
+            "none": .null,
+        ])
+
+        let args = ToolArguments(value: value)
+        let dictionary = args.rawDictionary
+
+        #expect(dictionary["text"] as? String == "hello")
+        #expect(dictionary["number"] as? Int == 5)
+
+        if let options = dictionary["options"] as? [String: Any] {
+            #expect(options["enabled"] as? Bool == true)
+            #expect(options["threshold"] as? Double == 0.75)
+        } else {
+            Issue.record("Expected nested options dictionary")
+        }
+
+        if let list = dictionary["list"] as? [Any] {
+            #expect(list.count == 3)
+            #expect(list.first as? String == "first")
+            #expect(list.dropFirst().first as? Int == 2)
+            if let third = list.last as? [String: Any] {
+                #expect(third["deep"] as? String == "value")
+            } else {
+                Issue.record("Expected nested object in list")
+            }
+        } else {
+            Issue.record("Expected list array")
+        }
+
+        #expect(dictionary["none"] is NSNull)
+    }
+
     @Test("ToolResponse creation methods")
     func toolResponseCreation() {
         // Text response
@@ -187,11 +229,7 @@ struct MCPClientTests {
     func toolProviderInit() {
         let config = MCPServerConfig(command: "test")
         let client = MCPClient(name: "test", config: config)
-        let provider = MCPToolProvider(client: client)
-
-        // Just verify it initializes without crashing
-        // Note: client property is private
-        #expect(provider != nil)
+        _ = MCPToolProvider(client: client)
     }
 
     @Test("MCPToolProvider as DynamicToolProvider")
@@ -201,9 +239,7 @@ struct MCPClientTests {
         let provider = MCPToolProvider(client: client)
 
         // Test that it conforms to DynamicToolProvider
-        let dynamicProvider: DynamicToolProvider = provider
-        // Note: DynamicToolProvider protocol doesn't require an 'id' property
-        #expect(dynamicProvider != nil)
+        _ = provider as DynamicToolProvider
     }
 
     @Test("Tool metadata structure")
