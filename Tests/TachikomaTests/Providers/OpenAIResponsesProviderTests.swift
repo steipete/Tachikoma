@@ -40,7 +40,7 @@ struct OpenAIResponsesProviderTests {
         )
 
         // Create a simple request
-        let request = ProviderRequest(
+        _ = ProviderRequest(
             messages: [
                 ModelMessage(role: .user, content: [.text("Hello")]),
             ],
@@ -142,6 +142,49 @@ struct OpenAIResponsesProviderTests {
         } else {
             Issue.record("Expected text field in JSON")
         }
+    }
+
+    @Test("GPT-5 tool call outputs are parsed")
+    func gpt5ToolCallParsing() throws {
+        let toolCall = OpenAIResponsesResponse.ResponsesToolCall(
+            id: "call_1",
+            type: "function",
+            function: .init(name: "see", arguments: "{\"mode\":\"screen\"}")
+        )
+
+        let output = OpenAIResponsesResponse.ResponsesOutput(
+            id: "out_1",
+            type: "message",
+            status: "completed",
+            content: [
+                .init(type: "output_text", text: "Capturing now.", toolCall: nil),
+                .init(type: "tool_call", text: nil, toolCall: toolCall),
+            ],
+            role: "assistant",
+            toolCall: nil
+        )
+
+        let response = OpenAIResponsesResponse(
+            id: "resp_1",
+            object: "response",
+            createdAt: 0,
+            created: nil,
+            status: "completed",
+            model: "gpt-5",
+            output: [output],
+            choices: nil,
+            usage: nil,
+            metadata: nil
+        )
+
+        let providerResponse = try OpenAIResponsesProvider.convertToProviderResponse(response)
+
+        #expect(providerResponse.text == "Capturing now.")
+        let toolCalls = try #require(providerResponse.toolCalls)
+        #expect(toolCalls.count == 1)
+        #expect(toolCalls[0].name == "see")
+        #expect(toolCalls[0].arguments["mode"]?.stringValue == "screen")
+        #expect(providerResponse.finishReason == .toolCalls)
     }
 }
 

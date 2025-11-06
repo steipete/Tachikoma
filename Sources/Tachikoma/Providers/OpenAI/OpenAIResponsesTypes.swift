@@ -314,12 +314,28 @@ struct OpenAIResponsesResponse: Codable, Sendable {
         let status: String?
         let content: [OutputContent]?
         let role: String?
+        let toolCall: ResponsesToolCall?
         // Summary can be array, which we'll decode but not use for now
+
+        enum CodingKeys: String, CodingKey {
+            case id
+            case type
+            case status
+            case content
+            case role
+            case toolCall = "tool_call"
+        }
 
         struct OutputContent: Codable, Sendable {
             let type: String
             let text: String?
-            // Annotations and logprobs are arrays we don't need for basic text generation
+            let toolCall: ResponsesToolCall?
+
+            enum CodingKeys: String, CodingKey {
+                case type
+                case text
+                case toolCall = "tool_call"
+            }
         }
     }
 

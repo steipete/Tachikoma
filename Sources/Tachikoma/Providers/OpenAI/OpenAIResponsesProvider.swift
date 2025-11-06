@@ -111,7 +111,7 @@ public final class OpenAIResponsesProvider: ModelProvider {
         // Need to implement a different approach for maintaining conversation state
 
         // Convert to ProviderResponse
-        return try self.convertToProviderResponse(responsesResponse)
+        return try Self.convertToProviderResponse(responsesResponse)
     }
 
     public func streamText(request: ProviderRequest) async throws -> AsyncThrowingStream<TextStreamDelta, Error> {
@@ -514,7 +514,7 @@ public final class OpenAIResponsesProvider: ModelProvider {
         )
     }
 
-    private func convertToProviderResponse(_ response: OpenAIResponsesResponse) throws -> ProviderResponse {
+    static func convertToProviderResponse(_ response: OpenAIResponsesResponse) throws -> ProviderResponse {
         // Handle GPT-5 format (output array) vs O3 format (choices array)
         let text: String
         let toolCalls: [AgentToolCall]?
@@ -522,42 +522,47 @@ public final class OpenAIResponsesProvider: ModelProvider {
 
         if let outputs = response.output {
             // GPT-5 format with output array
-            // Find the message type output
-            let messageOutput = outputs.first { $0.type == "message" }
-            let textContent = messageOutput?.content?.first { $0.type == "output_text" }?.text ?? ""
-            text = textContent
-            toolCalls = nil // TODO: Handle tool calls in GPT-5 format
-            finishReason = .stop // GPT-5 doesn't return finish reason in the same way
+            var collectedText = ""
+            var collectedToolCalls: [AgentToolCall] = []
+
+            for output in outputs {
+                if output.type == "message" {
+                    if let content = output.content {
+                        for chunk in content {
+                            switch chunk.type {
+                            case "output_text":
+                                if let textSegment = chunk.text {
+                                    collectedText.append(textSegment)
+                                }
+                            case "tool_call":
+                                if let toolCall = chunk.toolCall,
+                                   let converted = Self.convertToolCall(toolCall) {
+                                    collectedToolCalls.append(converted)
+                                }
+                            default:
+                                continue
+                            }
+                        }
+                    }
+                } else if output.type == "tool_call", let toolCall = output.toolCall,
+                          let converted = Self.convertToolCall(toolCall) {
+                    collectedToolCalls.append(converted)
+                }
+            }
+
+            text = collectedText
+            toolCalls = collectedToolCalls.isEmpty ? nil : collectedToolCalls
+            if let toolCalls, !toolCalls.isEmpty {
+                finishReason = .toolCalls
+            } else {
+                finishReason = .stop
+            }
         } else if let choices = response.choices, let choice = choices.first {
             // O3 format with choices array
             text = choice.message.content ?? ""
 
             // Convert tool calls
-            toolCalls = choice.message.toolCalls?.compactMap { toolCall -> AgentToolCall? in
-                // Parse arguments from JSON string to dictionary
-                guard
-                    let data = toolCall.function.arguments.data(using: .utf8),
-                    let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else
-                {
-                    return nil
-                }
-
-                var arguments: [String: AnyAgentToolValue] = [:]
-                for (key, value) in json {
-                    do {
-                        arguments[key] = try AnyAgentToolValue.fromJSON(value)
-                    } catch {
-                        // Skip arguments that can't be converted
-                        continue
-                    }
-                }
-
-                return AgentToolCall(
-                    id: toolCall.id,
-                    name: toolCall.function.name,
-                    arguments: arguments
-                )
-            }
+            toolCalls = choice.message.toolCalls?.compactMap { Self.convertToolCall($0) }
 
             // Map finish reason
             if let reason = choice.finishReason {
@@ -595,6 +600,31 @@ public final class OpenAIResponsesProvider: ModelProvider {
             usage: usage,
             finishReason: finishReason,
             toolCalls: toolCalls
+        )
+    }
+
+    private static func convertToolCall(_ toolCall: OpenAIResponsesResponse.ResponsesToolCall) -> AgentToolCall? {
+        guard let argumentsJSON = toolCall.function.arguments.data(using: .utf8) else {
+            return nil
+        }
+
+        guard let jsonObject = try? JSONSerialization.jsonObject(with: argumentsJSON) as? [String: Any] else {
+            return nil
+        }
+
+        var arguments: [String: AnyAgentToolValue] = [:]
+        for (key, value) in jsonObject {
+            do {
+                arguments[key] = try AnyAgentToolValue.fromJSON(value)
+            } catch {
+                continue
+            }
+        }
+
+        return AgentToolCall(
+            id: toolCall.id,
+            name: toolCall.function.name,
+            arguments: arguments
         )
     }
 
