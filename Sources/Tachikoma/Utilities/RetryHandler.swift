@@ -115,6 +115,7 @@ public actor RetryHandler {
         onRetry: (@Sendable (Int, TimeInterval, Error) async -> Void)? = nil
     ) async throws
     -> T {
+        // Execute an async operation with automatic retry
         var lastError: Error?
 
         for attempt in 0..<self.policy.maxAttempts {

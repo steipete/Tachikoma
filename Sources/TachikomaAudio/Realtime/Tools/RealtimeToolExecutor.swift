@@ -75,6 +75,7 @@ public actor RealtimeToolExecutor {
 
     /// Register a tool for execution
     public func register(_ tool: some RealtimeExecutableTool) {
+        // Register a tool for execution
         let metadata = tool.metadata
         self.tools[metadata.name] = RealtimeToolWrapper(
             tool: tool,
@@ -84,6 +85,7 @@ public actor RealtimeToolExecutor {
 
     /// Register multiple tools
     public func registerTools(_ tools: [some RealtimeExecutableTool]) {
+        // Register multiple tools
         for tool in tools {
             self.register(tool)
         }
@@ -91,16 +93,19 @@ public actor RealtimeToolExecutor {
 
     /// Unregister a tool
     public func unregister(toolName: String) {
+        // Unregister a tool
         self.tools.removeValue(forKey: toolName)
     }
 
     /// Get all registered tools
     public func availableTools() -> [ToolMetadata] {
+        // Get all registered tools
         self.tools.values.map(\.metadata)
     }
 
     /// Get tool metadata
     public func getToolMetadata(name: String) -> ToolMetadata? {
+        // Get tool metadata
         self.tools[name]?.metadata
     }
 
@@ -113,6 +118,7 @@ public actor RealtimeToolExecutor {
         timeout: TimeInterval = 30
     ) async
     -> ToolExecution {
+        // Execute a tool by name with arguments
         let startTime = Date()
         let executionId = UUID().uuidString
 
@@ -201,6 +207,7 @@ public actor RealtimeToolExecutor {
         timeout: TimeInterval = 30
     ) async
     -> String {
+        // Execute a tool and return just the result string
         let execution = await execute(
             toolName: toolName,
             arguments: arguments,
@@ -221,6 +228,7 @@ public actor RealtimeToolExecutor {
 
     /// Get execution history
     public func getHistory(limit: Int? = nil) -> [ToolExecution] {
+        // Get execution history
         if let limit {
             return Array(self.executionHistory.suffix(limit))
         }
@@ -229,6 +237,7 @@ public actor RealtimeToolExecutor {
 
     /// Clear execution history
     public func clearHistory() {
+        // Clear execution history
         self.executionHistory.removeAll()
     }
 
@@ -347,6 +356,7 @@ public typealias RealtimeToolArguments = [String: RealtimeToolArgument]
 /// Individual tool argument value for Realtime API
 @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public enum RealtimeToolArgument: Sendable, Codable {
+    // Execute the tool with given arguments
     case string(String)
     case number(Double)
     case integer(Int)

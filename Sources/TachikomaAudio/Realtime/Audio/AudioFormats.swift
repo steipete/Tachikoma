@@ -22,6 +22,7 @@ public struct RealtimeAudioFormats {
 
     /// Create PCM16 format for API
     public static func pcm16Format(sampleRate: Double = apiSampleRate) -> AVAudioFormat {
+        // Create PCM16 format for API
         AVAudioFormat(
             commonFormat: .pcmFormatInt16,
             sampleRate: sampleRate,
@@ -32,6 +33,7 @@ public struct RealtimeAudioFormats {
 
     /// Create float format for device
     public static func floatFormat(sampleRate: Double = deviceSampleRate) -> AVAudioFormat {
+        // Create float format for device
         AVAudioFormat(
             standardFormatWithSampleRate: sampleRate,
             channels: self.channelCount
@@ -40,6 +42,7 @@ public struct RealtimeAudioFormats {
 
     /// Create format for G.711 µ-law
     public static func g711UlawFormat() -> AVAudioFormat {
+        // Create format for G.711 µ-law
         AVAudioFormat(
             commonFormat: .pcmFormatInt16, // Will be converted
             sampleRate: self.apiSampleRate,
@@ -50,6 +53,7 @@ public struct RealtimeAudioFormats {
 
     /// Create format for G.711 A-law
     public static func g711AlawFormat() -> AVAudioFormat {
+        // Create format for G.711 A-law
         AVAudioFormat(
             commonFormat: .pcmFormatInt16, // Will be converted
             sampleRate: self.apiSampleRate,
@@ -65,6 +69,7 @@ public struct RealtimeAudioFormats {
 extension AVAudioPCMBuffer {
     /// Convert buffer to base64 encoded string
     public func toBase64() -> String {
+        // Convert buffer to base64 encoded string
         let audioBuffer = audioBufferList.pointee.mBuffers
         let data = Data(
             bytes: audioBuffer.mData!,
@@ -75,6 +80,7 @@ extension AVAudioPCMBuffer {
 
     /// Create buffer from base64 encoded string
     public static func from(base64: String, format: AVAudioFormat) -> AVAudioPCMBuffer? {
+        // Create buffer from base64 encoded string
         guard let data = Data(base64Encoded: base64) else { return nil }
 
         let frameCount = AVAudioFrameCount(data.count / Int(format.streamDescription.pointee.mBytesPerFrame))
@@ -110,6 +116,7 @@ extension AVAudioPCMBuffer {
 
     /// Calculate RMS level
     public func rmsLevel() -> Float {
+        // Calculate RMS level
         guard let channelData = floatChannelData?[0] else {
             // Try int16 data
             if let int16Data = int16ChannelData?[0] {
@@ -149,6 +156,7 @@ extension AVAudioPCMBuffer {
 extension Data {
     /// Convert PCM16 data to float samples
     public func pcm16ToFloat() -> [Float] {
+        // Convert PCM16 data to float samples
         withUnsafeBytes { bytes in
             let samples = bytes.bindMemory(to: Int16.self)
             return samples.map { Float($0) / Float(Int16.max) }
@@ -157,6 +165,7 @@ extension Data {
 
     /// Convert float samples to PCM16 data
     public static func fromFloatSamples(_ samples: [Float]) -> Data {
+        // Convert float samples to PCM16 data
         var data = Data(capacity: samples.count * 2)
 
         for sample in samples {
@@ -172,6 +181,7 @@ extension Data {
 
     /// Calculate audio energy
     public func audioEnergy() -> Float {
+        // Calculate audio energy
         let samples = withUnsafeBytes { bytes in
             bytes.bindMemory(to: Int16.self)
         }
@@ -188,6 +198,7 @@ extension Data {
 
     /// Detect voice activity
     public func detectVoiceActivity(threshold: Float = 0.01) -> Bool {
+        // Detect voice activity
         self.audioEnergy() > threshold
     }
 }
@@ -209,6 +220,7 @@ public final class AudioStreamBuffer: @unchecked Sendable {
 
     /// Append audio data
     public func append(_ data: Data) {
+        // Append audio data
         self.lock.lock()
         defer { lock.unlock() }
 
@@ -223,6 +235,7 @@ public final class AudioStreamBuffer: @unchecked Sendable {
 
     /// Get next chunk if available
     public func nextChunk() -> Data? {
+        // Get next chunk if available
         self.lock.lock()
         defer { lock.unlock() }
 
@@ -235,6 +248,7 @@ public final class AudioStreamBuffer: @unchecked Sendable {
 
     /// Get all available data
     public func flush() -> Data {
+        // Get all available data
         self.lock.lock()
         defer { lock.unlock() }
 
@@ -252,6 +266,7 @@ public final class AudioStreamBuffer: @unchecked Sendable {
 
     /// Clear the buffer
     public func clear() {
+        // Clear the buffer
         self.lock.lock()
         defer { lock.unlock() }
         self.buffer = Data()
@@ -275,6 +290,7 @@ public final class VoiceActivityDetector: @unchecked Sendable {
 
     /// Process audio data and detect voice activity
     public func processAudio(_ data: Data) -> (hasVoice: Bool, isSpeaking: Bool) {
+        // Process audio data and detect voice activity
         let energy = data.audioEnergy()
         let hasVoice = energy > self.energyThreshold
 
@@ -295,6 +311,7 @@ public final class VoiceActivityDetector: @unchecked Sendable {
 
     /// Reset the detector
     public func reset() {
+        // Reset the detector
         self.lock.lock()
         defer { lock.unlock() }
         self.lastVoiceTime = nil

@@ -1022,6 +1022,7 @@ extension LanguageModel {
 
     /// Parse a loose model string (as entered by users or configuration files) into a strongly typed model.
     public static func parse(from modelString: String) -> LanguageModel? {
+        // Parse a loose model string (as entered by users or configuration files) into a strongly typed model.
         let trimmed = modelString.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return nil }
 

@@ -24,6 +24,7 @@ extension ToolArguments {
 extension AnyAgentToolValue {
     /// Convert to MCP Value
     public func toValue() -> Value {
+        // Convert to MCP Value
         if let str = stringValue {
             .string(str)
         } else if let num = intValue {
@@ -50,6 +51,7 @@ extension AnyAgentToolValue {
 extension Value {
     /// Convert from Any type
     public static func from(_ any: Any) -> Value {
+        // Convert from Any type
         switch any {
         case let str as String:
             .string(str)
@@ -73,6 +75,7 @@ extension Value {
 
     /// Convert to Tachikoma's AnyAgentToolValue
     public func toAnyAgentToolValue() -> AnyAgentToolValue {
+        // Convert to Tachikoma's AnyAgentToolValue
         switch self {
         case let .string(str):
             AnyAgentToolValue(string: str)

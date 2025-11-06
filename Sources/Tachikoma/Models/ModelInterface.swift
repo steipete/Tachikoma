@@ -19,6 +19,7 @@ public protocol ModelInterface: Sendable {
 /// Modern streaming types adapted from vendor/Tachikoma
 @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public enum StreamingDeltaType: Sendable, Codable {
+    // Generate text using this model
     case textStart
     case textDelta
     case textEnd
@@ -163,6 +164,7 @@ public struct ModelResponse: Sendable {
 
     /// Convert to ProviderResponse
     public func toProviderResponse() -> ProviderResponse {
+        // Convert to ProviderResponse
         ProviderResponse(
             text: self.text,
             usage: self.usage,
@@ -211,6 +213,7 @@ public enum ModelError: Error, LocalizedError, Sendable {
 
     /// Convert to TachikomaError
     public func toTachikomaError() -> TachikomaError {
+        // Convert to TachikomaError
         switch self {
         case let .invalidRequest(message):
             .invalidInput(message)

@@ -59,11 +59,13 @@ public final class Agent<Context>: @unchecked Sendable {
 
     /// Add a tool to the agent
     public func addTool(_ tool: AgentTool) {
+        // Add a tool to the agent
         self.tools.append(tool)
     }
 
     /// Remove a tool from the agent
     public func removeTool(named name: String) {
+        // Remove a tool from the agent
         self.tools.removeAll { $0.name == name }
     }
 
@@ -155,6 +157,7 @@ public final class Agent<Context>: @unchecked Sendable {
 
     /// Reset the agent's conversation history
     public func resetConversation() {
+        // Reset the agent's conversation history
         self.conversation = Conversation()
         self.conversation.addSystemMessage(self.instructions)
     }
@@ -215,6 +218,7 @@ public final class AgentSessionManager: @unchecked Sendable {
 
     /// Helper function to extract text from content part
     private func extractTextFromContentPart(_ contentPart: ModelMessage.ContentPart?) -> String? {
+        // Helper function to extract text from content part
         guard let contentPart else { return nil }
         switch contentPart {
         case let .text(text):
@@ -230,6 +234,7 @@ public final class AgentSessionManager: @unchecked Sendable {
 
     /// Get the sessions storage directory
     private func getSessionsDirectory() -> URL {
+        // Get the sessions storage directory
         let url = self.fileManager.userDirectory
             .appendingPathComponent(".peekaboo/agent_sessions")
 
@@ -241,6 +246,7 @@ public final class AgentSessionManager: @unchecked Sendable {
 
     /// Get the file path for a specific session
     private func getSessionFilePath(for sessionId: String) -> URL {
+        // Get the file path for a specific session
         self.getSessionsDirectory().appendingPathComponent("\(sessionId).json")
     }
 
@@ -249,6 +255,7 @@ public final class AgentSessionManager: @unchecked Sendable {
         sessionId: String,
         agent: Agent<some Any>
     ) {
+        // Create a new agent session
         self.lock.lock()
         defer { lock.unlock() }
 
@@ -267,6 +274,7 @@ public final class AgentSessionManager: @unchecked Sendable {
         sessionId: String,
         agent: Agent<some Any>
     ) {
+        // Update session data
         self.lock.lock()
         defer { lock.unlock() }
 
@@ -279,6 +287,7 @@ public final class AgentSessionManager: @unchecked Sendable {
 
     /// Complete a session
     public func completeSession(sessionId: String) {
+        // Complete a session
         self.lock.lock()
         defer { lock.unlock() }
 
@@ -291,6 +300,7 @@ public final class AgentSessionManager: @unchecked Sendable {
 
     /// Get session summary
     public func getSessionSummary(sessionId: String) -> SessionSummary? {
+        // Get session summary
         self.lock.lock()
         defer { lock.unlock() }
 
@@ -309,6 +319,7 @@ public final class AgentSessionManager: @unchecked Sendable {
 
     /// List all sessions from disk
     public func listSessions() -> [SessionSummary] {
+        // List all sessions from disk
         let sessionsDir = self.getSessionsDirectory()
 
         guard
@@ -351,6 +362,7 @@ public final class AgentSessionManager: @unchecked Sendable {
 
     /// Remove a session
     public func removeSession(sessionId: String) {
+        // Remove a session
         self.lock.lock()
         defer { lock.unlock() }
 
@@ -359,6 +371,7 @@ public final class AgentSessionManager: @unchecked Sendable {
 
     /// Clear old sessions (older than specified days)
     public func clearOldSessions(olderThanDays days: Int = 30) {
+        // Clear old sessions (older than specified days)
         self.lock.lock()
         defer { lock.unlock() }
 
@@ -371,6 +384,7 @@ public final class AgentSessionManager: @unchecked Sendable {
 
     /// Load a session from disk
     public func loadSession(id: String) async throws -> AgentSession? {
+        // Load a session from disk
         let filePath = self.getSessionFilePath(for: id)
 
         guard self.fileManager.fileExists(atPath: filePath.path) else {

@@ -19,6 +19,7 @@ public protocol MCPTool: Sendable {
 
 /// Wrapper for tool arguments received from MCP
 public struct ToolArguments: Sendable {
+    // Execute the tool with the given arguments
     private let raw: Value
 
     public init(raw: [String: Any]) {
@@ -49,12 +50,14 @@ public struct ToolArguments: Sendable {
 
     /// Decode arguments into a specific type
     public func decode<T: Decodable>(_ type: T.Type) throws -> T {
+        // Decode arguments into a specific type
         let data = try JSONEncoder().encode(self.raw)
         return try JSONDecoder().decode(type, from: data)
     }
 
     /// Get a specific value by key
     public func getValue(for key: String) -> Value? {
+        // Get a specific value by key
         if case let .object(dict) = raw {
             return dict[key]
         }
@@ -73,6 +76,7 @@ public struct ToolArguments: Sendable {
 
     /// Get a string value
     public func getString(_ key: String) -> String? {
+        // Get a string value
         guard let value = getValue(for: key) else { return nil }
         switch value {
         case let .string(str):
@@ -90,6 +94,7 @@ public struct ToolArguments: Sendable {
 
     /// Get a number (Int or Double) as Double
     public func getNumber(_ key: String) -> Double? {
+        // Get a number (Int or Double) as Double
         guard let value = getValue(for: key) else { return nil }
         switch value {
         case let .int(num):
@@ -105,6 +110,7 @@ public struct ToolArguments: Sendable {
 
     /// Get an integer value
     public func getInt(_ key: String) -> Int? {
+        // Get an integer value
         guard let value = getValue(for: key) else { return nil }
         switch value {
         case let .int(num):
@@ -120,6 +126,7 @@ public struct ToolArguments: Sendable {
 
     /// Get a boolean value
     public func getBool(_ key: String) -> Bool? {
+        // Get a boolean value
         guard let value = getValue(for: key) else { return nil }
         switch value {
         case let .bool(bool):
@@ -135,6 +142,7 @@ public struct ToolArguments: Sendable {
 
     /// Get an array of strings
     public func getStringArray(_ key: String) -> [String]? {
+        // Get an array of strings
         guard let value = getValue(for: key) else { return nil }
         if case let .array(array) = value {
             return array.compactMap { element in
@@ -203,6 +211,7 @@ public struct ToolResponse: Sendable {
 
     /// Create a text response
     public static func text(_ text: String, meta: Value? = nil) -> ToolResponse {
+        // Create a text response
         ToolResponse(
             content: [.text(text)],
             isError: false,
@@ -212,6 +221,7 @@ public struct ToolResponse: Sendable {
 
     /// Create an error response
     public static func error(_ message: String, meta: Value? = nil) -> ToolResponse {
+        // Create an error response
         ToolResponse(
             content: [.text(message)],
             isError: true,
@@ -221,6 +231,7 @@ public struct ToolResponse: Sendable {
 
     /// Create an image response
     public static func image(data: Data, mimeType: String = "image/png", meta: Value? = nil) -> ToolResponse {
+        // Create an image response
         ToolResponse(
             content: [.image(data: data.base64EncodedString(), mimeType: mimeType, metadata: nil)],
             isError: false,
@@ -230,6 +241,7 @@ public struct ToolResponse: Sendable {
 
     /// Create a multi-content response
     public static func multiContent(_ contents: [MCP.Tool.Content], meta: Value? = nil) -> ToolResponse {
+        // Create a multi-content response
         ToolResponse(
             content: contents,
             isError: false,

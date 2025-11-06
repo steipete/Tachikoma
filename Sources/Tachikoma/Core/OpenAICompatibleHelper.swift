@@ -444,6 +444,7 @@ struct OpenAICompatibleHelper {
 
     /// Extract native stop sequences from stop conditions
     private static func extractStopSequences(from stopCondition: (any StopCondition)?) -> [String] {
+        // Extract native stop sequences from stop conditions
         guard let stopCondition else { return [] }
 
         // Check if it's a string stop condition

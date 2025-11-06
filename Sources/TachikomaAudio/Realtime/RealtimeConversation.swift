@@ -226,6 +226,7 @@ public final class RealtimeConversation: ObservableObject {
 
     /// Start listening for user input
     public func startListening() async throws {
+        // Start listening for user input
         guard !self.isRecording else { return }
 
         self.isRecording = true
@@ -238,6 +239,7 @@ public final class RealtimeConversation: ObservableObject {
 
     /// Stop listening for user input
     public func stopListening() async {
+        // Stop listening for user input
         guard self.isRecording else { return }
 
         self.isRecording = false
@@ -254,6 +256,7 @@ public final class RealtimeConversation: ObservableObject {
 
     /// Send audio data
     public func sendAudio(_ data: Data) async throws {
+        // Send audio data
         guard self.isRecording else { return }
 
         // Add to buffer
@@ -299,6 +302,7 @@ public final class RealtimeConversation: ObservableObject {
 
     /// Interrupt the current response
     public func interrupt() async throws {
+        // Interrupt the current response
         try await self.session.cancelResponse()
 
         self.state = .idle
@@ -308,6 +312,7 @@ public final class RealtimeConversation: ObservableObject {
 
     /// Send a message (alias for sendText)
     public func sendMessage(_ text: String) async throws {
+        // Send a message (alias for sendText)
         try await self.sendText(text)
 
         // Add to messages
@@ -320,6 +325,7 @@ public final class RealtimeConversation: ObservableObject {
 
     /// Toggle recording
     public func toggleRecording() async throws {
+        // Toggle recording
         if self.isRecording {
             await self.stopListening()
         } else {
@@ -329,12 +335,14 @@ public final class RealtimeConversation: ObservableObject {
 
     /// Clear conversation history
     public func clearHistory() {
+        // Clear conversation history
         self.messages.removeAll()
         self.items.removeAll()
     }
 
     /// Export conversation as text
     public func exportAsText() -> String {
+        // Export conversation as text
         self.messages.map { message in
             "\(message.role): \(message.content)"
         }.joined(separator: "\n")
@@ -351,6 +359,7 @@ public final class RealtimeConversation: ObservableObject {
 
     /// Register built-in tools
     public func registerBuiltInTools() async {
+        // Register built-in tools
         await self.toolRegistry.registerBuiltInTools()
     }
 

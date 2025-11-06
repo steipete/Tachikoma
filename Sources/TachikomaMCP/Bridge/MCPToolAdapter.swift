@@ -28,6 +28,7 @@ public enum MCPToolAdapter {
 
     /// Convert MCP Value schema to AgentToolParameters
     private static func convertSchema(_ schema: Value?) -> AgentToolParameters {
+        // Convert MCP Value schema to AgentToolParameters
         guard let schema else {
             return AgentToolParameters(
                 properties: [:],
@@ -72,6 +73,7 @@ public enum MCPToolAdapter {
 
     /// Convert a single parameter schema
     private static func convertParameter(_ name: String, _ value: Value) -> AgentToolParameterProperty {
+        // Convert a single parameter schema
         guard case let .object(dict) = value else {
             return AgentToolParameterProperty(
                 name: name,
@@ -156,6 +158,7 @@ public enum MCPToolAdapter {
 
     /// Convert Tachikoma arguments to MCP format
     private static func convertArguments(_ arguments: AgentToolArguments) -> [String: Any] {
+        // Convert Tachikoma arguments to MCP format
         var result: [String: Any] = [:]
 
         for key in arguments.keys {
@@ -169,6 +172,7 @@ public enum MCPToolAdapter {
 
     /// Convert a single AnyAgentToolValue to Any
     private static func convertArgument(_ argument: AnyAgentToolValue) -> Any {
+        // Convert a single AnyAgentToolValue to Any
         try! argument.toJSON()
     }
 
@@ -201,6 +205,7 @@ public enum MCPToolAdapter {
 
     /// Convert MCP Tool.Content to AnyAgentToolValue
     private static func convertContent(_ content: MCP.Tool.Content) -> AnyAgentToolValue {
+        // Convert MCP Tool.Content to AnyAgentToolValue
         switch content {
         case let .text(text):
             return AnyAgentToolValue(string: text)

@@ -14,6 +14,7 @@ public struct SimplifiedToolBuilder {
         execute: @escaping @Sendable (Input) async throws -> some Codable & Sendable
     )
     -> AgentTool {
+        // Create a tool with simplified definition pattern
         let parameters = self.generateParameters(from: Input.self)
 
         return AgentTool(
@@ -42,6 +43,7 @@ public struct SimplifiedToolBuilder {
         execute: @escaping @Sendable (Input, ToolExecutionContext) async throws -> some Codable & Sendable
     )
     -> AgentTool {
+        // Create a tool with context support
         let parameters = self.generateParameters(from: Input.self)
 
         return AgentTool(
@@ -71,6 +73,7 @@ public struct SimplifiedToolBuilder {
         execute: @escaping @Sendable ([String: Any]) async throws -> Any
     )
     -> AgentTool {
+        // Create a simple tool without structured input
         var props: [String: AgentToolParameterProperty] = [:]
         for (key, desc) in parameters {
             props[key] = AgentToolParameterProperty(
@@ -127,6 +130,7 @@ public struct ToolSchemaBuilder {
         enum values: [String]? = nil
     )
     -> ToolSchemaBuilder {
+        // Add a string parameter
         var builder = self
         builder.properties.append(AgentToolParameterProperty(
             name: name,
@@ -147,6 +151,7 @@ public struct ToolSchemaBuilder {
         required: Bool = false
     )
     -> ToolSchemaBuilder {
+        // Add a number parameter
         var builder = self
         builder.properties.append(AgentToolParameterProperty(
             name: name,
@@ -166,6 +171,7 @@ public struct ToolSchemaBuilder {
         required: Bool = false
     )
     -> ToolSchemaBuilder {
+        // Add an integer parameter
         var builder = self
         builder.properties.append(AgentToolParameterProperty(
             name: name,
@@ -185,6 +191,7 @@ public struct ToolSchemaBuilder {
         required: Bool = false
     )
     -> ToolSchemaBuilder {
+        // Add a boolean parameter
         var builder = self
         builder.properties.append(AgentToolParameterProperty(
             name: name,
@@ -205,6 +212,7 @@ public struct ToolSchemaBuilder {
         required: Bool = false
     )
     -> ToolSchemaBuilder {
+        // Add an array parameter
         var builder = self
         builder.properties.append(AgentToolParameterProperty(
             name: name,
@@ -225,6 +233,7 @@ public struct ToolSchemaBuilder {
         required: Bool = false
     )
     -> ToolSchemaBuilder {
+        // Add an object parameter
         var builder = self
         builder.properties.append(AgentToolParameterProperty(
             name: name,
@@ -260,6 +269,7 @@ extension AgentTool {
         execute: @escaping @Sendable (AgentToolArguments) async throws -> AnyAgentToolValue
     )
     -> AgentTool {
+        // Create a tool using the schema builder
         let builder = ToolSchemaBuilder()
         let parameters = schema(builder).build()
 
@@ -279,6 +289,7 @@ extension AgentTool {
         execute: @escaping @Sendable (AgentToolArguments, ToolExecutionContext) async throws -> AnyAgentToolValue
     )
     -> AgentTool {
+        // Create a tool with context using the schema builder
         let builder = ToolSchemaBuilder()
         let parameters = schema(builder).build()
 
@@ -297,6 +308,7 @@ extension AgentTool {
 extension AgentToolArguments {
     /// Convert arguments to dictionary for simplified tool execution
     func toDictionary() -> [String: Any] {
+        // Convert arguments to dictionary for simplified tool execution
         var dict: [String: Any] = [:]
         for key in self.keys {
             if let value = self[key] {

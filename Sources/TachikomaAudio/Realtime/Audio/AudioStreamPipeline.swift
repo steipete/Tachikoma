@@ -105,6 +105,7 @@ public final class AudioStreamPipeline {
 
     /// Start the audio pipeline
     public func start() async throws {
+        // Start the audio pipeline
         guard !self.isActive else { return }
 
         // Start audio capture
@@ -120,6 +121,7 @@ public final class AudioStreamPipeline {
 
     /// Stop the audio pipeline
     public func stop() async {
+        // Stop the audio pipeline
         guard self.isActive else { return }
 
         // Cancel processing tasks
@@ -142,11 +144,13 @@ public final class AudioStreamPipeline {
 
     /// Send audio data to the pipeline
     public func sendAudio(_ data: Data) {
+        // Send audio data to the pipeline
         self.outputBuffer.append(data)
     }
 
     /// Get processed audio data
     public func getProcessedAudio() -> Data? {
+        // Get processed audio data
         self.inputBuffer.nextChunk()
     }
 
@@ -222,11 +226,13 @@ public final class AudioStreamPipeline {
 
     /// Reset voice activity detection
     public func resetVAD() {
+        // Reset voice activity detection
         self.voiceDetector.reset()
     }
 
     /// Flush all buffers
     public func flush() -> (input: Data, output: Data) {
+        // Flush all buffers
         let inputData = self.inputBuffer.flush()
         let outputData = self.outputBuffer.flush()
         return (inputData, outputData)
@@ -272,6 +278,7 @@ public protocol AudioStreamPipelineDelegate: AnyObject {
 // Default implementation for optional methods
 @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 extension AudioStreamPipelineDelegate {
+    // Pipeline started
     public func audioStreamPipelineDidStart() async {}
     public func audioStreamPipelineDidStop() async {}
     public func audioStreamPipeline(didCaptureAudio data: Data) async {}
@@ -288,6 +295,7 @@ extension AudioStreamPipelineDelegate {
 extension RealtimeConversation {
     /// Create and configure audio pipeline
     public func setupAudioPipeline() async throws -> AudioStreamPipeline {
+        // Create and configure audio pipeline
         let pipeline = try AudioStreamPipeline()
 
         // Create delegate adapter

@@ -131,6 +131,7 @@ public enum Provider: Sendable, Hashable, Codable {
 
     /// Create provider from string identifier
     public static func from(identifier: String) -> Provider {
+        // Create provider from string identifier
         switch identifier.lowercased() {
         case "openai": .openai
         case "anthropic": .anthropic
@@ -212,6 +213,7 @@ extension Provider {
 
     /// Read an environment value using the shared configuration reader.
     public static func environmentValue(for key: String, isSecret: Bool = false) -> String? {
+        // Read an environment value using the shared configuration reader.
         if #available(macOS 15.0, iOS 18.0, watchOS 11.0, tvOS 18.0, *) {
             return Self.environmentReader.string(forKey: key, isSecret: isSecret)
         } else {

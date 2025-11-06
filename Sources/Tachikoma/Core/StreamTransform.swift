@@ -138,6 +138,7 @@ extension AsyncThrowingStream where Element: Sendable {
         -> AsyncThrowingStream<T.Output, Error>
         where Element == T.Input
     {
+        // Apply a transform to the stream
         AsyncThrowingStream<T.Output, Error> { continuation in
             Task {
                 do {
@@ -159,6 +160,7 @@ extension AsyncThrowingStream where Element: Sendable {
         _ predicate: @escaping @Sendable (Element) async -> Bool
     )
     -> AsyncThrowingStream<Element, Error> {
+        // Filter stream elements
         self.transform(FilterTransform(predicate: predicate))
     }
 
@@ -167,6 +169,7 @@ extension AsyncThrowingStream where Element: Sendable {
         _ mapper: @escaping @Sendable (Element) async throws -> Output
     )
     -> AsyncThrowingStream<Output, Error> {
+        // Map stream elements
         self.transform(MapTransform(mapper: mapper))
     }
 
@@ -175,6 +178,7 @@ extension AsyncThrowingStream where Element: Sendable {
         _ action: @escaping @Sendable (Element) async -> Void
     )
     -> AsyncThrowingStream<Element, Error> {
+        // Add side effects to stream
         self.transform(TapTransform(action: action))
     }
 
@@ -184,6 +188,7 @@ extension AsyncThrowingStream where Element: Sendable {
         flushInterval: TimeInterval? = nil
     )
     -> AsyncThrowingStream<[Element], Error> {
+        // Buffer and batch stream elements
         let bufferTransform = BufferTransform<Element>(
             bufferSize: size,
             flushInterval: flushInterval
@@ -214,6 +219,7 @@ extension AsyncThrowingStream where Element: Sendable {
         interval: TimeInterval
     )
     -> AsyncThrowingStream<Element, Error> {
+        // Throttle stream elements
         self.transform(ThrottleTransform(interval: interval))
     }
 }
@@ -227,6 +233,7 @@ extension StreamTextResult {
         _ predicate: @escaping @Sendable (TextStreamDelta) async -> Bool
     )
     -> StreamTextResult {
+        // Filter text deltas
         StreamTextResult(
             stream: stream.filter(predicate),
             model: model,
@@ -239,6 +246,7 @@ extension StreamTextResult {
         _ mapper: @escaping @Sendable (TextStreamDelta) async throws -> Output
     )
     -> AsyncThrowingStream<Output, Error> {
+        // Map text deltas
         stream.map(mapper)
     }
 
@@ -247,6 +255,7 @@ extension StreamTextResult {
         _ action: @escaping @Sendable (TextStreamDelta) async -> Void
     )
     -> StreamTextResult {
+        // Add side effects to text stream
         StreamTextResult(
             stream: stream.tap(action),
             model: model,
@@ -256,6 +265,7 @@ extension StreamTextResult {
 
     /// Collect only text content from the stream
     public func collectText() -> AsyncThrowingStream<String, Error> {
+        // Collect only text content from the stream
         stream
             .filter { delta in
                 if case .textDelta = delta.type {
@@ -270,6 +280,7 @@ extension StreamTextResult {
 
     /// Collect complete text once stream is done
     public func fullText() async throws -> String {
+        // Collect complete text once stream is done
         var result = ""
         for try await delta in stream {
             if case .textDelta = delta.type, let content = delta.content {
@@ -289,6 +300,7 @@ extension StreamObjectResult {
         _ predicate: @escaping @Sendable (ObjectStreamDelta<T>) async -> Bool
     )
     -> StreamObjectResult<T> {
+        // Filter object deltas
         StreamObjectResult(
             objectStream: objectStream.filter(predicate),
             model: model,
@@ -302,6 +314,7 @@ extension StreamObjectResult {
         _ mapper: @escaping @Sendable (ObjectStreamDelta<T>) async throws -> Output
     )
     -> AsyncThrowingStream<Output, Error> {
+        // Map object deltas
         objectStream.map(mapper)
     }
 
@@ -310,6 +323,7 @@ extension StreamObjectResult {
         _ action: @escaping @Sendable (ObjectStreamDelta<T>) async -> Void
     )
     -> StreamObjectResult<T> {
+        // Add side effects to object stream
         StreamObjectResult(
             objectStream: objectStream.tap(action),
             model: model,
@@ -320,6 +334,7 @@ extension StreamObjectResult {
 
     /// Collect only partial objects from the stream
     public func partialObjects() -> AsyncThrowingStream<T, Error> {
+        // Collect only partial objects from the stream
         objectStream
             .filter { delta in
                 delta.type == .partial && delta.object != nil
@@ -331,6 +346,7 @@ extension StreamObjectResult {
 
     /// Get the final complete object
     public func finalObject() async throws -> T {
+        // Get the final complete object
         for try await delta in objectStream {
             if case .complete = delta.type, let object = delta.object {
                 return object

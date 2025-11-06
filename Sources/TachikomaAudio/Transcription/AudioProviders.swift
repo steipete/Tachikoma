@@ -169,6 +169,7 @@ public struct SpeechProviderFactory {
 public struct AudioConfiguration {
     /// Get API key for a specific provider
     public static func getAPIKey(for provider: String, configuration: TachikomaConfiguration? = nil) -> String? {
+        // Get API key for a specific provider
         let config = configuration ?? TachikomaConfiguration()
 
         // First check TachikomaConfiguration
@@ -189,6 +190,7 @@ public struct AudioConfiguration {
 
     /// Get common environment variable names for a provider
     private static func environmentKeys(for provider: String) -> [String] {
+        // Get common environment variable names for a provider
         let upperProvider = provider.uppercased()
 
         switch provider.lowercased() {

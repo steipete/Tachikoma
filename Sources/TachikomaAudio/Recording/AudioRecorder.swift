@@ -70,6 +70,7 @@ public final class AudioRecorder: ObservableObject, AudioRecorderProtocol {
 
     /// Start recording audio from the microphone
     public func startRecording() async throws {
+        // Start recording audio from the microphone
         guard !self.isRecording else {
             throw AudioRecordingError.alreadyRecording
         }
@@ -130,6 +131,7 @@ public final class AudioRecorder: ObservableObject, AudioRecorderProtocol {
 
     /// Stop recording and return the recorded audio
     public func stopRecording() async throws -> AudioData {
+        // Stop recording and return the recorded audio
         guard self.isRecording else {
             throw AudioRecordingError.notRecording
         }
@@ -171,6 +173,7 @@ public final class AudioRecorder: ObservableObject, AudioRecorderProtocol {
 
     /// Cancel recording without returning data
     public func cancelRecording() async {
+        // Cancel recording without returning data
         guard self.isRecording else { return }
 
         // Stop the audio engine
@@ -202,6 +205,7 @@ public final class AudioRecorder: ObservableObject, AudioRecorderProtocol {
 
     /// Pause the current recording
     public func pauseRecording() async {
+        // Pause the current recording
         guard self.isRecording, !self.isPaused else { return }
 
         self.audioEngine?.pause()
@@ -213,6 +217,7 @@ public final class AudioRecorder: ObservableObject, AudioRecorderProtocol {
 
     /// Resume a paused recording
     public func resumeRecording() async {
+        // Resume a paused recording
         guard self.isRecording, self.isPaused else { return }
 
         if let pauseStart = pauseStartTime {
@@ -374,6 +379,7 @@ import UIKit
 extension AudioRecorder {
     /// Configure audio session for iOS/watchOS/tvOS
     private func configureAudioSession() {
+        // Configure audio session for iOS/watchOS/tvOS
         let session = AVAudioSession.sharedInstance()
         do {
             try session.setCategory(.playAndRecord, mode: .default)
@@ -389,6 +395,8 @@ extension AudioRecorder {
 @available(macOS 13.0, *)
 extension AudioRecorder {
     /// No-op on macOS where `AVAudioSession` is not used
-    private func configureAudioSession() {}
+    private func configureAudioSession() {
+        // No-op on macOS where `AVAudioSession` is not used
+    }
 }
 #endif

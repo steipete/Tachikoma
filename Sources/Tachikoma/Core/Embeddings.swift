@@ -108,6 +108,7 @@ public enum EmbeddingModel: Sendable {
 
     /// Convert to LanguageModel for usage tracking
     func toLanguageModel() -> LanguageModel {
+        // Convert to LanguageModel for usage tracking
         switch self {
         case .openai:
             .openai(.gpt4o) // Placeholder for tracking

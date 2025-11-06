@@ -96,6 +96,7 @@ public let weatherTool = createTool(
 
 /// Convert AgentToolParameters to JSON schema format
 public func toolParametersToJSON(_ parameters: AgentToolParameters) throws -> [String: Any] {
+    // Convert AgentToolParameters to JSON schema format
     var schema: [String: Any] = [
         "type": "object",
         "properties": [:],
@@ -130,6 +131,7 @@ public func toolParametersToJSON(_ parameters: AgentToolParameters) throws -> [S
 
 /// Convert JSON arguments to AgentToolArguments
 public func jsonToToolArguments(_ json: [String: Any]) -> AgentToolArguments {
+    // Convert JSON arguments to AgentToolArguments
     var arguments: [String: AnyAgentToolValue] = [:]
 
     for (key, value) in json {
@@ -141,6 +143,7 @@ public func jsonToToolArguments(_ json: [String: Any]) -> AgentToolArguments {
 
 /// Convert a JSON value to AnyAgentToolValue
 public func jsonValueToToolArgument(_ value: Any) -> AnyAgentToolValue {
+    // Convert a JSON value to AnyAgentToolValue
     do {
         return try AnyAgentToolValue.fromJSON(value)
     } catch {
@@ -258,6 +261,7 @@ public enum ParameterSchema {
 
 /// Simple cross-platform math expression evaluator
 private func evaluateExpression(_ expression: String) throws -> Double {
+    // Simple cross-platform math expression evaluator
     let cleanExpression = expression.trimmingCharacters(in: .whitespacesAndNewlines)
 
     // Parse simple binary operations using string manipulation

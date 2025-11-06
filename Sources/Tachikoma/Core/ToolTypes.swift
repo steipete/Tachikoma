@@ -247,11 +247,13 @@ public struct AnyAgentToolValue: AgentToolValue, Equatable, Codable {
 
     /// Create from dictionary for tool arguments
     public static func fromDictionary(_ dict: [String: Any]) throws -> AnyAgentToolValue {
+        // Create from dictionary for tool arguments
         try self.fromJSON(dict)
     }
 
     /// Create from Any value
     public static func from(_ value: Any) -> AnyAgentToolValue {
+        // Create from Any value
         (try? self.fromJSON(value)) ?? AnyAgentToolValue(string: "\(value)")
     }
 
@@ -566,6 +568,7 @@ public struct AgentTool: Sendable {
         context: ToolExecutionContext
     ) async throws
     -> AnyAgentToolValue {
+        // Execute the tool with context
         try await self.execute(arguments, context)
     }
 }
@@ -612,6 +615,7 @@ public protocol DynamicToolProvider: Sendable {
 /// A dynamically created tool with runtime schema
 @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public struct DynamicTool: Sendable {
+    // Discover available tools at runtime
     public let name: String
     public let description: String
     public let schema: DynamicSchema
@@ -635,6 +639,7 @@ public struct DynamicTool: Sendable {
     /// Convert to a static AgentTool with the provided executor
     public func toAgentTool(executor: @escaping @Sendable (AgentToolArguments) async throws -> AnyAgentToolValue)
     -> AgentTool {
+        // Convert to a static AgentTool with the provided executor
         AgentTool(
             name: self.name,
             description: self.description,
@@ -728,6 +733,7 @@ public struct DynamicSchema: Sendable, Codable {
 
     /// Convert to AgentToolParameters
     public func toAgentToolParameters() -> AgentToolParameters {
+        // Convert to AgentToolParameters
         var props: [String: AgentToolParameterProperty] = [:]
 
         if let properties {

@@ -191,6 +191,7 @@ public enum RecoveryAction: Sendable, Equatable {
 extension TachikomaError {
     /// Convert legacy error to unified error
     public func toUnifiedError() -> TachikomaUnifiedError {
+        // Convert legacy error to unified error
         switch self {
         case let .modelNotFound(model):
             TachikomaUnifiedError(
@@ -298,6 +299,7 @@ extension TachikomaError {
 extension Error {
     /// Convert any error to unified error
     public func toTachikomaError() -> TachikomaUnifiedError {
+        // Convert any error to unified error
         if let unified = self as? TachikomaUnifiedError {
             return unified
         }

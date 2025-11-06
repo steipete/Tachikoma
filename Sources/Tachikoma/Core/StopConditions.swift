@@ -17,6 +17,7 @@ public protocol StopCondition: Sendable {
 /// Stop when a specific string is encountered
 @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public struct StringStopCondition: StopCondition {
+    // Check if generation should stop based on the current text
     public let stopString: String
     public let caseSensitive: Bool
 
@@ -68,6 +69,7 @@ public struct RegexStopCondition: StopCondition {
 
     /// Get the location of the first match in the text (for truncation)
     public func matchLocation(in text: String) -> Range<String.Index>? {
+        // Get the location of the first match in the text (for truncation)
         guard let regex else { return nil }
 
         let range = NSRange(location: 0, length: text.utf16.count)
@@ -329,6 +331,7 @@ public struct StopConditionBuilder {
 
     /// Stop when a string is encountered
     public func whenContains(_ text: String, caseSensitive: Bool = true) -> StopConditionBuilder {
+        // Stop when a string is encountered
         var builder = self
         builder.conditions.append(StringStopCondition(text, caseSensitive: caseSensitive))
         return builder
@@ -336,6 +339,7 @@ public struct StopConditionBuilder {
 
     /// Stop when a regex pattern matches
     public func whenMatches(_ pattern: String) -> StopConditionBuilder {
+        // Stop when a regex pattern matches
         var builder = self
         builder.conditions.append(RegexStopCondition(pattern: pattern))
         return builder
@@ -343,6 +347,7 @@ public struct StopConditionBuilder {
 
     /// Stop after N tokens
     public func afterTokens(_ count: Int) -> StopConditionBuilder {
+        // Stop after N tokens
         var builder = self
         builder.conditions.append(TokenCountStopCondition(maxTokens: count))
         return builder
@@ -350,6 +355,7 @@ public struct StopConditionBuilder {
 
     /// Stop after a timeout
     public func afterTime(_ seconds: TimeInterval) -> StopConditionBuilder {
+        // Stop after a timeout
         var builder = self
         builder.conditions.append(TimeoutStopCondition(timeout: seconds))
         return builder
@@ -357,6 +363,7 @@ public struct StopConditionBuilder {
 
     /// Stop when custom predicate is true
     public func when(_ predicate: @escaping @Sendable (String, String?) async -> Bool) -> StopConditionBuilder {
+        // Stop when custom predicate is true
         var builder = self
         builder.conditions.append(PredicateStopCondition(predicate: predicate))
         return builder
@@ -364,6 +371,7 @@ public struct StopConditionBuilder {
 
     /// Build the final condition
     public func build() -> any StopCondition {
+        // Build the final condition
         switch self.conditions.count {
         case 0:
             NeverStopCondition()
@@ -400,6 +408,7 @@ extension GenerationSettings {
         seed: Int? = nil
     )
     -> GenerationSettings {
+        // Create settings with stop conditions
         GenerationSettings(
             maxTokens: maxTokens,
             temperature: temperature,
@@ -416,6 +425,7 @@ extension GenerationSettings {
 extension AsyncThrowingStream where Element == TextStreamDelta {
     /// Apply stop conditions to a text stream
     public func stopWhen(_ condition: any StopCondition) -> AsyncThrowingStream<Element, Error> {
+        // Apply stop conditions to a text stream
         AsyncThrowingStream<Element, Error> { continuation in
             Task {
                 var accumulatedText = ""
@@ -459,6 +469,7 @@ extension AsyncThrowingStream where Element == TextStreamDelta {
 extension StreamTextResult {
     /// Apply stop conditions to the stream
     public func stopWhen(_ condition: any StopCondition) -> StreamTextResult {
+        // Apply stop conditions to the stream
         StreamTextResult(
             stream: stream.stopWhen(condition),
             model: model,
@@ -468,6 +479,7 @@ extension StreamTextResult {
 
     /// Convenience method for common stop patterns
     public func stopOnString(_ text: String, caseSensitive: Bool = true) -> StreamTextResult {
+        // Convenience method for common stop patterns
         self.stopWhen(StringStopCondition(text, caseSensitive: caseSensitive))
     }
 

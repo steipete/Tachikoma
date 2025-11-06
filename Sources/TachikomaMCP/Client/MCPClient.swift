@@ -99,6 +99,7 @@ public final class MCPClient: Sendable {
 
     /// Connect to the MCP server
     public func connect() async throws {
+        // Connect to the MCP server
         guard self.config.enabled else {
             throw MCPError.serverDisabled
         }
@@ -171,6 +172,7 @@ public final class MCPClient: Sendable {
 
     /// Disconnect from the MCP server
     public func disconnect() async {
+        // Disconnect from the MCP server
         self.logger.info("Disconnecting from MCP server '\(self.name)'")
         if let transport = await state.getTransport() {
             await transport.disconnect()
@@ -195,6 +197,7 @@ public final class MCPClient: Sendable {
 
     /// Discover available tools from the server
     private func discoverTools() async {
+        // Discover available tools from the server
         do {
             guard let transport = await state.getTransport() else {
                 throw MCPError.notConnected
@@ -214,6 +217,7 @@ public final class MCPClient: Sendable {
 
     /// Execute a tool by name
     public func executeTool(name: String, arguments: [String: Any]) async throws -> ToolResponse {
+        // Execute a tool by name
         guard let transport = await state.getTransport() else {
             throw MCPError.notConnected
         }

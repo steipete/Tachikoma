@@ -18,7 +18,10 @@ public protocol EnhancedModelProvider: ModelProvider {
     func isFeatureSupported(_ feature: ProviderFeature) -> Bool
 
     /// Get provider-specific configuration
-    var configuration: ProviderConfiguration { get }
+    var configuration: ProviderConfiguration {
+        // Generate text with full feature support
+        get
+    }
 }
 
 // MARK: - Provider Features
@@ -351,6 +354,7 @@ extension String {
 extension ModelProvider {
     /// Wrap any provider with feature parity adapter
     public func withFeatureParity(configuration: ProviderConfiguration? = nil) -> EnhancedModelProvider {
+        // Wrap any provider with feature parity adapter
         if let enhanced = self as? EnhancedModelProvider {
             return enhanced
         }

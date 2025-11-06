@@ -7,6 +7,7 @@ import Tachikoma
 public struct BuiltInTools {
     /// Get all built-in tools
     public static func all() -> [any RealtimeExecutableTool] {
+        // Get all built-in tools
         [
             WeatherTool(),
             TimeTool(),
@@ -313,6 +314,7 @@ public final class RealtimeToolRegistry: Sendable {
 
     /// Register all built-in tools
     public func registerBuiltInTools() async {
+        // Register all built-in tools
         for tool in BuiltInTools.all() {
             await self.executor.register(tool)
         }
@@ -320,6 +322,7 @@ public final class RealtimeToolRegistry: Sendable {
 
     /// Register a custom tool
     public func register(_ tool: some RealtimeExecutableTool) async {
+        // Register a custom tool
         await self.executor.register(tool)
     }
 
@@ -329,6 +332,7 @@ public final class RealtimeToolRegistry: Sendable {
         arguments: String
     ) async
     -> String {
+        // Execute a tool
         await self.executor.executeSimple(
             toolName: toolName,
             arguments: arguments
@@ -337,6 +341,7 @@ public final class RealtimeToolRegistry: Sendable {
 
     /// Get available tools as RealtimeTools for the API
     public func getRealtimeTools() async -> [RealtimeTool] {
+        // Get available tools as RealtimeTools for the API
         let metadata = await executor.availableTools()
         return metadata.map { meta in
             RealtimeTool(
@@ -349,6 +354,7 @@ public final class RealtimeToolRegistry: Sendable {
 
     /// Get execution history
     public func getHistory(limit: Int? = nil) async -> [RealtimeToolExecutor.ToolExecution] {
+        // Get execution history
         await self.executor.getHistory(limit: limit)
     }
 }

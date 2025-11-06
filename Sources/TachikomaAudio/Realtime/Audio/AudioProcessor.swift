@@ -64,6 +64,7 @@ public final class RealtimeAudioProcessor: @unchecked Sendable {
 
     /// Process input audio buffer to API format
     public func processInput(_ buffer: AVAudioPCMBuffer) throws -> Data {
+        // Process input audio buffer to API format
         self.lock.lock()
         defer { lock.unlock() }
 
@@ -107,6 +108,7 @@ public final class RealtimeAudioProcessor: @unchecked Sendable {
 
     /// Process output audio data from API to playback format
     public func processOutput(_ data: Data) throws -> AVAudioPCMBuffer {
+        // Process output audio data from API to playback format
         self.lock.lock()
         defer { lock.unlock() }
 
@@ -144,6 +146,7 @@ public final class RealtimeAudioProcessor: @unchecked Sendable {
         to targetFormat: RealtimeAudioFormat
     ) throws
     -> Data {
+        // Convert audio data between formats
         guard sourceFormat != targetFormat else {
             return data // No conversion needed
         }
@@ -168,6 +171,7 @@ public final class RealtimeAudioProcessor: @unchecked Sendable {
 
     /// Calculate RMS (Root Mean Square) level for audio buffer
     public func calculateRMS(_ buffer: AVAudioPCMBuffer) -> Float {
+        // Calculate RMS (Root Mean Square) level for audio buffer
         guard let channelData = buffer.floatChannelData?[0] else { return 0 }
 
         let frameLength = Int(buffer.frameLength)
@@ -184,11 +188,13 @@ public final class RealtimeAudioProcessor: @unchecked Sendable {
 
     /// Detect silence in audio buffer
     public func detectSilence(_ buffer: AVAudioPCMBuffer, threshold: Float = 0.01) -> Bool {
+        // Detect silence in audio buffer
         self.calculateRMS(buffer) < threshold
     }
 
     /// Calculate audio energy for voice activity detection
     public func calculateEnergy(_ data: Data) -> Float {
+        // Calculate audio energy for voice activity detection
         let samples = data.withUnsafeBytes { bytes in
             bytes.bindMemory(to: Int16.self)
         }

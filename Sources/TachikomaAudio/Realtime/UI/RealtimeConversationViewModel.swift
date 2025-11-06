@@ -69,6 +69,7 @@ public final class RealtimeConversationViewModel: ObservableObject {
 
     /// Initialize the conversation
     public func initialize() async {
+        // Initialize the conversation
         do {
             // Create TachikomaConfiguration
             let tachikomaConfig = TachikomaConfiguration()
@@ -98,6 +99,7 @@ public final class RealtimeConversationViewModel: ObservableObject {
 
     /// Send a text message
     public func sendMessage(_ text: String) async {
+        // Send a text message
         guard let conversation else { return }
 
         do {
@@ -109,6 +111,7 @@ public final class RealtimeConversationViewModel: ObservableObject {
 
     /// Toggle recording
     public func toggleRecording() async {
+        // Toggle recording
         guard let conversation else { return }
 
         do {
@@ -120,6 +123,7 @@ public final class RealtimeConversationViewModel: ObservableObject {
 
     /// Interrupt the current response
     public func interrupt() async {
+        // Interrupt the current response
         guard let conversation else { return }
 
         do {
@@ -131,12 +135,14 @@ public final class RealtimeConversationViewModel: ObservableObject {
 
     /// Clear conversation history
     public func clearHistory() {
+        // Clear conversation history
         self.conversation?.clearHistory()
         self.messages.removeAll()
     }
 
     /// Reconnect to the service
     public func reconnect() async {
+        // Reconnect to the service
         guard let conversation else { return }
 
         self.connectionStatus = ConnectionStatus.reconnecting
@@ -158,6 +164,7 @@ public final class RealtimeConversationViewModel: ObservableObject {
 
     /// Export conversation
     public func exportConversation() -> String {
+        // Export conversation
         self.conversation?.exportAsText() ?? ""
     }
 
@@ -238,6 +245,7 @@ public final class RealtimeConversationViewModel: ObservableObject {
 extension RealtimeConversationViewModel {
     /// Create a mock view model for previews
     public static func mock() -> RealtimeConversationViewModel {
+        // Create a mock view model for previews
         let viewModel = RealtimeConversationViewModel()
 
         // Add mock messages

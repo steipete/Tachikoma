@@ -149,6 +149,7 @@ public final class ModelCapabilityRegistry: @unchecked Sendable {
 
     /// Get capabilities for a model
     public func capabilities(for model: LanguageModel) -> ModelParameterCapabilities {
+        // Get capabilities for a model
         let key = self.capabilityKey(for: model)
 
         self.lock.lock()
@@ -165,6 +166,7 @@ public final class ModelCapabilityRegistry: @unchecked Sendable {
 
     /// Register custom capabilities for a model
     public func register(_ capabilities: ModelParameterCapabilities, for model: LanguageModel) {
+        // Register custom capabilities for a model
         let key = self.capabilityKey(for: model)
 
         self.lock.lock()
@@ -175,6 +177,7 @@ public final class ModelCapabilityRegistry: @unchecked Sendable {
 
     /// Register capabilities for an OpenAI-compatible endpoint
     public func registerOpenAICompatible(endpoint: String, capabilities: ModelParameterCapabilities) {
+        // Register capabilities for an OpenAI-compatible endpoint
         let key = "openai-compatible:\(endpoint):default"
 
         self.lock.lock()
@@ -407,6 +410,7 @@ public final class ModelCapabilityRegistry: @unchecked Sendable {
 extension GenerationSettings {
     /// Validates and adjusts settings based on model capabilities
     public func validated(for model: LanguageModel) -> GenerationSettings {
+        // Validates and adjusts settings based on model capabilities
         let capabilities = ModelCapabilityRegistry.shared.capabilities(for: model)
 
         var adjustedTemperature = temperature
@@ -531,6 +535,7 @@ extension GenerationSettings {
 
     /// Filters settings to only include supported parameters (legacy compatibility)
     public func filtered(for model: LanguageModel) -> GenerationSettings {
+        // Filters settings to only include supported parameters (legacy compatibility)
         self.validated(for: model)
     }
 }

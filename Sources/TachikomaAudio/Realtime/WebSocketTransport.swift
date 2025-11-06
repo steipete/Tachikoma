@@ -22,7 +22,10 @@ public protocol RealtimeTransport: Sendable {
     func disconnect() async
 
     /// Current connection state
-    var isConnected: Bool { get }
+    var isConnected: Bool {
+        // Connect to the server
+        get
+    }
 }
 
 // MARK: - WebSocket Transport Implementation
@@ -255,11 +258,13 @@ public struct WebSocketTransportFactory {
         session: URLSession = .shared
     )
     -> RealtimeTransport {
+        // Create a WebSocket transport with custom configuration
         WebSocketTransport(session: session)
     }
 
     /// Create a WebSocket transport optimized for low latency
     public static func createLowLatency() -> RealtimeTransport {
+        // Create a WebSocket transport optimized for low latency
         let configuration = URLSessionConfiguration.default
         configuration.timeoutIntervalForRequest = 30
         configuration.timeoutIntervalForResource = 300

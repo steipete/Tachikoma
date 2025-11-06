@@ -46,6 +46,7 @@ public func encodeAnyValue(
     _ value: Any,
     to container: inout KeyedEncodingContainer<DynamicCodingKey>
 ) throws {
+    // Encode any value into a nested container
     if let dict = value as? [String: Any] {
         for (key, val) in dict {
             guard let codingKey = DynamicCodingKey(stringValue: key) else { continue }
@@ -60,6 +61,7 @@ private func encodeAnyValueRecursive(
     to container: inout KeyedEncodingContainer<DynamicCodingKey>,
     forKey key: DynamicCodingKey
 ) throws {
+    // Recursively encode any value type
     switch value {
     case let stringValue as String:
         try container.encode(stringValue, forKey: key)
@@ -93,6 +95,7 @@ private func encodeAnyElement(
     _ value: Any,
     to container: inout UnkeyedEncodingContainer
 ) throws {
+    // Encode any element into an unkeyed container (for arrays)
     switch value {
     case let stringValue as String:
         try container.encode(stringValue)

@@ -48,6 +48,7 @@ public actor LMStudioProvider: ModelProvider, Sendable {
 
     /// Automatically detect if LMStudio is running
     public static func autoDetect() async throws -> LMStudioProvider? {
+        // Automatically detect if LMStudio is running
         let commonURLs = [
             "http://localhost:1234/v1",
             "http://127.0.0.1:1234/v1",
@@ -538,6 +539,7 @@ private struct LMStudioStreamChunk: Decodable {
 public enum LocalModelResponseParser {
     /// Parse multi-channel responses from local models
     public static func parseChanneledResponse(_ text: String) -> [ResponseChannel: String] {
+        // Parse multi-channel responses from local models
         var channels: [ResponseChannel: String] = [:]
 
         // Parse XML-style tags

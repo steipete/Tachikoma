@@ -196,6 +196,7 @@ public func stringTool(
     execute: @escaping @Sendable (String) async throws -> String
 )
 -> AgentTool {
+    // Creates a tool with string parameter
     createTool(
         name: name,
         description: description,
@@ -223,6 +224,7 @@ public func numberTool(
     execute: @escaping @Sendable (Double) async throws -> Double
 )
 -> AgentTool {
+    // Creates a tool with number parameter
     createTool(
         name: name,
         description: description,
@@ -250,6 +252,7 @@ public func booleanTool(
     execute: @escaping @Sendable (Bool) async throws -> Bool
 )
 -> AgentTool {
+    // Creates a tool with boolean parameter
     createTool(
         name: name,
         description: description,
@@ -275,6 +278,7 @@ public func noParamTool(
     execute: @escaping @Sendable () async throws -> String
 )
 -> AgentTool {
+    // Creates a tool with no parameters
     createTool(
         name: name,
         description: description,
@@ -295,6 +299,7 @@ public func multiStringTool(
     execute: @escaping @Sendable ([String: String]) async throws -> String
 )
 -> AgentTool {
+    // Creates a tool with multiple string parameters
     let toolParams = parameters.map { name, desc in
         AgentToolParameterProperty(name: name, type: .string, description: desc)
     }

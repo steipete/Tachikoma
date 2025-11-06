@@ -107,6 +107,7 @@ public final class RealtimeAudioManager: NSObject {
 
     /// Start recording audio
     public func startRecording() async throws {
+        // Start recording audio
         guard !self.isRecording else { return }
 
         // Request microphone permission if needed
@@ -147,6 +148,7 @@ public final class RealtimeAudioManager: NSObject {
 
     /// Stop recording audio
     public func stopRecording() {
+        // Stop recording audio
         guard self.isRecording else { return }
 
         // Remove tap
@@ -184,6 +186,7 @@ public final class RealtimeAudioManager: NSObject {
 
     /// Start audio playback
     private func startPlayback() async {
+        // Start audio playback
         guard !self.isPlaying else { return }
 
         // Start engine if needed
@@ -207,6 +210,7 @@ public final class RealtimeAudioManager: NSObject {
 
     /// Stop audio playback
     public func stopPlayback() {
+        // Stop audio playback
         guard self.isPlaying else { return }
 
         self.playerNode.stop()
@@ -273,6 +277,7 @@ public final class RealtimeAudioManager: NSObject {
 
     /// Reset audio manager
     public func reset() {
+        // Reset audio manager
         self.stopRecording()
         self.stopPlayback()
 
@@ -283,6 +288,7 @@ public final class RealtimeAudioManager: NSObject {
 
     /// Get current audio devices
     public func getAudioDevices() -> (input: String?, output: String?) {
+        // Get current audio devices
         #if os(macOS)
         // Get device names (simplified - would need Core Audio for full implementation)
         return ("Default Input", "Default Output")
@@ -311,6 +317,7 @@ public final class RealtimeAudioManager: NSObject {
 extension RealtimeAudioManager {
     /// Configure for voice chat optimized settings
     public func configureForVoiceChat() {
+        // Configure for voice chat optimized settings
         #if os(iOS) || os(watchOS) || os(tvOS)
         do {
             try self.audioSession.setCategory(
@@ -330,6 +337,7 @@ extension RealtimeAudioManager {
 
     /// Enable echo cancellation
     public func setEchoCancellation(_ enabled: Bool) {
+        // Enable echo cancellation
         #if os(iOS) || os(watchOS) || os(tvOS)
         // Echo cancellation is typically enabled by default in .voiceChat mode
         // This is a placeholder for more advanced configuration
@@ -338,6 +346,7 @@ extension RealtimeAudioManager {
 
     /// Set voice processing (noise suppression, etc.)
     public func setVoiceProcessing(_ enabled: Bool) {
+        // Set voice processing (noise suppression, etc.)
         #if os(iOS) || os(watchOS) || os(tvOS)
         do {
             if enabled {

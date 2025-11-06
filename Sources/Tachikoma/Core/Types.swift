@@ -105,11 +105,13 @@ public struct APICallError: Error, LocalizedError, Sendable {
 
     /// Check if an error is an APICallError
     public static func isInstance(_ error: Error) -> Bool {
+        // Check if an error is an APICallError
         error is APICallError || (error as? TachikomaError)?.apiCallError != nil
     }
 
     /// Extract APICallError from any error
     public static func extract(from error: Error) -> APICallError? {
+        // Extract APICallError from any error
         if let apiError = error as? APICallError {
             return apiError
         }
@@ -179,6 +181,7 @@ public enum OpenAIAPIMode: String, Sendable, CaseIterable {
 
     /// Determine default API mode for a given model
     public static func defaultMode(for model: LanguageModel.OpenAI) -> OpenAIAPIMode {
+        // Determine default API mode for a given model
         switch model {
         case .o3, .o3Mini, .o3Pro, .o4Mini, .gpt5, .gpt5Mini, .gpt5Nano:
             .responses // Reasoning models and GPT-5 default to Responses API
@@ -436,6 +439,7 @@ public struct StreamTextResult: Sendable {
         headers: [String: String]? = nil
     )
     -> UIMessageStreamResponse {
+        // Convert stream to UI message stream response format (following Vercel AI SDK pattern)
         UIMessageStreamResponse(
             stream: self.stream,
             sendReasoning: sendReasoning,

@@ -555,6 +555,7 @@ private func attemptPartialParse<T: Codable>(_ type: T.Type, from json: String) 
 
 /// Fix common issues in partial JSON
 private func fixPartialJSON(_ json: String) -> String {
+    // Fix common issues in partial JSON
     var fixed = json.trimmingCharacters(in: .whitespacesAndNewlines)
 
     // Count brackets and braces

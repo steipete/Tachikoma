@@ -24,6 +24,7 @@ public final class Conversation: @unchecked Sendable {
 
     /// Add a user message to the conversation
     public func addUserMessage(_ content: String) {
+        // Add a user message to the conversation
         let message = ConversationMessage(role: .user, content: content)
         self.lock.lock()
         self._messages.append(message)
@@ -32,6 +33,7 @@ public final class Conversation: @unchecked Sendable {
 
     /// Add an assistant message to the conversation
     public func addAssistantMessage(_ content: String) {
+        // Add an assistant message to the conversation
         let message = ConversationMessage(role: .assistant, content: content)
         self.lock.lock()
         self._messages.append(message)
@@ -40,6 +42,7 @@ public final class Conversation: @unchecked Sendable {
 
     /// Add a system message to the conversation
     public func addSystemMessage(_ content: String) {
+        // Add a system message to the conversation
         let message = ConversationMessage(role: .system, content: content)
         self.lock.lock()
         self._messages.append(message)
@@ -48,6 +51,7 @@ public final class Conversation: @unchecked Sendable {
 
     /// Clear all messages from the conversation
     public func clear() {
+        // Clear all messages from the conversation
         self.lock.lock()
         self._messages.removeAll()
         self.lock.unlock()
@@ -55,11 +59,13 @@ public final class Conversation: @unchecked Sendable {
 
     /// Get messages as ModelMessage array for API compatibility
     public func getModelMessages() -> [ModelMessage] {
+        // Get messages as ModelMessage array for API compatibility
         self.messages.map { $0.toModelMessage() }
     }
 
     /// Add a ModelMessage to the conversation
     public func addModelMessage(_ modelMessage: ModelMessage) {
+        // Add a ModelMessage to the conversation
         let conversationMessage = ConversationMessage.from(modelMessage)
         self.lock.lock()
         self._messages.append(conversationMessage)
@@ -173,6 +179,7 @@ public struct ConversationMessage: Sendable, Codable, Equatable {
 
     /// Convert to ModelMessage for API compatibility
     public func toModelMessage() -> ModelMessage {
+        // Convert to ModelMessage for API compatibility
         let modelRole: ModelMessage.Role = switch self.role {
         case .system: .system
         case .user: .user
@@ -190,6 +197,7 @@ public struct ConversationMessage: Sendable, Codable, Equatable {
 
     /// Create from ModelMessage
     public static func from(_ modelMessage: ModelMessage) -> ConversationMessage {
+        // Create from ModelMessage
         let role: Role = switch modelMessage.role {
         case .system: .system
         case .user: .user

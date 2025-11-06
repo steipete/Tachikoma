@@ -26,6 +26,7 @@ public enum ProviderParser {
     /// - Parameter providerString: String like "openai/gpt-4" or "ollama/llava:latest"
     /// - Returns: Parsed configuration or nil if invalid format
     public static func parse(_ providerString: String) -> ProviderConfig? {
+        // Parse a provider string in the format "provider/model"
         let trimmed = providerString.trimmingCharacters(in: .whitespacesAndNewlines)
         guard let slashIndex = trimmed.firstIndex(of: "/") else {
             return nil
@@ -46,6 +47,7 @@ public enum ProviderParser {
     /// - Parameter providersString: String like "openai/gpt-4,anthropic/claude-3,ollama/llava:latest"
     /// - Returns: Array of parsed configurations
     public static func parseList(_ providersString: String) -> [ProviderConfig] {
+        // Parse a comma-separated list of providers
         providersString
             .split(separator: ",")
             .compactMap { self.parse(String($0)) }
@@ -55,6 +57,7 @@ public enum ProviderParser {
     /// - Parameter providersString: String like "openai/gpt-4,anthropic/claude-3"
     /// - Returns: First parsed configuration or nil if none valid
     public static func parseFirst(_ providersString: String) -> ProviderConfig? {
+        // Get the first provider from a comma-separated list
         self.parseList(providersString).first
     }
 
@@ -167,6 +170,7 @@ public enum ProviderParser {
         configuredDefault: LanguageModel? = nil
     )
     -> LanguageModel {
+        // Determine the default model based on available providers and API keys (simple version)
         let determination = self.determineDefaultModelWithConflict(
             from: providersString,
             hasOpenAI: hasOpenAI,
@@ -181,11 +185,13 @@ public enum ProviderParser {
 
     /// Extract provider name from a full provider/model string
     public static func extractProvider(from fullString: String) -> String? {
+        // Extract provider name from a full provider/model string
         self.parse(fullString)?.provider
     }
 
     /// Extract model name from a full provider/model string
     public static func extractModel(from fullString: String) -> String? {
+        // Extract model name from a full provider/model string
         self.parse(fullString)?.model
     }
 

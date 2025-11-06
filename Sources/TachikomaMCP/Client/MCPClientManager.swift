@@ -133,6 +133,7 @@ public final class TachikomaMCPClientManager {
 
     /// Get external tools grouped by server name
     public func getExternalToolsByServer() async -> [String: [Tool]] {
+        // Get external tools grouped by server name
         var result: [String: [Tool]] = [:]
         for (name, client) in self.connections {
             let tools = await client.tools
@@ -153,6 +154,7 @@ public final class TachikomaMCPClientManager {
 
     /// Build Tachikoma AgentTools for all connected servers
     public func getAllAgentTools() async -> [AgentTool] {
+        // Build Tachikoma AgentTools for all connected servers
         var all: [AgentTool] = []
         for (_, client) in self.connections {
             // Only attempt if connected
@@ -182,6 +184,7 @@ public final class TachikomaMCPClientManager {
     /// Probe a specific server with a timeout. Attempts to connect if not connected.
     /// Returns tuple: (connected, toolCount, responseTime, error)
     public func probeServer(name: String, timeoutMs: Int = 5000) async -> (Bool, Int, TimeInterval, String?) {
+        // Probe a specific server with a timeout. Attempts to connect if not connected.
         let start = Date()
         guard let client = connections[name], let cfg = effectiveConfigs[name], cfg.enabled else {
             return (false, 0, 0, "Disabled or not configured")
@@ -240,6 +243,7 @@ public final class TachikomaMCPClientManager {
 
     /// Probe all servers in parallel
     public func probeAllServers(timeoutMs: Int = 5000) async -> [String: (Bool, Int, TimeInterval, String?)] {
+        // Probe all servers in parallel
         var results: [String: (Bool, Int, TimeInterval, String?)] = [:]
         await withTaskGroup(of: (String, (Bool, Int, TimeInterval, String?)).self) { group in
             for name in self.listServerNames() {
@@ -259,6 +263,7 @@ public final class TachikomaMCPClientManager {
 
     /// Persist the current effectiveConfigs back to the profile config file under mcpClients.
     public func persist() throws {
+        // Persist the current effectiveConfigs back to the profile config file under mcpClients.
         var json = self.loadRawConfigJSON() ?? [:]
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]

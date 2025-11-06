@@ -47,6 +47,7 @@ public struct AudioData: Sendable {
 
     /// Write audio data to a file URL
     public func write(to url: URL) throws {
+        // Write audio data to a file URL
         try self.data.write(to: url)
     }
 }
@@ -358,6 +359,7 @@ public final class AbortSignal: @unchecked Sendable {
 
     /// Create an abort signal that cancels after a timeout
     public static func timeout(_ timeInterval: TimeInterval) -> AbortSignal {
+        // Create an abort signal that cancels after a timeout
         let signal = AbortSignal()
 
         Task {
@@ -370,6 +372,7 @@ public final class AbortSignal: @unchecked Sendable {
 
     /// Check if the signal is cancelled and throw if so
     public func throwIfCancelled() throws {
+        // Check if the signal is cancelled and throw if so
         if self.cancelled {
             throw TachikomaError.operationCancelled
         }

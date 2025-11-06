@@ -12,6 +12,7 @@ public enum SchemaBuilder {
     )
         -> Value
     {
+        // Build a JSON Schema for an object
         var schema: [String: Value] = [
             "type": .string("object"),
             "properties": .object(properties),
@@ -39,6 +40,7 @@ public enum SchemaBuilder {
     )
         -> Value
     {
+        // Build a JSON Schema for a string
         var schema: [String: Value] = ["type": .string("string")]
 
         if let desc = description {
@@ -71,6 +73,7 @@ public enum SchemaBuilder {
     )
         -> Value
     {
+        // Build a JSON Schema for a boolean
         var schema: [String: Value] = ["type": .string("boolean")]
 
         if let desc = description {
@@ -93,6 +96,7 @@ public enum SchemaBuilder {
     )
         -> Value
     {
+        // Build a JSON Schema for a number
         var schema: [String: Value] = ["type": .string("number")]
 
         if let desc = description {
@@ -123,6 +127,7 @@ public enum SchemaBuilder {
     )
         -> Value
     {
+        // Build a JSON Schema for an integer
         var schema: [String: Value] = ["type": .string("integer")]
 
         if let desc = description {
@@ -154,6 +159,7 @@ public enum SchemaBuilder {
     )
         -> Value
     {
+        // Build a JSON Schema for an array
         var schema: [String: Value] = [
             "type": .string("array"),
             "items": items,
@@ -177,6 +183,7 @@ public enum SchemaBuilder {
 
     /// Build a JSON Schema that allows null
     public static func nullable(_ schema: Value) -> Value {
+        // Build a JSON Schema that allows null
         if case let .object(dict) = schema {
             var newDict = dict
             // If there's already a type, make it an array with null
@@ -192,6 +199,7 @@ public enum SchemaBuilder {
 
     /// Build a JSON Schema with oneOf
     public static func oneOf(_ schemas: [Value], description: String? = nil) -> Value {
+        // Build a JSON Schema with oneOf
         var schema: [String: Value] = [
             "oneOf": .array(schemas),
         ]
@@ -205,6 +213,7 @@ public enum SchemaBuilder {
 
     /// Build a JSON Schema with anyOf
     public static func anyOf(_ schemas: [Value], description: String? = nil) -> Value {
+        // Build a JSON Schema with anyOf
         var schema: [String: Value] = [
             "anyOf": .array(schemas),
         ]

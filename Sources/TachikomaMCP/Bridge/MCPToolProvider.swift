@@ -21,6 +21,7 @@ public final class MCPToolProvider: DynamicToolProvider {
 
     /// Connect to the MCP server (if not already connected)
     public func connect() async throws {
+        // Connect to the MCP server (if not already connected)
         if await !(self.client.isConnected) {
             try await self.client.connect()
         }

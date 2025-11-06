@@ -11,6 +11,7 @@ public struct ProviderFactory {
         configuration: TachikomaConfiguration
     ) throws
     -> any ModelProvider {
+        // Create a provider for the specified language model
         switch model {
         case let .openai(openaiModel):
             // Use Responses API for reasoning models (o3, o4) and GPT-5

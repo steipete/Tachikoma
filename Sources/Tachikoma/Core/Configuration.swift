@@ -74,6 +74,7 @@ public final class TachikomaConfiguration: @unchecked Sendable {
 
     /// Set an API key for a specific provider (type-safe)
     public func setAPIKey(_ key: String, for provider: Provider) {
+        // Set an API key for a specific provider (type-safe)
         self.lock.withLock {
             self._apiKeys[provider.identifier] = key
         }
@@ -82,6 +83,7 @@ public final class TachikomaConfiguration: @unchecked Sendable {
     /// Get an API key for a specific provider (type-safe)
     /// Returns configured key or loads from environment if not set (when loadFromEnvironment is true)
     public func getAPIKey(for provider: Provider) -> String? {
+        // Get an API key for a specific provider (type-safe)
         self.lock.withLock {
             // Return configured key if available
             if let configuredKey = self._apiKeys[provider.identifier] {
@@ -99,6 +101,7 @@ public final class TachikomaConfiguration: @unchecked Sendable {
 
     /// Remove an API key for a specific provider (type-safe)
     public func removeAPIKey(for provider: Provider) {
+        // Remove an API key for a specific provider (type-safe)
         self.lock.withLock {
             _ = self._apiKeys.removeValue(forKey: provider.identifier)
         }
@@ -107,11 +110,13 @@ public final class TachikomaConfiguration: @unchecked Sendable {
     /// Check if an API key is available for a provider (type-safe)
     /// Checks both configured keys and environment variables
     public func hasAPIKey(for provider: Provider) -> Bool {
+        // Check if an API key is available for a provider (type-safe)
         self.getAPIKey(for: provider) != nil
     }
 
     /// Check if provider has a configured API key (not from environment)
     public func hasConfiguredAPIKey(for provider: Provider) -> Bool {
+        // Check if provider has a configured API key (not from environment)
         self.lock.withLock {
             self._apiKeys[provider.identifier] != nil
         }
@@ -119,6 +124,7 @@ public final class TachikomaConfiguration: @unchecked Sendable {
 
     /// Check if provider has an environment API key available
     public func hasEnvironmentAPIKey(for provider: Provider) -> Bool {
+        // Check if provider has an environment API key available
         provider.hasEnvironmentAPIKey
     }
 
@@ -126,30 +132,35 @@ public final class TachikomaConfiguration: @unchecked Sendable {
 
     /// Set an API key for a specific provider using string identifier
     public func setAPIKey(_ key: String, for providerString: String) {
+        // Set an API key for a specific provider using string identifier
         let provider = Provider.from(identifier: providerString)
         self.setAPIKey(key, for: provider)
     }
 
     /// Get an API key for a specific provider using string identifier
     public func getAPIKey(for providerString: String) -> String? {
+        // Get an API key for a specific provider using string identifier
         let provider = Provider.from(identifier: providerString)
         return self.getAPIKey(for: provider)
     }
 
     /// Set a custom base URL for a provider using string identifier
     public func setBaseURL(_ url: String, for providerString: String) {
+        // Set a custom base URL for a provider using string identifier
         let provider = Provider.from(identifier: providerString)
         self.setBaseURL(url, for: provider)
     }
 
     /// Get the base URL for a provider using string identifier
     public func getBaseURL(for providerString: String) -> String? {
+        // Get the base URL for a provider using string identifier
         let provider = Provider.from(identifier: providerString)
         return self.getBaseURL(for: provider)
     }
 
     /// Check if an API key is available for a provider using string identifier
     public func hasAPIKey(for providerString: String) -> Bool {
+        // Check if an API key is available for a provider using string identifier
         let provider = Provider.from(identifier: providerString)
         return self.hasAPIKey(for: provider)
     }
@@ -158,6 +169,7 @@ public final class TachikomaConfiguration: @unchecked Sendable {
 
     /// Set a custom base URL for a provider (type-safe)
     public func setBaseURL(_ url: String, for provider: Provider) {
+        // Set a custom base URL for a provider (type-safe)
         self.lock.withLock {
             self._baseURLs[provider.identifier] = url
         }
@@ -166,6 +178,7 @@ public final class TachikomaConfiguration: @unchecked Sendable {
     /// Get the base URL for a provider (type-safe)
     /// Returns configured URL or default URL for standard providers
     public func getBaseURL(for provider: Provider) -> String? {
+        // Get the base URL for a provider (type-safe)
         self.lock.withLock {
             // Return configured URL if available
             if let configuredURL = self._baseURLs[provider.identifier] {
@@ -179,6 +192,7 @@ public final class TachikomaConfiguration: @unchecked Sendable {
 
     /// Remove a custom base URL for a provider (type-safe)
     public func removeBaseURL(for provider: Provider) {
+        // Remove a custom base URL for a provider (type-safe)
         self.lock.withLock {
             _ = self._baseURLs.removeValue(forKey: provider.identifier)
         }
@@ -188,6 +202,7 @@ public final class TachikomaConfiguration: @unchecked Sendable {
 
     /// Set default generation settings
     public func setDefaultSettings(_ settings: GenerationSettings) {
+        // Set default generation settings
         self.lock.withLock {
             self._defaultSettings = settings
         }
@@ -195,6 +210,7 @@ public final class TachikomaConfiguration: @unchecked Sendable {
 
     /// Set verbose mode for debug logging
     public func setVerbose(_ verbose: Bool) {
+        // Set verbose mode for debug logging
         self.lock.withLock {
             self._verbose = verbose
         }
@@ -225,6 +241,7 @@ public final class TachikomaConfiguration: @unchecked Sendable {
 
     /// Load configuration from environment variables and credentials
     private func loadConfiguration() {
+        // Load configuration from environment variables and credentials
         self.loadFromEnvironment()
         self.loadFromCredentials()
     }
@@ -254,6 +271,7 @@ public final class TachikomaConfiguration: @unchecked Sendable {
 
     /// Load configuration from credentials file
     private func loadFromCredentials() {
+        // Load configuration from credentials file
         #if os(Windows)
         let homeDirectory = ProcessInfo.processInfo.environment["USERPROFILE"] ??
             (ProcessInfo.processInfo.environment["HOMEDRIVE"] ?? "" +
@@ -323,6 +341,7 @@ public final class TachikomaConfiguration: @unchecked Sendable {
 
     /// Save current configuration to credentials file
     public func saveCredentials() throws {
+        // Save current configuration to credentials file
         #if os(Windows)
         let homeDirectory = ProcessInfo.processInfo.environment["USERPROFILE"] ??
             (ProcessInfo.processInfo.environment["HOMEDRIVE"] ?? "" +
@@ -371,6 +390,7 @@ public final class TachikomaConfiguration: @unchecked Sendable {
 
     /// Clear all stored configuration
     public func clearAll() {
+        // Clear all stored configuration
         self.lock.withLock {
             self._apiKeys.removeAll()
             self._baseURLs.removeAll()
@@ -406,6 +426,7 @@ public final class TachikomaConfiguration: @unchecked Sendable {
 extension NSLock {
     /// Execute a closure while holding the lock
     func withLock<T>(_ body: () throws -> T) rethrows -> T {
+        // Execute a closure while holding the lock
         lock()
         defer { unlock() }
         return try body()
@@ -422,6 +443,7 @@ extension ProviderFactory {
         configuration: TachikomaConfiguration
     ) throws
     -> any ModelProvider {
+        // Create a provider with configuration
         let provider = try createProvider(for: model, configuration: configuration)
         return provider
     }

@@ -18,6 +18,7 @@ public final class DynamicToolRegistry: @unchecked Sendable {
 
     /// Register a dynamic tool provider
     public func register(_ provider: DynamicToolProvider, id: String) {
+        // Register a dynamic tool provider
         self.lock.withLock {
             self.providers[id] = provider
         }
@@ -25,6 +26,7 @@ public final class DynamicToolRegistry: @unchecked Sendable {
 
     /// Unregister a provider
     public func unregister(id: String) {
+        // Unregister a provider
         self.lock.withLock {
             _ = self.providers.removeValue(forKey: id)
         }
@@ -39,6 +41,7 @@ public final class DynamicToolRegistry: @unchecked Sendable {
 
     /// Discover all tools from all providers
     public func discoverAllTools() async throws -> [DynamicTool] {
+        // Discover all tools from all providers
         var allTools: [DynamicTool] = []
 
         for provider in self.allProviders {
@@ -51,6 +54,7 @@ public final class DynamicToolRegistry: @unchecked Sendable {
 
     /// Convert all discovered tools to AgentTools
     public func getAllAgentTools() async throws -> [AgentTool] {
+        // Convert all discovered tools to AgentTools
         let dynamicTools = try await discoverAllTools()
 
         return dynamicTools.map { tool in
@@ -113,6 +117,7 @@ public struct DynamicToolBuilder {
         parameterDescription: String = "Input string"
     )
     -> DynamicTool {
+        // Create a simple string-input, string-output tool
         DynamicTool(
             name: name,
             description: description,
@@ -136,6 +141,7 @@ public struct DynamicToolBuilder {
         parameters: [(name: String, type: DynamicSchema.SchemaType, description: String, required: Bool)]
     )
     -> DynamicTool {
+        // Create a tool with multiple parameters
         var properties: [String: DynamicSchema.SchemaProperty] = [:]
         var required: [String] = []
 
@@ -173,6 +179,7 @@ extension DynamicSchema.SchemaProperty {
         format: String? = nil
     )
     -> Self {
+        // Create a string property with constraints
         Self(
             type: .string,
             description: description,
@@ -190,6 +197,7 @@ extension DynamicSchema.SchemaProperty {
         maximum: Double? = nil
     )
     -> Self {
+        // Create a number property with constraints
         Self(
             type: .number,
             description: description,
@@ -204,6 +212,7 @@ extension DynamicSchema.SchemaProperty {
         items: DynamicSchema.SchemaItems
     )
     -> Self {
+        // Create an array property
         Self(
             type: .array,
             description: description,
@@ -218,6 +227,7 @@ extension DynamicSchema.SchemaProperty {
         required: [String]? = nil
     )
     -> Self {
+        // Create an object property
         Self(
             type: .object,
             description: description,
@@ -341,6 +351,7 @@ public actor CachingDynamicToolProvider: DynamicToolProvider {
 
     /// Clear the cache
     public func clearCache() {
+        // Clear the cache
         self.cachedTools = nil
         self.lastCacheTime = nil
     }

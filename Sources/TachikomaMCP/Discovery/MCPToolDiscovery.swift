@@ -9,6 +9,7 @@ public enum MCPToolDiscovery {
 
     /// Discover tools from a command-line MCP server
     public static func discover(from command: String, args: [String] = []) async throws -> [AgentTool] {
+        // Discover tools from a command-line MCP server
         let config = MCPServerConfig(
             transport: "stdio",
             command: command,
@@ -20,6 +21,7 @@ public enum MCPToolDiscovery {
 
     /// Discover tools from an MCP server with configuration
     public static func discover(from config: MCPServerConfig, name: String) async throws -> [AgentTool] {
+        // Discover tools from an MCP server with configuration
         let client = MCPClient(name: name, config: config)
         let provider = MCPToolProvider(client: client)
 
@@ -30,6 +32,7 @@ public enum MCPToolDiscovery {
 
     /// Connect to an MCP server and return a provider
     public static func connectServer(_ config: MCPServerConfig, name: String? = nil) async throws -> MCPToolProvider {
+        // Connect to an MCP server and return a provider
         let serverName = name ?? self.extractName(from: config.command)
         let client = MCPClient(name: serverName, config: config)
         let provider = MCPToolProvider(client: client)
@@ -44,6 +47,7 @@ public enum MCPToolDiscovery {
 
     /// Connect to multiple MCP servers
     public static func connectServers(_ configs: [String: MCPServerConfig]) async throws -> [String: MCPToolProvider] {
+        // Connect to multiple MCP servers
         var providers: [String: MCPToolProvider] = [:]
 
         await withTaskGroup(of: (String, Result<MCPToolProvider, Swift.Error>).self) { group in
@@ -74,6 +78,7 @@ public enum MCPToolDiscovery {
 
     /// Discover all tools from multiple providers
     public static func discoverAll(from providers: [MCPToolProvider]) async throws -> [AgentTool] {
+        // Discover all tools from multiple providers
         var allTools: [AgentTool] = []
 
         for provider in providers {
@@ -95,6 +100,7 @@ public enum MCPToolDiscovery {
 
     /// Create providers for common MCP servers
     public static func commonProviders() -> [String: MCPServerConfig] {
+        // Create providers for common MCP servers
         [
             "filesystem": MCPServerConfig(
                 transport: "stdio",
@@ -144,6 +150,7 @@ public enum MCPToolDiscovery {
 extension MCPToolDiscovery {
     /// Quick start with filesystem tools
     public static func withFilesystem(path: String = ".") async throws -> [AgentTool] {
+        // Quick start with filesystem tools
         let config = MCPServerConfig(
             transport: "stdio",
             command: "npx",
@@ -154,6 +161,7 @@ extension MCPToolDiscovery {
 
     /// Quick start with GitHub tools
     public static func withGitHub(token: String? = nil) async throws -> [AgentTool] {
+        // Quick start with GitHub tools
         let githubToken = token ?? ProcessInfo.processInfo.environment["GITHUB_TOKEN"] ?? ""
 
         guard !githubToken.isEmpty else {
@@ -172,6 +180,7 @@ extension MCPToolDiscovery {
 
     /// Quick start with browser automation
     public static func withBrowser() async throws -> [AgentTool] {
+        // Quick start with browser automation
         let config = MCPServerConfig(
             transport: "stdio",
             command: "npx",

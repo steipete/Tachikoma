@@ -17,6 +17,7 @@ public actor CancellationToken: Sendable {
 
     /// Cancel all operations
     public func cancel() {
+        // Cancel all operations
         guard !self.isCancelled else { return }
         self.isCancelled = true
 
@@ -29,6 +30,7 @@ public actor CancellationToken: Sendable {
 
     /// Register a cancellation handler
     public func onCancel(_ handler: @escaping @Sendable () -> Void) {
+        // Register a cancellation handler
         if self.isCancelled {
             handler()
         } else {
@@ -173,6 +175,7 @@ public func retryWithCancellation<T: Sendable>(
 extension AsyncThrowingStream where Failure == Error {
     /// Collect all elements into an array
     public func collect() async throws -> [Element] {
+        // Collect all elements into an array
         var elements: [Element] = []
         for try await element in self {
             elements.append(element)

@@ -80,6 +80,7 @@ public actor ResponseCache {
         ttlOverride: TimeInterval? = nil
     )
     -> ProviderResponse? {
+        // Get cached response with TTL validation
         let key = CacheKey(from: request)
 
         guard let entry = cache[key] else {
@@ -111,6 +112,7 @@ public actor ResponseCache {
         ttl: TimeInterval? = nil,
         priority: CachePriority = .normal
     ) {
+        // Store response with custom TTL and priority
         let key = CacheKey(from: request)
 
         // Check memory limit
@@ -138,6 +140,7 @@ public actor ResponseCache {
     func invalidate(
         matching predicate: @escaping (CacheKey, CacheEntry) -> Bool
     ) {
+        // Invalidate entries matching predicate
         let toRemove = self.cache.filter { predicate($0.key, $0.value) }
 
         for (key, _) in toRemove {
@@ -149,6 +152,7 @@ public actor ResponseCache {
 
     /// Invalidate entries by model
     public func invalidateModel(_ modelId: String) {
+        // Invalidate entries by model
         self.invalidate { key, _ in
             key.model == modelId
         }
@@ -156,6 +160,7 @@ public actor ResponseCache {
 
     /// Invalidate entries older than specified age
     public func invalidateOlderThan(_ age: TimeInterval) {
+        // Invalidate entries older than specified age
         let cutoff = Date().addingTimeInterval(-age)
         self.invalidate { _, entry in
             entry.createdAt < cutoff
@@ -164,6 +169,7 @@ public actor ResponseCache {
 
     /// Clear all cache entries
     public func clear() {
+        // Clear all cache entries
         let count = self.cache.count
         self.cache.removeAll()
         self.accessOrder.removeAll()
@@ -172,6 +178,7 @@ public actor ResponseCache {
 
     /// Get cache statistics
     public func getStatistics() -> EnhancedCacheStatistics {
+        // Get cache statistics
         self.statistics.snapshot(
             currentEntries: self.cache.count,
             maxEntries: self.configuration.maxEntries
@@ -183,6 +190,7 @@ public actor ResponseCache {
         with requests: [(ProviderRequest, ProviderResponse)],
         ttl: TimeInterval? = nil
     ) {
+        // Prewarm cache with common requests
         for (request, response) in requests {
             self.store(response, for: request, ttl: ttl, priority: .high)
         }
@@ -530,6 +538,7 @@ public struct EnhancedCacheStatistics: Sendable {
 extension ResponseCache {
     /// Create a cache-aware provider
     public func wrapProvider<T: ModelProvider>(_ provider: T) -> CacheAwareProvider<T> {
+        // Create a cache-aware provider
         CacheAwareProvider(provider: provider, cache: self)
     }
 }

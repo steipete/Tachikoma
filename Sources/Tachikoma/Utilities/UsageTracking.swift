@@ -27,6 +27,7 @@ public final class UsageTracker: @unchecked Sendable {
     /// - Parameter sessionId: Optional session ID. If nil, generates a new UUID
     /// - Returns: The session ID for tracking
     public func startSession(_ sessionId: String? = nil) -> String {
+        // Start a new usage session
         let id = sessionId ?? UUID().uuidString
         let session = UsageSession(id: id, startTime: Date())
 
@@ -67,6 +68,7 @@ public final class UsageTracker: @unchecked Sendable {
         usage: Usage,
         operation: OperationType = .textGeneration
     ) {
+        // Record usage for a session
         self.lock.withLock {
             guard let session = _sessions[sessionId] else { return }
 
@@ -91,6 +93,7 @@ public final class UsageTracker: @unchecked Sendable {
     /// - Parameter sessionId: The session ID
     /// - Returns: The current session data if it exists
     public func getSession(_ sessionId: String) -> UsageSession? {
+        // Get current session data
         self.lock.withLock {
             self._sessions[sessionId]
         }
@@ -121,6 +124,7 @@ public final class UsageTracker: @unchecked Sendable {
 
     /// Reset all usage data
     public func reset() {
+        // Reset all usage data
         self.lock.withLock {
             self._sessions.removeAll()
             self._totalUsage = TotalUsage()
@@ -135,6 +139,7 @@ public final class UsageTracker: @unchecked Sendable {
     ///   - endDate: End date for the report
     /// - Returns: Usage report for the specified period
     public func generateReport(from startDate: Date, to endDate: Date) -> UsageReport {
+        // Generate a usage report for a date range
         let sessions = self.lock.withLock {
             Array(self._sessions.values.filter { session in
                 session.startTime >= startDate && session.startTime <= endDate
@@ -151,6 +156,7 @@ public final class UsageTracker: @unchecked Sendable {
 
     /// Generate a usage report for today
     public func generateTodayReport() -> UsageReport {
+        // Generate a usage report for today
         let calendar = Calendar.current
         let today = Date()
         let startOfDay = calendar.startOfDay(for: today)
@@ -161,6 +167,7 @@ public final class UsageTracker: @unchecked Sendable {
 
     /// Generate a usage report for this month
     public func generateMonthReport() -> UsageReport {
+        // Generate a usage report for this month
         let calendar = Calendar.current
         let today = Date()
         let startOfMonth = calendar.dateInterval(of: .month, for: today)?.start ?? today
@@ -213,6 +220,7 @@ public struct UsageSession: Sendable, Codable {
 
     /// Create a new session with an operation added
     func addingUsage(model: LanguageModel, usage: Usage, operation: OperationType) -> UsageSession {
+        // Create a new session with an operation added
         let newOperation = UsageOperation(
             timestamp: Date(),
             model: model,
@@ -230,6 +238,7 @@ public struct UsageSession: Sendable, Codable {
 
     /// Create a new session marked as ended
     func ended() -> UsageSession {
+        // Create a new session marked as ended
         UsageSession(
             id: self.id,
             startTime: self.startTime,
@@ -430,6 +439,7 @@ public struct UsageReport: Sendable {
 
     /// Generate a formatted text report
     public func formattedReport() -> String {
+        // Generate a formatted text report
         let formatter = DateFormatter()
         formatter.dateStyle = .medium
         formatter.timeStyle = .short
@@ -491,6 +501,7 @@ public struct UsageReport: Sendable {
 public struct ModelCostCalculator: Sendable {
     /// Calculate cost for a model usage
     public func calculateCost(for model: LanguageModel, usage: Usage) -> Usage.Cost {
+        // Calculate cost for a model usage
         let pricing = self.getPricing(for: model)
 
         let inputCost = Double(usage.inputTokens) * pricing.input / 1_000_000.0
@@ -501,6 +512,7 @@ public struct ModelCostCalculator: Sendable {
 
     /// Get pricing information for a model (per million tokens)
     private func getPricing(for model: LanguageModel) -> (input: Double, output: Double) {
+        // Get pricing information for a model (per million tokens)
         switch model {
         // OpenAI Pricing (as of 2025)
         case let .openai(openaiModel):

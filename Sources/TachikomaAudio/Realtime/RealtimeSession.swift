@@ -71,6 +71,7 @@ public final class RealtimeSession {
 
     /// Connect to the Realtime API
     public func connect() async throws {
+        // Connect to the Realtime API
         guard self.state == .disconnected || self.state == .error else {
             throw TachikomaError.invalidConfiguration("Already connected or connecting")
         }
@@ -114,6 +115,7 @@ public final class RealtimeSession {
 
     /// Disconnect from the Realtime API
     public func disconnect() async {
+        // Disconnect from the Realtime API
         self.state = .disconnected
 
         // Cancel background tasks
@@ -130,6 +132,7 @@ public final class RealtimeSession {
 
     /// Update session configuration
     public func update(_ config: SessionConfiguration) async throws {
+        // Update session configuration
         guard self.state == .connected else {
             throw TachikomaError.invalidConfiguration("Not connected")
         }
@@ -145,6 +148,7 @@ public final class RealtimeSession {
 
     /// Append audio data to the input buffer
     public func appendAudio(_ data: Data) async throws {
+        // Append audio data to the input buffer
         guard self.state == .connected else {
             throw TachikomaError.invalidConfiguration("Not connected")
         }
@@ -157,6 +161,7 @@ public final class RealtimeSession {
 
     /// Commit the audio buffer to create a user message
     public func commitAudio() async throws {
+        // Commit the audio buffer to create a user message
         guard self.state == .connected else {
             throw TachikomaError.invalidConfiguration("Not connected")
         }
@@ -167,6 +172,7 @@ public final class RealtimeSession {
 
     /// Clear the audio buffer
     public func clearAudioBuffer() async throws {
+        // Clear the audio buffer
         guard self.state == .connected else {
             throw TachikomaError.invalidConfiguration("Not connected")
         }
@@ -179,6 +185,7 @@ public final class RealtimeSession {
 
     /// Create a conversation item
     public func createItem(_ item: ConversationItem) async throws {
+        // Create a conversation item
         guard self.state == .connected else {
             throw TachikomaError.invalidConfiguration("Not connected")
         }
@@ -191,6 +198,7 @@ public final class RealtimeSession {
 
     /// Delete a conversation item
     public func deleteItem(id: String) async throws {
+        // Delete a conversation item
         guard self.state == .connected else {
             throw TachikomaError.invalidConfiguration("Not connected")
         }
@@ -203,6 +211,7 @@ public final class RealtimeSession {
 
     /// Truncate a conversation item
     public func truncateItem(id: String, contentIndex: Int, audioEndMs: Int) async throws {
+        // Truncate a conversation item
         guard self.state == .connected else {
             throw TachikomaError.invalidConfiguration("Not connected")
         }
@@ -221,6 +230,7 @@ public final class RealtimeSession {
 
     /// Create a response
     public func createResponse(_ config: ResponseCreateEvent? = nil) async throws {
+        // Create a response
         guard self.state == .connected else {
             throw TachikomaError.invalidConfiguration("Not connected")
         }
@@ -231,6 +241,7 @@ public final class RealtimeSession {
 
     /// Cancel the current response
     public func cancelResponse() async throws {
+        // Cancel the current response
         guard self.state == .connected else {
             throw TachikomaError.invalidConfiguration("Not connected")
         }
@@ -243,6 +254,7 @@ public final class RealtimeSession {
 
     /// Subscribe to server events
     public func on(_ eventType: String, handler: @escaping (RealtimeServerEvent) -> Void) {
+        // Subscribe to server events
         if self.eventHandlers[eventType] == nil {
             self.eventHandlers[eventType] = []
         }
@@ -251,6 +263,7 @@ public final class RealtimeSession {
 
     /// Get an async stream of server events
     public func eventStream() -> AsyncThrowingStream<RealtimeServerEvent, Error> {
+        // Get an async stream of server events
         AsyncThrowingStream { continuation in
             self.eventStreamContinuation = continuation
         }

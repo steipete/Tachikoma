@@ -86,6 +86,7 @@ public enum UIMessageChunk: Sendable {
 extension [UIMessage] {
     /// Convert UI messages to model messages for API calls
     public func toModelMessages() -> [ModelMessage] {
+        // Convert UI messages to model messages for API calls
         self.map { uiMessage in
             var contentParts: [ModelMessage.ContentPart] = [.text(uiMessage.content)]
 
@@ -130,6 +131,7 @@ extension [UIMessage] {
 extension [ModelMessage] {
     /// Convert model messages to UI messages for display
     public func toUIMessages() -> [UIMessage] {
+        // Convert model messages to UI messages for display
         self.map { modelMessage in
             var content = ""
             var attachments: [UIAttachment] = []
@@ -183,6 +185,7 @@ extension [ModelMessage] {
 extension StreamTextResult {
     /// Convert streaming result to UI message chunks for real-time updates
     public func toUIMessageStream() -> AsyncStream<UIMessageChunk> {
+        // Convert streaming result to UI message chunks for real-time updates
         AsyncStream { continuation in
             Task {
                 do {
@@ -215,6 +218,7 @@ extension StreamTextResult {
 
     /// Convert streaming result to simple text stream
     public func toTextStream() -> AsyncStream<String> {
+        // Convert streaming result to simple text stream
         AsyncStream { continuation in
             Task {
                 do {
@@ -234,6 +238,7 @@ extension StreamTextResult {
 
     /// Collect all text from stream into a single string
     public func collectText() async throws -> String {
+        // Collect all text from stream into a single string
         var result = ""
         for try await delta in self.stream {
             if delta.type == .textDelta, let content = delta.content {
@@ -264,6 +269,7 @@ public struct UIStreamResponse: Sendable {
 
     /// Collect complete message from stream
     public func collectMessage() async -> UIMessage {
+        // Collect complete message from stream
         var content = ""
         var toolCalls: [AgentToolCall] = []
         var currentToolCall: (id: String, name: String, arguments: String)?

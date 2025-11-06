@@ -7,6 +7,7 @@ import Foundation
 public struct ModelSelector {
     /// Parse a model string with intelligent fallbacks and shortcuts
     public static func parseModel(_ modelString: String) throws -> Model {
+        // Parse a model string with intelligent fallbacks and shortcuts
         let normalized = modelString.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
 
         // Handle empty or default
@@ -240,6 +241,7 @@ public struct ModelSelector {
 
     /// Get available models for a specific provider
     public static func availableModels(for provider: String) -> [String] {
+        // Get available models for a specific provider
         let normalizedProvider = provider.lowercased()
 
         switch normalizedProvider {
@@ -270,6 +272,7 @@ public struct ModelSelector {
 
     /// Get model capabilities for CLI display
     public static func getCapabilities(for model: Model) -> ModelCapabilityInfo {
+        // Get model capabilities for CLI display
         ModelCapabilityInfo(
             supportsVision: model.supportsVision,
             supportsTools: model.supportsTools,
@@ -357,6 +360,7 @@ public func getAllAvailableModels() -> String {
 extension ModelSelector {
     /// Validate that a model supports the required capabilities
     public static func validateModel(_ model: Model, requiresVision: Bool = false, requiresTools: Bool = false) throws {
+        // Validate that a model supports the required capabilities
         if requiresVision, !model.supportsVision {
             throw ModelValidationError.visionNotSupported(model.modelId)
         }
@@ -368,6 +372,7 @@ extension ModelSelector {
 
     /// Get recommended models for specific use cases
     public static func recommendedModels(for useCase: UseCase) -> [Model] {
+        // Get recommended models for specific use cases
         switch useCase {
         case .coding:
             [.claude, .gpt4o, .grok4]
