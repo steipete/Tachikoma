@@ -6,7 +6,7 @@ import Foundation
 @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public actor CancellationToken: Sendable {
     private var isCancelled = false
-    private var handlers: [@Sendable () -> Void] = []
+    private var handlers: [UUID: @Sendable () -> Void] = [:]
 
     public init() {}
 
@@ -22,20 +22,29 @@ public actor CancellationToken: Sendable {
         self.isCancelled = true
 
         // Call all handlers
-        for handler in self.handlers {
+        for handler in self.handlers.values {
             handler()
         }
         self.handlers.removeAll()
     }
 
     /// Register a cancellation handler
-    public func onCancel(_ handler: @escaping @Sendable () -> Void) {
+    @discardableResult
+    public func onCancel(_ handler: @escaping @Sendable () -> Void) -> UUID {
         // Register a cancellation handler
         if self.isCancelled {
             handler()
+            return UUID()
         } else {
-            self.handlers.append(handler)
+            let token = UUID()
+            self.handlers[token] = handler
+            return token
         }
+    }
+
+    /// Remove a previously registered cancellation handler
+    public func removeHandler(_ token: UUID) {
+        self.handlers.removeValue(forKey: token)
     }
 }
 
@@ -142,10 +151,28 @@ public func retryWithCancellation<T: Sendable>(
         }
 
         do {
-            if let timeout = configuration.timeout {
-                return try await withTimeout(timeout, operation: operation)
+            let runOperation: () async throws -> T = {
+                if let timeout = configuration.timeout {
+                    return try await withTimeout(timeout, operation: operation)
+                } else {
+                    return try await operation()
+                }
+            }
+
+            if let token = cancellationToken {
+                let operationTask = Task {
+                    try await runOperation()
+                }
+
+                let handlerToken = await token.onCancel {
+                    operationTask.cancel()
+                }
+
+                let value = try await operationTask.value
+                await token.removeHandler(handlerToken)
+                return value
             } else {
-                return try await operation()
+                return try await runOperation()
             }
         } catch {
             lastError = error

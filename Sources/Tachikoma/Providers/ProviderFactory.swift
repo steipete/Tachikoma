@@ -14,9 +14,17 @@ public struct ProviderFactory {
         // Create a provider for the specified language model
         switch model {
         case let .openai(openaiModel):
-            // Use Responses API for reasoning models (o3, o4) and GPT-5
+            // Use Responses API for reasoning models (o4) and GPT-5 family
             switch openaiModel {
-            case .o3, .o3Mini, .o3Pro, .o4Mini, .gpt5, .gpt5Mini, .gpt5Nano:
+            case .o4Mini,
+                 .gpt5,
+                 .gpt5Pro,
+                 .gpt5Mini,
+                 .gpt5Nano,
+                 .gpt5Thinking,
+                 .gpt5ThinkingMini,
+                 .gpt5ThinkingNano,
+                 .gpt5ChatLatest:
                 return try OpenAIResponsesProvider(model: openaiModel, configuration: configuration)
             default:
                 return try OpenAIProvider(model: openaiModel, configuration: configuration)

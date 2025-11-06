@@ -199,9 +199,6 @@ public enum ProviderParser {
 
     private static func parseOpenAIModel(_ modelString: String) -> LanguageModel? {
         switch modelString.lowercased() {
-        case "o3": .openai(.o3)
-        case "o3-mini": .openai(.o3Mini)
-        case "o3-pro": .openai(.o3Pro)
         case "o4-mini": .openai(.o4Mini)
         case "gpt-4.1", "gpt4.1": .openai(.gpt41)
         case "gpt-4.1-mini", "gpt4.1-mini": .openai(.gpt41Mini)
@@ -223,16 +220,6 @@ public enum ProviderParser {
         case "claude-sonnet-4-20250514", "claude-sonnet-4", "sonnet-4": .anthropic(.sonnet4)
         case "claude-sonnet-4-20250514-thinking", "claude-sonnet-4-thinking",
              "sonnet-4-thinking": .anthropic(.sonnet4Thinking)
-        case "claude-3.7-sonnet", "claude-37-sonnet": .anthropic(.sonnet37)
-        case "claude-3-5-haiku", "claude-3-5-haiku-20241022", "claude-3-5-haiku-latest",
-             "claude-35-haiku", "claude-3.5-haiku", "claude-3.5-haiku-20241022",
-             "claude-3.5-haiku-latest": .anthropic(.haiku35)
-        case "claude-3-5-sonnet", "claude-3-5-sonnet-20241022", "claude-3-5-sonnet-latest",
-             "claude-35-sonnet", "claude-3.5-sonnet", "claude-3.5-sonnet-20241022",
-             "claude-3.5-sonnet-latest": .anthropic(.sonnet35)
-        case "claude-3-5-opus", "claude-3-5-opus-20241022", "claude-3-5-opus-latest",
-             "claude-35-opus", "claude-3.5-opus", "claude-3.5-opus-20241022",
-             "claude-3.5-opus-latest": .anthropic(.opus35)
         default:
             // Handle custom models
             .anthropic(.custom(modelString))
@@ -281,7 +268,7 @@ public enum ProviderParser {
         if hasAnthropic {
             .anthropic(.opus4)
         } else if hasOpenAI {
-            .openai(.o3)
+            .openai(.gpt5Mini)
         } else if hasGrok {
             .grok(.grok3)
         } else {

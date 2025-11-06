@@ -13,15 +13,26 @@ struct ProviderIntegrationTests {
         static let streamMessage = "Count from 1 to 3"
     }
 
+    private static func hasEnv(_ name: String) -> Bool {
+        guard let value = ProcessInfo.processInfo.environment[name] else {
+            return false
+        }
+        return !value.isEmpty
+    }
+
+    private static var hasOpenAIKey: Bool { Self.hasEnv("OPENAI_API_KEY") }
+    private static var hasAnthropicKey: Bool { Self.hasEnv("ANTHROPIC_API_KEY") }
+    private static var hasGoogleKey: Bool { Self.hasEnv("GOOGLE_API_KEY") }
+    private static var hasMistralKey: Bool { Self.hasEnv("MISTRAL_API_KEY") }
+    private static var hasGroqKey: Bool { Self.hasEnv("GROQ_API_KEY") }
+    private static var hasGrokKey: Bool {
+        Self.hasEnv("X_AI_API_KEY") || Self.hasEnv("XAI_API_KEY")
+    }
+
     // MARK: - OpenAI Integration Tests
 
-    @Test("OpenAI Provider - Real API Call")
+    @Test("OpenAI Provider - Real API Call", .enabled(if: Self.hasOpenAIKey))
     func openAIIntegration() async throws {
-        guard ProcessInfo.processInfo.environment["OPENAI_API_KEY"] != nil else {
-            Issue.record("OPENAI_API_KEY not set, skipping integration test")
-            return
-        }
-
         let model = Model.openai(.gpt4oMini)
         let config = TachikomaConfiguration()
         _ = try await ProviderFactory.createProvider(for: model, configuration: config)
@@ -38,13 +49,8 @@ struct ProviderIntegrationTests {
         #expect(response.contains("Tachikoma"))
     }
 
-    @Test("OpenAI Provider - Tool Calling")
+    @Test("OpenAI Provider - Tool Calling", .enabled(if: Self.hasOpenAIKey))
     func openAIToolCalling() async throws {
-        guard ProcessInfo.processInfo.environment["OPENAI_API_KEY"] != nil else {
-            Issue.record("OPENAI_API_KEY not set, skipping integration test")
-            return
-        }
-
         let model = Model.openai(.gpt4oMini)
         let config = TachikomaConfiguration()
         let provider = try await ProviderFactory.createProvider(for: model, configuration: config)
@@ -81,13 +87,8 @@ struct ProviderIntegrationTests {
         #expect(response.finishReason == .toolCalls)
     }
 
-    @Test("OpenAI Provider - Streaming")
+    @Test("OpenAI Provider - Streaming", .enabled(if: Self.hasOpenAIKey))
     func openAIStreaming() async throws {
-        guard ProcessInfo.processInfo.environment["OPENAI_API_KEY"] != nil else {
-            Issue.record("OPENAI_API_KEY not set, skipping integration test")
-            return
-        }
-
         let model = Model.openai(.gpt4oMini)
         let config = TachikomaConfiguration()
         let provider = try await ProviderFactory.createProvider(for: model, configuration: config)
@@ -129,13 +130,8 @@ struct ProviderIntegrationTests {
 
     // MARK: - Anthropic Integration Tests
 
-    @Test("Anthropic Provider - Real API Call")
+    @Test("Anthropic Provider - Real API Call", .enabled(if: Self.hasAnthropicKey))
     func anthropicIntegration() async throws {
-        guard ProcessInfo.processInfo.environment["ANTHROPIC_API_KEY"] != nil else {
-            Issue.record("ANTHROPIC_API_KEY not set, skipping integration test")
-            return
-        }
-
         let model = Model.anthropic(.sonnet4)
         let response = try await generate(TestConfig.shortMessage, using: model, maxTokens: 50, temperature: 0.0)
 
@@ -143,13 +139,8 @@ struct ProviderIntegrationTests {
         #expect(response.contains("Tachikoma"))
     }
 
-    @Test("Anthropic Provider - Tool Calling")
+    @Test("Anthropic Provider - Tool Calling", .enabled(if: Self.hasAnthropicKey))
     func anthropicToolCalling() async throws {
-        guard ProcessInfo.processInfo.environment["ANTHROPIC_API_KEY"] != nil else {
-            Issue.record("ANTHROPIC_API_KEY not set, skipping integration test")
-            return
-        }
-
         let model = Model.anthropic(.sonnet4)
         let config = TachikomaConfiguration()
         let provider = try await ProviderFactory.createProvider(for: model, configuration: config)
@@ -211,16 +202,8 @@ struct ProviderIntegrationTests {
 
     // MARK: - Grok Integration Tests
 
-    @Test("Grok Provider - Real API Call")
+    @Test("Grok Provider - Real API Call", .enabled(if: Self.hasGrokKey))
     func grokIntegration() async throws {
-        guard
-            ProcessInfo.processInfo.environment["X_AI_API_KEY"] != nil ||
-            ProcessInfo.processInfo.environment["XAI_API_KEY"] != nil else
-        {
-            Issue.record("X_AI_API_KEY/XAI_API_KEY not set, skipping integration test")
-            return
-        }
-
         let model = Model.grok(.grok3)
         let response = try await generate(TestConfig.shortMessage, using: model, maxTokens: 50, temperature: 0.0)
 
@@ -230,13 +213,8 @@ struct ProviderIntegrationTests {
 
     // MARK: - Google Integration Tests
 
-    @Test("Google Provider - Real API Call")
+    @Test("Google Provider - Real API Call", .enabled(if: Self.hasGoogleKey))
     func googleIntegration() async throws {
-        guard ProcessInfo.processInfo.environment["GOOGLE_API_KEY"] != nil else {
-            Issue.record("GOOGLE_API_KEY not set, skipping integration test")
-            return
-        }
-
         let model = Model.google(.gemini15Flash)
         let response = try await generate(TestConfig.shortMessage, using: model, maxTokens: 50, temperature: 0.0)
 
@@ -246,13 +224,8 @@ struct ProviderIntegrationTests {
 
     // MARK: - Mistral Integration Tests
 
-    @Test("Mistral Provider - Real API Call")
+    @Test("Mistral Provider - Real API Call", .enabled(if: Self.hasMistralKey))
     func mistralIntegration() async throws {
-        guard ProcessInfo.processInfo.environment["MISTRAL_API_KEY"] != nil else {
-            Issue.record("MISTRAL_API_KEY not set, skipping integration test")
-            return
-        }
-
         let model = Model.mistral(.small)
         let response = try await generate(TestConfig.shortMessage, using: model, maxTokens: 50, temperature: 0.0)
 
@@ -262,13 +235,8 @@ struct ProviderIntegrationTests {
 
     // MARK: - Groq Integration Tests
 
-    @Test("Groq Provider - Real API Call")
+    @Test("Groq Provider - Real API Call", .enabled(if: Self.hasGroqKey))
     func groqIntegration() async throws {
-        guard ProcessInfo.processInfo.environment["GROQ_API_KEY"] != nil else {
-            Issue.record("GROQ_API_KEY not set, skipping integration test")
-            return
-        }
-
         let model = Model.groq(.llama38b)
         let response = try await generate(TestConfig.shortMessage, using: model, maxTokens: 50, temperature: 0.0)
 
@@ -278,13 +246,8 @@ struct ProviderIntegrationTests {
 
     // MARK: - Multi-Modal Integration Tests
 
-    @Test("Multi-Modal Provider - Vision Support")
+    @Test("Multi-Modal Provider - Vision Support", .enabled(if: Self.hasOpenAIKey))
     func multiModalVision() async throws {
-        guard ProcessInfo.processInfo.environment["OPENAI_API_KEY"] != nil else {
-            Issue.record("OPENAI_API_KEY not set, skipping integration test")
-            return
-        }
-
         let model = Model.openai(.gpt4o)
         let config = TachikomaConfiguration()
         let provider = try await ProviderFactory.createProvider(for: model, configuration: config)

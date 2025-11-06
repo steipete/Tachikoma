@@ -566,7 +566,15 @@ struct AICLI {
     static func isReasoningModel(_ model: LanguageModel) -> Bool {
         guard case let .openai(openaiModel) = model else { return false }
         switch openaiModel {
-        case .o3, .o3Mini, .o3Pro, .o4Mini, .gpt5, .gpt5Mini, .gpt5Nano:
+        case .o4Mini,
+             .gpt5,
+             .gpt5Pro,
+             .gpt5Mini,
+             .gpt5Nano,
+             .gpt5Thinking,
+             .gpt5ThinkingMini,
+             .gpt5ThinkingNano,
+             .gpt5ChatLatest:
             return true
         default:
             return false
@@ -792,7 +800,7 @@ struct AICLI {
             case .sonnet4, .sonnet4Thinking:
                 inputCostPer1k = 0.003
                 outputCostPer1k = 0.015
-            case .haiku35:
+            case .haiku45:
                 inputCostPer1k = 0.0008
                 outputCostPer1k = 0.004
             default: return nil

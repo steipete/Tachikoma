@@ -465,8 +465,8 @@ Compile-time safety with provider-specific enums and full autocomplete support:
 
 ```swift
 // Provider-specific models with compile-time checking
-.openai(.gpt4o, .gpt41, .o3, .o3Mini, .custom("ft:gpt-4o:org:abc"))
-.anthropic(.opus4, .sonnet4, .haiku35, .opus4Thinking)
+.openai(.gpt4o, .gpt41, .gpt5Mini, .custom("ft:gpt-4o:org:abc"))
+.anthropic(.opus4, .sonnet4, .haiku45, .opus4Thinking)
 .grok(.grok4, .grok40709, .grok2Vision1212)
 .ollama(.llama33, .llama32, .llava, .codellama)
 .google(.gemini2Flash, .gemini15Pro)
@@ -474,13 +474,13 @@ Compile-time safety with provider-specific enums and full autocomplete support:
 .groq(.llama3170b, .mixtral8x7b)
 
 // Third-party aggregators
-.openRouter(modelId: "anthropic/claude-3.5-sonnet")
+.openRouter(modelId: "anthropic/claude-sonnet-4.5")
 .together(modelId: "meta-llama/Llama-2-70b-chat-hf")
 .replicate(modelId: "meta/llama-2-70b-chat")
 
 // Custom endpoints
 .openaiCompatible(modelId: "gpt-4", baseURL: "https://api.azure.com")
-.anthropicCompatible(modelId: "claude-3-opus", baseURL: "https://api.custom.ai")
+.anthropicCompatible(modelId: "claude-opus-4-1-20250805", baseURL: "https://api.custom.ai")
 ```
 
 ### Core Generation Functions
@@ -544,7 +544,7 @@ Enhanced capabilities inspired by OpenAI Harmony patterns:
 ```swift
 // Multi-channel responses
 let result = try await generateText(
-    model: .openai(.o3),
+    model: .openai(.gpt5Mini),
     messages: messages,
     settings: GenerationSettings(reasoningEffort: .high)
 )
@@ -633,7 +633,7 @@ let result = try await generateText(
 
 // O3/O4 reasoning models with effort levels
 let reasoning = try await generateText(
-    model: .openai(.o3),
+    model: .openai(.gpt5Mini),
     messages: messages,
     settings: GenerationSettings(
         providerOptions: .init(
@@ -812,8 +812,8 @@ The `LanguageModel` enum provides compile-time safety and autocomplete for all s
 ```swift
 public enum LanguageModel: Sendable, CustomStringConvertible {
     // Major providers with sub-enums
-    case openai(OpenAI)      // .gpt4o, .gpt41, .o3, .o3Mini, .o4Mini
-    case anthropic(Anthropic) // .opus4, .sonnet4, .haiku35, .opus4Thinking
+    case openai(OpenAI)      // .gpt4o, .gpt41, .gpt5Mini, .o4Mini
+    case anthropic(Anthropic) // .opus4, .sonnet4, .haiku45, .opus4Thinking
     case grok(Grok)          // .grok4, .grok40709, .grok2Vision1212
     case ollama(Ollama)      // .llama33, .llama32, .llava, .codellama
     case google(Google)      // .gemini2Flash, .gemini15Pro

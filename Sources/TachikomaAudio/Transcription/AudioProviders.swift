@@ -1,5 +1,34 @@
+import Darwin
 import Foundation
 import Tachikoma // For TachikomaError and TachikomaConfiguration
+
+private enum AudioProviderEnvironment {
+    static func mockModeEnabled() -> Bool {
+        if
+            let disablePointer = getenv("TACHIKOMA_DISABLE_API_TESTS"),
+            String(cString: disablePointer).lowercased() == "true"
+        {
+            return true
+        }
+
+        if
+            let mockPointer = getenv("TACHIKOMA_TEST_MODE"),
+            String(cString: mockPointer).lowercased() == "mock"
+        {
+            return true
+        }
+
+        return false
+    }
+
+    static func environmentValue(for key: String) -> String? {
+        guard let pointer = getenv(key) else {
+            return nil
+        }
+        let value = String(cString: pointer)
+        return value.isEmpty ? nil : value
+    }
+}
 
 // MARK: - Provider Protocols
 
@@ -106,10 +135,7 @@ public struct TranscriptionProviderFactory {
     ) throws
     -> any TranscriptionProvider {
         // Check if API tests are disabled
-        if
-            ProcessInfo.processInfo.environment["TACHIKOMA_DISABLE_API_TESTS"] == "true" ||
-            ProcessInfo.processInfo.environment["TACHIKOMA_TEST_MODE"] == "mock"
-        {
+        if AudioProviderEnvironment.mockModeEnabled() {
             // Even in mock mode, validate API keys if explicitly testing missing key scenarios
             let providerName = model.providerName.lowercased()
             if !configuration.hasAPIKey(for: providerName) {
@@ -142,10 +168,7 @@ public struct SpeechProviderFactory {
     ) throws
     -> any SpeechProvider {
         // Check if API tests are disabled
-        if
-            ProcessInfo.processInfo.environment["TACHIKOMA_DISABLE_API_TESTS"] == "true" ||
-            ProcessInfo.processInfo.environment["TACHIKOMA_TEST_MODE"] == "mock"
-        {
+        if AudioProviderEnvironment.mockModeEnabled() {
             // Even in mock mode, validate API keys if explicitly testing missing key scenarios
             let providerName = model.providerName.lowercased()
             if !configuration.hasAPIKey(for: providerName) {
@@ -182,7 +205,7 @@ public struct AudioConfiguration {
         // Then check environment variables with common patterns
         let envKeys = self.environmentKeys(for: provider)
         for key in envKeys {
-            if let value = ProcessInfo.processInfo.environment[key], !value.isEmpty {
+            if let value = AudioProviderEnvironment.environmentValue(for: key) {
                 return value
             }
         }

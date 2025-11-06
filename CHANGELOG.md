@@ -5,6 +5,32 @@ All notable changes to the Tachikoma project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+- Removed deprecated OpenAI reasoning models (`o1`, `o1-mini`, `o3`, `o3-mini`) in favour of the GPT‑5 family plus `o4-mini`, updating enums, provider factories, capability tables, prompts, and documentation metadata accordingly.
+- Pruned Anthropic model support to the Claude 4.x line (Opus 4, Sonnet 4 / 4.5, Haiku 4.5) to match current API availability and reduce maintenance burden.
+- `TachikomaConfiguration` now loads credentials first and lets environment variables override them so operators can supersede stored settings without editing credentials files.
+- `Provider.environmentValue` falls back to classic `getenv` lookups when the modern configuration reader returns no value, ensuring environment overrides succeed on macOS 14 deployments.
+
+### Fixed
+- `retryWithCancellation` now registers token handlers per-attempt and cancels in-flight work, resolving hangs when external cancellation should short-circuit retries.
+- Audio provider tests and helpers consistently force mock mode when exercising stub audio payloads, preventing accidental live API calls that fail to decode fixtures.
+- `TestHelpers` expose discardable configuration helpers and stricter mock-key detection, reducing compiler warnings and flaky skips.
+- OpenAI transcription timestamp tests no longer hit the live API and succeed reliably under both mock and real key configurations.
+
+### Testing
+- Integration suites now respect real API keys loaded from the environment, covering Anthropic Sonnet 4 tool-calling, OpenAI GPT‑5 responses, Grok/Grok vision flows, and Google/Mistral smoke tests.
+- Full `INTEGRATION_TESTS=1 swift test` runs complete without recorded issues, including agent ergonomics and audio suites.
+
+### Planned Features
+- Enhanced caching with persistence and TTL
+- Bidirectional streaming support
+- Request batching for high-volume usage
+- Advanced error recovery mechanisms
+- Metrics collection and monitoring
+- Distributed caching support
+
 ## [1.0.0] - 2025-01-XX
 
 ### Added
@@ -128,18 +154,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - tvOS 17.0+
 - Swift 6.0+
 - Xcode 16.0+
-
-## [Unreleased]
-
-### Planned Features
-- Enhanced caching with persistence and TTL
-- Bidirectional streaming support
-- Request batching for high-volume usage
-- Advanced error recovery mechanisms
-- Metrics collection and monitoring
-- Distributed caching support
-
----
 
 ## Version History
 

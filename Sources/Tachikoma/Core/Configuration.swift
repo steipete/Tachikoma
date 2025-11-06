@@ -241,9 +241,9 @@ public final class TachikomaConfiguration: @unchecked Sendable {
 
     /// Load configuration from environment variables and credentials
     private func loadConfiguration() {
-        // Load configuration from environment variables and credentials
-        self.loadFromEnvironment()
+        // Load credentials first (baseline), then let environment override
         self.loadFromCredentials()
+        self.loadFromEnvironment()
     }
 
     /// Load configuration from environment variables

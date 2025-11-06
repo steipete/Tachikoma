@@ -57,10 +57,15 @@ struct OpenAIResponsesProviderTests {
 
     @Test("Reasoning models use Responses API")
     func reasoningModelsUseResponsesAPI() throws {
-        // Test that o3/o4 models also use the OpenAIResponsesProvider
+        // Test that reasoning-oriented models also use the OpenAIResponsesProvider
         let config = TachikomaConfiguration.current
 
-        let reasoningModels: [LanguageModel.OpenAI] = [.o3, .o3Mini, .o4Mini]
+        let reasoningModels: [LanguageModel.OpenAI] = [
+            .o4Mini,
+            .gpt5,
+            .gpt5Mini,
+            .gpt5Thinking,
+        ]
 
         for model in reasoningModels {
             let provider = try ProviderFactory.createProvider(

@@ -517,9 +517,6 @@ public struct ModelCostCalculator: Sendable {
         // OpenAI Pricing (as of 2025)
         case let .openai(openaiModel):
             switch openaiModel {
-            case .o3: (60.00, 240.00)
-            case .o3Mini: (1.00, 4.00)
-            case .o3Pro: (120.00, 480.00)
             case .o4Mini: (1.50, 6.00)
             case .gpt5: (5.00, 20.00) // GPT-5 pricing estimate
             case .gpt5Pro: (12.00, 48.00) // Higher reasoning budget
@@ -544,14 +541,7 @@ public struct ModelCostCalculator: Sendable {
             case .opus4, .opus4Thinking: (15.00, 75.00)
             case .sonnet4, .sonnet4Thinking: (3.00, 15.00)
             case .sonnet45: (4.00, 18.00)
-            case .sonnet37: (3.00, 15.00)
-            case .opus35: (15.00, 75.00)
-            case .sonnet35: (3.00, 15.00)
             case .haiku45: (1.20, 6.00)
-            case .haiku35: (0.80, 4.00)
-            case .opus3: (15.00, 75.00)
-            case .sonnet3: (3.00, 15.00)
-            case .haiku3: (0.25, 1.25)
             case .custom: (3.00, 15.00) // Default estimate
             }
         // Google Pricing (estimates)

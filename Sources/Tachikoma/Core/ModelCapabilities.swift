@@ -236,10 +236,15 @@ public final class ModelCapabilityRegistry: @unchecked Sendable {
         )
 
         self.capabilities["openai:gpt-5"] = gpt5Capabilities
+        self.capabilities["openai:gpt-5-pro"] = gpt5Capabilities
         self.capabilities["openai:gpt-5-mini"] = gpt5Capabilities
         self.capabilities["openai:gpt-5-nano"] = gpt5Capabilities
+        self.capabilities["openai:gpt-5-thinking"] = gpt5Capabilities
+        self.capabilities["openai:gpt-5-thinking-mini"] = gpt5Capabilities
+        self.capabilities["openai:gpt-5-thinking-nano"] = gpt5Capabilities
+        self.capabilities["openai:gpt-5-chat-latest"] = gpt5Capabilities
 
-        // O3/O4 Series (Reasoning models with fixed temperature)
+        // O4/GPT-5 reasoning models (fixed temperature, reasoning effort)
         let reasoningCapabilities = ModelParameterCapabilities(
             supportsTemperature: false,
             supportsTopP: false,
@@ -251,26 +256,8 @@ public final class ModelCapabilityRegistry: @unchecked Sendable {
             excludedParameters: ["temperature", "topP"]
         )
 
-        self.capabilities["openai:o3"] = reasoningCapabilities
-        self.capabilities["openai:o3-mini"] = reasoningCapabilities
-        self.capabilities["openai:o3-pro"] = reasoningCapabilities
         self.capabilities["openai:o4"] = reasoningCapabilities
         self.capabilities["openai:o4-mini"] = reasoningCapabilities
-
-        // O1 Series (Earlier reasoning models)
-        let o1Capabilities = ModelParameterCapabilities(
-            supportsTemperature: false,
-            supportsTopP: false,
-            supportsFrequencyPenalty: false,
-            supportsPresencePenalty: false,
-            forcedTemperature: 1.0,
-            excludedParameters: ["temperature", "topP", "frequencyPenalty", "presencePenalty"]
-        )
-
-        // O1 models were renamed to O3 in the API
-        // Keep the capabilities registered for backward compatibility
-        self.capabilities["openai:o1-preview"] = o1Capabilities
-        self.capabilities["openai:o1-mini"] = o1Capabilities
 
         // Standard GPT-4 models
         let gpt4Capabilities = ModelParameterCapabilities(
@@ -297,16 +284,8 @@ public final class ModelCapabilityRegistry: @unchecked Sendable {
 
         self.capabilities["anthropic:claude-opus-4-1-20250805"] = claude4Capabilities
         self.capabilities["anthropic:claude-sonnet-4-20250514"] = claude4Capabilities
-
-        // Claude 3.7 with thinking
-        let claude37Capabilities = ModelParameterCapabilities(
-            supportedProviderOptions: .init(
-                supportsThinking: true,
-                supportsCacheControl: true
-            )
-        )
-
-        self.capabilities["anthropic:claude-3-7-sonnet"] = claude37Capabilities
+        self.capabilities["anthropic:claude-sonnet-4-5-20250929"] = claude4Capabilities
+        self.capabilities["anthropic:claude-haiku-4.5"] = claude4Capabilities
 
         // Google Gemini with thinking
         let geminiCapabilities = ModelParameterCapabilities(

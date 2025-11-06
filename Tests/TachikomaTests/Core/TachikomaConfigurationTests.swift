@@ -3,7 +3,7 @@ import Testing
 @testable import Tachikoma
 @testable import TachikomaAgent
 
-@Suite("TachikomaConfiguration Tests")
+@Suite("TachikomaConfiguration Tests", .serialized)
 struct TachikomaConfigurationTests {
     @Suite("Instance Creation Tests")
     struct InstanceCreationTests {

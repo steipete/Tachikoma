@@ -48,7 +48,7 @@ struct LMStudioProviderTests {
         #expect(model2.providerName == "LMStudio")
 
         #expect(model1.modelId == "gpt-oss:120b")
-        #expect(model2.modelId == "gpt-oss-20b")
+        #expect(model2.modelId == "gpt-oss-120b")
     }
 
     @Test("Provider factory creation")

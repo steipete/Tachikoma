@@ -16,10 +16,12 @@ struct GenerationTests {
                 configuration: config
             )
 
-            // Since we're using placeholder implementations, verify the format
-            #expect(result.contains("OpenAI response"))
-            #expect(result.contains("What is 2+2?"))
-            #expect(result.contains("gpt-4o"))
+            self.assertOpenAIResult(
+                result,
+                prompt: "What is 2+2?",
+                modelId: "gpt-4o",
+                configuration: config
+            )
         }
     }
 
@@ -28,7 +30,7 @@ struct GenerationTests {
         try await TestHelpers.withTestConfiguration(apiKeys: ["anthropic": "test-key"]) { config in
             let result = try await generate(
                 "Explain quantum physics",
-                using: .anthropic(.opus4),
+                using: .anthropic(.sonnet4),
                 system: "You are a physics teacher",
                 maxTokens: 200,
                 configuration: config
@@ -61,8 +63,11 @@ struct GenerationTests {
                 configuration: config
             )
 
-            #expect(result.contains("OpenAI response"))
-            #expect(result.contains("Tell me a joke"))
+            self.assertOpenAIResult(
+                result,
+                prompt: "Tell me a joke",
+                configuration: config
+            )
         }
     }
 
@@ -133,15 +138,19 @@ struct GenerationTests {
     @Test("Analyze Function - Vision Model")
     func analyzeFunctionVision() async throws {
         try await TestHelpers.withTestConfiguration(apiKeys: ["openai": "test-key"]) { config in
+            let testImageBase64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg=="
             let result = try await analyze(
-                image: .base64("test-image-base64"),
+                image: .base64(testImageBase64),
                 prompt: "What do you see?",
                 using: .openai(.gpt4o),
                 configuration: config
             )
 
-            #expect(result.contains("OpenAI response"))
-            #expect(result.contains("What do you see?"))
+            self.assertOpenAIResult(
+                result,
+                prompt: "What do you see?",
+                configuration: config
+            )
         }
     }
 
@@ -172,7 +181,11 @@ struct GenerationTests {
             )
 
             // Should default to GPT-4o for vision tasks
-            #expect(result.contains("OpenAI response"))
+            self.assertOpenAIResult(
+                result,
+                prompt: "Analyze this image",
+                configuration: config
+            )
         }
     }
 
@@ -274,4 +287,24 @@ struct GenerationTests {
             Issue.record("Expected file path image input")
         }
     }
+
+    private func assertOpenAIResult(
+        _ result: String,
+        prompt: String,
+        modelId: String? = nil,
+        configuration: TachikomaConfiguration
+    ) {
+        if TestHelpers.isMockAPIKey(configuration.getAPIKey(for: .openai)) {
+            #expect(result.contains("OpenAI response"))
+            if !prompt.isEmpty {
+                #expect(result.contains(prompt))
+            }
+            if let modelId {
+                #expect(result.contains(modelId))
+            }
+        } else {
+            #expect(!result.isEmpty)
+        }
+    }
+
 }

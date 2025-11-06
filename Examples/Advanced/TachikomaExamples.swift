@@ -56,13 +56,13 @@ extension TachikomaExamples {
 
         // OpenAI models
         let gpt4o = Model.openai(.gpt4o)
-        let gpt41 = Model.openai(.gpt4_1)
-        let openAIo3 = Model.openai(.o3)
+        let gpt41 = Model.openai(.gpt41)
+        let gpt5Mini = Model.openai(.gpt5Mini)
 
         // Anthropic models
         let opus4 = Model.anthropic(.opus4)
         let sonnet4 = Model.anthropic(.sonnet4)
-        let haiku35 = Model.anthropic(.haiku3_5)
+        let haiku45 = Model.anthropic(.haiku45)
 
         // Grok models
         let grok4 = Model.grok(.grok4)
@@ -73,16 +73,16 @@ extension TachikomaExamples {
         let llava = Model.ollama(.llava)
 
         // Custom endpoints
-        let openRouter = Model.openRouter(modelId: "anthropic/claude-3.5-sonnet")
+        let openRouter = Model.openRouter(modelId: "anthropic/claude-sonnet-4.5")
         let customAPI = Model.openaiCompatible(modelId: "gpt-4", baseURL: "https://api.azure.com")
 
         let models = [
             gpt4o,
             gpt41,
-            o3,
+            gpt5Mini,
             opus4,
             sonnet4,
-            haiku35,
+            haiku45,
             grok4,
             grok2Vision,
             llama33,

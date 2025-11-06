@@ -4103,203 +4103,66 @@ Ready to get started? Here's how you can dive in:
 4. Check out ready-to-deploy AI templates at [vercel.com/templates?type=ai](https://vercel.com/templates?type=ai).
 
 ---
-title: Get started with OpenAI o1
-description: Get started with OpenAI o1 using the AI SDK.
+title: Get started with OpenAI GPT-5 mini
+description: Build GPT-5 powered apps with the AI SDK.
 tags: ['getting-started', 'reasoning']
 ---
 
-# Get started with OpenAI o1
+# Get started with OpenAI GPT-5 mini
 
-With the [release of OpenAI's o1 series models](https://openai.com/index/introducing-openai-o1-preview/), there has never been a better time to start building AI applications, particularly those that require complex reasoning capabilities.
+OpenAI's GPT-5 family (released August 2025) delivers state-of-the-art reasoning, multimodal understanding, and tool execution. `gpt-5-mini` balances cost and capability, making it the default Tachikoma and Peekaboo agent model.
 
-The [AI SDK](/) is a powerful TypeScript toolkit for building AI applications with large language models (LLMs) like OpenAI o1 alongside popular frameworks like React, Next.js, Vue, Svelte, Node.js, and more.
+The [AI SDK](/) provides a single API for integrating GPT-5 with frameworks like React, Next.js, Vue, and Svelte. This guide shows how to wire up `gpt-5-mini` using modern AI SDK patterns.
 
-## OpenAI o1
+## GPT-5 model overview
 
-OpenAI released a series of AI models designed to spend more time thinking before responding. They can reason through complex tasks and solve harder problems than previous models in science, coding, and math. These models, named the o1 series, are trained with reinforcement learning and can "think before they answer". As a result, they are able to produce a long internal chain of thought before responding to a prompt.
+| Model           | Streaming | Tools | Vision | Reasoning Effort | Context |
+| -------------- | --------- | ----- | ------ | ---------------- | ------- |
+| gpt-5          | ✅        | ✅    | ✅     | Auto             | 400K    |
+| gpt-5-pro      | ✅        | ✅    | ✅     | Configurable     | 400K    |
+| gpt-5-mini     | ✅        | ✅    | ✅     | Auto             | 400K    |
+| gpt-5-nano     | ✅        | ✅    | ✅     | Auto             | 200K    |
+| gpt-5-thinking | ✅        | ✅    | ✅     | Extended         | 400K    |
 
-There are three reasoning models available in the API:
+All GPT-5 variants support multimodal inputs (text + images + audio), structured tool calls, and the Responses API. The `gpt-5-thinking` models additionally expose extended reasoning traces when the `reasoningEffort` provider option is enabled.
 
-1. [**o1**](https://platform.openai.com/docs/models#o1): Designed to reason about hard problems using broad general knowledge about the world.
-1. [**o1-preview**](https://platform.openai.com/docs/models#o1): The original preview version of o1 - slower than o1 but supports streaming.
-1. [**o1-mini**](https://platform.openai.com/docs/models#o1): A faster and cheaper version of o1, particularly adept at coding, math, and science tasks where extensive general knowledge isn't required. o1-mini supports streaming.
-
-| Model      | Streaming           | Tools               | Object Generation   | Reasoning Effort    |
-| ---------- | ------------------- | ------------------- | ------------------- | ------------------- |
-| o1         | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| o1-preview | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
-| o1-mini    | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
-
-### Benchmarks
-
-OpenAI o1 models excel in scientific reasoning, with impressive performance across various domains:
-
-- Ranking in the 89th percentile on competitive programming questions (Codeforces)
-- Placing among the top 500 students in the US in a qualifier for the USA Math Olympiad (AIME)
-- Exceeding human PhD-level accuracy on a benchmark of physics, biology, and chemistry problems (GPQA)
-
-[Source](https://openai.com/index/learning-to-reason-with-llms/)
-
-### Prompt Engineering for o1 Models
-
-The o1 models perform best with straightforward prompts. Some prompt engineering techniques, like few-shot prompting or instructing the model to "think step by step," may not enhance performance and can sometimes hinder it. Here are some best practices:
-
-1. Keep prompts simple and direct: The models excel at understanding and responding to brief, clear instructions without the need for extensive guidance.
-2. Avoid chain-of-thought prompts: Since these models perform reasoning internally, prompting them to "think step by step" or "explain your reasoning" is unnecessary.
-3. Use delimiters for clarity: Use delimiters like triple quotation marks, XML tags, or section titles to clearly indicate distinct parts of the input, helping the model interpret different sections appropriately.
-4. Limit additional context in retrieval-augmented generation (RAG): When providing additional context or documents, include only the most relevant information to prevent the model from overcomplicating its response.
-
-## Getting Started with the AI SDK
-
-The AI SDK is the TypeScript toolkit designed to help developers build AI-powered applications with React, Next.js, Vue, Svelte, Node.js, and more. Integrating LLMs into applications is complicated and heavily dependent on the specific model provider you use.
-
-The AI SDK abstracts away the differences between model providers, eliminates boilerplate code for building chatbots, and allows you to go beyond text output to generate rich, interactive components.
-
-At the center of the AI SDK is [AI SDK Core](/docs/ai-sdk-core/overview), which provides a unified API to call any LLM. The code snippet below is all you need to call OpenAI o1-mini with the AI SDK:
+## Calling GPT-5 with the AI SDK
 
 ```ts
 import { generateText } from 'ai';
 import { openai } from '@ai-sdk/openai';
 
 const { text } = await generateText({
-  model: openai('o1-mini'),
-  prompt: 'Explain the concept of quantum entanglement.',
+  model: openai('gpt-5-mini'),
+  prompt: 'Summarize today's peak solar output in 3 bullet points.'
 });
 ```
 
-<Note>
-  To use the o1 series of models, you must either be using @ai-sdk/openai
-  version 0.0.59 or greater, or set `temperature: 1`.
-</Note>
-
-AI SDK Core abstracts away the differences between model providers, allowing you to focus on building great applications. The unified interface also means that you can easily switch between models by changing just one line of code.
-
-```ts highlight="5"
-import { generateText } from 'ai';
-import { openai } from '@ai-sdk/openai';
-
-const { text } = await generateText({
-  model: openai('o1'),
-  prompt: 'Explain the concept of quantum entanglement.',
-});
-```
-
-<Note>
-  System messages are automatically converted to OpenAI developer messages.
-</Note>
-
-### Refining Reasoning Effort
-
-You can control the amount of reasoning effort expended by o1 through the `reasoningEffort` parameter.
-This parameter can be set to `'low'`, `'medium'`, or `'high'` to adjust how much time and computation the model spends on internal reasoning before producing a response.
-
-```ts highlight="9"
-import { generateText } from 'ai';
-import { openai } from '@ai-sdk/openai';
-
-// Reduce reasoning effort for faster responses
-const { text } = await generateText({
-  model: openai('o1'),
-  prompt: 'Explain quantum entanglement briefly.',
-  providerOptions: {
-    openai: { reasoningEffort: 'low' },
-  },
-});
-```
-
-<Note>
-  The `reasoningEffort` parameter is only supported by o1 and has no effect on
-  other models.
-</Note>
-
-### Generating Structured Data
-
-While text generation can be useful, you might want to generate structured JSON data. For example, you might want to extract information from text, classify data, or generate synthetic data. AI SDK Core provides two functions ([`generateObject`](/docs/reference/ai-sdk-core/generate-object) and [`streamObject`](/docs/reference/ai-sdk-core/stream-object)) to generate structured data, allowing you to constrain model outputs to a specific schema.
+The AI SDK automatically handles Responses vs. Chat API routing. You can adjust reasoning effort when using the thinking models:
 
 ```ts
-import { generateObject } from 'ai';
-import { openai } from '@ai-sdk/openai';
-import { z } from 'zod';
-
-const { object } = await generateObject({
-  model: openai('o1'),
-  schema: z.object({
-    recipe: z.object({
-      name: z.string(),
-      ingredients: z.array(z.object({ name: z.string(), amount: z.string() })),
-      steps: z.array(z.string()),
-    }),
-  }),
-  prompt: 'Generate a lasagna recipe.',
-});
-```
-
-This code snippet will generate a type-safe recipe that conforms to the specified zod schema.
-
-<Note>
-  Structured object generation is only supported with o1, not o1-preview or
-  o1-mini.
-</Note>
-
-### Tools
-
-While LLMs have incredible generation capabilities, they struggle with discrete tasks (e.g. mathematics) and interacting with the outside world (e.g. getting the weather). The solution: [tools](/docs/foundations/tools), which are like programs that you provide to the model, which it can choose to call as necessary.
-
-### Using Tools with the AI SDK
-
-The AI SDK supports tool usage across several of its functions, like [`generateText`](/docs/reference/ai-sdk-core/generate-text) and [`streamText`](/docs/reference/ai-sdk-core/stream-text). By passing one or more tools to the `tools` parameter, you can extend the capabilities of LLMs, allowing them to perform discrete tasks and interact with external systems.
-
-Here's an example of how you can use a tool with the AI SDK and o1:
-
-```ts
-import { generateText, tool } from 'ai';
-import { openai } from '@ai-sdk/openai';
-import { z } from 'zod';
-
 const { text } = await generateText({
-  model: openai('o1'),
-  prompt: 'What is the weather like today?',
-  tools: {
-    getWeather: tool({
-      description: 'Get the weather in a location',
-      inputSchema: z.object({
-        location: z.string().describe('The location to get the weather for'),
-      }),
-      execute: async ({ location }) => ({
-        location,
-        temperature: 72 + Math.floor(Math.random() * 21) - 10,
-      }),
-    }),
-  },
+  model: openai('gpt-5-thinking'),
+  prompt: 'Design a safe rollout plan for autonomous delivery robots.',
+  providerOptions: { openai: { reasoningEffort: 'high' } },
 });
 ```
 
-In this example, the `getWeather` tool allows the model to fetch real-time weather data (simulated for simplicity), enhancing its ability to provide accurate and up-to-date information.
+## Building chat UIs
 
-<Note>Tools are only compatible with o1, not o1-preview or o1-mini.</Note>
-
-### Building Interactive Interfaces
-
-AI SDK Core can be paired with [AI SDK UI](/docs/ai-sdk-ui/overview), another powerful component of the AI SDK, to streamline the process of building chat, completion, and assistant interfaces with popular frameworks like Next.js, Nuxt, and SvelteKit.
-
-AI SDK UI provides robust abstractions that simplify the complex tasks of managing chat streams and UI updates on the frontend, enabling you to develop dynamic AI-driven interfaces more efficiently.
-
-With four main hooks — [`useChat`](/docs/reference/ai-sdk-ui/use-chat), [`useCompletion`](/docs/reference/ai-sdk-ui/use-completion), and [`useObject`](/docs/reference/ai-sdk-ui/use-object) — you can incorporate real-time chat capabilities, text completions, streamed JSON, and interactive assistant features into your app.
-
-Let's explore building a chatbot with [Next.js](https://nextjs.org), the AI SDK, and OpenAI o1:
+Combine GPT-5 with `useChat` from `@ai-sdk/react` to spin up a multimodal assistant:
 
 ```tsx filename="app/api/chat/route.ts"
 import { openai } from '@ai-sdk/openai';
 import { convertToModelMessages, streamText, UIMessage } from 'ai';
 
-// Allow responses up to 5 minutes
 export const maxDuration = 300;
 
 export async function POST(req: Request) {
   const { messages }: { messages: UIMessage[] } = await req.json();
 
   const result = streamText({
-    model: openai('o1-mini'),
+    model: openai('gpt-5-mini'),
     messages: convertToModelMessages(messages),
   });
 
@@ -4327,242 +4190,107 @@ export default function Page() {
         <input name="prompt" value={input} onChange={handleInputChange} />
         <button type="submit">Submit</button>
       </form>
+      {error && <p className='error'>{error.message}</p>}
     </>
   );
 }
 ```
 
-The useChat hook on your root page (`app/page.tsx`) will make a request to your AI provider endpoint (`app/api/chat/route.ts`) whenever the user submits a message. The messages are then displayed in the chat UI.
+## Next steps
 
-## Get Started
-
-Ready to get started? Here's how you can dive in:
-
-1. Explore the documentation at [ai-sdk.dev/docs](/docs) to understand the full capabilities of the AI SDK.
-1. Check out our support for the o1 series of reasoning models in the [OpenAI Provider](/providers/ai-sdk-providers/openai#reasoning-models).
-1. Check out practical examples at [ai-sdk.dev/examples](/examples) to see the SDK in action and get inspired for your own projects.
-1. Dive deeper with advanced guides on topics like Retrieval-Augmented Generation (RAG) and multi-modal chat at [ai-sdk.dev/docs/guides](/docs/guides).
-1. Check out ready-to-deploy AI templates at [vercel.com/templates?type=ai](https://vercel.com/templates?type=ai).
-
+1. Review the [OpenAI provider guide](/providers/ai-sdk-providers/openai) for GPT-5-specific options like response format and logprobs.
+2. Explore multimodal input helpers in [`convertToModelMessages`](/docs/reference/ai-sdk-core/convert-to-model-messages).
+3. Enable [reasoning summaries](/docs/reference/ai-sdk-providers/openai#reasoning) when you need auditable chains of thought.
+4. Pair GPT-5 with tool calling using [`tool`](/docs/reference/ai-sdk-core/tool) to orchestrate deterministic actions.
 ---
-title: Get started with OpenAI o3-mini
-description: Get started with OpenAI o3-mini using the AI SDK.
+title: Get started with OpenAI o4-mini
+description: Build reasoning workflows with OpenAI o4-mini and the AI SDK.
 tags: ['getting-started', 'reasoning']
 ---
 
-# Get started with OpenAI o3-mini
+# Get started with OpenAI o4-mini
 
-With the [release of OpenAI's o3-mini model](https://openai.com/index/openai-o3-mini/), there has never been a better time to start building AI applications, particularly those that require complex STEM reasoning capabilities.
+`o4-mini` is OpenAI's lightweight reasoning model that bridges standard GPT-4o capabilities with GPT-5 thinking. It supports images, audio, tool calling, and the Responses API with deterministic reasoning summaries.
 
-The [AI SDK](/) is a powerful TypeScript toolkit for building AI applications with large language models (LLMs) like OpenAI o3-mini alongside popular frameworks like React, Next.js, Vue, Svelte, Node.js, and more.
+## Model capabilities
 
-## OpenAI o3-mini
+| Feature             | Support |
+| ------------------- | ------- |
+| Vision input        | ✅ |
+| Audio input         | ✅ |
+| Tool calling        | ✅ |
+| Reasoning summaries | ✅ |
+| Streaming           | ✅ |
+| Max context         | 128K tokens |
 
-OpenAI recently released a new AI model optimized for STEM reasoning that excels in science, math, and coding tasks. o3-mini matches o1's performance in these domains while delivering faster responses and lower costs. The model supports tool calling, structured outputs, and system messages, making it a great option for a wide range of applications.
+Use `o4-mini` when you need faster turnaround than GPT-5 but still want controllable reasoning outputs.
 
-o3-mini offers three reasoning effort levels:
-
-1. [**Low**]: Optimized for speed while maintaining solid reasoning capabilities
-2. [**Medium**]: Balanced approach matching o1's performance levels
-3. [**High**]: Enhanced reasoning power exceeding o1 in many STEM domains
-
-| Model   | Streaming           | Tool Calling        | Structured Output   | Reasoning Effort    | Image Input         |
-| ------- | ------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
-| o3-mini | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
-
-### Benchmarks
-
-OpenAI o3-mini demonstrates impressive performance across technical domains:
-
-- 87.3% accuracy on AIME competition math questions
-- 79.7% accuracy on PhD-level science questions (GPQA Diamond)
-- 2130 Elo rating on competitive programming (Codeforces)
-- 49.3% accuracy on verified software engineering tasks (SWE-bench)
-
-<Note>These benchmark results are using high reasoning effort setting.</Note>
-
-[Source](https://openai.com/index/openai-o3-mini/)
-
-### Prompt Engineering for o3-mini
-
-The o3-mini model performs best with straightforward prompts. Some prompt engineering techniques, like few-shot prompting or instructing the model to "think step by step," may not enhance performance and can sometimes hinder it. Here are some best practices:
-
-1. Keep prompts simple and direct: The model excels at understanding and responding to brief, clear instructions without the need for extensive guidance.
-2. Avoid chain-of-thought prompts: Since the model performs reasoning internally, prompting it to "think step by step" or "explain your reasoning" is unnecessary.
-3. Use delimiters for clarity: Use delimiters like triple quotation marks, XML tags, or section titles to clearly indicate distinct parts of the input.
-
-## Getting Started with the AI SDK
-
-The AI SDK is the TypeScript toolkit designed to help developers build AI-powered applications with React, Next.js, Vue, Svelte, Node.js, and more. Integrating LLMs into applications is complicated and heavily dependent on the specific model provider you use.
-
-The AI SDK abstracts away the differences between model providers, eliminates boilerplate code for building chatbots, and allows you to go beyond text output to generate rich, interactive components.
-
-At the center of the AI SDK is [AI SDK Core](/docs/ai-sdk-core/overview), which provides a unified API to call any LLM. The code snippet below is all you need to call OpenAI o3-mini with the AI SDK:
+## Quick start
 
 ```ts
 import { generateText } from 'ai';
 import { openai } from '@ai-sdk/openai';
 
-const { text } = await generateText({
-  model: openai('o3-mini'),
-  prompt: 'Explain the concept of quantum entanglement.',
-});
-```
-
-<Note>
-  To use o3-mini, you must be using @ai-sdk/openai version 1.1.9 or greater.
-</Note>
-
-<Note>
-  System messages are automatically converted to OpenAI developer messages.
-</Note>
-
-### Refining Reasoning Effort
-
-You can control the amount of reasoning effort expended by o3-mini through the `reasoningEffort` parameter.
-This parameter can be set to `low`, `medium`, or `high` to adjust how much time and computation the model spends on internal reasoning before producing a response.
-
-```ts highlight="9"
-import { generateText } from 'ai';
-import { openai } from '@ai-sdk/openai';
-
-// Reduce reasoning effort for faster responses
-const { text } = await generateText({
-  model: openai('o3-mini'),
-  prompt: 'Explain quantum entanglement briefly.',
+const { text, usage } = await generateText({
+  model: openai('o4-mini'),
+  prompt: 'List three real-world uses for o4-mini in robotics.',
   providerOptions: {
-    openai: { reasoningEffort: 'low' },
-  },
+    openai: { reasoningEffort: 'medium' }
+  }
 });
 ```
 
-### Generating Structured Data
+`usage` contains input/output token counts so you can track spend precisely.
 
-While text generation can be useful, you might want to generate structured JSON data. For example, you might want to extract information from text, classify data, or generate synthetic data. AI SDK Core provides two functions ([`generateObject`](/docs/reference/ai-sdk-core/generate-object) and [`streamObject`](/docs/reference/ai-sdk-core/stream-object)) to generate structured data, allowing you to constrain model outputs to a specific schema.
-
-```ts
-import { generateObject } from 'ai';
-import { openai } from '@ai-sdk/openai';
-import { z } from 'zod';
-
-const { object } = await generateObject({
-  model: openai('o3-mini'),
-  schema: z.object({
-    recipe: z.object({
-      name: z.string(),
-      ingredients: z.array(z.object({ name: z.string(), amount: z.string() })),
-      steps: z.array(z.string()),
-    }),
-  }),
-  prompt: 'Generate a lasagna recipe.',
-});
-```
-
-This code snippet will generate a type-safe recipe that conforms to the specified zod schema.
-
-### Using Tools with the AI SDK
-
-o3-mini supports tool calling out of the box, allowing it to interact with external systems and perform discrete tasks. Here's an example of using tool calling with the AI SDK:
+### Tool calling example
 
 ```ts
 import { generateText, tool } from 'ai';
 import { openai } from '@ai-sdk/openai';
 import { z } from 'zod';
 
-const { text } = await generateText({
-  model: openai('o3-mini'),
-  prompt: 'What is the weather like today in San Francisco?',
-  tools: {
-    getWeather: tool({
-      description: 'Get the weather in a location',
-      inputSchema: z.object({
-        location: z.string().describe('The location to get the weather for'),
-      }),
-      execute: async ({ location }) => ({
-        location,
-        temperature: 72 + Math.floor(Math.random() * 21) - 10,
-      }),
-    }),
-  },
+const weather = tool({
+  description: 'Fetch current weather',
+  inputSchema: z.object({ location: z.string() }),
+  execute: async ({ location }) => ({
+    location,
+    temperatureC: 22,
+    condition: 'Partly cloudy',
+  }),
+});
+
+const result = await generateText({
+  model: openai('o4-mini'),
+  prompt: 'Should I bring an umbrella to Berlin today?',
+  tools: { weather },
 });
 ```
 
-In this example, the `getWeather` tool allows the model to fetch real-time weather data (simulated for simplicity), enhancing its ability to provide accurate and up-to-date information.
-
-### Building Interactive Interfaces
-
-AI SDK Core can be paired with [AI SDK UI](/docs/ai-sdk-ui/overview), another powerful component of the AI SDK, to streamline the process of building chat, completion, and assistant interfaces with popular frameworks like Next.js, Nuxt, and SvelteKit.
-
-AI SDK UI provides robust abstractions that simplify the complex tasks of managing chat streams and UI updates on the frontend, enabling you to develop dynamic AI-driven interfaces more efficiently.
-
-With four main hooks — [`useChat`](/docs/reference/ai-sdk-ui/use-chat), [`useCompletion`](/docs/reference/ai-sdk-ui/use-completion), and [`useObject`](/docs/reference/ai-sdk-ui/use-object) — you can incorporate real-time chat capabilities, text completions, streamed JSON, and interactive assistant features into your app.
-
-Let's explore building a chatbot with [Next.js](https://nextjs.org), the AI SDK, and OpenAI o3-mini:
-
-In a new Next.js application, first install the AI SDK and the DeepSeek provider:
-
-<Snippet text="pnpm install ai @ai-sdk/openai @ai-sdk/react" />
-
-Then, create a route handler for the chat endpoint:
+### Streaming in React
 
 ```tsx filename="app/api/chat/route.ts"
 import { openai } from '@ai-sdk/openai';
 import { convertToModelMessages, streamText, UIMessage } from 'ai';
 
-// Allow responses up to 5 minutes
-export const maxDuration = 300;
+export const maxDuration = 180;
 
 export async function POST(req: Request) {
   const { messages }: { messages: UIMessage[] } = await req.json();
 
-  const result = streamText({
-    model: openai('o3-mini'),
+  const response = streamText({
+    model: openai('o4-mini'),
     messages: convertToModelMessages(messages),
   });
 
-  return result.toUIMessageStreamResponse();
+  return response.toAIStreamResponse();
 }
 ```
 
-Finally, update the root page (`app/page.tsx`) to use the `useChat` hook:
+## Further reading
 
-```tsx filename="app/page.tsx"
-'use client';
-
-import { useChat } from '@ai-sdk/react';
-
-export default function Page() {
-  const { messages, input, handleInputChange, handleSubmit, error } = useChat();
-
-  return (
-    <>
-      {messages.map(message => (
-        <div key={message.id}>
-          {message.role === 'user' ? 'User: ' : 'AI: '}
-          {message.content}
-        </div>
-      ))}
-      <form onSubmit={handleSubmit}>
-        <input name="prompt" value={input} onChange={handleInputChange} />
-        <button type="submit">Submit</button>
-      </form>
-    </>
-  );
-}
-```
-
-The useChat hook on your root page (`app/page.tsx`) will make a request to your AI provider endpoint (`app/api/chat/route.ts`) whenever the user submits a message. The messages are then displayed in the chat UI.
-
-## Get Started
-
-Ready to get started? Here's how you can dive in:
-
-1. Explore the documentation at [ai-sdk.dev/docs](/docs) to understand the full capabilities of the AI SDK.
-2. Check out our support for o3-mini in the [OpenAI Provider](/providers/ai-sdk-providers/openai#reasoning-models).
-3. Check out practical examples at [ai-sdk.dev/examples](/examples) to see the SDK in action and get inspired for your own projects.
-4. Dive deeper with advanced guides on topics like Retrieval-Augmented Generation (RAG) and multi-modal chat at [ai-sdk.dev/docs/guides](/docs/guides).
-5. Check out ready-to-deploy AI templates at [vercel.com/templates?type=ai](https://vercel.com/templates?type=ai).
-
+- [Reasoning options for OpenAI models](/providers/ai-sdk-providers/openai#reasoning)
+- [Using multimodal inputs with the Responses API](/docs/reference/ai-sdk-core/messages)
+- [Tool calling best practices](/docs/foundations/tools)
 ---
 title: Get started with DeepSeek R1
 description: Get started with DeepSeek R1 using the AI SDK.
@@ -4830,9 +4558,9 @@ These use-case specific guides are intended to help you build real applications 
       href: '/cookbook/guides/llama-3_1',
     },
     {
-      title: 'Get started with OpenAI o1',
-      description: 'Get started with OpenAI o1 using the AI SDK.',
-      href: '/cookbook/guides/o1',
+      title: 'Get started with OpenAI GPT-5 mini',
+      description: 'Build GPT-5 powered apps with the AI SDK.',
+      href: '/cookbook/guides/gpt-5-mini',
     },
     {
       title: 'Get started with Gemini 2.5',
@@ -15940,7 +15668,7 @@ The following optional provider options are available for OpenAI chat models:
 - **serviceTier** _'auto' | 'flex'_
 
   Service tier for the request. Set to 'flex' for 50% cheaper processing
-  at the cost of increased latency. Only available for o3 and o4-mini models.
+  at the cost of increased latency. Only available for o4-mini.
   Defaults to 'auto'.
 
 - **strictJsonSchema** _boolean_
@@ -15950,9 +15678,7 @@ The following optional provider options are available for OpenAI chat models:
 
 #### Reasoning
 
-OpenAI has introduced the `o1`,`o3`, and `o4` series of [reasoning models](https://platform.openai.com/docs/guides/reasoning).
-Currently, `o4-mini`, `o3`, `o3-mini`, `o1`, `o1-mini`, and `o1-preview` are available via both the chat and responses APIs. The
-models `codex-mini-latest` and `computer-use-preview` are available only via the [responses API](#responses-models).
+OpenAI’s current reasoning lineup includes the GPT-5 family (`gpt-5`, `gpt-5-pro`, `gpt-5-mini`, `gpt-5-nano`, and the `gpt-5-thinking` variants) alongside `o4-mini`. All of these models are available through the Responses API and support advanced tool calling, multimodal inputs, and reasoning summaries.
 
 Reasoning models currently only generate text, have several limitations, and are only supported using `generateText` and `streamText`.
 
@@ -15969,7 +15695,7 @@ import { openai } from '@ai-sdk/openai';
 import { generateText } from 'ai';
 
 const { text, usage, providerMetadata } = await generateText({
-  model: openai('o3-mini'),
+  model: openai('gpt-5-thinking'),
   prompt: 'Invent a new holiday and describe its traditions.',
   providerOptions: {
     openai: {
@@ -15987,16 +15713,14 @@ console.log('Usage:', {
 
 <Note>
   System messages are automatically converted to OpenAI developer messages for
-  reasoning models when supported. For models that do not support developer
-  messages, such as `o1-preview`, system messages are removed and a warning is
-  added.
+  reasoning models when supported.
 </Note>
 
 <Note>
-  Reasoning models like `o1-mini` and `o1-preview` require additional runtime
+  Reasoning models like `gpt-5-mini` and `gpt-5-thinking` require additional runtime
   inference to complete their reasoning phase before generating a response. This
-  introduces longer latency compared to other models, with `o1-preview`
-  exhibiting significantly more inference time than `o1-mini`.
+  introduces longer latency compared to other models, with `gpt-5-thinking`
+  exhibiting significantly more inference time than `gpt-5-mini`.
 </Note>
 
 <Note>
@@ -16227,7 +15951,7 @@ main().catch(console.error);
 #### Prompt Caching
 
 OpenAI has introduced [Prompt Caching](https://platform.openai.com/docs/guides/prompt-caching) for supported models
-including `gpt-4o`, `gpt-4o-mini`, `o1-preview`, and `o1-mini`.
+including `gpt-4o`, `gpt-4o-mini`, `gpt-5-thinking`, and `gpt-5-mini`.
 
 - Prompt caching is automatically enabled for these models, when the prompt is 1024 tokens or longer. It does
   not need to be explicitly enabled.
@@ -16320,7 +16044,7 @@ The following provider options are available:
 
   Whether to store the generation. Defaults to `true`.
 
-  When using reasoning models (o1, o3, o4-mini) with multi-step tool calls and `store: false`,
+  When using reasoning models (gpt-5-thinking, o4-mini) with multi-step tool calls and `store: false`,
   include `['reasoning.encrypted_content']` in the `include` option to ensure reasoning
   content is available across conversation steps.
 
@@ -16349,7 +16073,7 @@ The following provider options are available:
 
 - **serviceTier** _'auto' | 'flex'_
   Service tier for the request. Set to 'flex' for 50% cheaper processing
-  at the cost of increased latency. Only available for o3 and o4-mini models.
+  at the cost of increased latency. Only available for o4-mini.
   Defaults to 'auto'.
 
 - **include** _Array&lt;string&gt;_
@@ -16448,7 +16172,7 @@ const result = await generateText({
 
 #### Reasoning Summaries
 
-For reasoning models like `o3-mini`, `o3`, and `o4-mini`, you can enable reasoning summaries to see the model's thought process. Different models support different summarizers—for example, `o4-mini` supports detailed summaries. Set `reasoningSummary: "auto"` to automatically receive the richest level available.
+For reasoning models like `gpt-5-thinking` and `o4-mini`, you can enable reasoning summaries to see the model's thought process. Different models support different summarizers—for example, `o4-mini` supports detailed summaries. Set `reasoningSummary: "auto"` to automatically receive the richest level available.
 
 ```ts highlight="8-9,16"
 import { openai } from '@ai-sdk/openai';
@@ -16480,7 +16204,7 @@ import { openai } from '@ai-sdk/openai';
 import { generateText } from 'ai';
 
 const result = await generateText({
-  model: openai.responses('o3-mini'),
+  model: openai.responses('o4-mini'),
   prompt: 'Tell me about the Mission burrito debate in San Francisco.',
   providerOptions: {
     openai: {
@@ -16642,19 +16366,18 @@ The following optional provider options are available for OpenAI completion mode
 | `gpt-4.1`              | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `gpt-4.1-mini`         | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `gpt-4.1-nano`         | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gpt-4o`               | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gpt-4o-mini`          | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gpt-4o`               | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gpt-4o-mini`          | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `gpt-4o-audio-preview` | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gpt-4-turbo`          | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gpt-4`                | <Cross size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `gpt-3.5-turbo`        | <Cross size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `o1`                   | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `o1-mini`              | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
-| `o1-preview`           | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
-| `o3-mini`              | <Cross size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `o3`                   | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `o4-mini`              | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `chatgpt-4o-latest`    | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
+| `gpt-4-turbo`          | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gpt-4`                | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gpt-3.5-turbo`        | <Check size={18} /> | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gpt-5`                | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gpt-5-pro`            | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gpt-5-mini`           | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `gpt-5-thinking`       | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `o4-mini`              | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `chatgpt-4o-latest`    | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
 
 <Note>
   The table above lists popular models. Please see the [OpenAI
@@ -25381,4 +25104,3 @@ console.log(providerMetadata.myProvider.customMetric);
 ```
 
 This allows you to access provider-specific information while maintaining a consistent interface across different providers.
-

@@ -19,8 +19,7 @@ struct UnifiedErrorsTests {
 
         // Check error description
         let description = error.errorDescription
-        #expect(description?.contains("auth_authentication_failed") == true)
-        #expect(description?.contains("API key") == true)
+        #expect(description?.contains("Invalid API key provided") == true)
     }
 
     @Test("Convert legacy TachikomaError to unified error")

@@ -3,7 +3,7 @@ import Testing
 @testable import Tachikoma
 @testable import TachikomaAudio
 
-@Suite("Audio Provider Factories")
+@Suite("Audio Provider Factories", .serialized)
 struct AudioProviderFactoryTests {
     @Test("TranscriptionProviderFactory returns mock provider in test mode")
     func transcriptionFactoryReturnsMockInTestMode() throws {
@@ -17,7 +17,7 @@ struct AudioProviderFactoryTests {
             }
         }
 
-        let configuration = TachikomaConfiguration()
+        let configuration = TachikomaConfiguration(loadFromEnvironment: false)
         configuration.setAPIKey("test-key", for: "openai")
 
         let provider = try TranscriptionProviderFactory.createProvider(
@@ -39,7 +39,7 @@ struct AudioProviderFactoryTests {
             }
         }
 
-        let configuration = TachikomaConfiguration()
+        let configuration = TachikomaConfiguration(loadFromEnvironment: false)
 
         do {
             _ = try TranscriptionProviderFactory
@@ -103,7 +103,12 @@ struct AudioProviderFactoryTests {
             }
         }
 
-        let resolvedKey = AudioConfiguration.getAPIKey(for: "openai")
-        #expect(resolvedKey == "env-key-123")
+        let expectedKey = getenv("OPENAI_API_KEY").map { String(cString: $0) }
+        let resolvedKey = AudioConfiguration.getAPIKey(for: "openai", configuration: TachikomaConfiguration(loadFromEnvironment: false))
+        if let expectedKey {
+            #expect(resolvedKey == expectedKey)
+        } else {
+            Issue.record("Expected environment override for OPENAI_API_KEY")
+        }
     }
 }

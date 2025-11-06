@@ -203,11 +203,11 @@ public enum TachikomaError: Error, LocalizedError {
 
 **Dual API Support:**
 - Chat Completions API (`/v1/chat/completions`) for standard models
-- Responses API (`/v1/responses`) for o3/o4 reasoning models
+- Responses API (`/v1/responses`) for GPT-5/o4 reasoning models
 
 **Key Features:**
 - Automatic API selection based on model capabilities
-- Parameter filtering (o3/o4 models don't support temperature)
+- Parameter filtering (GPT-5/o4 models don't support temperature)
 - Reasoning summary handling for thinking models
 - Complete streaming support for both APIs
 

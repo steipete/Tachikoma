@@ -26,48 +26,18 @@ struct ModelCapabilitiesTests {
             }
         }
 
-        @Test("O3/O4 models have forced temperature")
+        @Test("Reasoning models have forced temperature")
         func reasoningModelsFixedTemperature() {
-            let models: [LanguageModel] = [
-                .openai(.o3),
-                .openai(.o3Mini),
-                .openai(.o3Pro),
-                .openai(.o4Mini),
-            ]
+            let model = LanguageModel.openai(.o4Mini)
+            let capabilities = ModelCapabilityRegistry.shared.capabilities(for: model)
 
-            for model in models {
-                let capabilities = ModelCapabilityRegistry.shared.capabilities(for: model)
-
-                #expect(!capabilities.supportsTemperature)
-                #expect(!capabilities.supportsTopP)
-                #expect(capabilities.forcedTemperature == 1.0)
-                #expect(capabilities.excludedParameters.contains("temperature"))
-                #expect(capabilities.excludedParameters.contains("topP"))
-                #expect(capabilities.supportedProviderOptions.supportsReasoningEffort)
-                #expect(capabilities.supportedProviderOptions.supportsPreviousResponseId)
-            }
-        }
-
-        @Test("O3 models exclude multiple parameters")
-        func o3ModelExclusions() {
-            // Note: O1 models don't exist in the current API, using O3 instead
-            let models: [LanguageModel] = [
-                .openai(.o3),
-                .openai(.o3Mini),
-            ]
-
-            for model in models {
-                let capabilities = ModelCapabilityRegistry.shared.capabilities(for: model)
-
-                #expect(!capabilities.supportsTemperature)
-                #expect(!capabilities.supportsTopP)
-                // O3 models have similar restrictions as O3 for reasoning
-                #expect(!capabilities.supportsTemperature)
-                #expect(!capabilities.supportsTopP)
-                #expect(capabilities.forcedTemperature == 1.0)
-                #expect(capabilities.excludedParameters.contains("temperature"))
-                #expect(capabilities.excludedParameters.contains("topP"))
-            }
+            #expect(!capabilities.supportsTemperature)
+            #expect(!capabilities.supportsTopP)
+            #expect(capabilities.forcedTemperature == 1.0)
+            #expect(capabilities.excludedParameters.contains("temperature"))
+            #expect(capabilities.excludedParameters.contains("topP"))
+            #expect(capabilities.supportedProviderOptions.supportsReasoningEffort)
+            #expect(capabilities.supportedProviderOptions.supportsPreviousResponseId)
         }
 
         @Test("GPT-4 models support standard parameters")
@@ -98,7 +68,8 @@ struct ModelCapabilitiesTests {
             let models: [LanguageModel] = [
                 .anthropic(.opus4),
                 .anthropic(.sonnet4),
-                .anthropic(.sonnet37),
+                .anthropic(.sonnet45),
+                .anthropic(.haiku45),
             ]
 
             for model in models {
@@ -213,7 +184,7 @@ struct ModelCapabilitiesTests {
                 )
             )
 
-            let validated = settings.validated(for: LanguageModel.openai(.o3))
+            let validated = settings.validated(for: LanguageModel.openai(.o4Mini))
 
             #expect(validated.temperature == 1.0) // Forced to 1.0
             #expect(validated.topP == nil) // Excluded

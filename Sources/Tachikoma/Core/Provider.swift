@@ -1,4 +1,5 @@
 import Configuration
+import Darwin
 import Foundation
 
 /// Type-safe provider enumeration supporting both standard and custom AI providers.
@@ -215,10 +216,15 @@ extension Provider {
     public static func environmentValue(for key: String, isSecret: Bool = false) -> String? {
         // Read an environment value using the shared configuration reader.
         if #available(macOS 15.0, iOS 18.0, watchOS 11.0, tvOS 18.0, *) {
-            return Self.environmentReader.string(forKey: key, isSecret: isSecret)
-        } else {
-            return ProcessInfo.processInfo.environment[key]
+            if let value = Self.environmentReader.string(forKey: key, isSecret: isSecret), !value.isEmpty {
+                return value
+            }
         }
+
+        guard let pointer = getenv(key) else {
+            return nil
+        }
+        return String(cString: pointer)
     }
 }
 

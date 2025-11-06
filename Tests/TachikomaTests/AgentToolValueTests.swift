@@ -214,8 +214,8 @@ struct AgentToolValueTests {
 
             // Use JSONSerialization to compare since Any isn't Equatable
             // Wrap in array since JSON top-level must be array or object
-            let originalData = try JSONSerialization.data(withJSONObject: [originalJSON])
-            let decodedData = try JSONSerialization.data(withJSONObject: [decodedJSON])
+            let originalData = try JSONSerialization.data(withJSONObject: [originalJSON], options: [.sortedKeys])
+            let decodedData = try JSONSerialization.data(withJSONObject: [decodedJSON], options: [.sortedKeys])
 
             #expect(originalData == decodedData)
         }
@@ -446,9 +446,10 @@ struct AgentToolValueTests {
         #expect(fractional.intValue == nil)
         #expect(fractional.doubleValue == 42.5)
 
-        // Test large integers (but not Int.max due to Double precision issues)
-        let largeInt = try AnyAgentToolValue.fromJSON(Double(Int.max - 1000))
-        #expect(largeInt.intValue == Int.max - 1000)
+        // Test large integers near the Double precision boundary
+        let safeInteger = (1 << 53) - 1000
+        let largeInt = try AnyAgentToolValue.fromJSON(Double(safeInteger))
+        #expect(largeInt.intValue == safeInteger)
     }
 
     @Test("Handle nested structures")

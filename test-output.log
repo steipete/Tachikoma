@@ -640,7 +640,7 @@ Building for debugging...
  89 |         let request = ProviderRequest(
 
 /Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/Providers/Integration/ProviderIntegrationTests.swift:150:28: warning: no 'async' operations occur within 'await' expression
-148 |         let model = Model.anthropic(.haiku35)
+148 |         let model = Model.anthropic(.haiku45)
 149 |         let config = TachikomaConfiguration()
 150 |         let provider = try await ProviderFactory.createProvider(for: model, configuration: config)
     |                            `- warning: no 'async' operations occur within 'await' expression
@@ -728,7 +728,7 @@ Building for debugging...
  89 |         let request = ProviderRequest(
 
 /Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/Providers/Integration/ProviderIntegrationTests.swift:150:28: warning: no 'async' operations occur within 'await' expression
-148 |         let model = Model.anthropic(.haiku35)
+148 |         let model = Model.anthropic(.haiku45)
 149 |         let config = TachikomaConfiguration()
 150 |         let provider = try await ProviderFactory.createProvider(for: model, configuration: config)
     |                            `- warning: no 'async' operations occur within 'await' expression
@@ -816,7 +816,7 @@ Building for debugging...
  89 |         let request = ProviderRequest(
 
 /Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/Providers/Integration/ProviderIntegrationTests.swift:150:28: warning: no 'async' operations occur within 'await' expression
-148 |         let model = Model.anthropic(.haiku35)
+148 |         let model = Model.anthropic(.haiku45)
 149 |         let config = TachikomaConfiguration()
 150 |         let provider = try await ProviderFactory.createProvider(for: model, configuration: config)
     |                            `- warning: no 'async' operations occur within 'await' expression

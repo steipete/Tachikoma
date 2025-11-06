@@ -29,9 +29,6 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
 
     public enum OpenAI: Sendable, Hashable, CaseIterable {
         // Latest models (2025)
-        case o3
-        case o3Mini
-        case o3Pro
         case o4Mini
 
         // GPT-5 Series (August 2025)
@@ -62,9 +59,6 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
 
         public static var allCases: [OpenAI] {
             [
-                .o3,
-                .o3Mini,
-                .o3Pro,
                 .o4Mini,
                 .gpt5,
                 .gpt5Pro,
@@ -87,9 +81,6 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
         public var modelId: String {
             switch self {
             case let .custom(id): id
-            case .o3: "o3"
-            case .o3Mini: "o3-mini"
-            case .o3Pro: "o3-pro"
             case .o4Mini: "o4-mini"
             case .gpt5: "gpt-5"
             case .gpt5Pro: "gpt-5-pro"
@@ -120,7 +111,7 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
 
         public var supportsTools: Bool {
             switch self {
-            case .o3, .o3Mini, .o3Pro, .o4Mini: true
+            case .o4Mini: true
             case .gpt5, .gpt5Pro, .gpt5Mini, .gpt5Nano, .gpt5Thinking, .gpt5ThinkingMini, .gpt5ThinkingNano,
                  .gpt5ChatLatest: true // GPT-5 excels at tool calling
             case .gpt41, .gpt41Mini, .gpt4o, .gpt4oMini, .gpt4oRealtime, .gpt4Turbo: true
@@ -154,8 +145,7 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
 
         public var contextLength: Int {
             switch self {
-            case .o3, .o3Pro: 1_000_000
-            case .o3Mini, .o4Mini: 128_000
+            case .o4Mini: 128_000
             case .gpt5, .gpt5Pro, .gpt5Mini, .gpt5Nano, .gpt5Thinking, .gpt5ThinkingMini, .gpt5ThinkingNano,
                  .gpt5ChatLatest: 400_000 // 272k input + 128k output
             case .gpt41, .gpt41Mini: 1_000_000
@@ -168,26 +158,13 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
     }
 
     public enum Anthropic: Sendable, Hashable, CaseIterable {
-        // Claude 4 Series (2025)
+        // Claude 4.x Series (2025)
         case opus4
         case opus4Thinking
         case sonnet4
         case sonnet4Thinking
         case sonnet45
         case haiku45
-
-        // Claude 3.7 Series
-        case sonnet37
-
-        // Claude 3.5 Series
-        case opus35
-        case sonnet35
-        case haiku35
-
-        // Legacy Claude 3 Series
-        case opus3
-        case sonnet3
-        case haiku3
 
         // Fine-tuned models
         case custom(String)
@@ -200,13 +177,6 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
                 .sonnet4Thinking,
                 .sonnet45,
                 .haiku45,
-                .sonnet37,
-                .opus35,
-                .sonnet35,
-                .haiku35,
-                .opus3,
-                .sonnet3,
-                .haiku3,
             ]
         }
 
@@ -219,22 +189,13 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
             case .sonnet4Thinking: "claude-sonnet-4-20250514-thinking"
             case .sonnet45: "claude-sonnet-4-5-20250929"
             case .haiku45: "claude-haiku-4.5"
-            case .sonnet37: "claude-3-7-sonnet"
-            case .opus35: "claude-3-5-opus-20241022"
-            case .sonnet35: "claude-3-5-sonnet-20241022"
-            case .haiku35: "claude-3-5-haiku-20241022"
-            case .opus3: "claude-3-opus"
-            case .sonnet3: "claude-3-sonnet"
-            case .haiku3: "claude-3-haiku"
             }
         }
 
         public var supportsVision: Bool {
             switch self {
-            case .opus4, .opus4Thinking, .sonnet4, .sonnet4Thinking, .sonnet45, .haiku45, .sonnet37, .opus35, .sonnet35,
-                 .haiku35: true
-            case .opus3, .sonnet3, .haiku3: true
-            case .custom: true // Most modern Claude models support vision
+            case .opus4, .opus4Thinking, .sonnet4, .sonnet4Thinking, .sonnet45, .haiku45: true
+            case .custom: true // Assume custom models support vision
             }
         }
 
@@ -253,12 +214,7 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
         public var contextLength: Int {
             switch self {
             case .opus4, .opus4Thinking, .sonnet4, .sonnet4Thinking, .sonnet45, .haiku45: 500_000
-            case .sonnet37: 200_000
-            case .opus35, .sonnet35: 200_000
-            case .haiku35: 200_000
-            case .opus3, .sonnet3: 200_000
-            case .haiku3: 200_000
-            case .custom: 200_000
+            case .custom: 200_000 // Default assumption
             }
         }
     }
@@ -1083,16 +1039,11 @@ extension LanguageModel {
             return .openai(.gpt41)
         }
 
-        if dashed == "o3" || compact == "o3" {
-            return .openai(.o3)
-        }
-
-        if dashed == "o3-mini" || compact == "o3mini" {
-            return .openai(.o3Mini)
-        }
-
-        if dashed == "o3-pro" || compact == "o3pro" {
-            return .openai(.o3Pro)
+        if dashed == "o3" || compact == "o3" || dashed == "o3-pro" || dashed == "o3-mini" || compact == "o3mini" ||
+            compact == "o3pro"
+        {
+            // o3 family is deprecated; steer callers to GPT-5 Mini
+            return .openai(.gpt5Mini)
         }
 
         if dashed == "o4-mini" || compact == "o4mini" {
@@ -1124,40 +1075,12 @@ extension LanguageModel {
             return .anthropic(.sonnet4)
         }
 
-        if dotted.contains("claude-3-7-sonnet") || compact.contains("claude37sonnet") {
-            return .anthropic(.sonnet37)
-        }
-
-        if dotted.contains("claude-3-5-sonnet") || compact.contains("claude35sonnet") {
-            return .anthropic(.sonnet35)
-        }
-
-        if dotted.contains("claude-3-5-haiku") || compact.contains("claude35haiku") {
-            return .anthropic(.haiku35)
-        }
-
-        if dotted.contains("claude-3-5-opus") || compact.contains("claude35opus") {
-            return .anthropic(.opus35)
-        }
-
         if
             normalized.contains("claude-haiku-4.5") ||
             dotted.contains("claude-haiku-4-5") ||
             compact.contains("claudehaiku45")
         {
             return .anthropic(.haiku45)
-        }
-
-        if dotted.contains("claude-3-opus") || compact.contains("claude3opus") {
-            return .anthropic(.opus3)
-        }
-
-        if dotted.contains("claude-3-sonnet") || compact.contains("claude3sonnet") {
-            return .anthropic(.sonnet3)
-        }
-
-        if dotted.contains("claude-3-haiku") || compact.contains("claude3haiku") {
-            return .anthropic(.haiku3)
         }
 
         let genericClaudeIdentifiers: Set<String> = [
@@ -1227,10 +1150,6 @@ extension LanguageModel {
 
         if compact.contains("gpt") {
             return .openai(.gpt5Mini)
-        }
-
-        if compact.contains("o3") {
-            return .openai(.o3)
         }
 
         if compact.contains("o4") {

@@ -732,7 +732,7 @@ public final class OpenAIResponsesProvider: ModelProvider {
 
     private static func isReasoningModel(_ model: LanguageModel.OpenAI) -> Bool {
         switch model {
-        case .o3, .o3Mini, .o3Pro, .o4Mini:
+        case .o4Mini:
             true
         default:
             false
@@ -741,7 +741,14 @@ public final class OpenAIResponsesProvider: ModelProvider {
 
     private static func isGPT5Model(_ model: LanguageModel.OpenAI) -> Bool {
         switch model {
-        case .gpt5, .gpt5Mini, .gpt5Nano:
+        case .gpt5,
+             .gpt5Pro,
+             .gpt5Mini,
+             .gpt5Nano,
+             .gpt5Thinking,
+             .gpt5ThinkingMini,
+             .gpt5ThinkingNano,
+             .gpt5ChatLatest:
             true
         default:
             false

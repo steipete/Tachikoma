@@ -105,7 +105,7 @@ The Vercel AI SDK provides these core patterns:
   - [ ] Google Gemini API integration
 
 - [ ] **Provider-specific features**
-  - [ ] Reasoning support for o1/o3 models
+  - [ ] Reasoning support for GPT-5 and o4-mini models
   - [ ] Vision support for multimodal models
   - [ ] Function calling for compatible models
   - [ ] Streaming optimization per provider

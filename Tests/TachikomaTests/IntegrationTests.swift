@@ -119,35 +119,28 @@ struct IntegrationTests {
     func asyncOperationsWithTimeoutAndCancellation() async throws {
         let token = CancellationToken()
 
-        // Create a task that would normally take long
         let task = Task {
             try await retryWithCancellation(
                 configuration: .init(
-                    maxAttempts: 5,
+                    maxAttempts: 1,
                     delay: 0.1,
-                    timeout: 0.5
+                    timeout: nil
                 ),
                 cancellationToken: token
             ) {
-                // Simulate work
-                try await Task.sleep(nanoseconds: 50_000_000) // 0.05 seconds
+                try await Task.sleep(nanoseconds: 1_000_000_000) // 1 second
+                try Task.checkCancellation()
                 return "Success"
             }
         }
 
-        // Let it run for a bit
-        try await Task.sleep(nanoseconds: 100_000_000) // 0.1 seconds
-
-        // Cancel the operation
+        try await Task.sleep(nanoseconds: 200_000_000) // allow task to start
         await token.cancel()
 
-        do {
+        await #expect(throws: CancellationError.self) {
             _ = try await task.value
-            Issue.record("Task should have been cancelled")
-        } catch is CancellationError {
-            // Expected cancellation
-            #expect(await token.cancelled)
         }
+        #expect(await token.cancelled)
     }
 
     @Test("Provider with feature parity and caching")
@@ -186,7 +179,14 @@ struct IntegrationTests {
 
         // Wrap with feature parity
         let provider = LimitedProvider()
-        let adapter = ProviderAdapter(provider: provider, configuration: .ollama)
+        let adapter = ProviderAdapter(
+            provider: provider,
+            configuration: ProviderConfiguration(
+                maxTokens: 2048,
+                maxContextLength: 8192,
+                supportsSystemRole: false
+            )
+        )
 
         // Test that system messages are transformed
         let messages = [

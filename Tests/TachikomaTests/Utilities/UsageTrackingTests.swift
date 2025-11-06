@@ -123,10 +123,10 @@ struct UsageTrackingTests {
         #expect(gpt4oMiniCost.total == 0.75)
 
         // Test Anthropic pricing
-        let claudeHaikuCost = calculator.calculateCost(for: .anthropic(.haiku35), usage: usage)
-        #expect(claudeHaikuCost.input == 0.80) // $0.80 per million input tokens
-        #expect(claudeHaikuCost.output == 4.00) // $4.00 per million output tokens
-        #expect(claudeHaikuCost.total == 4.80)
+        let claudeHaikuCost = calculator.calculateCost(for: .anthropic(.haiku45), usage: usage)
+        #expect(claudeHaikuCost.input == 1.20) // $1.20 per million input tokens
+        #expect(claudeHaikuCost.output == 6.00) // $6.00 per million output tokens
+        #expect(claudeHaikuCost.total == 7.20)
 
         // Test Ollama (should be free)
         let ollamaCost = calculator.calculateCost(for: .ollama(.llama33), usage: usage)
@@ -154,7 +154,7 @@ struct UsageTrackingTests {
         let session2 = tracker.startSession()
         tracker.recordUsage(
             sessionId: session2,
-            model: .anthropic(.haiku35),
+            model: .anthropic(.haiku45),
             usage: Usage(inputTokens: 200, outputTokens: 100),
             operation: .imageAnalysis
         )
@@ -173,8 +173,8 @@ struct UsageTrackingTests {
 
         // Check model breakdown
         #expect(totalUsage.modelBreakdown.count == 2)
-        #expect(totalUsage.modelBreakdown["gpt-4o-mini"] != nil)
-        #expect(totalUsage.modelBreakdown["claude-3-5-haiku"] != nil)
+        #expect(totalUsage.modelBreakdown[LanguageModel.openai(.gpt4oMini).modelId] != nil)
+        #expect(totalUsage.modelBreakdown[LanguageModel.anthropic(.haiku45).modelId] != nil)
 
         // Check operation breakdown
         #expect(totalUsage.operationBreakdown.count == 2)

@@ -7,8 +7,9 @@ struct TestHelpersTests {
     @Test("Test helper create configuration")
     func helperCreateConfiguration() {
         let config = TestHelpers.createTestConfiguration(apiKeys: ["openai": "test-key"])
+        let expected = TestHelpers.standardTestKeys["openai"]
 
-        #expect(config.getAPIKey(for: .openai) == "test-key")
+        #expect(config.getAPIKey(for: .openai) == expected)
         #expect(config.hasConfiguredAPIKey(for: .openai))
     }
 
@@ -28,8 +29,8 @@ struct TestHelpersTests {
             config.getAPIKey(for: .openai)
         }
 
-        // Should have standard test key
-        #expect(result == "test-key")
+        let expected = TestHelpers.standardTestKeys["openai"]
+        #expect(result == expected)
     }
 
     @Test("Test helper with selective configuration")
@@ -39,7 +40,8 @@ struct TestHelpersTests {
         }
 
         // Should have OpenAI key but not Anthropic
-        #expect(result.0 == "test-key")
+        let expected = TestHelpers.standardTestKeys["openai"]
+        #expect(result.0 == expected)
         #expect(result.1 == nil)
     }
 }

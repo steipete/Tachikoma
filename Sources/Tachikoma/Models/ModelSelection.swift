@@ -87,12 +87,6 @@ public struct ModelSelector {
             return .gpt41
         case "gpt-4.1-mini", "gpt4.1-mini", "gpt41mini":
             return .gpt41Mini
-        case "o3":
-            return .o3
-        case "o3-mini", "o3mini":
-            return .o3Mini
-        case "o3-pro", "o3pro":
-            return .o3Pro
         case "o4-mini", "o4mini":
             return .o4Mini
         // Shortcuts
@@ -104,7 +98,7 @@ public struct ModelSelector {
             return .gpt5Mini // Default to GPT-5 Mini now
         default:
             // Check if it's an OpenAI model ID
-            if input.hasPrefix("gpt") || input.hasPrefix("o3") || input.hasPrefix("o4") {
+            if input.hasPrefix("gpt") || input.hasPrefix("o4") {
                 return .custom(input)
             }
             return nil
@@ -122,16 +116,8 @@ public struct ModelSelector {
             return .sonnet4
         case "claude-sonnet-4-20250514-thinking":
             return .sonnet4Thinking
-        case "claude-3-7-sonnet":
-            return .sonnet37
-        case "claude-3-5-haiku":
-            return .haiku35
         case "claude-sonnet-4-5-20250929", "claude-sonnet-4.5":
             return .sonnet45
-        case "claude-3-5-sonnet":
-            return .sonnet35
-        case "claude-3-5-opus":
-            return .opus35
         // Shortcuts
         case "claude":
             return .sonnet45 // Default plain Claude alias to latest Sonnet
@@ -140,7 +126,7 @@ public struct ModelSelector {
         case "claude-sonnet", "sonnet":
             return .sonnet4
         case "claude-haiku", "haiku":
-            return .haiku35
+            return .haiku45
         case "anthropic":
             return .opus4 // Default Anthropic model
         default:
@@ -379,7 +365,7 @@ extension ModelSelector {
         case .vision:
             [.claude, .gpt4o, .ollama(.llava)]
         case .reasoning:
-            [.openai(.o3), .claude, .grok4]
+            [.openai(.gpt5Mini), .claude, .grok4]
         case .local:
             [.llama, .ollama(.mistralNemo), .ollama(.commandRPlus)]
         case .general:
