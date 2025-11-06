@@ -245,18 +245,26 @@ struct ResponsesTool: Codable {
     struct ToolFunction: Codable {
         let name: String
         let description: String?
-        let parameters: [String: Any]? // Can't be Sendable due to Any
+        let parameters: [String: Any]? // Legacy parameters field
+        let inputSchema: [String: Any]? // Preferred for Responses API
 
-        init(name: String, description: String? = nil, parameters: [String: Any]? = nil) {
+        init(
+            name: String,
+            description: String? = nil,
+            parameters: [String: Any]? = nil,
+            inputSchema: [String: Any]? = nil
+        ) {
             self.name = name
             self.description = description
             self.parameters = parameters
+            self.inputSchema = inputSchema
         }
 
         enum CodingKeys: String, CodingKey {
             case name
             case description
             case parameters
+            case inputSchema = "input_schema"
         }
 
         func encode(to encoder: Encoder) throws {
@@ -269,6 +277,12 @@ struct ResponsesTool: Codable {
                 let paramsJSON = try JSONSerialization.jsonObject(with: paramsData)
                 try container.encode(AnyEncodable(paramsJSON), forKey: .parameters)
             }
+
+            if let schema = inputSchema {
+                let schemaData = try JSONSerialization.data(withJSONObject: schema)
+                let schemaJSON = try JSONSerialization.jsonObject(with: schemaData)
+                try container.encode(AnyEncodable(schemaJSON), forKey: .inputSchema)
+            }
         }
 
         init(from decoder: Decoder) throws {
@@ -280,6 +294,12 @@ struct ResponsesTool: Codable {
                 self.parameters = anyParams.value as? [String: Any]
             } else {
                 self.parameters = nil
+            }
+
+            if let schema = try container.decodeIfPresent(AnyDecodable.self, forKey: .inputSchema) {
+                self.inputSchema = schema.value as? [String: Any]
+            } else {
+                self.inputSchema = nil
             }
         }
     }
@@ -429,24 +449,6 @@ struct OpenAIResponsesResponse: Codable, Sendable {
 }
 
 // MARK: - Streaming Response Types
-
-/// GPT-5 Responses API streaming event
-@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
-struct GPT5StreamEvent: Codable, Sendable {
-    let type: String
-    let delta: String?
-    let itemId: String?
-    let outputIndex: Int?
-    let contentIndex: Int?
-
-    enum CodingKeys: String, CodingKey {
-        case type
-        case delta
-        case itemId = "item_id"
-        case outputIndex = "output_index"
-        case contentIndex = "content_index"
-    }
-}
 
 /// Server-sent event for streaming responses (O3 and older models)
 @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)

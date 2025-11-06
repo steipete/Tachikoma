@@ -14,6 +14,8 @@ public final class OpenAIResponsesProvider: ModelProvider {
     private let model: LanguageModel.OpenAI
     private let configuration: TachikomaConfiguration
 
+    private static let debugLogURL = URL(fileURLWithPath: "/tmp/tachikoma-gpt5.log")
+
     // Provider options (immutable for Sendable conformance)
     private let reasoningEffort: ReasoningEffort = .medium
     private let verbosity: TextVerbosity = .high // Set to high for preambles
@@ -217,11 +219,21 @@ public final class OpenAIResponsesProvider: ModelProvider {
                     }
 
                     var previousContent = "" // Track previously sent content for GPT-5 preambles
+                    struct PartialToolCall {
+                        var id: String
+                        var name: String?
+                        var arguments: String
+                    }
+                    var pendingToolCalls: [String: PartialToolCall] = [:]
 
                     for try await line in bytes.lines {
                         // Handle SSE format
                         if line.hasPrefix("data: ") {
                             let jsonString = String(line.dropFirst(6))
+
+                            if ProcessInfo.processInfo.environment["DEBUG_TACHIKOMA_STREAM"] != nil {
+                                Self.debugLog("raw stream: \(jsonString)")
+                            }
 
                             if jsonString == "[DONE]" {
                                 continuation.finish()
@@ -231,25 +243,70 @@ public final class OpenAIResponsesProvider: ModelProvider {
                             if let data = jsonString.data(using: .utf8) {
                                 // Try GPT-5 format first
                                 if Self.isGPT5Model(self.model) {
-                                    do {
-                                        let event = try JSONDecoder().decode(GPT5StreamEvent.self, from: data)
-
-                                        // Handle text delta events
-                                        if
-                                            event.type == "response.output_text.delta",
-                                            let delta = event.delta,
-                                            !delta.isEmpty
-                                        {
-                                            continuation.yield(TextStreamDelta.text(delta))
+                                    if let event = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                                       let eventType = event["type"] as? String
+                                    {
+                                        if ProcessInfo.processInfo.environment["DEBUG_TACHIKOMA"] != nil {
+                                            Self.debugLog("event: \(eventType) payload: \(event)")
                                         }
 
-                                        // Handle completion
-                                        if event.type == "response.completed" {
+                                        switch eventType {
+                                        case "response.output_text.delta":
+                                            if let delta = event["delta"] as? String, !delta.isEmpty {
+                                                continuation.yield(TextStreamDelta.text(delta))
+                                            }
+
+                                        case "response.output_item.added":
+                                            if
+                                                let item = event["item"] as? [String: Any],
+                                                let itemType = item["type"] as? String,
+                                                itemType == "function_call"
+                                            {
+                                                let identifier = (item["id"] as? String) ?? (item["call_id"] as? String) ?? UUID().uuidString
+                                                var partial = pendingToolCalls[identifier] ?? PartialToolCall(id: identifier, name: nil, arguments: "")
+                                                if let name = item["name"] as? String {
+                                                    partial.name = name
+                                                }
+                                                pendingToolCalls[identifier] = partial
+                                            }
+
+                                        case "response.function_call_arguments.delta":
+                                            if
+                                                let itemId = event["item_id"] as? String,
+                                                let delta = event["delta"] as? String
+                                            {
+                                                var partial = pendingToolCalls[itemId] ?? PartialToolCall(id: itemId, name: nil, arguments: "")
+                                                partial.arguments.append(delta)
+                                                pendingToolCalls[itemId] = partial
+                                            }
+
+                                        case "response.function_call_arguments.done":
+                                            if
+                                                let itemId = event["item_id"] as? String,
+                                                let arguments = event["arguments"] as? String
+                                            {
+                                                var partial = pendingToolCalls[itemId] ?? PartialToolCall(id: itemId, name: nil, arguments: "")
+                                                partial.arguments = arguments
+                                                pendingToolCalls[itemId] = partial
+
+                                                if let name = partial.name,
+                                                   let toolCall = Self.makeToolCall(
+                                                       id: itemId,
+                                                       name: name,
+                                                       argumentsJSON: arguments)
+                                                {
+                                                    continuation.yield(.tool(toolCall))
+                                                    pendingToolCalls.removeValue(forKey: itemId)
+                                                }
+                                            }
+
+                                        case "response.completed":
                                             continuation.finish()
                                             return
+
+                                        default:
+                                            break
                                         }
-                                    } catch {
-                                        // Not a GPT-5 format event, ignore
                                     }
                                 } else {
                                     // Try standard Responses API format (O3, etc.)
@@ -358,7 +415,7 @@ public final class OpenAIResponsesProvider: ModelProvider {
             textConfig = nil
         }
 
-        return OpenAIResponsesRequest(
+        let responsesRequest = OpenAIResponsesRequest(
             model: self.modelId,
             input: messages,
             temperature: validatedSettings.temperature,
@@ -379,6 +436,15 @@ public final class OpenAIResponsesProvider: ModelProvider {
             truncation: Self.isReasoningModel(self.model) ? "auto" : nil,
             stream: streaming
         )
+
+        if ProcessInfo.processInfo.environment["DEBUG_TACHIKOMA_STREAM"] != nil,
+           let data = try? JSONEncoder().encode(responsesRequest),
+           let jsonString = String(data: data, encoding: .utf8)
+        {
+            Self.debugLog("request payload: \(jsonString)")
+        }
+
+        return responsesRequest
     }
 
     private func convertMessages(_ messages: [ModelMessage]) throws -> [ResponsesMessage] {
@@ -504,7 +570,8 @@ public final class OpenAIResponsesProvider: ModelProvider {
         let function = ResponsesTool.ToolFunction(
             name: tool.name,
             description: tool.description,
-            parameters: parameters
+            parameters: parameters,
+            inputSchema: parameters
         )
 
         return ResponsesTool(
@@ -626,6 +693,41 @@ public final class OpenAIResponsesProvider: ModelProvider {
             name: toolCall.function.name,
             arguments: arguments
         )
+    }
+
+    private static func makeToolCall(id: String, name: String, argumentsJSON: String) -> AgentToolCall? {
+        guard let data = argumentsJSON.data(using: .utf8),
+              let jsonObject = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
+        else {
+            return nil
+        }
+
+        var arguments: [String: AnyAgentToolValue] = [:]
+        for (key, value) in jsonObject {
+            do {
+                arguments[key] = try AnyAgentToolValue.fromJSON(value)
+            } catch {
+                continue
+            }
+        }
+
+        return AgentToolCall(id: id, name: name, arguments: arguments)
+    }
+
+    private static func debugLog(_ message: String) {
+        guard ProcessInfo.processInfo.environment["DEBUG_TACHIKOMA_STREAM"] != nil else { return }
+        let formatted = "🔵 DEBUG \(message)\n"
+        if let data = formatted.data(using: .utf8) {
+            if FileManager.default.fileExists(atPath: Self.debugLogURL.path) {
+                if let handle = try? FileHandle(forWritingTo: Self.debugLogURL) {
+                    handle.seekToEndOfFile()
+                    handle.write(data)
+                    try? handle.close()
+                }
+            } else {
+                try? data.write(to: Self.debugLogURL)
+            }
+        }
     }
 
     private static func isReasoningModel(_ model: LanguageModel.OpenAI) -> Bool {
