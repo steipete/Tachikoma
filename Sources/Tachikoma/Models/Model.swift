@@ -217,7 +217,7 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
             case .opus4Thinking: "claude-opus-4-1-20250805-thinking"
             case .sonnet4: "claude-sonnet-4-20250514"
             case .sonnet4Thinking: "claude-sonnet-4-20250514-thinking"
-            case .sonnet45: "claude-sonnet-4.5"
+            case .sonnet45: "claude-sonnet-4-5-20250929"
             case .haiku45: "claude-haiku-4.5"
             case .sonnet37: "claude-3-7-sonnet"
             case .opus35: "claude-3-5-opus"
@@ -1107,7 +1107,12 @@ extension LanguageModel {
             return .anthropic(.opus4)
         }
 
-        if dotted.contains("claude-sonnet-4.5") || compact.contains("claudesonnet45") || dotted.contains("sonnet-4-5") {
+        if
+            dotted.contains("claude-sonnet-4-5-20250929") ||
+            dotted.contains("claude-sonnet-4.5") ||
+            compact.contains("claudesonnet45") ||
+            dotted.contains("sonnet-4-5")
+        {
             return .anthropic(.sonnet45)
         }
 
@@ -1150,8 +1155,18 @@ extension LanguageModel {
             return .anthropic(.haiku3)
         }
 
-        if compact.contains("claude") {
-            return .anthropic(.opus4)
+        let genericClaudeIdentifiers: Set<String> = [
+            "claude",
+            "claudelatest",
+            "claude-latest",
+            "claude_latest",
+            "claude-default",
+            "claude_default",
+        ]
+
+        let canonicalForms = [normalized, dashed, compact]
+        if canonicalForms.contains(where: { genericClaudeIdentifiers.contains($0) }) {
+            return .anthropic(.sonnet45)
         }
 
         // MARK: Grok models

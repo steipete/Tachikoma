@@ -383,51 +383,62 @@ public final class OpenAIResponsesProvider: ModelProvider {
 
     private func convertMessages(_ messages: [ModelMessage]) throws -> [ResponsesMessage] {
         messages.map { message in
-            var content: ResponsesMessage.ResponsesContent
-
-            switch message.role {
-            case .system, .user:
-                let text = message.content.compactMap { part in
-                    if case let .text(text) = part { return text }
-                    return nil
-                }.joined()
-                content = .text(text)
-
-            case .assistant:
-                // Get text content
-                let text = message.content.compactMap { part in
-                    if case let .text(text) = part { return text }
-                    return nil
-                }.joined()
-
-                // For now, just use text content
-                // TODO: Handle tool calls in assistant messages
-                content = .text(text.isEmpty ? "" : text)
-
-            case .tool:
-                // Handle tool responses
-                var resultContent = ""
-
-                for part in message.content {
-                    switch part {
-                    case let .toolResult(result):
-                        // Convert result to string
-                        resultContent = self.convertToolResultToString(result.result)
-                    case let .text(text):
-                        resultContent = text
-                    default:
-                        break
-                    }
-                }
-
-                content = .text(resultContent)
-            }
+            let parts = self.convertContentParts(for: message)
+            let normalizedParts = parts.isEmpty
+                ? [ResponsesContentPart(type: "input_text", text: "", imageUrl: nil)]
+                : parts
 
             return ResponsesMessage(
                 role: message.role.rawValue,
-                content: content
+                content: .parts(normalizedParts)
             )
         }
+    }
+
+    private func convertContentParts(for message: ModelMessage) -> [ResponsesContentPart] {
+        var parts: [ResponsesContentPart] = []
+
+        switch message.role {
+        case .system, .user, .assistant:
+            for segment in message.content {
+                switch segment {
+                case let .text(text):
+                    guard !text.isEmpty else { continue }
+                    let type = message.role == .assistant ? "output_text" : "input_text"
+                    parts.append(ResponsesContentPart(type: type, text: text, imageUrl: nil))
+                case let .image(image):
+                    let dataURL = "data:\(image.mimeType);base64,\(image.data)"
+                    let imageReference = ResponsesContentPart.ImageURL(url: dataURL, detail: "auto")
+                    parts.append(ResponsesContentPart(type: "input_image", text: nil, imageUrl: imageReference))
+                case let .toolResult(result):
+                    let rendered = self.convertToolResultToString(result.result)
+                    if !rendered.isEmpty {
+                        parts.append(ResponsesContentPart(type: "input_text", text: rendered, imageUrl: nil))
+                    }
+                case .toolCall:
+                    // TODO: Add native tool call support when OpenAI exposes it in the Responses API.
+                    continue
+                }
+            }
+        case .tool:
+            let aggregated = message.content.compactMap { segment -> String? in
+                switch segment {
+                case let .toolResult(result):
+                    let rendered = self.convertToolResultToString(result.result)
+                    return rendered.isEmpty ? nil : rendered
+                case let .text(text):
+                    return text.isEmpty ? nil : text
+                default:
+                    return nil
+                }
+            }.joined(separator: "\n")
+
+            if !aggregated.isEmpty {
+                parts.append(ResponsesContentPart(type: "input_text", text: aggregated, imageUrl: nil))
+            }
+        }
+
+        return parts
     }
 
     private func convertToolResultToString(_ result: AnyAgentToolValue) -> String {

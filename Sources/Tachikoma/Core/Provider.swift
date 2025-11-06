@@ -1,3 +1,4 @@
+import Configuration
 import Foundation
 
 /// Type-safe provider enumeration supporting both standard and custom AI providers.
@@ -147,21 +148,56 @@ public enum Provider: Sendable, Hashable, Codable {
 
 @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 extension Provider {
+    @available(macOS 15.0, iOS 18.0, watchOS 11.0, tvOS 18.0, *)
+    private struct IdentityKeyDecoder: ConfigKeyDecoder {
+        func decode(_ string: String, context: [String: ConfigContextValue]) -> ConfigKey {
+            ConfigKey([string], context: context)
+        }
+    }
+
+    @available(macOS 15.0, iOS 18.0, watchOS 11.0, tvOS 18.0, *)
+    private static var environmentReader: ConfigReader {
+        struct Holder {
+            static let reader = ConfigReader(
+                keyDecoder: IdentityKeyDecoder(),
+                provider: EnvironmentVariablesProvider(
+                    secretsSpecifier: .dynamic { key, _ in
+                        let lowercased = key.lowercased()
+                        return lowercased.contains("key") ||
+                            lowercased.contains("token") ||
+                            lowercased.contains("secret")
+                    }
+                )
+            )
+        }
+        return Holder.reader
+    }
+
     /// Load API key from environment variables
     /// Checks primary environment variable first, then alternatives
     public func loadAPIKeyFromEnvironment() -> String? {
-        let environment = ProcessInfo.processInfo.environment
-
         // Check primary environment variable
         if !self.environmentVariable.isEmpty {
-            if let key = environment[environmentVariable], !key.isEmpty {
+            if #available(macOS 15.0, iOS 18.0, watchOS 11.0, tvOS 18.0, *) {
+                if let key = Self.environmentReader.string(forKey: self.environmentVariable, isSecret: true),
+                   !key.isEmpty
+                {
+                    return key
+                }
+            } else if let key = ProcessInfo.processInfo.environment[self.environmentVariable],
+                      !key.isEmpty
+            {
                 return key
             }
         }
 
         // Check alternative environment variables
         for altVar in self.alternativeEnvironmentVariables {
-            if let key = environment[altVar], !key.isEmpty {
+            if #available(macOS 15.0, iOS 18.0, watchOS 11.0, tvOS 18.0, *) {
+                if let key = Self.environmentReader.string(forKey: altVar, isSecret: true), !key.isEmpty {
+                    return key
+                }
+            } else if let key = ProcessInfo.processInfo.environment[altVar], !key.isEmpty {
                 return key
             }
         }
@@ -172,6 +208,15 @@ extension Provider {
     /// Check if API key is available in environment
     public var hasEnvironmentAPIKey: Bool {
         self.loadAPIKeyFromEnvironment() != nil
+    }
+
+    /// Read an environment value using the shared configuration reader.
+    public static func environmentValue(for key: String, isSecret: Bool = false) -> String? {
+        if #available(macOS 15.0, iOS 18.0, watchOS 11.0, tvOS 18.0, *) {
+            return Self.environmentReader.string(forKey: key, isSecret: isSecret)
+        } else {
+            return ProcessInfo.processInfo.environment[key]
+        }
     }
 }
 

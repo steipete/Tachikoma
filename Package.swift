@@ -6,7 +6,7 @@ import PackageDescription
 let package = Package(
     name: "Tachikoma",
     platforms: [
-        .macOS(.v13),
+        .macOS(.v14),
         .iOS(.v16),
         .watchOS(.v9),
         .tvOS(.v16),
@@ -43,9 +43,10 @@ let package = Package(
             targets: ["AICLI"]),
     ],
     dependencies: [
-        .package(url: "https://github.com/apple/swift-log.git", from: "1.0.0"),
-        .package(url: "https://github.com/apple/swift-crypto.git", from: "3.0.0"),
+        .package(url: "https://github.com/apple/swift-log.git", from: "1.5.3"),
+        .package(url: "https://github.com/apple/swift-crypto.git", from: "3.15.1"),
         .package(url: "https://github.com/modelcontextprotocol/swift-sdk.git", from: "0.10.2"),
+        .package(url: "https://github.com/apple/swift-configuration", .upToNextMinor(from: "0.2.0")),
     ],
     targets: [
         // Core Tachikoma module (no MCP dependencies)
@@ -54,6 +55,7 @@ let package = Package(
             dependencies: [
                 .product(name: "Logging", package: "swift-log"),
                 .product(name: "Crypto", package: "swift-crypto"),
+                .product(name: "Configuration", package: "swift-configuration"),
             ],
             path: "Sources/Tachikoma",
             swiftSettings: commonSwiftSettings),

@@ -125,13 +125,17 @@ public struct ModelSelector {
             return .sonnet37
         case "claude-3-5-haiku":
             return .haiku35
+        case "claude-sonnet-4-5-20250929", "claude-sonnet-4.5":
+            return .sonnet45
         case "claude-3-5-sonnet":
             return .sonnet35
         case "claude-3-5-opus":
             return .opus35
         // Shortcuts
-        case "claude", "claude-opus", "opus":
-            return .opus4 // Default to best Claude model
+        case "claude":
+            return .sonnet45 // Default plain Claude alias to latest Sonnet
+        case "claude-opus", "opus":
+            return .opus4
         case "claude-sonnet", "sonnet":
             return .sonnet4
         case "claude-haiku", "haiku":

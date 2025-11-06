@@ -231,8 +231,6 @@ public final class TachikomaConfiguration: @unchecked Sendable {
 
     /// Load configuration from environment variables
     private func loadFromEnvironment() {
-        let environment = ProcessInfo.processInfo.environment
-
         // Load API keys for all standard providers from environment
         for provider in Provider.standardProviders {
             if let key = provider.loadAPIKeyFromEnvironment() {
@@ -248,7 +246,7 @@ public final class TachikomaConfiguration: @unchecked Sendable {
         ]
 
         for (provider, envVar) in urlMappings {
-            if let url = environment[envVar], !url.isEmpty {
+            if let url = Provider.environmentValue(for: envVar), !url.isEmpty {
                 self.setBaseURL(url, for: provider)
             }
         }
