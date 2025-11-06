@@ -3,7 +3,7 @@ import Testing
 @testable import Tachikoma
 @testable import TachikomaAgent
 
-@Suite("Configuration Architecture Tests")
+@Suite("Configuration Architecture Tests", .serialized)
 struct ConfigurationArchitectureTests {
     @Test("Auto instance is a true singleton")
     func verifyAutoInstanceSingleton() async throws {
@@ -147,14 +147,14 @@ struct ConfigurationArchitectureTests {
         let conv1 = Conversation() // Uses default (config1)
         let conv2 = Conversation(configuration: config2)
 
-        #expect(conv1.configuration === config1)
+        #expect(conv1.configuration === config1, "conv1 should retain default configuration")
         #expect(conv2.configuration === config2)
 
         // Change default
         TachikomaConfiguration.default = nil
 
         // Existing conversations should keep their config
-        #expect(conv1.configuration === config1)
+        #expect(conv1.configuration === config1, "conv1 should still reference original configuration")
         #expect(conv2.configuration === config2)
 
         // New conversation uses auto instance
