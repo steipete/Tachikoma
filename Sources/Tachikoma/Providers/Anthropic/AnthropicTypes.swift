@@ -364,6 +364,18 @@ struct AnthropicMessageResponse: Codable {
         case stopReason = "stop_reason"
         case stopSequence = "stop_sequence"
     }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.id = try container.decode(String.self, forKey: .id)
+        self.type = try container.decodeIfPresent(String.self, forKey: .type) ?? "message"
+        self.role = try container.decodeIfPresent(String.self, forKey: .role) ?? "assistant"
+        self.content = try container.decode([AnthropicResponseContent].self, forKey: .content)
+        self.model = try container.decode(String.self, forKey: .model)
+        self.stopReason = try container.decodeIfPresent(String.self, forKey: .stopReason)
+        self.stopSequence = try container.decodeIfPresent(String.self, forKey: .stopSequence)
+        self.usage = try container.decode(AnthropicUsage.self, forKey: .usage)
+    }
 }
 
 enum AnthropicResponseContent: Codable {
@@ -371,8 +383,32 @@ enum AnthropicResponseContent: Codable {
     case toolUse(ToolUseContent)
 
     struct TextContent: Codable {
-        let type: String
+        var type: String
         let text: String
+
+        init(type: String = "text", text: String) {
+            self.type = type
+            self.text = text
+        }
+
+        init(from decoder: Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            self.text = try container.decodeIfPresent(String.self, forKey: .text) ??
+                container.decodeIfPresent(String.self, forKey: .thinking) ?? ""
+            self.type = try container.decodeIfPresent(String.self, forKey: .type) ?? "text"
+        }
+
+        enum CodingKeys: String, CodingKey {
+            case type
+            case text
+            case thinking
+        }
+
+        func encode(to encoder: Encoder) throws {
+            var container = encoder.container(keyedBy: CodingKeys.self)
+            try container.encode(self.type, forKey: .type)
+            try container.encode(self.text, forKey: .text)
+        }
     }
 
     struct ToolUseContent: Codable {
@@ -440,8 +476,15 @@ enum AnthropicResponseContent: Codable {
     }
 
     init(from decoder: Decoder) throws {
+        if let singleValue = try? decoder.singleValueContainer(),
+           let text = try? singleValue.decode(String.self)
+        {
+            self = .text(TextContent(text: text))
+            return
+        }
+
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        let type = try container.decode(String.self, forKey: .type)
+        let type = try container.decodeIfPresent(String.self, forKey: .type) ?? "text"
 
         switch type {
         case "text":
@@ -449,11 +492,9 @@ enum AnthropicResponseContent: Codable {
         case "tool_use":
             self = try .toolUse(ToolUseContent(from: decoder))
         default:
-            throw DecodingError.dataCorruptedError(
-                forKey: .type,
-                in: container,
-                debugDescription: "Unknown content type: \(type)"
-            )
+            let fallbackText = try container.decodeIfPresent(String.self, forKey: .text) ??
+                container.decodeIfPresent(String.self, forKey: .thinking) ?? ""
+            self = .text(TextContent(type: type, text: fallbackText))
         }
     }
 
@@ -468,6 +509,8 @@ enum AnthropicResponseContent: Codable {
 
     enum CodingKeys: String, CodingKey {
         case type
+        case text
+        case thinking
     }
 }
 
