@@ -13,6 +13,7 @@ public final class OpenAIResponsesProvider: ModelProvider {
 
     private let model: LanguageModel.OpenAI
     private let configuration: TachikomaConfiguration
+    private let session: URLSession
 
     private static let debugLogURL = URL(fileURLWithPath: "/tmp/tachikoma-gpt5.log")
 
@@ -22,10 +23,15 @@ public final class OpenAIResponsesProvider: ModelProvider {
     private let previousResponseId: String? = nil // For conversation persistence
     private let reasoningItemIds: [String] = [] // For stateful reasoning
 
-    public init(model: LanguageModel.OpenAI, configuration: TachikomaConfiguration) throws {
+    public init(
+        model: LanguageModel.OpenAI,
+        configuration: TachikomaConfiguration,
+        session: URLSession = .shared
+    ) throws {
         self.model = model
         self.modelId = model.modelId
         self.configuration = configuration
+        self.session = session
         self.baseURL = configuration.getBaseURL(for: .openai) ?? "https://api.openai.com/v1"
 
         // Get API key from configuration
@@ -77,7 +83,7 @@ public final class OpenAIResponsesProvider: ModelProvider {
             (Data, URLResponse),
             Error
         >) in
-            URLSession.shared.dataTask(with: urlRequest) { data, response, error in
+            self.session.dataTask(with: urlRequest) { data, response, error in
                 if let error {
                     continuation.resume(throwing: error)
                 } else if let data, let response {
@@ -92,7 +98,7 @@ public final class OpenAIResponsesProvider: ModelProvider {
         }
         #else
         // macOS/iOS: Use async API
-        let (data, response) = try await URLSession.shared.data(for: urlRequest)
+        let (data, response) = try await self.session.data(for: urlRequest)
         #endif
 
         guard let httpResponse = response as? HTTPURLResponse else {
@@ -162,7 +168,7 @@ public final class OpenAIResponsesProvider: ModelProvider {
                         (Data, URLResponse),
                         Error
                     >) in
-                        URLSession.shared.dataTask(with: finalURLRequest) { data, response, error in
+                        self.session.dataTask(with: finalURLRequest) { data, response, error in
                             if let error {
                                 cont.resume(throwing: error)
                             } else if let data, let response {
@@ -191,7 +197,7 @@ public final class OpenAIResponsesProvider: ModelProvider {
                     let lines = responseText.components(separatedBy: "\n")
                     #else
                     // macOS/iOS: Use streaming API
-                    let (bytes, response) = try await URLSession.shared.bytes(for: finalURLRequest)
+                    let (bytes, response) = try await self.session.bytes(for: finalURLRequest)
 
                     guard let httpResponse = response as? HTTPURLResponse else {
                         throw TachikomaError.apiError("Invalid response type")

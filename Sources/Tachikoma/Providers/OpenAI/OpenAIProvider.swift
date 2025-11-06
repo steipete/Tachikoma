@@ -9,11 +9,17 @@ public final class OpenAIProvider: ModelProvider {
     public let capabilities: ModelCapabilities
 
     private let model: LanguageModel.OpenAI
+    private let session: URLSession
 
-    public init(model: LanguageModel.OpenAI, configuration: TachikomaConfiguration) throws {
+    public init(
+        model: LanguageModel.OpenAI,
+        configuration: TachikomaConfiguration,
+        session: URLSession = .shared
+    ) throws {
         self.model = model
         self.modelId = model.modelId
         self.baseURL = configuration.getBaseURL(for: .openai) ?? "https://api.openai.com/v1"
+        self.session = session
 
         // Get API key from configuration system (environment or credentials)
         if let key = configuration.getAPIKey(for: .openai) {
@@ -45,7 +51,8 @@ public final class OpenAIProvider: ModelProvider {
             baseURL: self.baseURL!,
             apiKey: self.apiKey!,
             providerName: "OpenAI",
-            additionalHeaders: additionalHeaders
+            additionalHeaders: additionalHeaders,
+            session: self.session
         )
     }
 
@@ -63,7 +70,8 @@ public final class OpenAIProvider: ModelProvider {
             baseURL: self.baseURL!,
             apiKey: self.apiKey!,
             providerName: "OpenAI",
-            additionalHeaders: additionalHeaders
+            additionalHeaders: additionalHeaders,
+            session: self.session
         )
     }
 }

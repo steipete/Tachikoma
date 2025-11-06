@@ -28,7 +28,8 @@ public func generateText(
     sessionId: String? = nil
 ) async throws
 -> GenerateTextResult {
-    let provider = try ProviderFactory.createProvider(for: model, configuration: configuration)
+    let resolvedConfiguration = TachikomaConfiguration.resolve(configuration)
+    let provider = try resolvedConfiguration.makeProvider(for: model)
 
     var currentMessages = messages
     var allSteps: [GenerationStep] = []
@@ -250,8 +251,9 @@ public func streamText(
 ) async throws
 -> StreamTextResult {
     // Debug logging only when explicitly enabled via environment variable or verbose flag
+    let resolvedConfiguration = TachikomaConfiguration.resolve(configuration)
     let debugEnabled = ProcessInfo.processInfo.environment["DEBUG_TACHIKOMA"] != nil ||
-        configuration.verbose
+        resolvedConfiguration.verbose
     if debugEnabled {
         print("\n🔵 DEBUG streamText: Creating provider for model: \(model)")
         print("🔵 DEBUG streamText: Model details: \(model.description)")
@@ -260,7 +262,7 @@ public func streamText(
             print("🔵 DEBUG streamText: OpenAI model modelId: \(openaiModel.modelId)")
         }
     }
-    let provider = try ProviderFactory.createProvider(for: model, configuration: configuration)
+    let provider = try resolvedConfiguration.makeProvider(for: model)
     if debugEnabled {
         print("🔵 DEBUG streamText: Provider created: \(type(of: provider))")
         print(
@@ -381,7 +383,8 @@ public func generateObject<T: Codable & Sendable>(
     configuration: TachikomaConfiguration = .current
 ) async throws
 -> GenerateObjectResult<T> {
-    let provider = try ProviderFactory.createProvider(for: model, configuration: configuration)
+    let resolvedConfiguration = TachikomaConfiguration.resolve(configuration)
+    let provider = try resolvedConfiguration.makeProvider(for: model)
 
     let request = ProviderRequest(
         messages: messages,
@@ -436,7 +439,8 @@ public func streamObject<T: Codable & Sendable>(
     configuration: TachikomaConfiguration = .current
 ) async throws
 -> StreamObjectResult<T> {
-    let provider = try ProviderFactory.createProvider(for: model, configuration: configuration)
+    let resolvedConfiguration = TachikomaConfiguration.resolve(configuration)
+    let provider = try resolvedConfiguration.makeProvider(for: model)
 
     // Create request with JSON output format
     let request = ProviderRequest(

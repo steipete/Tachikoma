@@ -5,6 +5,9 @@ import Foundation
 /// Configuration manager for Tachikoma AI SDK
 /// Create instances for different contexts rather than using a global singleton
 @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
+public typealias ProviderFactoryOverride = (LanguageModel, TachikomaConfiguration) throws -> any ModelProvider
+
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public final class TachikomaConfiguration: @unchecked Sendable {
     // MARK: - Profile Directory (for config/credentials)
 
@@ -20,6 +23,7 @@ public final class TachikomaConfiguration: @unchecked Sendable {
     private var _defaultSettings: GenerationSettings = .default
     private let _loadFromEnvironment: Bool
     private var _verbose: Bool = false
+    private var _providerFactoryOverride: ProviderFactoryOverride?
 
     /// Thread-safe storage for the default configuration
     private static let defaultLock = NSLock()
@@ -196,6 +200,24 @@ public final class TachikomaConfiguration: @unchecked Sendable {
         self.lock.withLock {
             _ = self._baseURLs.removeValue(forKey: provider.identifier)
         }
+    }
+
+    // MARK: - Provider Factory Overrides
+
+    /// Override the provider factory used when helper APIs create providers
+    public func setProviderFactoryOverride(_ override: ProviderFactoryOverride?) {
+        self.lock.withLock {
+            self._providerFactoryOverride = override
+        }
+    }
+
+    /// Create a provider for a given model, respecting any override
+    public func makeProvider(for model: LanguageModel) throws -> any ModelProvider {
+        let override = self.lock.withLock { self._providerFactoryOverride }
+        if let override {
+            return try override(model, self)
+        }
+        return try ProviderFactory.createProvider(for: model, configuration: self)
     }
 
     // MARK: - Default Settings

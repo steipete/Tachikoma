@@ -14,7 +14,8 @@ struct OpenAICompatibleHelper {
         baseURL: String,
         apiKey: String,
         providerName: String,
-        additionalHeaders: [String: String] = [:]
+        additionalHeaders: [String: String] = [:],
+        session: URLSession = .shared
     ) async throws
     -> ProviderResponse {
         let url = URL(string: "\(baseURL)/chat/completions")!
@@ -65,7 +66,7 @@ struct OpenAICompatibleHelper {
             }
         }
 
-        let (data, response) = try await URLSession.shared.data(for: urlRequest)
+        let (data, response) = try await session.data(for: urlRequest)
 
         guard let httpResponse = response as? HTTPURLResponse else {
             throw TachikomaError.networkError(NSError(domain: "Invalid response", code: 0))
@@ -144,7 +145,8 @@ struct OpenAICompatibleHelper {
         baseURL: String,
         apiKey: String,
         providerName: String,
-        additionalHeaders: [String: String] = [:]
+        additionalHeaders: [String: String] = [:],
+        session: URLSession = .shared
     ) async throws
     -> AsyncThrowingStream<TextStreamDelta, Error> {
         let url = URL(string: "\(baseURL)/chat/completions")!
@@ -205,7 +207,7 @@ struct OpenAICompatibleHelper {
                         (Data, URLResponse),
                         Error
                     >) in
-                        URLSession.shared.dataTask(with: finalRequest) { data, response, error in
+                        session.dataTask(with: finalRequest) { data, response, error in
                             if let error {
                                 cont.resume(throwing: error)
                             } else if let data, let response {
@@ -233,7 +235,7 @@ struct OpenAICompatibleHelper {
                     let lines = String(data: data, encoding: .utf8)?.components(separatedBy: "\n") ?? []
                     #else
                     // macOS/iOS: Use streaming API
-                    let (bytes, response) = try await URLSession.shared.bytes(for: finalRequest)
+                    let (bytes, response) = try await session.bytes(for: finalRequest)
 
                     guard let httpResponse = response as? HTTPURLResponse else {
                         throw TachikomaError.networkError(NSError(domain: "Invalid response", code: 0))

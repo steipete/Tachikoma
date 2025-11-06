@@ -5,11 +5,17 @@ import Foundation
 /// Test helper functions for creating configured Tachikoma instances in test environments
 enum TestHelpers {
     /// Create a test configuration with specific API keys
-    static func createTestConfiguration(apiKeys: [String: String] = [:]) -> TachikomaConfiguration {
+    static func createTestConfiguration(
+        apiKeys: [String: String] = [:],
+        enableMockOverride: Bool = true
+    ) -> TachikomaConfiguration {
         let config = TachikomaConfiguration(loadFromEnvironment: false)
         for (provider, key) in apiKeys {
             let resolved = self.resolve(provider: provider, provided: key)
             config.setAPIKey(resolved, for: provider)
+        }
+        if enableMockOverride {
+            self.configureTestBehavior(for: config, apiKeys: apiKeys)
         }
         return config
     }
@@ -24,7 +30,7 @@ enum TestHelpers {
 
     /// Create a configuration with no API keys (for testing missing key scenarios)
     static func createEmptyTestConfiguration() -> TachikomaConfiguration {
-        self.createTestConfiguration(apiKeys: [:])
+        self.createTestConfiguration(apiKeys: [:], enableMockOverride: false)
     }
 
     /// Create a configuration with specific API keys present and others missing
@@ -152,5 +158,23 @@ enum TestHelpers {
         default:
             return []
         }
+    }
+
+    private static func configureTestBehavior(for config: TachikomaConfiguration, apiKeys: [String: String]) {
+        guard self.shouldUseMockProviders(apiKeys: apiKeys) else { return }
+        config.setProviderFactoryOverride { model, _ in
+            MockProvider(model: model)
+        }
+    }
+
+    private static func shouldUseMockProviders(apiKeys: [String: String]) -> Bool {
+        let env = ProcessInfo.processInfo.environment
+        if env["TACHIKOMA_DISABLE_API_TESTS"] == "true" {
+            return true
+        }
+        if let mode = env["TACHIKOMA_TEST_MODE"], mode.lowercased() == "mock" {
+            return true
+        }
+        return apiKeys.values.contains { Self.isMockAPIKey($0) }
     }
 }

@@ -26,7 +26,8 @@ public actor LMStudioProvider: ModelProvider, Sendable {
     public init(
         baseURL: String = "http://localhost:1234/v1",
         modelId: String = "current",
-        apiKey: String? = nil
+        apiKey: String? = nil,
+        sessionConfiguration: URLSessionConfiguration = .default
     ) {
         self.actualBaseURL = baseURL
         self.modelId = modelId
@@ -38,7 +39,7 @@ public actor LMStudioProvider: ModelProvider, Sendable {
             maxOutputTokens: 4096
         )
 
-        let config = URLSessionConfiguration.default
+        let config = sessionConfiguration
         config.timeoutIntervalForRequest = 300 // 5 minutes for local models
         config.timeoutIntervalForResource = 600 // 10 minutes total
         self.session = URLSession(configuration: config)
@@ -198,16 +199,14 @@ public actor LMStudioProvider: ModelProvider, Sendable {
         var messages: [[String: Any]] = []
 
         for message in request.messages {
+            let serializedContent = self.serializeContentParts(message.content)
+
             let msg: [String: Any] = [
                 "role": message.role.rawValue,
-                "content": message.content,
+                "content": serializedContent.isEmpty ? [["type": "text", "text": ""]] : serializedContent,
             ]
 
-            // Add metadata if present
-            if message.metadata != nil {
-                // For now, we'll skip metadata as it's not directly mappable
-                // Future: Add channel support when LMStudio supports it
-            }
+            // Add metadata if present (future: channel support)
 
             messages.append(msg)
         }
@@ -267,6 +266,28 @@ public actor LMStudioProvider: ModelProvider, Sendable {
         }
 
         return LMStudioRequest(body: body)
+    }
+
+    private func serializeContentParts(_ parts: [ModelMessage.ContentPart]) -> [[String: Any]] {
+        parts.compactMap { part in
+            switch part {
+            case let .text(text):
+                [
+                    "type": "text",
+                    "text": text,
+                ]
+            case let .image(image):
+                [
+                    "type": "image_url",
+                    "image_url": [
+                        "mime_type": image.mimeType,
+                        "data": image.data,
+                    ],
+                ]
+            default:
+                nil
+            }
+        }
     }
 
     private func mapReasoningEffortToParams(_ effort: ReasoningEffort) -> [String: Any] {

@@ -9,11 +9,17 @@ public final class MistralProvider: ModelProvider {
     public let capabilities: ModelCapabilities
 
     private let model: LanguageModel.Mistral
+    private let session: URLSession
 
-    public init(model: LanguageModel.Mistral, configuration: TachikomaConfiguration) throws {
+    public init(
+        model: LanguageModel.Mistral,
+        configuration: TachikomaConfiguration,
+        session: URLSession = .shared
+    ) throws {
         self.model = model
         self.modelId = model.rawValue
         self.baseURL = configuration.getBaseURL(for: .mistral) ?? "https://api.mistral.ai/v1"
+        self.session = session
 
         if let key = configuration.getAPIKey(for: .mistral) {
             self.apiKey = key
@@ -37,7 +43,8 @@ public final class MistralProvider: ModelProvider {
             modelId: self.modelId,
             baseURL: self.baseURL!,
             apiKey: self.apiKey!,
-            providerName: "Mistral"
+            providerName: "Mistral",
+            session: self.session
         )
     }
 
@@ -48,7 +55,8 @@ public final class MistralProvider: ModelProvider {
             modelId: self.modelId,
             baseURL: self.baseURL!,
             apiKey: self.apiKey!,
-            providerName: "Mistral"
+            providerName: "Mistral",
+            session: self.session
         )
     }
 }

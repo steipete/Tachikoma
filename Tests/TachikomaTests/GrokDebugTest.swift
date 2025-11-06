@@ -4,6 +4,11 @@ import Testing
 
 @Test("Debug Grok streaming issue")
 func grokStreamingDebug() async throws {
+    if ProcessInfo.processInfo.environment["TACHIKOMA_TEST_MODE"] == "mock" {
+        print("Skipping Grok streaming debug in mock mode")
+        return
+    }
+
     // Skip if no API key
     guard
         ProcessInfo.processInfo.environment["X_AI_API_KEY"] != nil ||

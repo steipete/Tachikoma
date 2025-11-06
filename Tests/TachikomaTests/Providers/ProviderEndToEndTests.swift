@@ -1,0 +1,304 @@
+import Foundation
+import Testing
+@testable import Tachikoma
+
+@Suite("Provider Network E2E Tests", .serialized)
+struct ProviderEndToEndTests {
+    // MARK: - OpenAI Responses (GPT-5)
+
+    @Test("OpenAI Responses provider returns text")
+    func openAIResponsesProvider() async throws {
+        try await NetworkMocking.withMockedNetwork { request in
+            #expect(request.url?.path == "/v1/responses")
+            return NetworkMocking.jsonResponse(for: request, data: Self.openAIResponsesPayload(text: "Hello from GPT-5"))
+        } operation: {
+            let config = Self.makeConfiguration { config in
+                config.setAPIKey("sk-live-openai", for: .openai)
+            }
+            let provider = try OpenAIResponsesProvider(model: .gpt5Mini, configuration: config)
+            let response = try await provider.generateText(request: Self.basicRequest)
+            #expect(response.text.contains("GPT-5"))
+            #expect(response.usage?.outputTokens == 5)
+        }
+    }
+
+    // MARK: - OpenAI Chat Provider
+
+    @Test("OpenAI chat provider hits /chat/completions")
+    func openAIChatProvider() async throws {
+        try await NetworkMocking.withMockedNetwork { request in
+            #expect(request.url?.path == "/v1/chat/completions")
+            return NetworkMocking.jsonResponse(for: request, data: Self.chatCompletionPayload(text: "OpenAI chat success"))
+        } operation: {
+            let config = Self.makeConfiguration { config in
+                config.setAPIKey("sk-live-openai", for: .openai)
+            }
+            let provider = try OpenAIProvider(model: .gpt4o, configuration: config)
+            let response = try await provider.generateText(request: Self.basicRequest)
+            #expect(response.text == "OpenAI chat success")
+        }
+    }
+
+    // MARK: - Anthropic
+
+    @Test("Anthropic provider decodes Claude responses")
+    func anthropicProvider() async throws {
+        try await NetworkMocking.withMockedNetwork { request in
+            #expect(request.url?.path == "/v1/messages")
+            return NetworkMocking.jsonResponse(for: request, data: Self.anthropicPayload(text: "Claude says hello"))
+        } operation: {
+            let config = Self.makeConfiguration { config in
+                config.setAPIKey("live-anthropic", for: .anthropic)
+            }
+            let provider = try AnthropicProvider(model: .sonnet4, configuration: config)
+            let response = try await provider.generateText(request: Self.basicRequest)
+            #expect(response.text == "Claude says hello")
+        }
+    }
+
+    // MARK: - Google Gemini
+
+    @Test("Google provider processes streamed SSE content")
+    func googleProvider() async throws {
+        try await NetworkMocking.withMockedNetwork { request in
+            #expect(request.url?.path.contains(":streamGenerateContent") == true)
+            return NetworkMocking.streamResponse(for: request, data: Self.googleStreamPayload(text: "Gemini streaming"))
+        } operation: {
+            let config = Self.makeConfiguration { config in
+                config.setAPIKey("google-live", for: .google)
+            }
+            let provider = try GoogleProvider(model: .gemini15Flash, configuration: config)
+            let response = try await provider.generateText(request: Self.basicRequest)
+            #expect(response.text.contains("Gemini streaming"))
+        }
+    }
+
+    // MARK: - OpenAI-compatible providers
+
+    @Test("Mistral provider uses OpenAI-compatible flow")
+    func mistralProvider() async throws {
+        try await assertOpenAICompatibleProvider(.mistral(.small), provider: .mistral)
+    }
+
+    @Test("Groq provider uses OpenAI-compatible flow")
+    func groqProvider() async throws {
+        try await assertOpenAICompatibleProvider(.groq(.llama38b), provider: .groq)
+    }
+
+    @Test("Grok provider uses OpenAI-compatible flow")
+    func grokProvider() async throws {
+        try await assertOpenAICompatibleProvider(.grok(.grok3), provider: .grok)
+    }
+
+    // MARK: - Ollama
+
+    @Test("Ollama provider handles local responses")
+    func ollamaProvider() async throws {
+        try await NetworkMocking.withMockedNetwork { request in
+            #expect(request.url?.path == "/api/chat")
+            return NetworkMocking.jsonResponse(for: request, data: Self.ollamaPayload(text: "Ollama local reply"))
+        } operation: {
+            let config = Self.makeConfiguration { config in
+                config.setBaseURL("http://localhost:11434", for: .ollama)
+            }
+            let provider = try OllamaProvider(model: .llama33, configuration: config)
+            let response = try await provider.generateText(request: Self.basicRequest)
+            #expect(response.text == "Ollama local reply")
+        }
+    }
+
+    // MARK: - LMStudio
+
+    @Test("LMStudio provider maps OpenAI-style responses")
+    func lmstudioProvider() async throws {
+        try await NetworkMocking.withMockedNetwork { request in
+            let path = request.url?.path ?? ""
+            #expect(path.contains("chat/completions"))
+            return NetworkMocking.jsonResponse(for: request, data: Self.chatCompletionPayload(text: "LMStudio result"))
+        } operation: {
+            let provider = LMStudioProvider(
+                baseURL: "http://localhost:1234/v1",
+                modelId: "local",
+                sessionConfiguration: Self.mockedSessionConfiguration()
+            )
+            let response = try await provider.generateText(request: Self.basicRequest)
+            #expect(response.text == "LMStudio result")
+        }
+    }
+
+    // MARK: - Helpers
+
+    private func assertOpenAICompatibleProvider(_ model: LanguageModel, provider: Provider) async throws {
+        try await NetworkMocking.withMockedNetwork { request in
+            let path = request.url?.path ?? ""
+            #expect(path.contains("chat/completions"))
+            return NetworkMocking.jsonResponse(for: request, data: Self.chatCompletionPayload(text: "Response for \(provider.identifier)"))
+        } operation: {
+            let config = Self.makeConfiguration { config in
+                config.setAPIKey("live-\(provider.identifier)", for: provider)
+            }
+
+            let providerInstance: any ModelProvider = switch model {
+            case let .mistral(sub): try MistralProvider(model: sub, configuration: config)
+            case let .groq(sub): try GroqProvider(model: sub, configuration: config)
+            case let .grok(sub): try GrokProvider(model: sub, configuration: config)
+            default:
+                fatalError("Unsupported model: \(model)")
+            }
+
+            let response = try await providerInstance.generateText(request: Self.basicRequest)
+            #expect(response.text.contains(provider.identifier))
+        }
+    }
+
+    private static var basicRequest: ProviderRequest {
+        ProviderRequest(
+            messages: [ModelMessage(role: .user, content: [.text("Hello there")])]
+        )
+    }
+
+    private static func makeConfiguration(_ builder: (TachikomaConfiguration) -> Void) -> TachikomaConfiguration {
+        let config = TachikomaConfiguration(loadFromEnvironment: false)
+        builder(config)
+        return config
+    }
+
+    private static func openAIResponsesPayload(text: String) -> Data {
+        let dict: [String: Any] = [
+            "id": "resp_123",
+            "object": "response",
+            "created_at": 1_723_000_000,
+            "model": "gpt-5-mini",
+            "status": "completed",
+            "output": [
+                [
+                    "id": "msg_1",
+                    "type": "message",
+                    "role": "assistant",
+                    "content": [
+                        ["type": "output_text", "text": text],
+                    ],
+                ],
+            ],
+            "usage": [
+                "input_tokens": 10,
+                "output_tokens": 5,
+            ],
+        ]
+        return try! JSONSerialization.data(withJSONObject: dict)
+    }
+
+    private static func chatCompletionPayload(text: String) -> Data {
+        let dict: [String: Any] = [
+            "id": "chatcmpl-123",
+            "object": "chat.completion",
+            "created": 1_723_000_000,
+            "model": "gpt-4o",
+            "choices": [
+                [
+                    "index": 0,
+                    "message": ["role": "assistant", "content": text],
+                    "finish_reason": "stop",
+                ],
+            ],
+            "usage": [
+                "prompt_tokens": 10,
+                "completion_tokens": 5,
+                "total_tokens": 15,
+            ],
+        ]
+        return try! JSONSerialization.data(withJSONObject: dict)
+    }
+
+    private static func anthropicPayload(text: String) -> Data {
+        let dict: [String: Any] = [
+            "id": "msg_1",
+            "type": "message",
+            "role": "assistant",
+            "content": [
+                ["type": "text", "text": text],
+            ],
+            "model": "claude-sonnet-4-20250514",
+            "stop_reason": "end_turn",
+            "usage": [
+                "input_tokens": 12,
+                "output_tokens": 6,
+            ],
+        ]
+        return try! JSONSerialization.data(withJSONObject: dict)
+    }
+
+    private static func googleStreamPayload(text: String) -> Data {
+        let json: [String: Any] = [
+            "candidates": [
+                [
+                    "content": [
+                        "parts": [["text": text]],
+                    ],
+                ],
+            ],
+        ]
+        let data = try! JSONSerialization.data(withJSONObject: json)
+        var body = Data()
+        body.append("data: ".data(using: .utf8)!)
+        body.append(data)
+        body.append("\n\n".data(using: .utf8)!)
+        return body
+    }
+
+    private static func ollamaPayload(text: String) -> Data {
+        let dict: [String: Any] = [
+            "model": "llama3",
+            "created_at": "2025-01-01T00:00:00Z",
+            "message": ["role": "assistant", "content": text],
+            "done": true,
+        ]
+        return try! JSONSerialization.data(withJSONObject: dict)
+    }
+
+    private static func mockedSessionConfiguration() -> URLSessionConfiguration {
+        let config = URLSessionConfiguration.ephemeral
+        var classes = config.protocolClasses ?? []
+        classes.insert(MockURLProtocol.self, at: 0)
+        config.protocolClasses = classes
+        return config
+    }
+}
+
+// MARK: - Network Mock Helper
+
+enum NetworkMocking {
+    static func withMockedNetwork<T>(
+        handler: @Sendable @escaping (URLRequest) throws -> (HTTPURLResponse, Data),
+        operation: () async throws -> T
+    ) async throws -> T {
+        let previousHandler = MockURLProtocol.handler
+        MockURLProtocol.handler = handler
+        URLProtocol.registerClass(MockURLProtocol.self)
+        defer {
+            URLProtocol.unregisterClass(MockURLProtocol.self)
+            MockURLProtocol.handler = previousHandler
+        }
+        return try await operation()
+    }
+
+    static func jsonResponse(for request: URLRequest, data: Data, statusCode: Int = 200) -> (HTTPURLResponse, Data) {
+        let response = HTTPURLResponse(
+            url: request.url ?? URL(string: "https://mock.api.test")!,
+            statusCode: statusCode,
+            httpVersion: nil,
+            headerFields: ["Content-Type": "application/json"]
+        )!
+        return (response, data)
+    }
+
+    static func streamResponse(for request: URLRequest, data: Data, statusCode: Int = 200) -> (HTTPURLResponse, Data) {
+        let response = HTTPURLResponse(
+            url: request.url ?? URL(string: "https://mock.api.test/stream")!,
+            statusCode: statusCode,
+            httpVersion: nil,
+            headerFields: ["Content-Type": "text/event-stream"]
+        )!
+        return (response, data)
+    }
+}
