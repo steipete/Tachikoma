@@ -144,10 +144,11 @@ public enum API {
     /// Tool system
     public enum Tools {
         /// Result builder syntax
-        /// - `@ToolKit struct MyTools {
-            // Result builder syntax
-            func myTool() async throws -> String
-        }`
+        /// - ```
+        ///   @ToolKit struct MyTools {
+        ///       func myTool() async throws -> String
+        ///   }
+        ///   ```
         public static let builder = "Declarative tool definitions with @ToolKit"
 
         /// Manual tool creation
