@@ -2,210 +2,271 @@ import Foundation
 import Testing
 @testable import Tachikoma
 
-@Test("OpenAICompatibleHelper streaming implementation")
-@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
-func streamingImplementation() async throws {
-    // This test verifies that the streaming implementation uses proper async streaming
-    // and doesn't buffer the entire response before processing
-
-    // Create a mock URLSession that simulates streaming responses
-    let mockSession = MockStreamingURLSession()
-
-    // Test that the helper properly processes SSE format
-    let sseData = """
-    data: {"choices":[{"delta":{"content":"Hello"}}]}
-    data: {"choices":[{"delta":{"content":" "}}]}
-    data: {"choices":[{"delta":{"content":"world"}}]}
-    data: [DONE]
-    """
-
-    // Verify that each chunk is processed independently
-    // (This would require refactoring to inject URLSession, keeping simple for now)
-    #expect(true) // Placeholder for now
-}
-
-@Test("GPT-5 max_completion_tokens parameter encoding")
-@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
-func gPT5MaxCompletionTokensEncoding() throws {
-    // Test that GPT-5 models use max_completion_tokens instead of max_tokens
-    let gpt5Request = OpenAIChatRequest(
-        model: "gpt-5",
-        messages: [OpenAIChatMessage(role: "user", content: "Test")],
-        temperature: 0.7,
-        maxTokens: 100,
-        tools: nil,
-        stream: false,
-        stop: nil
-    )
-
-    let encoder = JSONEncoder()
-    let data = try encoder.encode(gpt5Request)
-    let json = try JSONSerialization.jsonObject(with: data) as? [String: Any]
-
-    // GPT-5 should use max_completion_tokens
-    #expect(json?["max_completion_tokens"] != nil)
-    #expect(json?["max_tokens"] == nil)
-
-    // Test non-GPT-5 model
-    let gpt4Request = OpenAIChatRequest(
-        model: "gpt-4",
-        messages: [OpenAIChatMessage(role: "user", content: "Test")],
-        temperature: 0.7,
-        maxTokens: 100,
-        tools: nil,
-        stream: false,
-        stop: nil
-    )
-
-    let gpt4Data = try encoder.encode(gpt4Request)
-    let gpt4Json = try JSONSerialization.jsonObject(with: gpt4Data) as? [String: Any]
-
-    // GPT-4 should use max_tokens
-    #expect(gpt4Json?["max_tokens"] != nil)
-    #expect(gpt4Json?["max_completion_tokens"] == nil)
-}
-
-@Test("OpenAIChatRequest decode handles both max_tokens and max_completion_tokens")
-@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
-func openAIChatRequestDecoding() throws {
-    let decoder = JSONDecoder()
-
-    // Test decoding with max_tokens
-    let maxTokensJSON = """
-    {
-        "model": "gpt-4",
-        "messages": [{"role": "user", "content": "Test"}],
-        "max_tokens": 100
-    }
-    """
-
-    let maxTokensRequest = try decoder.decode(OpenAIChatRequest.self, from: Data(maxTokensJSON.utf8))
-    #expect(maxTokensRequest.maxTokens == 100)
-
-    // Test decoding with max_completion_tokens
-    let maxCompletionTokensJSON = """
-    {
-        "model": "gpt-5",
-        "messages": [{"role": "user", "content": "Test"}],
-        "max_completion_tokens": 200
-    }
-    """
-
-    let maxCompletionRequest = try decoder.decode(OpenAIChatRequest.self, from: Data(maxCompletionTokensJSON.utf8))
-    #expect(maxCompletionRequest.maxTokens == 200)
-}
-
-@Test("Streaming response chunks are processed incrementally")
-@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
-func streamingChunksProcessedIncrementally() async throws {
-    // Test that streaming chunks are yielded as they arrive, not buffered
-    let chunks = [
-        OpenAIStreamChunk(
-            id: "chunk1",
-            choices: [OpenAIStreamChunk.Choice(
-                index: 0,
-                delta: OpenAIStreamChunk.Delta(role: nil, content: "Hello", toolCalls: nil),
-                finishReason: nil
-            )]
-        ),
-        OpenAIStreamChunk(
-            id: "chunk2",
-            choices: [OpenAIStreamChunk.Choice(
-                index: 0,
-                delta: OpenAIStreamChunk.Delta(role: nil, content: " world", toolCalls: nil),
-                finishReason: nil
-            )]
-        ),
-        OpenAIStreamChunk(
-            id: "chunk3",
-            choices: [OpenAIStreamChunk.Choice(
-                index: 0,
-                delta: OpenAIStreamChunk.Delta(role: nil, content: "!", toolCalls: nil),
-                finishReason: "stop"
-            )]
-        ),
-    ]
-
-    // Verify chunks have expected content
-    #expect(chunks[0].choices.first?.delta.content == "Hello")
-    #expect(chunks[1].choices.first?.delta.content == " world")
-    #expect(chunks[2].choices.first?.delta.content == "!")
-    #expect(chunks[2].choices.first?.finishReason == "stop")
-}
-
-@Test("Tool calls are properly handled in streaming")
-@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
-func streamingToolCalls() async throws {
-    // Test that tool calls in streaming responses are properly parsed
-    let toolCallChunk = OpenAIStreamChunk(
-        id: "chunk_tool",
-        choices: [OpenAIStreamChunk.Choice(
-            index: 0,
-            delta: OpenAIStreamChunk.Delta(
-                role: nil,
-                content: nil,
-                toolCalls: [
-                    OpenAIStreamChunk.Delta.ToolCall(
-                        index: 0,
-                        id: "call_123",
-                        type: "function",
-                        function: OpenAIStreamChunk.Delta.ToolCall.Function(
-                            name: "calculate",
-                            arguments: "{\"expression\":\"2+2\"}"
-                        )
+@Suite("OpenAICompatibleHelper Tests", .serialized)
+struct OpenAICompatibleHelperTests {
+    @Test("generateText encodes stop sequences, headers, and tool definitions")
+    func generateTextEncodesPayload() async throws {
+        let tool = AgentTool(
+            name: "lookup",
+            description: "Lookup a value",
+            parameters: AgentToolParameters(
+                properties: [
+                    "query": AgentToolParameterProperty(
+                        name: "query",
+                        type: .string,
+                        description: "Query string"
                     ),
-                ]
-            ),
-            finishReason: nil
-        )]
-    )
+                ],
+                required: ["query"]
+            )
+        ) { _ in AnyAgentToolValue(string: "unused") }
 
-    let toolCalls = toolCallChunk.choices.first?.delta.toolCalls
-    #expect(toolCalls?.count == 1)
-    #expect(toolCalls?.first?.function?.name == "calculate")
-    #expect(toolCalls?.first?.function?.arguments == "{\"expression\":\"2+2\"}")
-}
+        let request = ProviderRequest(
+            messages: [ModelMessage(role: .user, content: [.text("ping")])],
+            tools: [tool],
+            settings: GenerationSettings(
+                maxTokens: 64,
+                temperature: 0.2,
+                stopConditions: StringStopCondition("END")
+            )
+        )
 
-@Test("Error responses are properly handled")
-@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
-func errorResponseHandling() throws {
-    let errorJSON = """
-    {
-        "error": {
-            "message": "Unsupported parameter: 'max_tokens' is not supported with this model.",
-            "type": "invalid_request_error",
-            "code": "unsupported_parameter"
+        let capture = CapturedRequest()
+
+        let response = try await withMockedSession { urlRequest in
+            #expect(urlRequest.value(forHTTPHeaderField: "Authorization")?.hasPrefix("Bearer ") == true)
+            capture.body = bodyData(from: urlRequest)
+            return jsonResponse(for: urlRequest, data: Self.chatCompletionPayload(text: "pong"))
+        } operation: { session in
+            try await OpenAICompatibleHelper.generateText(
+                request: request,
+                modelId: "compatible-model",
+                baseURL: "https://mock.compatible",
+                apiKey: "sk-test",
+                providerName: "TestProvider",
+                additionalHeaders: ["X-Test": "1"],
+                session: session
+            )
         }
+
+        #expect(response.text == "pong")
+
+        let bodyJSON = try #require(capture.body).jsonObject()
+        let stop = bodyJSON["stop"] as? [String]
+        #expect(stop == ["END"])
+        #expect(bodyJSON["temperature"] as? Double == 0.2)
+        let tools = bodyJSON["tools"] as? [[String: Any]]
+        let firstTool = try #require(tools?.first)
+        #expect(firstTool["type"] as? String == "function")
+        let function = firstTool["function"] as? [String: Any]
+        let parameters = try #require(function?["parameters"] as? [String: Any])
+        let properties = try #require(parameters["properties"] as? [String: Any])
+        let query = try #require(properties["query"] as? [String: Any])
+        #expect(query["type"] as? String == "string")
+        let required = parameters["required"] as? [String]
+        #expect(required == ["query"])
     }
-    """
 
-    let decoder = JSONDecoder()
-    let errorResponse = try decoder.decode(OpenAIErrorResponse.self, from: Data(errorJSON.utf8))
+    @Test("streamText emits deltas as SSE chunks arrive")
+    func streamTextEmitsDeltas() async throws {
+        let request = ProviderRequest(
+            messages: [ModelMessage(role: .user, content: [.text("stream")])]
+        )
 
-    #expect(errorResponse.error.message.contains("Unsupported parameter"))
-    #expect(errorResponse.error.type == "invalid_request_error")
-    #expect(errorResponse.error.code == "unsupported_parameter")
-}
+        let deltas = try await withMockedSession { urlRequest in
+            let sse = """
+            data: {\"id\":\"chunk_1\",\"choices\":[{\"delta\":{\"content\":\"Hello\"},\"index\":0,\"finish_reason\":null}]}
 
-// Mock URLSession for testing streaming behavior
-private class MockStreamingURLSession {
-    func simulateStreamingResponse() async -> AsyncStream<String> {
-        AsyncStream { continuation in
-            Task {
-                // Simulate SSE chunks arriving over time
-                let chunks = [
-                    "data: {\"choices\":[{\"delta\":{\"content\":\"Hello\"}}]}",
-                    "data: {\"choices\":[{\"delta\":{\"content\":\" \"}}]}",
-                    "data: {\"choices\":[{\"delta\":{\"content\":\"world\"}}]}",
-                    "data: [DONE]",
-                ]
+            data: {\"id\":\"chunk_2\",\"choices\":[{\"delta\":{\"content\":\" world\"},\"index\":0,\"finish_reason\":null}]}
 
-                for chunk in chunks {
-                    continuation.yield(chunk)
-                    try? await Task.sleep(nanoseconds: 10_000_000) // 10ms delay
+            data: {\"id\":\"chunk_3\",\"choices\":[{\"delta\":{},\"index\":0,\"finish_reason\":\"stop\"}]}
+
+            data: [DONE]
+
+            """.data(using: .utf8)!
+            let response = HTTPURLResponse(
+                url: urlRequest.url!,
+                statusCode: 200,
+                httpVersion: nil,
+                headerFields: ["Content-Type": "text/event-stream"]
+            )!
+            return (response, sse)
+        } operation: { session in
+            let stream = try await OpenAICompatibleHelper.streamText(
+                request: request,
+                modelId: "compatible-model",
+                baseURL: "https://mock.compatible",
+                apiKey: "sk-test",
+                providerName: "TestProvider",
+                session: session
+            )
+
+            var collected = ""
+            for try await delta in stream {
+                if delta.type == .textDelta {
+                    collected += delta.content ?? ""
                 }
-                continuation.finish()
+            }
+            return collected
+        }
+
+        #expect(deltas == "Hello world")
+    }
+
+    @Test("non-200 responses surface TachikomaError.apiError")
+    func apiErrorsSurface() async throws {
+        try await withMockedSession { urlRequest in
+            let errorJSON = """
+            {"error":{"message":"bad request","type":"invalid_request_error"}}
+            """.data(using: .utf8)!
+            let response = HTTPURLResponse(
+                url: urlRequest.url!,
+                statusCode: 400,
+                httpVersion: nil,
+                headerFields: ["Content-Type": "application/json"]
+            )!
+            return (response, errorJSON)
+        } operation: { session in
+            do {
+                _ = try await OpenAICompatibleHelper.generateText(
+                    request: ProviderRequest(messages: [ModelMessage(role: .user, content: [.text("fail")])]),
+                    modelId: "compatible-model",
+                    baseURL: "https://mock.compatible",
+                    apiKey: "sk-test",
+                    providerName: "TestProvider",
+                    session: session
+                )
+                Issue.record("Expected error to be thrown")
+            } catch let error as TachikomaError {
+                switch error {
+                case let .apiError(message):
+                    #expect(message.contains("bad request"))
+                default:
+                    Issue.record("Unexpected TachikomaError: \(error)")
+                }
+            } catch {
+                Issue.record("Unexpected error: \(error)")
             }
         }
     }
+
+    // MARK: - Helpers
+
+    private func withMockedSession<T>(
+        handler: @Sendable @escaping (URLRequest) throws -> (HTTPURLResponse, Data),
+        operation: (URLSession) async throws -> T
+    ) async rethrows -> T {
+        let previousHandler = OpenAIHelperURLProtocol.handler
+        OpenAIHelperURLProtocol.handler = handler
+        let configuration = URLSessionConfiguration.ephemeral
+        var classes = configuration.protocolClasses ?? []
+        classes.insert(OpenAIHelperURLProtocol.self, at: 0)
+        configuration.protocolClasses = classes
+        let session = URLSession(configuration: configuration)
+
+        defer {
+            session.invalidateAndCancel()
+            OpenAIHelperURLProtocol.handler = previousHandler
+        }
+
+        return try await operation(session)
+    }
+
+    private func bodyData(from request: URLRequest) -> Data? {
+        if let body = request.httpBody {
+            return body
+        }
+        guard let stream = request.httpBodyStream else { return nil }
+        stream.open()
+        defer { stream.close() }
+        var data = Data()
+        var buffer = [UInt8](repeating: 0, count: 1024)
+        while stream.hasBytesAvailable {
+            let read = stream.read(&buffer, maxLength: buffer.count)
+            if read > 0 {
+                data.append(buffer, count: read)
+            } else {
+                break
+            }
+        }
+        return data
+    }
+
+    private func jsonResponse(for request: URLRequest, data: Data, status: Int = 200) -> (HTTPURLResponse, Data) {
+        let response = HTTPURLResponse(
+            url: request.url ?? URL(string: "https://mock.compatible/chat/completions")!,
+            statusCode: status,
+            httpVersion: nil,
+            headerFields: ["Content-Type": "application/json"]
+        )!
+        return (response, data)
+    }
+
+    private static func chatCompletionPayload(text: String) -> Data {
+        let dict: [String: Any] = [
+            "id": "chatcmpl-test",
+            "object": "chat.completion",
+            "created": 1_700_000_000,
+            "model": "compatible-model",
+            "choices": [[
+                "index": 0,
+                "message": ["role": "assistant", "content": text],
+                "finish_reason": "stop",
+            ]],
+            "usage": [
+                "prompt_tokens": 12,
+                "completion_tokens": 3,
+                "total_tokens": 15,
+            ],
+        ]
+        return try! JSONSerialization.data(withJSONObject: dict)
+    }
+}
+
+private extension Data {
+    func jsonObject() throws -> [String: Any] {
+        try JSONSerialization.jsonObject(with: self) as? [String: Any] ?? [:]
+    }
+}
+
+private final class CapturedRequest: @unchecked Sendable {
+    var body: Data?
+}
+
+private final class OpenAIHelperURLProtocol: URLProtocol {
+    typealias Handler = @Sendable (URLRequest) throws -> (HTTPURLResponse, Data)
+
+    private static let handlerLock = NSLock()
+    private nonisolated(unsafe) static var _handler: Handler?
+
+    static var handler: Handler? {
+        get { handlerLock.withLock { _handler } }
+        set { handlerLock.withLock { _handler = newValue } }
+    }
+
+    override class func canInit(with request: URLRequest) -> Bool {
+        true
+    }
+
+    override class func canonicalRequest(for request: URLRequest) -> URLRequest {
+        request
+    }
+
+    override func startLoading() {
+        guard let handler = Self.handler else {
+            client?.urlProtocol(self, didFailWithError: URLError(.resourceUnavailable))
+            return
+        }
+
+        do {
+            let (response, data) = try handler(request)
+            client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
+            client?.urlProtocol(self, didLoad: data)
+            client?.urlProtocolDidFinishLoading(self)
+        } catch {
+            client?.urlProtocol(self, didFailWithError: error)
+        }
+    }
+
+    override func stopLoading() {}
 }

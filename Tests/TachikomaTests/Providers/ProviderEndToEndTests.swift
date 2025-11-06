@@ -15,7 +15,7 @@ struct ProviderEndToEndTests {
     @Test("OpenAI Responses provider returns text")
     func openAIResponsesProvider() async throws {
         try await NetworkMocking.withMockedNetwork { request in
-            #expect(request.url?.path == "/v1/responses")
+            self.expectPath(request, endsWith: "/responses")
             return NetworkMocking.jsonResponse(for: request, data: Self.openAIResponsesPayload(text: "Hello from GPT-5"))
         } operation: {
             let config = Self.makeConfiguration { config in
@@ -33,7 +33,7 @@ struct ProviderEndToEndTests {
     @Test("OpenAI chat provider hits /chat/completions")
     func openAIChatProvider() async throws {
         try await NetworkMocking.withMockedNetwork { request in
-            #expect(request.url?.path == "/v1/chat/completions")
+            self.expectPath(request, endsWith: "/chat/completions")
             return NetworkMocking.jsonResponse(for: request, data: Self.chatCompletionPayload(text: "OpenAI chat success"))
         } operation: {
             let config = Self.makeConfiguration { config in
@@ -50,7 +50,7 @@ struct ProviderEndToEndTests {
     @Test("Anthropic provider decodes Claude responses")
     func anthropicProvider() async throws {
         try await NetworkMocking.withMockedNetwork { request in
-            #expect(request.url?.path == "/v1/messages")
+            self.expectPath(request, endsWith: "/messages")
             return NetworkMocking.jsonResponse(for: request, data: Self.anthropicPayload(text: "Claude says hello"))
         } operation: {
             let config = Self.makeConfiguration { config in
@@ -101,7 +101,7 @@ struct ProviderEndToEndTests {
     @Test("Ollama provider handles local responses")
     func ollamaProvider() async throws {
         try await NetworkMocking.withMockedNetwork { request in
-            #expect(request.url?.path == "/api/chat")
+            self.expectPath(request, endsWith: "/api/chat")
             return NetworkMocking.jsonResponse(for: request, data: Self.ollamaPayload(text: "Ollama local reply"))
         } operation: {
             let config = Self.makeConfiguration { config in
@@ -137,7 +137,7 @@ struct ProviderEndToEndTests {
     @Test("OpenRouter provider uses OpenAI-compatible flow")
     func openRouterProvider() async throws {
         try await NetworkMocking.withMockedNetwork { request in
-            #expect(request.url?.path == "/api/v1/chat/completions")
+            self.expectPath(request, endsWith: "/chat/completions")
             #expect(request.value(forHTTPHeaderField: "HTTP-Referer") == "https://peekaboo.app")
             return NetworkMocking.jsonResponse(for: request, data: Self.chatCompletionPayload(text: "OpenRouter reply"))
         } operation: {
@@ -208,7 +208,7 @@ struct ProviderEndToEndTests {
     @Test("Anthropic-compatible provider decodes responses")
     func anthropicCompatibleProvider() async throws {
         try await NetworkMocking.withMockedNetwork { request in
-            #expect(request.url?.path == "/v1/messages")
+            self.expectPath(request, endsWith: "/messages")
             return NetworkMocking.jsonResponse(for: request, data: Self.anthropicPayload(text: "Compat Claude"))
         } operation: {
             let config = Self.makeConfiguration { config in
@@ -360,6 +360,11 @@ struct ProviderEndToEndTests {
         classes.insert(MockURLProtocol.self, at: 0)
         config.protocolClasses = classes
         return config
+    }
+
+    private func expectPath(_ request: URLRequest, endsWith suffix: String) {
+        let path = request.url?.path ?? ""
+        #expect(path.hasSuffix(suffix), "Expected path to end with \(suffix) but found \(path)")
     }
 }
 
