@@ -8,7 +8,7 @@ import Darwin
 import Glibc
 #endif
 
-@Suite("Provider Network E2E Tests", .serialized)
+@Suite("Provider Network E2E Tests", .serialized, .enabled(if: !_isLiveSuite))
 struct ProviderEndToEndTests {
     // MARK: - OpenAI Responses (GPT-5)
 
@@ -367,6 +367,14 @@ struct ProviderEndToEndTests {
         #expect(path.hasSuffix(suffix), "Expected path to end with \(suffix) but found \(path)")
     }
 }
+
+private let _isLiveSuite: Bool = {
+#if LIVE_PROVIDER_TESTS
+    true
+#else
+    false
+#endif
+}()
 
 // MARK: - Network Mock Helper
 

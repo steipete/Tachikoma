@@ -45,7 +45,7 @@ struct AudioTypesTests {
         func audioDataFileInit() throws {
             // Create a temporary file
             let tempDir = FileManager.default.temporaryDirectory
-            let testFile = tempDir.appendingPathComponent("test_audio.mp3")
+            let testFile = tempDir.appendingPathComponent("test_audio-\(UUID().uuidString).mp3")
             let testData = Data([0x01, 0x02, 0x03])
             try testData.write(to: testFile)
 
@@ -64,7 +64,7 @@ struct AudioTypesTests {
         @Test("AudioData file URL with unknown extension")
         func audioDataUnknownExtension() throws {
             let tempDir = FileManager.default.temporaryDirectory
-            let testFile = tempDir.appendingPathComponent("test_audio.unknown")
+            let testFile = tempDir.appendingPathComponent("test_audio-\(UUID().uuidString).unknown")
             let testData = Data([0x01, 0x02])
             try testData.write(to: testFile)
 
@@ -82,7 +82,7 @@ struct AudioTypesTests {
             let audioData = AudioData(data: testData, format: .flac)
 
             let tempDir = FileManager.default.temporaryDirectory
-            let outputFile = tempDir.appendingPathComponent("output_audio.flac")
+            let outputFile = tempDir.appendingPathComponent("output_audio-\(UUID().uuidString).flac")
 
             try audioData.write(to: outputFile)
 
