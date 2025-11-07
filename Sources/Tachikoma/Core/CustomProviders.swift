@@ -11,8 +11,7 @@ public struct CustomProviderInfo: Sendable {
     public let models: [String: String] // map of alias->modelId (optional usage)
 }
 
-@MainActor
-public final class CustomProviderRegistry {
+public final class CustomProviderRegistry: @unchecked Sendable {
     public static let shared = CustomProviderRegistry()
     private var providers: [String: CustomProviderInfo] = [:]
 

@@ -1,4 +1,5 @@
 import Darwin
+import Darwin
 import Foundation
 import Logging
 import MCP
@@ -98,8 +99,13 @@ private actor StdioTransportState {
 public final class StdioTransport: MCPTransport {
     private let state = StdioTransportState()
     private let logger = Logger(label: "tachikoma.mcp.stdio")
+    private static let _sigpipeHandlerInstalled: Void = {
+        signal(SIGPIPE, SIG_IGN)
+    }()
 
-    public init() {}
+    public init() {
+        Self._sigpipeHandlerInstalled
+    }
 
     public func connect(config: MCPServerConfig) async throws {
         self.logger.info("Starting stdio transport with command: \(config.command)")
