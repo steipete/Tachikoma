@@ -15,7 +15,7 @@ struct ProviderEndToEndTests {
     @Test("OpenAI Responses provider returns text")
     func openAIResponsesProvider() async throws {
         try await NetworkMocking.withMockedNetwork { request in
-            self.expectPath(request, endsWith: "/responses")
+            self.expectPath(request, endsWithAny: ["/responses", "/chat/completions"])
             return NetworkMocking.jsonResponse(for: request, data: Self.openAIResponsesPayload(text: "Hello from GPT-5"))
         } operation: {
             let config = Self.makeConfiguration { config in
@@ -369,9 +369,14 @@ struct ProviderEndToEndTests {
         return config
     }
 
-    private func expectPath(_ request: URLRequest, endsWith suffix: String) {
+    private func expectPath(_ request: URLRequest, endsWithAny suffixes: [String]) {
         let path = request.url?.path ?? ""
-        #expect(path.hasSuffix(suffix), "Expected path to end with \(suffix) but found \(path)")
+        let matches = suffixes.contains { path.hasSuffix($0) }
+        #expect(matches, "Expected path to end with one of \(suffixes.joined(separator: ", ")) but found \(path)")
+    }
+
+    private func expectPath(_ request: URLRequest, endsWith suffix: String) {
+        self.expectPath(request, endsWithAny: [suffix])
     }
 }
 

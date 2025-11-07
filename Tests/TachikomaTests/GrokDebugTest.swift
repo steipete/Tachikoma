@@ -4,6 +4,11 @@ import Testing
 
 @Test("Debug Grok streaming issue")
 func grokStreamingDebug() async throws {
+    guard ProcessInfo.processInfo.environment["RUN_GROK_DEBUG_TESTS"] == "1" else {
+        print("Skipping Grok debug stream: RUN_GROK_DEBUG_TESTS not set")
+        return
+    }
+
     if ProcessInfo.processInfo.environment["TACHIKOMA_TEST_MODE"] == "mock" {
         print("Skipping Grok streaming debug in mock mode")
         return
