@@ -3,6 +3,23 @@ import MCP
 import os.log
 import Tachikoma
 
+private enum AutoConnectPolicy {
+    private static let forceEnable =
+        ProcessInfo.processInfo.environment["PEEKABOO_FORCE_MCP_AUTOCONNECT"] == "true"
+    private static let forceDisable =
+        ProcessInfo.processInfo.environment["PEEKABOO_DISABLE_MCP_AUTOCONNECT"] == "true"
+    private static let isTestEnvironment: Bool = {
+        let env = ProcessInfo.processInfo.environment
+        return env["XCTestConfigurationFilePath"] != nil || env["SWIFT_PACKAGE_TESTING"] != nil
+    }()
+
+    static var shouldConnect: Bool {
+        if forceEnable { return true }
+        if forceDisable { return false }
+        return !isTestEnvironment
+    }
+}
+
 /// Instantiable manager for MCP client connections and configuration.
 /// Owns parsing of mcpClients from the host profile config.json (JSONC) and
 /// merges host-provided defaults with user overrides.
@@ -40,12 +57,12 @@ public final class TachikomaMCPClientManager {
     public func initializeFromProfile(connect: Bool = true) async {
         let fileConfigs = self.loadFileConfigs()
         let merged = self.merge(defaults: self.defaultConfigs, file: fileConfigs)
-        await self.apply(configs: merged, connect: connect)
+        await self.apply(configs: merged, connect: connect && AutoConnectPolicy.shouldConnect)
     }
 
     public func initialize(with userConfigs: [String: MCPServerConfig], connect: Bool = true) async {
         let merged = self.merge(defaults: self.defaultConfigs, file: userConfigs)
-        await self.apply(configs: merged, connect: connect)
+        await self.apply(configs: merged, connect: connect && AutoConnectPolicy.shouldConnect)
     }
 
     // MARK: Lifecycle
@@ -53,7 +70,9 @@ public final class TachikomaMCPClientManager {
     public func addServer(name: String, config: MCPServerConfig) async throws {
         self.effectiveConfigs[name] = config
         if self.connections[name] == nil { self.connections[name] = MCPClient(name: name, config: config) }
-        if config.enabled { try await self.connections[name]?.connect() }
+        if config.enabled, AutoConnectPolicy.shouldConnect {
+            try await self.connections[name]?.connect()
+        }
     }
 
     public func removeServer(name: String) async {
@@ -69,7 +88,9 @@ public final class TachikomaMCPClientManager {
         cfg.enabled = true
         self.effectiveConfigs[name] = cfg
         if self.connections[name] == nil { self.connections[name] = MCPClient(name: name, config: cfg) }
-        try await self.connections[name]?.connect()
+        if AutoConnectPolicy.shouldConnect {
+            try await self.connections[name]?.connect()
+        }
     }
 
     public func disableServer(name: String) async {
@@ -311,7 +332,7 @@ public final class TachikomaMCPClientManager {
             }
         }
 
-        if connect {
+        if connect && AutoConnectPolicy.shouldConnect {
             await withTaskGroup(of: Void.self) { group in
                 for (name, cfg) in configs where cfg.enabled {
                     group.addTask { [weak self] in
