@@ -23,7 +23,9 @@ struct ProviderIntegrationTests {
 
     private static var hasOpenAIKey: Bool { Self.hasEnv("OPENAI_API_KEY") }
     private static var hasAnthropicKey: Bool { Self.hasEnv("ANTHROPIC_API_KEY") }
-    private static var hasGoogleKey: Bool { Self.hasEnv("GOOGLE_API_KEY") }
+    private static var hasGoogleKey: Bool {
+        Self.hasEnv("GEMINI_API_KEY") || Self.hasEnv("GOOGLE_API_KEY")
+    }
     private static var hasMistralKey: Bool { Self.hasEnv("MISTRAL_API_KEY") }
     private static var hasGroqKey: Bool { Self.hasEnv("GROQ_API_KEY") }
     private static var hasGrokKey: Bool {
@@ -251,7 +253,7 @@ struct ProviderIntegrationTests {
 
     @Test("Google Provider - Real API Call", .enabled(if: Self.hasGoogleKey))
     func googleIntegration() async throws {
-        let model = Model.google(.gemini15Flash)
+        let model = Model.google(.gemini25Flash)
         do {
             let response = try await generate(TestConfig.shortMessage, using: model, maxTokens: 50, temperature: 0.0)
             if !(response.lowercased().contains("hello") && response.contains("Tachikoma")) {

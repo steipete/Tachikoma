@@ -35,12 +35,23 @@ struct ProviderSystemTests {
     @Test("Provider Factory - Grok Provider Creation")
     func providerFactoryGrok() async throws {
         try await TestHelpers.withTestConfiguration(apiKeys: ["grok": "test-key"]) { config in
-            let model = Model.grok(.grok4)
+            let model = Model.grok(.grok4FastReasoning)
             let provider = try await ProviderFactory.createProvider(for: model, configuration: config)
 
-            #expect(provider.modelId == "grok-4-0709")
+            #expect(provider.modelId == "grok-4-fast-reasoning")
             #expect(provider.capabilities.supportsTools == true)
             #expect(provider.capabilities.supportsStreaming == true)
+        }
+    }
+
+    @Test("Provider Factory - Grok catalog coverage")
+    func providerFactoryGrokCatalog() async throws {
+        try await TestHelpers.withTestConfiguration(apiKeys: ["grok": "test-key"]) { config in
+            for grokModel in Model.Grok.allCases {
+                let model = Model.grok(grokModel)
+                let provider = try await ProviderFactory.createProvider(for: model, configuration: config)
+                #expect(provider.modelId == grokModel.modelId)
+            }
         }
     }
 
@@ -83,7 +94,9 @@ struct ProviderSystemTests {
         #expect(Model.anthropic(.opus4).supportsVision == true)
         #expect(Model.anthropic(.sonnet4).supportsVision == true)
 
+        #expect(Model.grok(.grok2Vision).supportsVision == true)
         #expect(Model.grok(.grok2Image).supportsVision == true)
+        #expect(Model.grok(.grok2).supportsVision == false)
         #expect(Model.grok(.grok4).supportsVision == false)
 
         #expect(Model.ollama(.llava).supportsVision == true)

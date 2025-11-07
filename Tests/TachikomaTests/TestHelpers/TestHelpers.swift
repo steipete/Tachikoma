@@ -154,7 +154,7 @@ enum TestHelpers {
         case "mistral":
             return ["MISTRAL_API_KEY"]
         case "google":
-            return ["GOOGLE_API_KEY"]
+            return ["GEMINI_API_KEY", "GOOGLE_API_KEY", "GOOGLE_APPLICATION_CREDENTIALS"]
         default:
             return []
         }

@@ -8,7 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- Expanded xAI Grok support to the full November 2025 catalog (`grok-4-fast-*`, `grok-code-fast-1`, `grok-2-*`, `grok-vision-beta`, etc.), updated the CLI shortcuts so `grok` now maps to `grok-4-fast-reasoning`, and refreshed selectors, provider parsers, capability tables, and docs snippets to match the official API lineup.
+- Google/Gemini support now targets the Gemini 2.5 family exclusively (`gemini-2.5-pro`, `gemini-2.5-flash`, `gemini-2.5-flash-lite`), with updated model selectors, parsers, docs, and pricing tables; older 1.5/2.0 IDs are no longer recognized.
 - Removed deprecated OpenAI reasoning models (`o1`, `o1-mini`, `o3`, `o3-mini`) in favour of the GPT‑5 family plus `o4-mini`, updating enums, provider factories, capability tables, prompts, and documentation metadata accordingly.
+- Google/Gemini integration now uses the documented `x-goog-api-key` header with `alt=sse` streaming, adds fallbacks for `GOOGLE_API_KEY` / `GOOGLE_APPLICATION_CREDENTIALS`, and hardens the SSE decoder so live tests succeed consistently.
 - Pruned Anthropic model support to the Claude 4.x line (Opus 4, Sonnet 4 / 4.5, Haiku 4.5) to match current API availability and reduce maintenance burden.
 - `TachikomaConfiguration` now loads credentials first and lets environment variables override them so operators can supersede stored settings without editing credentials files.
 - `TachikomaConfiguration` can optionally override the provider factory so test harnesses can inject mock providers without affecting production defaults, improving hermetic test runs.
@@ -22,6 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - OpenAI transcription timestamp tests no longer hit the live API and succeed reliably under both mock and real key configurations.
 
 ### Testing
+- Added dedicated Grok catalog tests (selector + capability assertions) plus provider factory/e2e coverage so every supported xAI model is exercised in mock suites without hitting the live API.
 - Integration suites now respect real API keys loaded from the environment, covering Anthropic Sonnet 4 tool-calling, OpenAI GPT‑5 responses, Grok/Grok vision flows, and Google/Mistral smoke tests.
 - Full `INTEGRATION_TESTS=1 swift test` runs complete without recorded issues, including agent ergonomics and audio suites.
 - Added provider-level network E2E coverage using local `URLProtocol` stubs plus new OpenAI Responses API tests (request encoding + streaming) so critical serialization paths are exercised without live traffic.

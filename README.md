@@ -28,7 +28,7 @@ print(answer) // "4"
 
 // With different models
 let response1 = try await generate("Hello", using: .anthropic(.opus4))
-let response2 = try await generate("Hello", using: .grok(.grok4))
+let response2 = try await generate("Hello", using: .grok(.grok4FastReasoning))
 let response3 = try await generate("Hello", using: .ollama(.llama33))
 ```
 
@@ -467,9 +467,9 @@ Compile-time safety with provider-specific enums and full autocomplete support:
 // Provider-specific models with compile-time checking
 .openai(.gpt4o, .gpt41, .gpt5Mini, .custom("ft:gpt-4o:org:abc"))
 .anthropic(.opus4, .sonnet4, .haiku45, .opus4Thinking)
-.grok(.grok4, .grok40709, .grok2Vision1212)
+.grok(.grok4, .grok4FastReasoning, .grok2Vision)
 .ollama(.llama33, .llama32, .llava, .codellama)
-.google(.gemini2Flash, .gemini15Pro)
+.google(.gemini25Pro, .gemini25Flash)
 .mistral(.large2, .nemo)
 .groq(.llama3170b, .mixtral8x7b)
 
@@ -662,7 +662,7 @@ let claude = try await generateText(
 
 // Gemini with thinking configuration
 let gemini = try await generateText(
-    model: .google(.gemini25),
+    model: .google(.gemini25Pro),
     messages: messages,
     settings: GenerationSettings(
         topK: 40,  // Google supports topK
@@ -770,7 +770,7 @@ let result = try await generateText(
   ┌─────────────────────────────────────────────────────────────────┐
   │                   Model Selection System                       │
   │    LanguageModel.openai(.gpt4o) • .anthropic(.opus4)          │
-  │    .grok(.grok4) • .ollama(.llama33) • .google(.gemini2Flash) │
+  │    .grok(.grok4) • .ollama(.llama33) • .google(.gemini25Flash) │
   └─────────────────────────────────────────────────────────────────┘
                                      |
   ┌─────────────────────────────────────────────────────────────────┐
@@ -814,9 +814,9 @@ public enum LanguageModel: Sendable, CustomStringConvertible {
     // Major providers with sub-enums
     case openai(OpenAI)      // .gpt4o, .gpt41, .gpt5Mini, .o4Mini
     case anthropic(Anthropic) // .opus4, .sonnet4, .haiku45, .opus4Thinking
-    case grok(Grok)          // .grok4, .grok40709, .grok2Vision1212
+    case grok(Grok)          // .grok4, .grok4FastReasoning, .grok2Vision
     case ollama(Ollama)      // .llama33, .llama32, .llava, .codellama
-    case google(Google)      // .gemini2Flash, .gemini15Pro
+    case google(Google)      // .gemini25Pro, .gemini25Flash
     case mistral(Mistral)    // .large2, .nemo, .codestral
     case groq(Groq)          // .llama3170b, .mixtral8x7b
     
@@ -1031,7 +1031,7 @@ export GROQ_API_KEY="gsk_..."
 export MISTRAL_API_KEY="..."
 
 # Google AI
-export GOOGLE_API_KEY="AIza..."
+export GEMINI_API_KEY="gk-..."   # Legacy GOOGLE_API_KEY or GOOGLE_APPLICATION_CREDENTIALS also accepted
 
 # Ollama (runs locally)
 export OLLAMA_API_KEY="optional-token"  # Usually not needed
@@ -1087,7 +1087,7 @@ let providers: [Provider] = [
     .grok,       // X_AI_API_KEY or XAI_API_KEY
     .groq,       // GROQ_API_KEY
     .mistral,    // MISTRAL_API_KEY
-    .google,     // GOOGLE_API_KEY
+    .google,     // GEMINI_API_KEY (legacy GOOGLE_API_KEY / GOOGLE_APPLICATION_CREDENTIALS)
     .ollama,     // OLLAMA_API_KEY (optional)
     .custom("my-provider")  // Custom provider ID
 ]

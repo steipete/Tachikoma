@@ -200,7 +200,7 @@ struct ProviderFeatureParityTests {
         )
 
         let config = ProviderConfiguration(maxToolCalls: 2)
-        let adapter = ProviderAdapter(provider: provider, configuration: config)
+        _ = ProviderAdapter(provider: provider, configuration: config)
 
         // Create more tools than allowed
         let tools = (1...5).map { i in
@@ -211,7 +211,7 @@ struct ProviderFeatureParityTests {
             ) { _ in try AnyAgentToolValue(true) }
         }
 
-        let request = ProviderRequest(
+        _ = ProviderRequest(
             messages: [.user("Test")],
             tools: tools,
             settings: .default

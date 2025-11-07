@@ -210,17 +210,17 @@ struct AICLI {
             ai-cli --stream --model claude "Write a short story"
             
             # Show thinking process (reasoning models)
-            ai-cli --thinking --model o3 "Solve this logic puzzle"
+            ai-cli --thinking --model gpt-5-thinking "Solve this logic puzzle"
             ai-cli --thinking --model gpt-5 "Complex reasoning task"
 
         PROVIDERS & MODELS:
 
         OpenAI:
-          • gpt-5, gpt-5-mini, gpt-5-nano (GPT-5 series, August 2025)
-          • o3, o3-mini, o3-pro, o4-mini (Latest reasoning models)
-          • gpt-4.1, gpt-4.1-mini (GPT-4.1 series)
+          • gpt-5, gpt-5-pro, gpt-5-mini, gpt-5-nano (GPT-5 series, August 2025)
+          • gpt-5-thinking, gpt-5-thinking-mini, gpt-5-thinking-nano
+          • gpt-4.1, gpt-4.1-mini, o4-mini (GPT-4.1 / reasoning)
           • gpt-4o, gpt-4o-mini (Multimodal)
-          • gpt-4-turbo, gpt-3.5-turbo (Legacy)
+          • gpt-4-turbo (Legacy)
 
         Anthropic:
           • claude-opus-4-1-20250805, claude-sonnet-4-20250514 (Claude 4)
@@ -228,8 +228,8 @@ struct AICLI {
           • claude-3-5-opus, claude-3-5-sonnet, claude-3-5-haiku (Claude 3.5)
 
         Google:
-          • gemini-2.0-flash, gemini-2.0-flash-thinking (Gemini 2.0)
-          • gemini-1.5-pro, gemini-1.5-flash (Gemini 1.5)
+          • gemini-2.5-pro (reasoning, thinking support)
+          • gemini-2.5-flash, gemini-2.5-flash-lite
 
         Mistral:
           • mistral-large-2, mistral-large, mistral-small
@@ -240,8 +240,9 @@ struct AICLI {
           • mixtral-8x7b, gemma2-9b
 
         Grok (xAI):
-          • grok-4-0709, grok-3, grok-3-mini
-          • grok-2-image-1212 (Vision support)
+          • grok-4-0709, grok-4-fast-reasoning, grok-4-fast-non-reasoning
+          • grok-code-fast-1, grok-3, grok-3-mini
+          • grok-2-1212, grok-2-vision-1212, grok-2-image-1212 (Vision)
 
         Ollama (Local):
           • llama3.3, llama3.2, llama3.1 (Recommended)
@@ -253,14 +254,15 @@ struct AICLI {
         SHORTCUTS:
           • claude, opus → claude-opus-4-1-20250805
           • gpt, gpt4 → gpt-4.1
-          • grok → grok-4-0709
+          • grok → grok-4-fast-reasoning
+          • gemini → gemini-2.5-flash
           • llama, llama3 → llama3.3
 
         API KEYS:
         Set the appropriate environment variable for your provider:
           • OPENAI_API_KEY for OpenAI models
           • ANTHROPIC_API_KEY for Claude models
-          • GOOGLE_API_KEY for Gemini models
+          • GEMINI_API_KEY for Gemini models (legacy GOOGLE_API_KEY / GOOGLE_APPLICATION_CREDENTIALS also accepted)
           • MISTRAL_API_KEY for Mistral models
           • GROQ_API_KEY for Groq models
           • X_AI_API_KEY or XAI_API_KEY for Grok models
@@ -302,13 +304,12 @@ struct AICLI {
 
         // API Key status
         print("\n🔐 API Keys:")
-        self.checkAPIKeyStatus(provider: "OpenAI", envVar: "OPENAI_API_KEY")
-        self.checkAPIKeyStatus(provider: "Anthropic", envVar: "ANTHROPIC_API_KEY")
-        self.checkAPIKeyStatus(provider: "Google", envVar: "GOOGLE_API_KEY")
-        self.checkAPIKeyStatus(provider: "Mistral", envVar: "MISTRAL_API_KEY")
-        self.checkAPIKeyStatus(provider: "Groq", envVar: "GROQ_API_KEY")
-        self.checkAPIKeyStatus(provider: "Grok", envVar: "X_AI_API_KEY")
-        self.checkAPIKeyStatus(provider: "Grok (alt)", envVar: "XAI_API_KEY")
+        self.checkAPIKeyStatus(provider: "OpenAI", envVars: ["OPENAI_API_KEY"])
+        self.checkAPIKeyStatus(provider: "Anthropic", envVars: ["ANTHROPIC_API_KEY"])
+        self.checkAPIKeyStatus(provider: "Google", envVars: ["GEMINI_API_KEY", "GOOGLE_API_KEY"])
+        self.checkAPIKeyStatus(provider: "Mistral", envVars: ["MISTRAL_API_KEY"])
+        self.checkAPIKeyStatus(provider: "Groq", envVars: ["GROQ_API_KEY"])
+        self.checkAPIKeyStatus(provider: "Grok", envVars: ["X_AI_API_KEY", "XAI_API_KEY"])
 
         // Ollama status
         print("   • Ollama: Local (no API key required)")
@@ -317,14 +318,14 @@ struct AICLI {
         print("   • Streaming: \(config.stream ? "enabled" : "disabled")")
     }
 
-    static func checkAPIKeyStatus(provider: String, envVar: String) {
+    static func checkAPIKeyStatus(provider: String, envVars: [String]) {
         let config = TachikomaConfiguration.current
         let prov = Provider.from(identifier: provider.lowercased())
 
         if let key = config.getAPIKey(for: prov), !key.isEmpty {
             let masked = self.maskAPIKey(key)
             print("   • \(provider): \(masked) (configured)")
-        } else if let key = ProcessInfo.processInfo.environment[envVar], !key.isEmpty {
+        } else if let key = envVars.compactMap({ ProcessInfo.processInfo.environment[$0] }).first(where: { !$0.isEmpty }) {
             let masked = self.maskAPIKey(key)
             print("   • \(provider): \(masked) (environment)")
         } else {
@@ -389,8 +390,12 @@ struct AICLI {
             print("export ANTHROPIC_API_KEY='sk-ant-your-key-here'")
             print("Get your key at: https://console.anthropic.com/")
         case .google:
-            print("Set your Google API key:")
-            print("export GOOGLE_API_KEY='your-key-here'")
+            print("Set your Gemini API key:")
+            print("export GEMINI_API_KEY='gk-your-key-here'")
+            print("# Legacy names still supported:")
+            print("export GOOGLE_API_KEY='gk-your-key-here'")
+            print("# or service-account path:")
+            print("export GOOGLE_APPLICATION_CREDENTIALS='/path/to/service-account.json'")
             print("Get your key at: https://aistudio.google.com/apikey")
         case .mistral:
             print("Set your Mistral API key:")
@@ -528,10 +533,7 @@ struct AICLI {
                 print("-------------------")
             } else if supportsThinking {
                 // Show that reasoning occurred but isn't exposed
-                if
-                    let usage = result.usage,
-                    let outputDetails = (usage as? Usage)?.outputTokens
-                {
+                if result.usage != nil {
                     print("\n⚠️  Note: Model used internal reasoning but doesn't expose the thinking process.")
                     print("   The model performed reasoning internally as part of generating the response.")
                 }

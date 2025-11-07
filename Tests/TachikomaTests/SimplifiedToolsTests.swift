@@ -43,7 +43,7 @@ struct SimplifiedToolsTests {
         #expect(tool.description == "Evaluate mathematical expressions")
 
         // Test execution
-        let args = try AgentToolArguments(["expression": "21*2"])
+        let args = AgentToolArguments(["expression": "21*2"])
         let context = ToolExecutionContext()
         let result = try await tool.execute(args, context: context)
 
@@ -79,7 +79,7 @@ struct SimplifiedToolsTests {
             sessionId: "test-session"
         )
 
-        let args = try AgentToolArguments(["query": "test"])
+        let args = AgentToolArguments(["query": "test"])
         let result = try await tool.execute(args, context: context)
 
         // Verify the result contains context info
@@ -112,7 +112,7 @@ struct SimplifiedToolsTests {
         #expect(tool.parameters.required.contains("uppercase"))
 
         // Test execution
-        let args = try AgentToolArguments([
+        let args = AgentToolArguments([
             "message": "hello",
             "uppercase": true,
         ])
@@ -147,7 +147,7 @@ struct SimplifiedToolsTests {
         #expect(tool.parameters.required.contains("location"))
 
         // Test execution
-        let args = try AgentToolArguments([
+        let args = AgentToolArguments([
             "location": "San Francisco",
             "units": "fahrenheit",
         ])

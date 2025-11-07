@@ -1,3 +1,4 @@
+import Darwin
 import Foundation
 import Logging
 import MCP
@@ -12,6 +13,8 @@ private actor StdioTransportState {
     var pendingRequests: [String: CheckedContinuation<Data, Swift.Error>] = [:]
     var timeoutTasks: [Int: Task<Void, Never>] = [:]
     var requestTimeoutNs: UInt64 = 30_000_000_000 // default 30s
+    var outputTask: Task<Void, Never>?
+    var errorTask: Task<Void, Never>?
 
     func setProcess(_ process: Process?, input: Pipe?, output: Pipe?, error: Pipe?) {
         self.process = process
@@ -66,6 +69,28 @@ private actor StdioTransportState {
 
     func getOutputPipe() -> Pipe? {
         self.outputPipe
+    }
+
+    func getErrorPipe() -> Pipe? {
+        self.errorPipe
+    }
+
+    func setOutputTask(_ task: Task<Void, Never>?) {
+        self.outputTask = task
+    }
+
+    func setErrorTask(_ task: Task<Void, Never>?) {
+        self.errorTask = task
+    }
+
+    func cancelOutputTask() {
+        self.outputTask?.cancel()
+        self.outputTask = nil
+    }
+
+    func cancelErrorTask() {
+        self.errorTask?.cancel()
+        self.errorTask = nil
     }
 }
 
@@ -146,27 +171,32 @@ public final class StdioTransport: MCPTransport {
 
         // Start reading output
         self.logger.info("About to start reading output")
-        self.startReadingOutput()
-        self.logger.info("Called startReadingOutput")
-        // Drain and log stderr separately (non-blocking)
-        Task {
-            let fh = errorPipe.fileHandleForReading
-            while true {
-                let chunk = try? fh.read(upToCount: 4096)
-                guard let chunk, !chunk.isEmpty else { break }
-                if let s = String(data: chunk, encoding: .utf8), !s.isEmpty {
-                    self.logger.debug("[MCP stdio][stderr] \(s.trimmingCharacters(in: .whitespacesAndNewlines))")
-                }
-            }
-        }
+        let stdoutTask = self.startReadingOutput()
+        await self.state.setOutputTask(stdoutTask)
+
+        let stderrTask = self.startReadingError(from: errorPipe)
+        await self.state.setErrorTask(stderrTask)
 
         self.logger.info("Stdio transport connected")
     }
 
     public func disconnect() async {
         self.logger.info("Disconnecting stdio transport")
-        let process = await state.process
-        process?.terminate()
+
+        await self.state.cancelOutputTask()
+        await self.state.cancelErrorTask()
+
+        let inputPipe = await self.state.getInputPipe()
+        let outputPipe = await self.state.getOutputPipe()
+        let errorPipe = await self.state.getErrorPipe()
+        let process = await self.state.process
+
+        self.closePipe(inputPipe)
+        self.closePipe(outputPipe)
+        self.closePipe(errorPipe)
+
+        self.terminateProcess(process)
+
         await self.state.setProcess(nil, input: nil, output: nil, error: nil)
         await self.state.cancelAllRequests()
     }
@@ -256,52 +286,78 @@ public final class StdioTransport: MCPTransport {
         }
     }
 
-    private func startReadingOutput() {
-        Task {
+    private func startReadingOutput() -> Task<Void, Never> {
+        Task.detached(priority: .utility) { [weak self] in
+            guard let self else { return }
             guard let outputPipe = await state.getOutputPipe() else {
                 self.logger.error("[MCP stdio] No output pipe available")
                 return
             }
 
-            self.logger.info("[MCP stdio] Starting to read output")
             let fileHandle = outputPipe.fileHandleForReading
             var buffer = Data()
 
-            while true {
-                autoreleasepool {
-                    // Use availableData which doesn't block if no data is available
-                    self.logger.info("[MCP stdio] Attempting to read...")
-                    let chunk = fileHandle.availableData
+            while !Task.isCancelled {
+                do {
+                    guard let chunk = try fileHandle.read(upToCount: 4096) else {
+                        self.logger.debug("[MCP stdio] Output pipe closed")
+                        break
+                    }
 
                     if chunk.isEmpty {
-                        self.logger.info("[MCP stdio] No data available, sleeping...")
-                        // Sleep briefly before trying again
-                        Thread.sleep(forTimeInterval: 0.01)
-                    } else {
-                        buffer.append(chunk)
+                        continue
+                    }
 
-                        // Log raw data for debugging
-                        if let raw = String(data: chunk, encoding: .utf8) {
-                            self.logger.info("[MCP stdio] ← raw chunk: \(raw)")
+                    buffer.append(chunk)
+
+                    while let newlineRange = buffer.firstRange(of: Data("\n".utf8)) {
+                        let lineData = buffer[..<newlineRange.lowerBound]
+                        buffer.removeSubrange(..<newlineRange.upperBound)
+
+                        guard !lineData.isEmpty else { continue }
+
+                        if let json = String(data: lineData, encoding: .utf8) {
+                            self.logger.debug("[MCP stdio] ← received: \(json)")
                         }
 
-                        // Process complete lines (newline-delimited JSON)
-                        while let newlineRange = buffer.firstRange(of: Data("\n".utf8)) {
-                            let lineData = buffer[..<newlineRange.lowerBound]
-                            buffer.removeSubrange(..<newlineRange.upperBound)
+                        await self.handleResponse(lineData)
+                    }
+                } catch {
+                    if Task.isCancelled {
+                        break
+                    }
+                    self.logger.error("[MCP stdio] Failed to read output: \(error.localizedDescription)")
+                    break
+                }
+            }
+        }
+    }
 
-                            if !lineData.isEmpty {
-                                // Log what we received for debugging
-                                if let json = String(data: lineData, encoding: .utf8) {
-                                    self.logger.info("[MCP stdio] ← received: \(json)")
-                                }
-                                Task {
-                                    await self.handleResponse(lineData)
-                                }
-                            }
-                        }
-                    } // end else (chunk not empty)
-                } // end autoreleasepool
+    private func startReadingError(from pipe: Pipe) -> Task<Void, Never> {
+        Task.detached(priority: .utility) { [weak self] in
+            guard let self else { return }
+            let handle = pipe.fileHandleForReading
+
+            while !Task.isCancelled {
+                do {
+                    guard let chunk = try handle.read(upToCount: 4096) else {
+                        break
+                    }
+
+                    guard !chunk.isEmpty else { continue }
+
+                    if let message = String(data: chunk, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines),
+                        !message.isEmpty
+                    {
+                        self.logger.debug("[MCP stdio][stderr] \(message)")
+                    }
+                } catch {
+                    if Task.isCancelled {
+                        break
+                    }
+                    self.logger.error("[MCP stdio] stderr read failed: \(error.localizedDescription)")
+                    break
+                }
             }
         }
     }
@@ -404,6 +460,44 @@ public final class StdioTransport: MCPTransport {
             // Some servers return null id for notifications; ignore
         }
         // Otherwise it might be a notification or other message
+    }
+
+    private func closePipe(_ pipe: Pipe?) {
+        guard let pipe else { return }
+        do {
+            try pipe.fileHandleForWriting.close()
+        } catch {
+            // ignore
+        }
+        do {
+            try pipe.fileHandleForReading.close()
+        } catch {
+            // ignore
+        }
+    }
+
+    private func terminateProcess(_ process: Process?) {
+        guard let process else { return }
+
+        if process.isRunning {
+            process.terminate()
+        }
+
+        if !self.waitForProcessExit(process, timeout: 0.7) {
+            kill(process.processIdentifier, SIGTERM)
+            if !self.waitForProcessExit(process, timeout: 0.7) {
+                kill(process.processIdentifier, SIGKILL)
+                _ = self.waitForProcessExit(process, timeout: 0.3)
+            }
+        }
+    }
+
+    private func waitForProcessExit(_ process: Process, timeout: TimeInterval) -> Bool {
+        let deadline = Date().addingTimeInterval(timeout)
+        while process.isRunning, Date() < deadline {
+            Thread.sleep(forTimeInterval: 0.05)
+        }
+        return !process.isRunning
     }
 }
 

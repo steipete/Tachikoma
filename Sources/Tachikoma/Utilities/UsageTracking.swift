@@ -547,10 +547,9 @@ public struct ModelCostCalculator: Sendable {
         // Google Pricing (estimates)
         case let .google(googleModel):
             switch googleModel {
-            case .gemini2Flash, .gemini2FlashThinking: (1.00, 4.00)
-            case .gemini15Pro: (7.00, 21.00)
-            case .gemini15Flash, .gemini15Flash8B: (0.35, 1.40)
-            case .geminiPro, .geminiProVision: (0.50, 1.50)
+            case .gemini25Pro: (1.25, 10.00)
+            case .gemini25Flash: (0.30, 2.50)
+            case .gemini25FlashLite: (0.10, 0.40)
             }
         // Other providers - estimates
         case .mistral: (2.00, 6.00)

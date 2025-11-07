@@ -85,7 +85,7 @@ public enum Provider: Sendable, Hashable, Codable {
         case .grok: "X_AI_API_KEY"
         case .groq: "GROQ_API_KEY"
         case .mistral: "MISTRAL_API_KEY"
-        case .google: "GOOGLE_API_KEY"
+        case .google: "GEMINI_API_KEY"
         case .ollama: "OLLAMA_API_KEY"
         case .lmstudio: "" // LMStudio doesn't need API keys
         case .custom: "" // Custom providers manage their own env vars
@@ -96,6 +96,7 @@ public enum Provider: Sendable, Hashable, Codable {
     public var alternativeEnvironmentVariables: [String] {
         switch self {
         case .grok: ["XAI_API_KEY"] // Alternative Grok API key name
+        case .google: ["GOOGLE_API_KEY", "GOOGLE_APPLICATION_CREDENTIALS"] // Backwards compatibility
         default: []
         }
     }

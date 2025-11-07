@@ -42,7 +42,7 @@ struct ProviderTests {
             #expect(Provider.grok.environmentVariable == "X_AI_API_KEY")
             #expect(Provider.groq.environmentVariable == "GROQ_API_KEY")
             #expect(Provider.mistral.environmentVariable == "MISTRAL_API_KEY")
-            #expect(Provider.google.environmentVariable == "GOOGLE_API_KEY")
+            #expect(Provider.google.environmentVariable == "GEMINI_API_KEY")
             #expect(Provider.ollama.environmentVariable == "OLLAMA_API_KEY")
             #expect(Provider.custom("test").environmentVariable == "")
         }
@@ -50,6 +50,7 @@ struct ProviderTests {
         @Test("Alternative environment variables")
         func alternativeEnvironmentVariables() {
             #expect(Provider.grok.alternativeEnvironmentVariables == ["XAI_API_KEY"])
+            #expect(Provider.google.alternativeEnvironmentVariables == ["GOOGLE_API_KEY", "GOOGLE_APPLICATION_CREDENTIALS"])
             #expect(Provider.openai.alternativeEnvironmentVariables.isEmpty)
             #expect(Provider.anthropic.alternativeEnvironmentVariables.isEmpty)
         }

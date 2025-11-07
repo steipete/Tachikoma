@@ -48,7 +48,7 @@ Set API keys for your providers:
 ```bash
 export OPENAI_API_KEY='sk-...'         # OpenAI models
 export ANTHROPIC_API_KEY='sk-ant-...'  # Claude models
-export GOOGLE_API_KEY='...'            # Gemini models
+export GEMINI_API_KEY='...'            # Gemini models (legacy GOOGLE_API_KEY or GOOGLE_APPLICATION_CREDENTIALS also accepted)
 export MISTRAL_API_KEY='...'           # Mistral models
 export GROQ_API_KEY='gsk-...'          # Groq models
 export X_AI_API_KEY='xai-...'          # Grok models
@@ -71,19 +71,19 @@ Add to your shell profile (`~/.zshrc`, `~/.bashrc`) for persistence.
 - **Claude 3.5**: `claude-3-5-opus`, `claude-3-5-sonnet`, `claude-3-5-haiku`
 
 ### Google
-- **Gemini 2.0**: `gemini-2.0-flash`, `gemini-2.0-flash-thinking`
-- **Gemini 1.5**: `gemini-1.5-pro`, `gemini-1.5-flash`
+- **Gemini 2.5**: `gemini-2.5-pro`, `gemini-2.5-flash`, `gemini-2.5-flash-lite`
 
 ### Others
 - **Mistral**: `mistral-large-2`, `mistral-small`, `codestral`
 - **Groq**: `llama-3.1-70b`, `llama-3.1-8b`, `mixtral-8x7b`
-- **Grok**: `grok-4-0709`, `grok-3`, `grok-2-image-1212`
+* **Grok**: `grok-4-0709`, `grok-4-fast-reasoning`, `grok-4-fast-non-reasoning`, `grok-code-fast-1`, `grok-3`, `grok-3-mini`, `grok-2-1212`, `grok-2-vision-1212`, `grok-2-image-1212`
 - **Ollama** (local): `llama3.3`, `llava`, `codellama`, any installed model
 
 ### Model Shortcuts
 - `claude` → claude-opus-4-1-20250805
 - `gpt` → gpt-4.1
-- `grok` → grok-4-0709
+- `gemini` → gemini-2.5-flash
+- `grok` → grok-4-fast-reasoning
 - `llama` → llama3.3
 
 ## Examples

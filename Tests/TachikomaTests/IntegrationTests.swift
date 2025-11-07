@@ -80,7 +80,7 @@ struct IntegrationTests {
         }
 
         // Test successful execution
-        let args1 = try AgentToolArguments([
+        let args1 = AgentToolArguments([
             "operation": "+",
             "a": 10.0,
             "b": 5.0,
@@ -98,7 +98,7 @@ struct IntegrationTests {
         }
 
         // Test error handling
-        let args2 = try AgentToolArguments([
+        let args2 = AgentToolArguments([
             "operation": "/",
             "a": 10.0,
             "b": 0.0,
@@ -256,7 +256,7 @@ struct IntegrationTests {
             sessionId: "test-session-123"
         )
 
-        let args = try AgentToolArguments([
+        let args = AgentToolArguments([
             "query": "Swift programming",
             "limit": 5,
         ])

@@ -328,7 +328,7 @@ public final class RealtimeAudioProcessor: @unchecked Sendable {
         let sign: UInt8 = sample < 0 ? 0x80 : 0x00
         let s = abs(sample)
 
-        var encoded = if s < 256 {
+        let encoded = if s < 256 {
             UInt8(s >> 4)
         } else if s < 512 {
             UInt8(0x10 | ((s >> 5) & 0x0F))
@@ -358,7 +358,7 @@ public final class RealtimeAudioProcessor: @unchecked Sendable {
         let exponent = (a >> 4) & 0x07
         let mantissa = Int16(a & 0x0F)
 
-        var sample: Int16 = if exponent == 0 {
+        let sample: Int16 = if exponent == 0 {
             (mantissa << 4) | 0x08
         } else {
             ((mantissa | 0x10) << 4) << (exponent - 1)

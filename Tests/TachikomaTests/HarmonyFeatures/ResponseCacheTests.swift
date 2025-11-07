@@ -22,8 +22,14 @@ struct ResponseCacheTests {
         // #expect(stats.oldestEntry == nil)
         // #expect(stats.newestEntry == nil)
 
-        // Test is minimal since we can't access statistics
-        #expect(cache != nil)
+        // Test is minimal since we can't access statistics, so ensure empty cache lookups succeed.
+        let probeRequest = ProviderRequest(
+            messages: [ModelMessage.user("ping")],
+            tools: nil,
+            settings: .default
+        )
+        let cached = await cache.get(for: probeRequest)
+        #expect(cached == nil)
     }
 
     @Test("ResponseCache store and retrieve")

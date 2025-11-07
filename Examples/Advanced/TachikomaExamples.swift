@@ -65,7 +65,7 @@ extension TachikomaExamples {
         let haiku45 = Model.anthropic(.haiku45)
 
         // Grok models
-        let grok4 = Model.grok(.grok4)
+        let grok4 = Model.grok(.grok4FastReasoning)
         let grok2Vision = Model.grok(.grok2Vision)
 
         // Ollama models
@@ -274,7 +274,7 @@ extension TachikomaExamples {
         let models: [(String, Model)] = [
             ("OpenAI GPT-4o", .openai(.gpt4o)),
             ("Anthropic Opus 4", .anthropic(.opus4)),
-            ("Grok 4", .grok(.grok4)),
+            ("Grok 4 Fast", .grok(.grok4FastReasoning)),
             ("Ollama Llama 3.3", .ollama(.llama3_3)),
         ]
 

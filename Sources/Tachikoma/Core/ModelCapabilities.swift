@@ -296,13 +296,9 @@ public final class ModelCapabilityRegistry: @unchecked Sendable {
             )
         )
 
-        self.capabilities["google:gemini-2.0-flash"] = geminiCapabilities
-        self.capabilities["google:gemini-2.0-flash-thinking"] = geminiCapabilities
-        self.capabilities["google:gemini-1.5-pro"] = geminiCapabilities
-        self.capabilities["google:gemini-1.5-flash"] = geminiCapabilities
-        self.capabilities["google:gemini-1.5-flash-8b"] = geminiCapabilities
-        self.capabilities["google:gemini-pro"] = geminiCapabilities
-        self.capabilities["google:gemini-pro-vision"] = geminiCapabilities
+        self.capabilities["google:gemini-2.5-pro"] = geminiCapabilities
+        self.capabilities["google:gemini-2.5-flash"] = geminiCapabilities
+        self.capabilities["google:gemini-2.5-flash-lite"] = geminiCapabilities
 
         // Mistral models
         let mistralCapabilities = ModelParameterCapabilities(
@@ -337,7 +333,16 @@ public final class ModelCapabilityRegistry: @unchecked Sendable {
         )
 
         self.capabilities["grok:grok-4-0709"] = grokCapabilities
+        self.capabilities["grok:grok-4-fast-reasoning"] = grokCapabilities
+        self.capabilities["grok:grok-4-fast-non-reasoning"] = grokCapabilities
+        self.capabilities["grok:grok-code-fast-1"] = grokCapabilities
         self.capabilities["grok:grok-3"] = grokCapabilities
+        self.capabilities["grok:grok-3-mini"] = grokCapabilities
+        self.capabilities["grok:grok-2-1212"] = grokCapabilities
+        self.capabilities["grok:grok-2-vision-1212"] = grokCapabilities
+        self.capabilities["grok:grok-2-image-1212"] = grokCapabilities
+        self.capabilities["grok:grok-vision-beta"] = grokCapabilities
+        self.capabilities["grok:grok-beta"] = grokCapabilities
     }
 
     private func defaultCapabilities(for model: LanguageModel) -> ModelParameterCapabilities {

@@ -220,43 +220,30 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
     }
 
     public enum Google: String, Sendable, Hashable, CaseIterable {
-        // Gemini 2.0 Series
-        case gemini2Flash = "gemini-2.0-flash"
-        case gemini2FlashThinking = "gemini-2.0-flash-thinking"
+        case gemini25Pro = "gemini-2.5-pro"
+        case gemini25Flash = "gemini-2.5-flash"
+        case gemini25FlashLite = "gemini-2.5-flash-lite"
 
-        // Gemini 1.5 Series
-        case gemini15Pro = "gemini-1.5-pro"
-        case gemini15Flash = "gemini-1.5-flash"
-        case gemini15Flash8B = "gemini-1.5-flash-8b"
-
-        // Legacy
-        case geminiPro = "gemini-pro"
-        case geminiProVision = "gemini-pro-vision"
-
-        public var supportsVision: Bool { true } // All Gemini models support vision
+        public var supportsVision: Bool { true }
         public var supportsTools: Bool { true }
 
         public var supportsAudioInput: Bool {
             switch self {
-            case .gemini2Flash, .gemini2FlashThinking: true // Gemini 2.0 has advanced audio capabilities
-            case .gemini15Pro, .gemini15Flash: true // Gemini 1.5 supports audio
-            default: false
+            case .gemini25Pro, .gemini25Flash:
+                true
+            case .gemini25FlashLite:
+                false
             }
         }
 
-        public var supportsAudioOutput: Bool {
-            switch self {
-            case .gemini2Flash, .gemini2FlashThinking: true // Gemini Live API supports audio output
-            default: false
-            }
-        }
+        public var supportsAudioOutput: Bool { false }
 
         public var contextLength: Int {
             switch self {
-            case .gemini2Flash, .gemini2FlashThinking: 1_000_000
-            case .gemini15Pro, .gemini15Flash: 2_000_000
-            case .gemini15Flash8B: 1_000_000
-            case .geminiPro, .geminiProVision: 32000
+            case .gemini25Pro, .gemini25Flash:
+                1_048_576
+            case .gemini25FlashLite:
+                524_288
             }
         }
     }
@@ -318,11 +305,18 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
     }
 
     public enum Grok: Sendable, Hashable, CaseIterable {
-        // xAI Grok models (only models available in API)
+        // xAI Grok models (2025 lineup)
         case grok4
+        case grok4FastReasoning
+        case grok4FastNonReasoning
+        case grokCodeFast1
         case grok3
         case grok3Mini
+        case grok2
+        case grok2Vision
         case grok2Image
+        case grokVisionBeta
+        case grokBeta
 
         // Custom models
         case custom(String)
@@ -330,9 +324,16 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
         public static var allCases: [Grok] {
             [
                 .grok4,
+                .grok4FastReasoning,
+                .grok4FastNonReasoning,
+                .grokCodeFast1,
                 .grok3,
                 .grok3Mini,
+                .grok2,
+                .grok2Vision,
                 .grok2Image,
+                .grokVisionBeta,
+                .grokBeta,
             ]
         }
 
@@ -340,15 +341,23 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
             switch self {
             case let .custom(id): id
             case .grok4: "grok-4-0709"
+            case .grok4FastReasoning: "grok-4-fast-reasoning"
+            case .grok4FastNonReasoning: "grok-4-fast-non-reasoning"
+            case .grokCodeFast1: "grok-code-fast-1"
             case .grok3: "grok-3"
             case .grok3Mini: "grok-3-mini"
+            case .grok2: "grok-2-1212"
+            case .grok2Vision: "grok-2-vision-1212"
             case .grok2Image: "grok-2-image-1212"
+            case .grokVisionBeta: "grok-vision-beta"
+            case .grokBeta: "grok-beta"
             }
         }
 
         public var supportsVision: Bool {
             switch self {
-            case .grok2Image: true
+            case .grok2Vision, .grok2Image, .grokVisionBeta:
+                true
             case .custom: true // Assume custom models support vision
             default: false
             }
@@ -368,9 +377,20 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
 
         public var contextLength: Int {
             switch self {
-            case .grok4: 256_000
-            case .grok3, .grok3Mini: 131_072
-            case .grok2Image: 128_000
+            case .grok4,
+                 .grok4FastReasoning,
+                 .grok4FastNonReasoning:
+                132_000
+            case .grokCodeFast1,
+                 .grok3,
+                 .grok3Mini:
+                131_072
+            case .grok2,
+                 .grok2Vision,
+                 .grok2Image,
+                 .grokVisionBeta,
+                 .grokBeta:
+                128_000
             case .custom: 128_000 // Default assumption for custom models
             }
         }
@@ -1099,6 +1119,18 @@ extension LanguageModel {
 
         // MARK: Grok models
 
+        if dotted.contains("grok-4-fast-reasoning") || compact.contains("grok4fastreasoning") {
+            return .grok(.grok4FastReasoning)
+        }
+
+        if dotted.contains("grok-4-fast-non-reasoning") || compact.contains("grok4fastnonreasoning") {
+            return .grok(.grok4FastNonReasoning)
+        }
+
+        if dotted.contains("grok-code-fast-1") || compact.contains("grokcodefast1") {
+            return .grok(.grokCodeFast1)
+        }
+
         if dotted.contains("grok-4") || compact.contains("grok4") {
             return .grok(.grok4)
         }
@@ -1111,14 +1143,25 @@ extension LanguageModel {
         }
 
         if dotted.contains("grok-2") || compact.contains("grok2") {
+            if dotted.contains("vision") {
+                return .grok(.grok2Vision)
+            }
             if dotted.contains("image") {
                 return .grok(.grok2Image)
             }
-            return .grok(.grok2Image)
+            return .grok(.grok2)
+        }
+
+        if dotted.contains("grok-vision-beta") || compact.contains("grokvisionbeta") {
+            return .grok(.grokVisionBeta)
+        }
+
+        if dotted.contains("grok-beta") || compact.contains("grokbeta") {
+            return .grok(.grokBeta)
         }
 
         if compact.contains("grok") {
-            return .grok(.grok4)
+            return .grok(.grok4FastReasoning)
         }
 
         // MARK: Ollama models

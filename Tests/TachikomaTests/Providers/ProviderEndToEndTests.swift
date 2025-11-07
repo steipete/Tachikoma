@@ -73,7 +73,7 @@ struct ProviderEndToEndTests {
             let config = Self.makeConfiguration { config in
                 config.setAPIKey("google-live", for: .google)
             }
-            let provider = try GoogleProvider(model: .gemini15Flash, configuration: config)
+            let provider = try GoogleProvider(model: .gemini25Flash, configuration: config)
             let response = try await provider.generateText(request: Self.basicRequest)
             #expect(response.text.contains("Gemini streaming"))
         }
@@ -93,7 +93,14 @@ struct ProviderEndToEndTests {
 
     @Test("Grok provider uses OpenAI-compatible flow")
     func grokProvider() async throws {
-        try await assertOpenAICompatibleProvider(.grok(.grok3), provider: .grok)
+        try await assertOpenAICompatibleProvider(.grok(.grok4FastReasoning), provider: .grok)
+    }
+
+    @Test("All Grok catalog models share the same OpenAI-compatible flow")
+    func grokCatalogUsesSameFlow() async throws {
+        for grokModel in Model.Grok.allCases {
+            try await assertOpenAICompatibleProvider(.grok(grokModel), provider: .grok)
+        }
     }
 
     // MARK: - Ollama

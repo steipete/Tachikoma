@@ -83,10 +83,9 @@ struct ModelCapabilitiesTests {
         @Test("Google models support topK and thinking")
         func googleCapabilities() {
             let models: [LanguageModel] = [
-                .google(.gemini2Flash),
-                .google(.gemini15Pro),
-                .google(.gemini15Flash),
-                .google(.geminiPro),
+                .google(.gemini25Pro),
+                .google(.gemini25Flash),
+                .google(.gemini25FlashLite),
             ]
 
             for model in models {
@@ -306,7 +305,7 @@ struct ModelCapabilitiesTests {
                 .openai(.gpt5),
                 .openai(.gpt4o),
                 .anthropic(.opus4),
-                .google(.gemini2Flash),
+                .google(.gemini25Flash),
             ]
 
             await withTaskGroup(of: Void.self) { group in
@@ -332,10 +331,10 @@ struct ModelCapabilitiesTests {
                 }
             }
 
-            // Should complete without crashes
-            #expect(true)
-        }
+        // Should complete without crashes
+        #expect(Bool(true))
     }
+}
 }
 
 // Helper for testing custom models

@@ -118,6 +118,8 @@ public enum ProviderParser {
                 environmentModel = self.parseOpenAIModel(config.model)
             case "anthropic" where hasAnthropic:
                 environmentModel = self.parseAnthropicModel(config.model)
+            case "google", "gemini":
+                environmentModel = self.parseGoogleModel(config.model)
             case "grok" where hasGrok, "xai" where hasGrok:
                 environmentModel = self.parseGrokModel(config.model)
             case "ollama" where hasOllama:
@@ -226,12 +228,34 @@ public enum ProviderParser {
         }
     }
 
+    private static func parseGoogleModel(_ modelString: String) -> LanguageModel? {
+        switch modelString.lowercased() {
+        case "gemini-2.5-pro", "gemini25pro", "gemini2.5pro":
+            .google(.gemini25Pro)
+        case "gemini-2.5-flash", "gemini25flash":
+            .google(.gemini25Flash)
+        case "gemini-2.5-flash-lite", "gemini25flashlite", "gemini-2.5-flashlite":
+            .google(.gemini25FlashLite)
+        case "gemini":
+            .google(.gemini25Flash)
+        default:
+            nil
+        }
+    }
+
     private static func parseGrokModel(_ modelString: String) -> LanguageModel? {
         switch modelString.lowercased() {
         case "grok-4-0709": .grok(.grok4)
+        case "grok-4-fast-reasoning": .grok(.grok4FastReasoning)
+        case "grok-4-fast-non-reasoning": .grok(.grok4FastNonReasoning)
+        case "grok-code-fast-1": .grok(.grokCodeFast1)
         case "grok-3", "grok3": .grok(.grok3)
         case "grok-3-mini": .grok(.grok3Mini)
+        case "grok-2-1212": .grok(.grok2)
+        case "grok-2-vision-1212": .grok(.grok2Vision)
         case "grok-2-image-1212": .grok(.grok2Image)
+        case "grok-vision-beta": .grok(.grokVisionBeta)
+        case "grok-beta": .grok(.grokBeta)
         default:
             .grok(.custom(modelString))
         }
@@ -270,7 +294,7 @@ public enum ProviderParser {
         } else if hasOpenAI {
             .openai(.gpt5Mini)
         } else if hasGrok {
-            .grok(.grok3)
+            .grok(.grok4FastReasoning)
         } else {
             .ollama(.llama33)
         }

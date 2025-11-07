@@ -86,10 +86,8 @@ struct ConfigurationArchitectureTests {
         }
 
         // Example 4: Conversation
-        _ = {
-            let conv1 = Conversation() // Uses default
-            let conv2 = Conversation(configuration: TachikomaConfiguration())
-        }
+        _ = Conversation() // Uses default
+        _ = Conversation(configuration: TachikomaConfiguration())
 
         #expect(true, "All README examples compile successfully")
 

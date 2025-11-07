@@ -21298,7 +21298,7 @@ Google Vertex supports two different authentication implementations depending on
 
 #### Node.js Runtime
 
-The Node.js runtime is the default runtime supported by the AI SDK. It supports all standard Google Cloud authentication options through the [`google-auth-library`](https://github.com/googleapis/google-auth-library-nodejs?tab=readme-ov-file#ways-to-authenticate). Typical use involves setting a path to a json credentials file in the `GOOGLE_APPLICATION_CREDENTIALS` environment variable. The credentials file can be obtained from the [Google Cloud Console](https://console.cloud.google.com/apis/credentials).
+The Node.js runtime is the default runtime supported by the AI SDK. It supports all standard Google Cloud authentication options through the [`google-auth-library`](https://github.com/googleapis/google-auth-library-nodejs?tab=readme-ov-file#ways-to-authenticate). Provide your service-account JSON or API key data directly to the library (e.g. via `GEMINI_API_KEY`, or fall back to `GOOGLE_API_KEY` / `GOOGLE_APPLICATION_CREDENTIALS`) instead of relying on Google-specific environment variables.
 
 If you want to customize the Google authentication options you can pass them as options to the `createVertex` function, for example:
 

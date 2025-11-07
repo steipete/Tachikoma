@@ -180,7 +180,7 @@ agent-cli --mcp-server "db -- npx @modelcontextprotocol/server-postgres postgres
 - Claude 3.5: `claude`, `sonnet`, `haiku`
 
 ### Others
-- Google: `gemini-2`, `gemini-pro`
+- Google: `gemini-2.5-pro`, `gemini-2.5-flash`, `gemini-2.5-flash-lite`
 - Mistral: `mistral-large`, `codestral`
 - Groq: `llama-70b`, `mixtral`
 - Ollama: `llama3`, `codellama` (local)
@@ -220,7 +220,7 @@ Set API keys for providers:
 ```bash
 export OPENAI_API_KEY='sk-...'
 export ANTHROPIC_API_KEY='sk-ant-...'
-export GOOGLE_API_KEY='...'
+export GEMINI_API_KEY='...'   # Legacy GOOGLE_API_KEY / GOOGLE_APPLICATION_CREDENTIALS still work
 export MISTRAL_API_KEY='...'
 export GROQ_API_KEY='gsk-...'
 export X_AI_API_KEY='xai-...'

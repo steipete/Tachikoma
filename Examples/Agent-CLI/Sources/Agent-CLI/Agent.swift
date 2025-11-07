@@ -185,7 +185,7 @@ final class Agent {
             }
         case let .google(googleModel):
             switch googleModel {
-            case .gemini2FlashThinking:
+            case .gemini25Pro:
                 true
             default:
                 false

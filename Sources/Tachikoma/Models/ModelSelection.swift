@@ -25,6 +25,11 @@ public struct ModelSelector {
             return .anthropic(anthropicModel)
         }
 
+        // Google shortcuts and models
+        if let googleModel = parseGoogleModel(normalized) {
+            return .google(googleModel)
+        }
+
         // Grok shortcuts and models
         if let grokModel = parseGrokModel(normalized) {
             return .grok(grokModel)
@@ -138,20 +143,51 @@ public struct ModelSelector {
         }
     }
 
+    private static func parseGoogleModel(_ input: String) -> Model.Google? {
+        switch input {
+        case "gemini-2.5-pro", "gemini25pro", "gemini2.5pro":
+            return .gemini25Pro
+        case "gemini-2.5-flash", "gemini25flash":
+            return .gemini25Flash
+        case "gemini-2.5-flash-lite", "gemini25flashlite", "gemini-2.5-flashlite":
+            return .gemini25FlashLite
+        case "gemini":
+            return .gemini25Flash
+        case "google":
+            return .gemini25Pro
+        default:
+            return nil
+        }
+    }
+
     private static func parseGrokModel(_ input: String) -> Model.Grok? {
         switch input {
         // Direct matches for available models only
         case "grok-4-0709":
             return .grok4
+        case "grok-4-fast-reasoning":
+            return .grok4FastReasoning
+        case "grok-4-fast-non-reasoning":
+            return .grok4FastNonReasoning
+        case "grok-code-fast-1":
+            return .grokCodeFast1
         case "grok-3", "grok3":
             return .grok3
         case "grok-3-mini":
             return .grok3Mini
+        case "grok-2-1212", "grok-2":
+            return .grok2
+        case "grok-2-vision-1212":
+            return .grok2Vision
         case "grok-2-image-1212":
             return .grok2Image
+        case "grok-vision-beta":
+            return .grokVisionBeta
+        case "grok-beta":
+            return .grokBeta
         // Shortcuts
         case "grok":
-            return .grok4 // Default to grok-4-0709
+            return .grok4FastReasoning // Default to the latest fast Grok model
         case "xai":
             return .grok3 // Default xAI model
         default:
@@ -246,6 +282,8 @@ public struct ModelSelector {
                 if case .custom = $0 { return nil }
                 return $0.modelId
             }
+        case "google", "gemini":
+            return Model.Google.allCases.map { $0.rawValue }
         case "ollama":
             return Model.Ollama.allCases.compactMap {
                 if case .custom = $0 { return nil }
@@ -317,6 +355,11 @@ public func getAllAvailableModels() -> String {
     )
 
     output += formatModelList(
+        title: "Google",
+        models: ModelSelector.availableModels(for: "google")
+    )
+
+    output += formatModelList(
         title: "Grok (xAI)",
         models: ModelSelector.availableModels(for: "grok")
     )
@@ -329,7 +372,8 @@ public func getAllAvailableModels() -> String {
     output += "\nShortcuts:\n"
     output += "  • claude, claude-opus, opus → claude-opus-4-20250514\n"
     output += "  • gpt, gpt4 → gpt-4.1\n"
-    output += "  • grok → grok-4-0709\n"
+    output += "  • gemini → gemini-2.5-flash\n"
+    output += "  • grok → grok-4-fast-reasoning\n"
     output += "  • llama, llama3 → llama3.3\n"
 
     output += "\nCustom Models:\n"
@@ -361,15 +405,15 @@ extension ModelSelector {
         // Get recommended models for specific use cases
         switch useCase {
         case .coding:
-            [.claude, .gpt4o, .grok4]
+            [.claude, .gpt4o, .google(.gemini25Pro)]
         case .vision:
-            [.claude, .gpt4o, .ollama(.llava)]
+            [.claude, .gpt4o, .google(.gemini25Flash)]
         case .reasoning:
-            [.openai(.gpt5Mini), .claude, .grok4]
+            [.openai(.gpt5Mini), .claude, .google(.gemini25Pro)]
         case .local:
             [.llama, .ollama(.mistralNemo), .ollama(.commandRPlus)]
         case .general:
-            [.claude, .gpt4o, .grok4, .llama]
+            [.claude, .gpt4o, .google(.gemini25Flash), .grok(.grok4FastReasoning), .llama]
         }
     }
 }
