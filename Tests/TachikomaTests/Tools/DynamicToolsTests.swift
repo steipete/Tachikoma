@@ -99,7 +99,7 @@ struct DynamicToolsTests {
         )
 
         // Register the provider
-        registry.register(provider, id: "test-provider")
+        await registry.register(provider, id: "test-provider")
 
         // Get all agent tools
         let agentTools = try await registry.getAllAgentTools()
@@ -115,7 +115,7 @@ struct DynamicToolsTests {
         #expect(result.stringValue == "Executed test_tool")
 
         // Unregister provider
-        registry.unregister(id: "test-provider")
+        await registry.unregister(id: "test-provider")
         let remainingTools = try await registry.getAllAgentTools()
         #expect(remainingTools.isEmpty)
     }
@@ -262,7 +262,7 @@ struct DynamicToolsTests {
                 schema: DynamicSchema(type: .object)
             )
             let provider = MockDynamicToolProvider(tools: [tool])
-            registry.register(provider, id: "tool_\(i)")
+            await registry.register(provider, id: "tool_\(i)")
         }
 
         let toolsBefore = try await registry.getAllAgentTools()
@@ -270,7 +270,7 @@ struct DynamicToolsTests {
 
         // Clear all by unregistering providers
         for i in 1...3 {
-            registry.unregister(id: "tool_\(i)")
+            await registry.unregister(id: "tool_\(i)")
         }
 
         let toolsAfter = try await registry.getAllAgentTools()

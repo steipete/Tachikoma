@@ -34,7 +34,7 @@ final class MCPManager {
 
         // Register tools with the registry
         let provider = MCPToolProvider(server: server, tools: tools)
-        self.registry.register(provider, id: name)
+        await self.registry.register(provider, id: name)
 
         self.servers.append(server)
     }

@@ -2,6 +2,13 @@
 
 import PackageDescription
 
+let approachableConcurrencySettings: [SwiftSetting] = [
+    .enableExperimentalFeature("StrictConcurrency"),
+    .enableUpcomingFeature("ExistentialAny"),
+    .enableUpcomingFeature("NonisolatedNonsendingByDefault"),
+    .defaultIsolation(MainActor.self),
+]
+
 let package = Package(
     name: "Agent-CLI",
     platforms: [
@@ -15,7 +22,7 @@ let package = Package(
     ],
     dependencies: [
         .package(path: "../.."),
-        .package(url: "https://github.com/apple/swift-argument-parser", from: "1.5.0"),
+        .package(name: "swift-argument-parser", path: "/Users/steipete/Projects/swift-argument-parser"),
     ],
     targets: [
         .executableTarget(
@@ -25,7 +32,8 @@ let package = Package(
                 .product(name: "TachikomaAgent", package: "Tachikoma"),
                 .product(name: "TachikomaMCP", package: "Tachikoma"),
                 .product(name: "ArgumentParser", package: "swift-argument-parser"),
-            ]
+            ],
+            swiftSettings: approachableConcurrencySettings
         ),
     ]
 )

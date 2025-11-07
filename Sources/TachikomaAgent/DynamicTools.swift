@@ -10,33 +10,26 @@ import Tachikoma
 
 /// Registry for managing dynamic tool providers
 @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
-public final class DynamicToolRegistry: @unchecked Sendable {
+public actor DynamicToolRegistry {
     private var providers: [String: DynamicToolProvider] = [:]
-    private let lock = NSLock()
 
     public init() {}
 
     /// Register a dynamic tool provider
     public func register(_ provider: DynamicToolProvider, id: String) {
         // Register a dynamic tool provider
-        self.lock.withLock {
-            self.providers[id] = provider
-        }
+        self.providers[id] = provider
     }
 
     /// Unregister a provider
     public func unregister(id: String) {
         // Unregister a provider
-        self.lock.withLock {
-            _ = self.providers.removeValue(forKey: id)
-        }
+        _ = self.providers.removeValue(forKey: id)
     }
 
     /// Get all registered providers
     public var allProviders: [DynamicToolProvider] {
-        self.lock.withLock {
-            Array(self.providers.values)
-        }
+        Array(self.providers.values)
     }
 
     /// Discover all tools from all providers
@@ -60,7 +53,8 @@ public final class DynamicToolRegistry: @unchecked Sendable {
         return dynamicTools.map { tool in
             tool.toAgentTool { arguments in
                 // Find the provider that owns this tool
-                for provider in self.allProviders {
+                let providers = await self.allProviders
+                for provider in providers {
                     if
                         let providerTools = try? await provider.discoverTools(),
                         providerTools.contains(where: { $0.name == tool.name })

@@ -11,9 +11,9 @@ public struct CustomProviderInfo: Sendable {
     public let models: [String: String] // map of alias->modelId (optional usage)
 }
 
-public final class CustomProviderRegistry: @unchecked Sendable {
+@MainActor
+public final class CustomProviderRegistry {
     public static let shared = CustomProviderRegistry()
-    private let lock = NSLock()
     private var providers: [String: CustomProviderInfo] = [:]
 
     private init() {}
@@ -39,19 +39,15 @@ public final class CustomProviderRegistry: @unchecked Sendable {
             }
             out[id] = CustomProviderInfo(id: id, kind: kind, baseURL: baseURL, headers: headers, models: models)
         }
-        self.lock.lock()
-        defer { lock.unlock() }
         self.providers = out
     }
 
-    public func list() -> [String: CustomProviderInfo] { self.lock.lock()
-        defer { lock.unlock() }
-        return self.providers
+    public func list() -> [String: CustomProviderInfo] {
+        self.providers
     }
 
-    public func get(_ id: String) -> CustomProviderInfo? { self.lock.lock()
-        defer { lock.unlock() }
-        return self.providers[id]
+    public func get(_ id: String) -> CustomProviderInfo? {
+        self.providers[id]
     }
 
     // MARK: - Helpers

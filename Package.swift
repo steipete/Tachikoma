@@ -58,7 +58,7 @@ let package = Package(
                 .product(name: "Configuration", package: "swift-configuration"),
             ],
             path: "Sources/Tachikoma",
-            swiftSettings: commonSwiftSettings),
+            swiftSettings: mainActorSwiftSettings),
 
         // Agent system module
         .target(
@@ -68,7 +68,7 @@ let package = Package(
                 .product(name: "Logging", package: "swift-log"),
             ],
             path: "Sources/TachikomaAgent",
-            swiftSettings: commonSwiftSettings),
+            swiftSettings: mainActorSwiftSettings),
 
         // Audio processing module
         .target(
@@ -78,7 +78,7 @@ let package = Package(
                 .product(name: "Logging", package: "swift-log"),
             ],
             path: "Sources/TachikomaAudio",
-            swiftSettings: commonSwiftSettings),
+            swiftSettings: mainActorSwiftSettings),
 
         // Optional MCP extension module
         .target(
@@ -90,7 +90,7 @@ let package = Package(
             ],
             path: "Sources/TachikomaMCP",
             exclude: ["README.md"],
-            swiftSettings: commonSwiftSettings),
+            swiftSettings: mainActorSwiftSettings),
 
         // Core tests
         .testTarget(
@@ -102,7 +102,7 @@ let package = Package(
                 .product(name: "Logging", package: "swift-log"),
             ],
             path: "Tests/TachikomaTests",
-            swiftSettings: commonSwiftSettings),
+            swiftSettings: mainActorSwiftSettings),
 
         // MCP tests
         .testTarget(
@@ -112,7 +112,7 @@ let package = Package(
                 .product(name: "Logging", package: "swift-log"),
             ],
             path: "Tests/TachikomaMCPTests",
-            swiftSettings: commonSwiftSettings),
+            swiftSettings: mainActorSwiftSettings),
         
         // GPT-5 CLI executable target
         .executableTarget(
@@ -132,7 +132,7 @@ let package = Package(
                 "RealtimeVoiceAssistant.swift",
             ],
             sources: ["GPT5CLI.swift"],
-            swiftSettings: commonSwiftSettings),
+            swiftSettings: mainActorSwiftSettings),
         
         // Universal AI CLI executable target
         .executableTarget(
@@ -143,20 +143,16 @@ let package = Package(
                 "README.md",
             ],
             sources: ["Sources/AI-CLI.swift"],
-            swiftSettings: commonSwiftSettings),
+            swiftSettings: mainActorSwiftSettings),
     ])
 
 // Common Swift settings for all targets
 let commonSwiftSettings: [SwiftSetting] = [
     .enableExperimentalFeature("StrictConcurrency"),
-    .enableUpcomingFeature("BareSlashRegexLiterals"),
-    .enableUpcomingFeature("ConciseMagicFile"),
-    .enableUpcomingFeature("ForwardTrailingClosures"),
-    .enableUpcomingFeature("ImportObjcForwardDeclarations"),
-    .enableUpcomingFeature("DisableOutwardActorInference"),
     .enableUpcomingFeature("ExistentialAny"),
-    .enableUpcomingFeature("DeprecateApplicationMain"),
-    .enableUpcomingFeature("GlobalConcurrency"),
-    .enableUpcomingFeature("IsolatedDefaultValues"),
-    .enableUpcomingFeature("InternalImportsByDefault"),
+    .enableUpcomingFeature("NonisolatedNonsendingByDefault"),
+]
+
+let mainActorSwiftSettings = commonSwiftSettings + [
+    .defaultIsolation(MainActor.self)
 ]
