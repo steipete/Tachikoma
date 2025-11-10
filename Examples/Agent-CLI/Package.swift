@@ -22,7 +22,7 @@ let package = Package(
     ],
     dependencies: [
         .package(path: "../.."),
-        .package(name: "swift-argument-parser", path: "/Users/steipete/Projects/swift-argument-parser"),
+        .package(name: "swift-argument-parser", path: "../../../Vendor/swift-argument-parser"),
     ],
     targets: [
         .executableTarget(
