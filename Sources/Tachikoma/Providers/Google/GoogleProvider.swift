@@ -106,7 +106,7 @@ public final class GoogleProvider: ModelProvider {
                     for try await line in bytes.lines {
                         try parser.feed(line: line)
                     }
-                    try parser.finish()
+                    parser.finish()
                     continuation.yield(parser.makeDoneDelta())
 #endif
 
