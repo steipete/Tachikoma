@@ -43,6 +43,7 @@ let package = Package(
             targets: ["AICLI"]),
     ],
     dependencies: [
+        .package(path: "../Commander"),
         .package(url: "https://github.com/apple/swift-log.git", from: "1.6.4"),
         .package(url: "https://github.com/apple/swift-crypto.git", from: "3.15.1"),
         .package(url: "https://github.com/modelcontextprotocol/swift-sdk.git", from: "0.10.2"),
@@ -137,7 +138,10 @@ let package = Package(
         // Universal AI CLI executable target
         .executableTarget(
             name: "AICLI",
-            dependencies: ["Tachikoma"],
+            dependencies: [
+                "Tachikoma",
+                .product(name: "Commander", package: "Commander")
+            ],
             path: "Examples/AI-CLI",
             exclude: [
                 "README.md",

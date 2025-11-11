@@ -22,7 +22,7 @@ let package = Package(
     ],
     dependencies: [
         .package(path: "../.."),
-        .package(name: "swift-argument-parser", path: "../../../Vendor/swift-argument-parser"),
+        .package(path: "../../../../Commander"),
     ],
     targets: [
         .executableTarget(
@@ -31,7 +31,7 @@ let package = Package(
                 .product(name: "Tachikoma", package: "Tachikoma"),
                 .product(name: "TachikomaAgent", package: "Tachikoma"),
                 .product(name: "TachikomaMCP", package: "Tachikoma"),
-                .product(name: "ArgumentParser", package: "swift-argument-parser"),
+                .product(name: "Commander", package: "Commander"),
             ],
             swiftSettings: approachableConcurrencySettings
         ),

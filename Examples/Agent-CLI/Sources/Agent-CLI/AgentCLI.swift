@@ -1,4 +1,4 @@
-import ArgumentParser
+import Commander
 import Foundation
 import Tachikoma
 import TachikomaAgent
@@ -7,7 +7,7 @@ import TachikomaMCP
 /// Main CLI command for the AI agent
 @main
 struct AgentCLI: AsyncParsableCommand {
-    static let configuration = CommandConfiguration(
+    static let commandDescription = CommandDescription(
         commandName: "agent-cli",
         abstract: "AI Agent with conversation and tool support",
         discussion: """
@@ -523,7 +523,7 @@ struct AgentCLI: AsyncParsableCommand {
 
 // MARK: - Supporting Types
 
-enum OutputFormat: String, ExpressibleByArgument {
+enum OutputFormat: String, ExpressibleFromArgument {
     case normal
     case json
     case markdown
