@@ -17,7 +17,7 @@ let package = Package(
     products: [
         .executable(
             name: "agent-cli",
-            targets: ["Agent-CLI"],
+            targets: ["Agent-CLI"]
         ),
     ],
     dependencies: [
@@ -33,7 +33,7 @@ let package = Package(
                 .product(name: "TachikomaMCP", package: "Tachikoma"),
                 .product(name: "Commander", package: "Commander"),
             ],
-            swiftSettings: approachableConcurrencySettings,
+            swiftSettings: approachableConcurrencySettings
         ),
-    ],
+    ]
 )

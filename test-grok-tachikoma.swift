@@ -16,7 +16,7 @@ struct TestGrok {
             // Test simple generation
             let response = try await generate(
                 "Say hello",
-                using: .grok(.grok3),
+                using: .grok(.grok3)
             )
             print("Response: \(response)")
 
@@ -24,7 +24,7 @@ struct TestGrok {
             print("\nTesting streaming...")
             let stream = try await stream(
                 "Count to 3",
-                using: .grok(.grok3),
+                using: .grok(.grok3)
             )
 
             for try await delta in stream {

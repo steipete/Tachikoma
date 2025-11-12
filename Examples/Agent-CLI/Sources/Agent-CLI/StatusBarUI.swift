@@ -205,7 +205,7 @@ final class StatusBarUI: @unchecked Sendable {
             }
         } else {
             print(
-                " \(TerminalColor.green)✓\(TerminalColor.reset) \(TerminalColor.gray)(\(durationStr))\(TerminalColor.reset)",
+                " \(TerminalColor.green)✓\(TerminalColor.reset) \(TerminalColor.gray)(\(durationStr))\(TerminalColor.reset)"
             )
         }
     }

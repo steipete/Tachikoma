@@ -20,7 +20,7 @@ struct AgentCLI: AsyncParsableCommand {
           agent-cli --interactive
           agent-cli --mcp-server my-tools -- npx my-mcp-server
         """,
-        version: "1.0.0",
+        version: "1.0.0"
     )
 
     @Argument(help: "Query or task for the agent")
@@ -99,7 +99,7 @@ struct AgentCLI: AsyncParsableCommand {
         let agent = try await createAgent(
             model: languageModel,
             mcpManager: mcpManager,
-            ui: ui,
+            ui: ui
         )
 
         // Run in interactive or single-query mode
@@ -107,14 +107,14 @@ struct AgentCLI: AsyncParsableCommand {
             try await self.runInteractiveMode(
                 agent: agent,
                 messages: &messages,
-                ui: ui,
+                ui: ui
             )
         } else {
             try await self.runSingleQuery(
                 agent: agent,
                 messages: &messages,
                 query: self.query!,
-                ui: ui,
+                ui: ui
             )
         }
 
@@ -187,7 +187,7 @@ struct AgentCLI: AsyncParsableCommand {
     private func createAgent(
         model: LanguageModel,
         mcpManager: MCPManager?,
-        ui: StatusBarUI,
+        ui: StatusBarUI
     ) async throws
     -> Agent {
         // Get available tools
@@ -209,7 +209,7 @@ struct AgentCLI: AsyncParsableCommand {
             tools: tools,
             maxIterations: maxTurns,
             temperature: 0.7,
-            showThinking: thinking,
+            showThinking: thinking
         )
 
         // Create agent with event delegate
@@ -217,7 +217,7 @@ struct AgentCLI: AsyncParsableCommand {
 
         return Agent(
             configuration: agentConfig,
-            eventDelegate: eventDelegate,
+            eventDelegate: eventDelegate
         )
     }
 
@@ -250,7 +250,7 @@ struct AgentCLI: AsyncParsableCommand {
             description: "Get the current date and time",
             parameters: AgentToolParameters(
                 properties: [:],
-                required: [],
+                required: []
             ),
             execute: { _ in
                 let formatter = DateFormatter()
@@ -258,7 +258,7 @@ struct AgentCLI: AsyncParsableCommand {
                 formatter.timeStyle = .long
                 let now = formatter.string(from: Date())
                 return AnyAgentToolValue(string: now)
-            },
+            }
         ))
 
         // Add basic calculator tool
@@ -270,10 +270,10 @@ struct AgentCLI: AsyncParsableCommand {
                     "expression": AgentToolParameterProperty(
                         name: "expression",
                         type: .string,
-                        description: "Mathematical expression to evaluate",
+                        description: "Mathematical expression to evaluate"
                     ),
                 ],
-                required: ["expression"],
+                required: ["expression"]
             ),
             execute: { args in
                 guard let expression = args["expression"]?.stringValue else {
@@ -282,7 +282,7 @@ struct AgentCLI: AsyncParsableCommand {
                 // Simple expression evaluation (in real app, use proper parser)
                 let result = "Result: \(expression) = [calculation would go here]"
                 return AnyAgentToolValue(string: result)
-            },
+            }
         ))
 
         return tools
@@ -317,7 +317,7 @@ struct AgentCLI: AsyncParsableCommand {
         agent: Agent,
         messages: inout [ModelMessage],
         query: String,
-        ui: StatusBarUI,
+        ui: StatusBarUI
     ) async throws {
         ui.showHeader("🤖 Agent CLI - Single Query Mode")
         ui.showInfo("Model: \(self.model)")
@@ -330,7 +330,7 @@ struct AgentCLI: AsyncParsableCommand {
 
         let result = try await agent.execute(
             messages: messages,
-            maxTurns: 1,
+            maxTurns: 1
         )
 
         // Add assistant response
@@ -350,7 +350,7 @@ struct AgentCLI: AsyncParsableCommand {
             ui.showStats(
                 toolCalls: result.toolCalls.count,
                 tokens: usage.totalTokens,
-                duration: result.duration,
+                duration: result.duration
             )
         }
     }
@@ -358,7 +358,7 @@ struct AgentCLI: AsyncParsableCommand {
     private func runInteractiveMode(
         agent: Agent,
         messages: inout [ModelMessage],
-        ui: StatusBarUI,
+        ui: StatusBarUI
     ) async throws {
         ui.showHeader("🤖 Agent CLI - Interactive Mode")
         ui.showInfo("Model: \(self.model)")
@@ -402,7 +402,7 @@ struct AgentCLI: AsyncParsableCommand {
 
             let result = try await agent.execute(
                 messages: messages,
-                maxTurns: self.maxTurns,
+                maxTurns: self.maxTurns
             )
 
             // Add assistant response

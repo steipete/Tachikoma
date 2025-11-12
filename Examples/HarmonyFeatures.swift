@@ -14,8 +14,8 @@ func demonstrateMultiChannelResponse() async throws {
             .user("Explain how recursion works in programming"),
         ],
         settings: GenerationSettings(
-            reasoningEffort: .medium,
-        ),
+            reasoningEffort: .medium
+        )
     )
 
     // Process messages by channel
@@ -42,8 +42,8 @@ func demonstrateReasoningEffort() async throws {
         ],
         settings: GenerationSettings(
             reasoningEffort: .high,
-            maxTokens: 2000,
-        ),
+            maxTokens: 2000
+        )
     )
     print("Tokens used: \(complexResult.usage?.totalTokens ?? 0)")
 
@@ -55,8 +55,8 @@ func demonstrateReasoningEffort() async throws {
             .user("What is the capital of Japan?"),
         ],
         settings: GenerationSettings(
-            reasoningEffort: .low,
-        ),
+            reasoningEffort: .low
+        )
     )
     print("Tokens used: \(simpleResult.usage?.totalTokens ?? 0)")
 }
@@ -73,8 +73,8 @@ func demonstrateRetryHandler() async throws {
             shouldRetry: { error in
                 print("Checking if should retry for: \(error)")
                 return true // Always retry for demo
-            },
-        ),
+            }
+        )
     )
 
     do {
@@ -84,12 +84,12 @@ func demonstrateRetryHandler() async throws {
                 // Simulate a call that might fail
                 return try await generateText(
                     model: .openai(.gpt4o),
-                    messages: [.user("Hello")],
+                    messages: [.user("Hello")]
                 )
             },
             onRetry: { attempt, delay, error in
                 print("Retry attempt \(attempt) after \(delay)s due to: \(error)")
-            },
+            }
         )
         print("Success: \(response.text)")
     } catch {
@@ -111,10 +111,10 @@ func demonstrateEnhancedTools() async throws {
                 AgentToolParameterProperty(
                     name: "expression",
                     type: .string,
-                    description: "Mathematical expression to evaluate",
+                    description: "Mathematical expression to evaluate"
                 ),
             ],
-            required: ["expression"],
+            required: ["expression"]
         ),
         namespace: "math",
         recipient: "calculator-service",
@@ -122,7 +122,7 @@ func demonstrateEnhancedTools() async throws {
             let expr = args["expression"]?.stringValue ?? "0"
             // Simple demo: just return 42
             return .double(42.0)
-        },
+        }
     )
 
     let weatherTool = AgentTool(
@@ -133,17 +133,17 @@ func demonstrateEnhancedTools() async throws {
                 AgentToolParameterProperty(
                     name: "location",
                     type: .string,
-                    description: "City name",
+                    description: "City name"
                 ),
             ],
-            required: ["location"],
+            required: ["location"]
         ),
         namespace: "weather",
         recipient: "weather-api",
         execute: { args in
             let location = args["location"]?.stringValue ?? "Unknown"
             return .string("Sunny, 72°F in \(location)")
-        },
+        }
     )
 
     let result = try await generateText(
@@ -151,7 +151,7 @@ func demonstrateEnhancedTools() async throws {
         messages: [
             .user("What's 25 * 4 and what's the weather in Tokyo?"),
         ],
-        tools: [calculatorTool, weatherTool],
+        tools: [calculatorTool, weatherTool]
     )
 
     // Show tool calls organized by namespace
@@ -176,8 +176,8 @@ func demonstrateEmbeddings() async throws {
         input: .text("The quick brown fox jumps over the lazy dog"),
         settings: EmbeddingSettings(
             dimensions: 256,
-            normalizeEmbeddings: true,
-        ),
+            normalizeEmbeddings: true
+        )
     )
 
     print("Generated embedding with \(result.dimensions ?? 0) dimensions")
@@ -196,7 +196,7 @@ func demonstrateEmbeddings() async throws {
     let batchResults = try await generateEmbeddingsBatch(
         model: .openai(.small3),
         inputs: documents.map { .text($0) },
-        concurrency: 3,
+        concurrency: 3
     )
 
     for (doc, result) in zip(documents, batchResults) {
@@ -217,7 +217,7 @@ func demonstrateResponseCaching() async throws {
             ModelMessage.user("What is 2+2?"),
         ],
         tools: nil,
-        settings: .default,
+        settings: .default
     )
 
     // First call - no cache
@@ -231,7 +231,7 @@ func demonstrateResponseCaching() async throws {
         let response = ProviderResponse(
             text: "2+2 equals 4",
             usage: Usage(inputTokens: 10, outputTokens: 5),
-            finishReason: .stop,
+            finishReason: .stop
         )
 
         // Store in cache
@@ -274,7 +274,7 @@ func demonstrateIntegratedFeatures() async throws {
             description: "Analyze data",
             parameters: AgentToolParameters(properties: [], required: []),
             namespace: "analytics",
-            execute: { _ in .string("Analysis complete") },
+            execute: { _ in .string("Analysis complete") }
         ),
     ]
 
@@ -291,9 +291,9 @@ func demonstrateIntegratedFeatures() async throws {
                 settings: GenerationSettings(
                     maxTokens: 1000,
                     temperature: 0.7,
-                    reasoningEffort: .medium,
+                    reasoningEffort: .medium
                 ),
-                configuration: config,
+                configuration: config
             )
         }
 

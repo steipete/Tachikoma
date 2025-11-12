@@ -27,7 +27,7 @@ public struct RealtimeAPIDemo {
             toolChoice: nil,
             temperature: 0.8,
             maxResponseOutputTokens: 4096,
-            modalities: .all,
+            modalities: .all
         )
 
         print("   ✅ Model: \(config.model)")
@@ -58,11 +58,11 @@ public struct RealtimeAPIDemo {
                     "location": AgentToolParameterProperty(
                         name: "location",
                         type: .string,
-                        description: "City and state/country",
+                        description: "City and state/country"
                     ),
                 ],
-                required: ["location"],
-            ),
+                required: ["location"]
+            )
         )
         print("   ✅ Tool: \(weatherTool.name)")
         print("   ✅ Description: \(weatherTool.description)")
@@ -84,7 +84,7 @@ public struct RealtimeAPIDemo {
             id: "msg-001",
             type: "message",
             role: "user",
-            content: [ConversationContent(type: "text", text: "Hello!")],
+            content: [ConversationContent(type: "text", text: "Hello!")]
         )
         print("   ✅ Created message: \(messageItem.content?.first?.text ?? "")")
 
@@ -119,7 +119,7 @@ public struct RealtimeAPIDemo {
     public static func createSampleConfiguration() -> SessionConfiguration {
         SessionConfiguration.voiceConversation(
             model: "gpt-4o-realtime-preview",
-            voice: .nova,
+            voice: .nova
         )
     }
 

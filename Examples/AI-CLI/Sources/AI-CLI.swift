@@ -1,3 +1,8 @@
+// Comprehensive AI CLI for querying all supported AI providers
+// Supports OpenAI, Anthropic, Google, Mistral, Groq, Grok, and Ollama
+// Compile with: swift build --product ai-cli
+// Run with: .build/debug/ai-cli [options] "Your question here"
+
 import Foundation
 import Tachikoma
 
@@ -320,10 +325,7 @@ struct AICLI {
         if let key = config.getAPIKey(for: prov), !key.isEmpty {
             let masked = self.maskAPIKey(key)
             print("   • \(provider): \(masked) (configured)")
-        } else if
-            let key = envVars.compactMap({ ProcessInfo.processInfo.environment[$0] })
-                .first(where: { !$0.isEmpty })
-        {
+        } else if let key = envVars.compactMap({ ProcessInfo.processInfo.environment[$0] }).first(where: { !$0.isEmpty }) {
             let masked = self.maskAPIKey(key)
             print("   • \(provider): \(masked) (environment)")
         } else {
@@ -463,7 +465,7 @@ struct AICLI {
             let request = ProviderRequest(
                 messages: [.user(query)],
                 tools: nil,
-                settings: GenerationSettings(maxTokens: 2000),
+                settings: GenerationSettings(maxTokens: 2000)
             )
             let providerResponse = try await provider.generateText(request: request)
             result = GenerateTextResult(
@@ -471,7 +473,7 @@ struct AICLI {
                 usage: providerResponse.usage,
                 finishReason: providerResponse.finishReason,
                 steps: [],
-                messages: [.user(query)],
+                messages: [.user(query)]
             )
         } else if
             case let .openai(openaiModel) = model,
@@ -480,7 +482,7 @@ struct AICLI {
             // Use Responses API with reasoning extraction for thinking models
             let (response, reasoning) = try await executeResponsesAPIWithReasoning(
                 model: openaiModel,
-                query: query,
+                query: query
             )
             reasoningText = reasoning
             result = GenerateTextResult(
@@ -488,18 +490,18 @@ struct AICLI {
                 usage: response.usage,
                 finishReason: response.finishReason,
                 steps: [],
-                messages: [.user(query)],
+                messages: [.user(query)]
             )
         } else if case let .openai(openaiModel) = model, actualApiMode == .responses {
             // Force Responses API (without reasoning extraction)
             let provider = try OpenAIResponsesProvider(
                 model: openaiModel,
-                configuration: TachikomaConfiguration.current,
+                configuration: TachikomaConfiguration.current
             )
             let request = ProviderRequest(
                 messages: [.user(query)],
                 tools: nil,
-                settings: GenerationSettings(maxTokens: 2000),
+                settings: GenerationSettings(maxTokens: 2000)
             )
             let providerResponse = try await provider.generateText(request: request)
             result = GenerateTextResult(
@@ -507,14 +509,14 @@ struct AICLI {
                 usage: providerResponse.usage,
                 finishReason: providerResponse.finishReason,
                 steps: [],
-                messages: [.user(query)],
+                messages: [.user(query)]
             )
         } else {
             // Use global generate function for all other providers
             result = try await generateText(
                 model: model,
                 messages: [.user(query)],
-                settings: GenerationSettings(maxTokens: 2000),
+                settings: GenerationSettings(maxTokens: 2000)
             )
         }
 
@@ -583,7 +585,7 @@ struct AICLI {
 
     static func executeResponsesAPIWithReasoning(
         model: LanguageModel.OpenAI,
-        query: String,
+        query: String
     ) async throws
     -> (response: ProviderResponse, reasoning: String?) {
         let config = TachikomaConfiguration.current
@@ -701,7 +703,7 @@ struct AICLI {
         let providerResponse = ProviderResponse(
             text: messageText,
             usage: usage,
-            finishReason: .stop,
+            finishReason: .stop
         )
 
         return (providerResponse, reasoningText)
@@ -715,7 +717,7 @@ struct AICLI {
         let stream = try await streamText(
             model: model,
             messages: [.user(query)],
-            settings: GenerationSettings(maxTokens: 2000),
+            settings: GenerationSettings(maxTokens: 2000)
         )
 
         var fullText = ""

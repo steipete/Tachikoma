@@ -23,7 +23,7 @@ final class MCPManager {
         let server = MCPServer(
             name: name,
             executable: executable,
-            arguments: arguments,
+            arguments: arguments
         )
 
         // Start the server
@@ -129,7 +129,7 @@ final class MCPServer: @unchecked Sendable {
             return DynamicTool(
                 name: name,
                 description: description,
-                schema: schema,
+                schema: schema
             )
         }
     }
@@ -140,7 +140,7 @@ final class MCPServer: @unchecked Sendable {
             params: [
                 "name": name,
                 "arguments": arguments,
-            ],
+            ]
         )
 
         let response = try await sendRequest(request)
@@ -190,7 +190,7 @@ final class MCPServer: @unchecked Sendable {
                 let description = value["description"] as? String
                 properties[key] = DynamicSchema.SchemaProperty(
                     type: propType,
-                    description: description,
+                    description: description
                 )
             }
         }
@@ -200,7 +200,7 @@ final class MCPServer: @unchecked Sendable {
         return DynamicSchema(
             type: type,
             properties: properties,
-            required: required,
+            required: required
         )
     }
 }
