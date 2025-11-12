@@ -64,7 +64,7 @@ public struct CancellableTask<Success: Sendable> {
 @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public func withTimeout<T: Sendable>(
     _ timeout: TimeInterval,
-    operation: @escaping @Sendable () async throws -> T,
+    operation: @escaping @Sendable () async throws -> T
 ) async throws
 -> T {
     try await withThrowingTaskGroup(of: T.self) { group in
@@ -108,7 +108,7 @@ public struct RetryConfiguration: Sendable {
         delay: TimeInterval = 1.0,
         backoffMultiplier: Double = 2.0,
         maxDelay: TimeInterval = 60.0,
-        timeout: TimeInterval? = nil,
+        timeout: TimeInterval? = nil
     ) {
         self.maxAttempts = maxAttempts
         self.delay = delay
@@ -122,13 +122,13 @@ public struct RetryConfiguration: Sendable {
         maxAttempts: 5,
         delay: 0.5,
         backoffMultiplier: 1.5,
-        maxDelay: 30.0,
+        maxDelay: 30.0
     )
     public static let conservative = RetryConfiguration(
         maxAttempts: 3,
         delay: 2.0,
         backoffMultiplier: 3.0,
-        maxDelay: 120.0,
+        maxDelay: 120.0
     )
 }
 
@@ -138,7 +138,7 @@ public struct RetryConfiguration: Sendable {
 public func retryWithCancellation<T: Sendable>(
     configuration: RetryConfiguration = .default,
     cancellationToken: CancellationToken? = nil,
-    operation: @escaping @Sendable () async throws -> T,
+    operation: @escaping @Sendable () async throws -> T
 ) async throws
 -> T {
     var lastError: Error?
@@ -153,9 +153,9 @@ public func retryWithCancellation<T: Sendable>(
         do {
             let runOperation: () async throws -> T = {
                 if let timeout = configuration.timeout {
-                    try await withTimeout(timeout, operation: operation)
+                    return try await withTimeout(timeout, operation: operation)
                 } else {
-                    try await operation()
+                    return try await operation()
                 }
             }
 
@@ -217,7 +217,7 @@ extension AsyncThrowingStream where Failure == Error {
 public func withAutoCancellationTaskGroup<T: Sendable, Result>(
     of type: T.Type,
     returning returnType: Result.Type = Result.self,
-    body: (inout ThrowingTaskGroup<T, Error>) async throws -> Result,
+    body: (inout ThrowingTaskGroup<T, Error>) async throws -> Result
 ) async throws
 -> Result {
     try await withThrowingTaskGroup(of: type) { group in

@@ -80,7 +80,7 @@ public struct APICallError: Error, LocalizedError, Sendable {
         requestId: String? = nil,
         errorType: ErrorType,
         message: String,
-        retryAfter: TimeInterval? = nil,
+        retryAfter: TimeInterval? = nil
     ) {
         self.statusCode = statusCode
         self.responseBody = responseBody
@@ -134,7 +134,7 @@ public struct RetryError: Error, LocalizedError, Sendable {
         reason: String,
         lastError: Error? = nil,
         errors: [Error] = [],
-        attempts: Int = 0,
+        attempts: Int = 0
     ) {
         self.reason = reason
         self.lastError = lastError
@@ -233,7 +233,7 @@ public struct ModelMessage: Sendable, Codable, Equatable {
         content: [ContentPart],
         timestamp: Date = Date(),
         channel: ResponseChannel? = nil,
-        metadata: MessageMetadata? = nil,
+        metadata: MessageMetadata? = nil
     ) {
         self.id = id
         self.role = role
@@ -350,7 +350,7 @@ public struct GenerationSettings: Sendable {
         reasoningEffort: ReasoningEffort? = nil,
         stopConditions: (any StopCondition)? = nil,
         seed: Int? = nil,
-        providerOptions: ProviderOptions = .init(),
+        providerOptions: ProviderOptions = .init()
     ) {
         self.maxTokens = maxTokens
         self.temperature = temperature
@@ -426,7 +426,7 @@ public struct StreamTextResult: Sendable {
     public init(
         stream: AsyncThrowingStream<TextStreamDelta, Error>,
         model: LanguageModel,
-        settings: GenerationSettings,
+        settings: GenerationSettings
     ) {
         self.stream = stream
         self.model = model
@@ -436,14 +436,14 @@ public struct StreamTextResult: Sendable {
     /// Convert stream to UI message stream response format (following Vercel AI SDK pattern)
     public func toUIMessageStreamResponse(
         sendReasoning: Bool = false,
-        headers: [String: String]? = nil,
+        headers: [String: String]? = nil
     )
     -> UIMessageStreamResponse {
         // Convert stream to UI message stream response format (following Vercel AI SDK pattern)
         UIMessageStreamResponse(
             stream: self.stream,
             sendReasoning: sendReasoning,
-            headers: headers,
+            headers: headers
         )
     }
 }
@@ -458,7 +458,7 @@ public struct UIMessageStreamResponse: Sendable {
     public init(
         stream: AsyncThrowingStream<TextStreamDelta, Error>,
         sendReasoning: Bool = false,
-        headers: [String: String]? = nil,
+        headers: [String: String]? = nil
     ) {
         self.stream = stream
         self.sendReasoning = sendReasoning
@@ -492,7 +492,7 @@ public struct TextStreamDelta: Sendable {
         toolCall: AgentToolCall? = nil,
         toolResult: AgentToolResult? = nil,
         usage: Usage? = nil,
-        finishReason: FinishReason? = nil,
+        finishReason: FinishReason? = nil
     ) {
         self.type = type
         self.content = content
@@ -537,7 +537,7 @@ public struct GenerateTextResult: Sendable {
         usage: Usage? = nil,
         finishReason: FinishReason? = nil,
         steps: [GenerationStep] = [],
-        messages: [ModelMessage] = [],
+        messages: [ModelMessage] = []
     ) {
         self.text = text
         self.usage = usage
@@ -563,7 +563,7 @@ public struct GenerationStep: Sendable {
         toolCalls: [AgentToolCall] = [],
         toolResults: [AgentToolResult] = [],
         usage: Usage? = nil,
-        finishReason: FinishReason? = nil,
+        finishReason: FinishReason? = nil
     ) {
         self.stepIndex = stepIndex
         self.text = text
@@ -584,7 +584,7 @@ public struct GenerateObjectResult<T: Codable & Sendable>: Sendable {
     public init(
         object: T,
         usage: Usage? = nil,
-        finishReason: FinishReason? = nil,
+        finishReason: FinishReason? = nil
     ) {
         self.object = object
         self.usage = usage
@@ -621,7 +621,7 @@ public struct MessageMetadata: Sendable, Codable, Equatable {
     public init(
         conversationId: String? = nil,
         turnId: String? = nil,
-        customData: [String: String]? = nil,
+        customData: [String: String]? = nil
     ) {
         self.conversationId = conversationId
         self.turnId = turnId

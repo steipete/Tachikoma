@@ -405,7 +405,7 @@ extension GenerationSettings {
         maxTokens: Int? = nil,
         temperature: Double? = nil,
         topP: Double? = nil,
-        seed: Int? = nil,
+        seed: Int? = nil
     )
     -> GenerationSettings {
         // Create settings with stop conditions
@@ -414,7 +414,7 @@ extension GenerationSettings {
             temperature: temperature,
             topP: topP,
             stopConditions: conditions.isEmpty ? nil : AnyStopCondition(conditions),
-            seed: seed,
+            seed: seed
         )
     }
 }
@@ -473,7 +473,7 @@ extension StreamTextResult {
         StreamTextResult(
             stream: stream.stopWhen(condition),
             model: model,
-            settings: settings,
+            settings: settings
         )
     }
 

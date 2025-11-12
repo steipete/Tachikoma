@@ -8,14 +8,14 @@ public func generateEmbedding(
     model: EmbeddingModel,
     input: EmbeddingInput,
     settings: EmbeddingSettings = .default,
-    configuration: TachikomaConfiguration = TachikomaConfiguration(),
+    configuration: TachikomaConfiguration = TachikomaConfiguration()
 ) async throws
 -> EmbeddingResult {
     let provider = try EmbeddingProviderFactory.createProvider(for: model, configuration: configuration)
 
     let request = EmbeddingRequest(
         input: input,
-        settings: settings,
+        settings: settings
     )
 
     let response = try await provider.generateEmbedding(request: request)
@@ -29,7 +29,7 @@ public func generateEmbedding(
             sessionId: sessionId,
             model: model.toLanguageModel(),
             usage: usage,
-            operation: .embedding,
+            operation: .embedding
         )
     }
 
@@ -45,7 +45,7 @@ public func generateEmbeddingsBatch(
     inputs: [EmbeddingInput],
     settings: EmbeddingSettings = .default,
     concurrency: Int = 5,
-    configuration: TachikomaConfiguration = TachikomaConfiguration(),
+    configuration: TachikomaConfiguration = TachikomaConfiguration()
 ) async throws
 -> [EmbeddingResult] {
     let provider = try EmbeddingProviderFactory.createProvider(for: model, configuration: configuration)
@@ -154,7 +154,7 @@ public struct EmbeddingSettings: Sendable, Codable {
     public init(
         dimensions: Int? = nil,
         normalizeEmbeddings: Bool = true,
-        truncate: TruncationStrategy? = nil,
+        truncate: TruncationStrategy? = nil
     ) {
         self.dimensions = dimensions
         self.normalizeEmbeddings = normalizeEmbeddings
@@ -176,7 +176,7 @@ public struct EmbeddingResult: Sendable {
         embeddings: [[Double]],
         model: String,
         usage: Usage? = nil,
-        metadata: EmbeddingMetadata? = nil,
+        metadata: EmbeddingMetadata? = nil
     ) {
         self.embeddings = embeddings
         self.model = model
@@ -230,7 +230,7 @@ struct EmbeddingProviderFactory {
     /// Instantiate the embedding provider that matches the requested model and configuration.
     static func createProvider(
         for model: EmbeddingModel,
-        configuration: TachikomaConfiguration,
+        configuration: TachikomaConfiguration
     ) throws
     -> EmbeddingProvider {
         switch model {
@@ -238,17 +238,17 @@ struct EmbeddingProviderFactory {
             return OpenAIEmbeddingProvider(
                 model: openAIModel,
                 apiKey: configuration.getAPIKey(for: "openai"),
-                baseURL: configuration.getBaseURL(for: "openai"),
+                baseURL: configuration.getBaseURL(for: "openai")
             )
         case let .cohere(cohereModel):
             return CohereEmbeddingProvider(
                 model: cohereModel,
-                apiKey: configuration.getAPIKey(for: "cohere") ?? ProcessInfo.processInfo.environment["COHERE_API_KEY"],
+                apiKey: configuration.getAPIKey(for: "cohere") ?? ProcessInfo.processInfo.environment["COHERE_API_KEY"]
             )
         case let .voyage(voyageModel):
             return VoyageEmbeddingProvider(
                 model: voyageModel,
-                apiKey: configuration.getAPIKey(for: "voyage") ?? ProcessInfo.processInfo.environment["VOYAGE_API_KEY"],
+                apiKey: configuration.getAPIKey(for: "voyage") ?? ProcessInfo.processInfo.environment["VOYAGE_API_KEY"]
             )
         case let .custom(modelId):
             throw TachikomaError.unsupportedOperation("Custom embedding model '\(modelId)' not implemented")

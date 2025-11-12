@@ -25,7 +25,7 @@ public func generateText(
     maxSteps: Int = 1,
     timeout: TimeInterval? = nil,
     configuration: TachikomaConfiguration = .current,
-    sessionId: String? = nil,
+    sessionId: String? = nil
 ) async throws
 -> GenerateTextResult {
     let resolvedConfiguration = TachikomaConfiguration.resolve(configuration)
@@ -39,7 +39,7 @@ public func generateText(
         let request = ProviderRequest(
             messages: currentMessages,
             tools: tools,
-            settings: settings,
+            settings: settings
         )
 
         let response: ProviderResponse = if let timeout {
@@ -64,7 +64,7 @@ public func generateText(
                 sessionId: actualSessionId,
                 model: model,
                 usage: usage,
-                operation: operationType,
+                operation: operationType
             )
 
             // Only end session if we created it
@@ -78,7 +78,7 @@ public func generateText(
             totalUsage = Usage(
                 inputTokens: totalUsage.inputTokens + usage.inputTokens,
                 outputTokens: totalUsage.outputTokens + usage.outputTokens,
-                cost: usage.cost, // Could combine costs here
+                cost: usage.cost // Could combine costs here
             )
         }
 
@@ -89,7 +89,7 @@ public func generateText(
             toolCalls: response.toolCalls ?? [],
             toolResults: [],
             usage: response.usage,
-            finishReason: response.finishReason,
+            finishReason: response.finishReason
         )
 
         allSteps.append(step)
@@ -114,7 +114,7 @@ public func generateText(
                             ProcessInfo.processInfo.arguments.contains("-v")
                         {
                             print(
-                                "DEBUG Generation.swift: Executing tool '\(toolCall.name)' with \(toolCall.arguments.count) arguments:",
+                                "DEBUG Generation.swift: Executing tool '\(toolCall.name)' with \(toolCall.arguments.count) arguments:"
                             )
                             for (key, value) in toolCall.arguments {
                                 print("DEBUG   \(key): \(value)")
@@ -128,7 +128,7 @@ public func generateText(
                             settings: settings,
                             sessionId: sessionId ?? "generation-\(UUID().uuidString)",
                             stepIndex: stepIndex,
-                            metadata: ["toolCallId": toolCall.id],
+                            metadata: ["toolCallId": toolCall.id]
                         )
 
                         // Convert arguments to AgentToolArguments
@@ -140,18 +140,18 @@ public func generateText(
                         // Add tool result message
                         currentMessages.append(ModelMessage(
                             role: .tool,
-                            content: [.toolResult(toolResult)],
+                            content: [.toolResult(toolResult)]
                         ))
                     } catch {
                         let errorResult = AgentToolResult.error(
                             toolCallId: toolCall.id,
-                            error: error.localizedDescription,
+                            error: error.localizedDescription
                         )
                         toolResults.append(errorResult)
 
                         currentMessages.append(ModelMessage(
                             role: .tool,
-                            content: [.toolResult(errorResult)],
+                            content: [.toolResult(errorResult)]
                         ))
                     }
                 }
@@ -164,7 +164,7 @@ public func generateText(
                 toolCalls: toolCalls,
                 toolResults: toolResults,
                 usage: response.usage,
-                finishReason: response.finishReason,
+                finishReason: response.finishReason
             )
 
             // Continue to next step if not done
@@ -192,7 +192,7 @@ public func generateText(
                 if
                     let range = finalText.range(
                         of: stringStop.stopString,
-                        options: stringStop.caseSensitive ? [] : .caseInsensitive,
+                        options: stringStop.caseSensitive ? [] : .caseInsensitive
                     )
                 {
                     finalText = String(finalText[..<range.lowerBound])
@@ -222,7 +222,7 @@ public func generateText(
         usage: totalUsage,
         finishReason: finalFinishReason,
         steps: allSteps,
-        messages: currentMessages,
+        messages: currentMessages
     )
 }
 
@@ -247,7 +247,7 @@ public func streamText(
     maxSteps: Int = 1,
     timeout: TimeInterval? = nil,
     configuration: TachikomaConfiguration = .current,
-    sessionId: String? = nil,
+    sessionId: String? = nil
 ) async throws
 -> StreamTextResult {
     // Debug logging only when explicitly enabled via environment variable or verbose flag
@@ -266,14 +266,14 @@ public func streamText(
     if debugEnabled {
         print("🔵 DEBUG streamText: Provider created: \(type(of: provider))")
         print(
-            "🔵 DEBUG streamText: Provider modelId: \((provider as? AnthropicProvider)?.modelId ?? (provider as? OpenAIProvider)?.modelId ?? (provider as? OpenAIResponsesProvider)?.modelId ?? "unknown")",
+            "🔵 DEBUG streamText: Provider modelId: \((provider as? AnthropicProvider)?.modelId ?? (provider as? OpenAIProvider)?.modelId ?? (provider as? OpenAIResponsesProvider)?.modelId ?? "unknown")"
         )
     }
 
     let request = ProviderRequest(
         messages: messages,
         tools: tools,
-        settings: settings,
+        settings: settings
     )
 
     var stream: AsyncThrowingStream<TextStreamDelta, Error>
@@ -329,14 +329,14 @@ public func streamText(
                         // Record final usage (this is approximate for streaming)
                         let usage = Usage(
                             inputTokens: totalInputTokens,
-                            outputTokens: totalOutputTokens,
+                            outputTokens: totalOutputTokens
                         )
 
                         UsageTracker.shared.recordUsage(
                             sessionId: capturedSessionId,
                             model: capturedModel,
                             usage: usage,
-                            operation: .textStreaming,
+                            operation: .textStreaming
                         )
                         if shouldEndSession {
                             _ = UsageTracker.shared.endSession(capturedSessionId)
@@ -357,7 +357,7 @@ public func streamText(
     return StreamTextResult(
         stream: trackedStream,
         model: model,
-        settings: settings,
+        settings: settings
     )
 }
 
@@ -380,7 +380,7 @@ public func generateObject<T: Codable & Sendable>(
     schema: T.Type,
     settings: GenerationSettings = .default,
     timeout: TimeInterval? = nil,
-    configuration: TachikomaConfiguration = .current,
+    configuration: TachikomaConfiguration = .current
 ) async throws
 -> GenerateObjectResult<T> {
     let resolvedConfiguration = TachikomaConfiguration.resolve(configuration)
@@ -390,7 +390,7 @@ public func generateObject<T: Codable & Sendable>(
         messages: messages,
         tools: nil,
         settings: settings,
-        outputFormat: .json,
+        outputFormat: .json
     )
 
     let response: ProviderResponse = if let timeout {
@@ -411,7 +411,7 @@ public func generateObject<T: Codable & Sendable>(
         return GenerateObjectResult(
             object: object,
             usage: response.usage,
-            finishReason: response.finishReason ?? .other,
+            finishReason: response.finishReason ?? .other
         )
     } catch {
         throw TachikomaError.invalidInput("Failed to parse response as \(T.self): \(error.localizedDescription)")
@@ -436,7 +436,7 @@ public func streamObject<T: Codable & Sendable>(
     messages: [ModelMessage],
     schema: T.Type,
     settings: GenerationSettings = .default,
-    configuration: TachikomaConfiguration = .current,
+    configuration: TachikomaConfiguration = .current
 ) async throws
 -> StreamObjectResult<T> {
     let resolvedConfiguration = TachikomaConfiguration.resolve(configuration)
@@ -447,7 +447,7 @@ public func streamObject<T: Codable & Sendable>(
         messages: messages,
         tools: nil,
         settings: settings,
-        outputFormat: .json,
+        outputFormat: .json
     )
 
     // Get the text stream from the provider
@@ -479,7 +479,7 @@ public func streamObject<T: Codable & Sendable>(
                                 continuation.yield(ObjectStreamDelta(
                                     type: .partial,
                                     object: object,
-                                    rawText: accumulatedText,
+                                    rawText: accumulatedText
                                 ))
                             } else if let partialObject = attemptPartialParse(T.self, from: accumulatedText) {
                                 // Attempt to parse as partial object
@@ -487,7 +487,7 @@ public func streamObject<T: Codable & Sendable>(
                                 continuation.yield(ObjectStreamDelta(
                                     type: .partial,
                                     object: partialObject,
-                                    rawText: accumulatedText,
+                                    rawText: accumulatedText
                                 ))
                             }
                         }
@@ -500,18 +500,18 @@ public func streamObject<T: Codable & Sendable>(
                             continuation.yield(ObjectStreamDelta(
                                 type: .complete,
                                 object: finalObject,
-                                rawText: accumulatedText,
+                                rawText: accumulatedText
                             ))
                         } else if let lastValidObject {
                             // If we have a last valid object, use it as complete
                             continuation.yield(ObjectStreamDelta(
                                 type: .complete,
                                 object: lastValidObject,
-                                rawText: accumulatedText,
+                                rawText: accumulatedText
                             ))
                         } else {
                             throw TachikomaError.invalidInput(
-                                "Failed to parse complete object from stream",
+                                "Failed to parse complete object from stream"
                             )
                         }
                         continuation.yield(ObjectStreamDelta(type: .done))
@@ -529,7 +529,7 @@ public func streamObject<T: Codable & Sendable>(
         objectStream: objectStream,
         model: model,
         settings: settings,
-        schema: schema,
+        schema: schema
     )
 }
 
@@ -603,7 +603,7 @@ public func generate(
     using model: Model? = nil,
     system: String? = nil,
     tools: [AgentTool]? = nil,
-    timeout: TimeInterval? = nil,
+    timeout: TimeInterval? = nil
 ) async throws
 -> String {
     // For now, just return a mock response since we don't have provider implementations
@@ -620,7 +620,7 @@ public func generate(
     maxTokens: Int? = nil,
     temperature: Double? = nil,
     timeout: TimeInterval? = nil,
-    configuration: TachikomaConfiguration = .current,
+    configuration: TachikomaConfiguration = .current
 ) async throws
 -> String {
     var messages: [ModelMessage] = []
@@ -633,7 +633,7 @@ public func generate(
 
     let settings = GenerationSettings(
         maxTokens: maxTokens,
-        temperature: temperature,
+        temperature: temperature
     )
 
     let result = try await generateText(
@@ -641,7 +641,7 @@ public func generate(
         messages: messages,
         settings: settings,
         timeout: timeout,
-        configuration: configuration,
+        configuration: configuration
     )
 
     return result.text
@@ -653,7 +653,7 @@ public func analyze(
     image: ImageInput,
     prompt: String,
     using model: Model? = nil,
-    configuration: TachikomaConfiguration = .current,
+    configuration: TachikomaConfiguration = .current
 ) async throws
 -> String {
     // Determine the model to use
@@ -713,7 +713,7 @@ public func analyze(
         model: selectedModel,
         messages: messages,
         settings: .default,
-        configuration: configuration,
+        configuration: configuration
     )
 
     // Additional tracking for image analysis (the generateText call above already tracks usage)
@@ -725,7 +725,7 @@ public func analyze(
             sessionId: sessionId,
             model: selectedModel,
             usage: usage,
-            operation: .imageAnalysis,
+            operation: .imageAnalysis
         )
         _ = UsageTracker.shared.endSession(sessionId)
     }
@@ -741,7 +741,7 @@ public func stream(
     system: String? = nil,
     maxTokens: Int? = nil,
     temperature: Double? = nil,
-    configuration: TachikomaConfiguration = .current,
+    configuration: TachikomaConfiguration = .current
 ) async throws
 -> AsyncThrowingStream<TextStreamDelta, Error> {
     var messages: [ModelMessage] = []
@@ -754,14 +754,14 @@ public func stream(
 
     let settings = GenerationSettings(
         maxTokens: maxTokens,
-        temperature: temperature,
+        temperature: temperature
     )
 
     let result = try await streamText(
         model: model,
         messages: messages,
         settings: settings,
-        configuration: configuration,
+        configuration: configuration
     )
 
     return result.stream
@@ -781,7 +781,7 @@ public struct StreamObjectResult<T: Codable & Sendable>: Sendable {
         objectStream: AsyncThrowingStream<ObjectStreamDelta<T>, Error>,
         model: LanguageModel,
         settings: GenerationSettings,
-        schema: T.Type,
+        schema: T.Type
     ) {
         self.objectStream = objectStream
         self.model = model
@@ -828,7 +828,7 @@ public struct ObjectStreamDelta<T: Codable & Sendable>: Sendable {
         type: DeltaType,
         object: T? = nil,
         rawText: String? = nil,
-        error: Error? = nil,
+        error: Error? = nil
     ) {
         self.type = type
         self.object = object

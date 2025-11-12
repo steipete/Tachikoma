@@ -358,7 +358,7 @@ public struct AgentToolCall: Sendable, Codable, Equatable {
         name: String,
         arguments: [String: AnyAgentToolValue],
         namespace: String? = nil,
-        recipient: String? = nil,
+        recipient: String? = nil
     ) {
         self.id = id
         self.name = name
@@ -373,7 +373,7 @@ public struct AgentToolCall: Sendable, Codable, Equatable {
         name: String,
         arguments: [String: Any],
         namespace: String? = nil,
-        recipient: String? = nil,
+        recipient: String? = nil
     ) throws {
         self.id = id
         self.name = name
@@ -496,7 +496,7 @@ public struct AgentToolParameterProperty: Sendable, Codable {
         type: ParameterType,
         description: String,
         enumValues: [String]? = nil,
-        items: AgentToolParameterItems? = nil,
+        items: AgentToolParameterItems? = nil
     ) {
         self.name = name
         self.type = type
@@ -534,7 +534,7 @@ public struct AgentTool: Sendable {
         parameters: AgentToolParameters,
         namespace: String? = nil,
         recipient: String? = nil,
-        execute: @escaping @Sendable (AgentToolArguments) async throws -> AnyAgentToolValue,
+        execute: @escaping @Sendable (AgentToolArguments) async throws -> AnyAgentToolValue
     ) {
         self.name = name
         self.description = description
@@ -552,7 +552,7 @@ public struct AgentTool: Sendable {
         namespace: String? = nil,
         recipient: String? = nil,
         executeWithContext: @escaping @Sendable (AgentToolArguments, ToolExecutionContext) async throws
-            -> AnyAgentToolValue,
+            -> AnyAgentToolValue
     ) {
         self.name = name
         self.description = description
@@ -565,7 +565,7 @@ public struct AgentTool: Sendable {
     /// Execute the tool with context
     public func execute(
         _ arguments: AgentToolArguments,
-        context: ToolExecutionContext,
+        context: ToolExecutionContext
     ) async throws
     -> AnyAgentToolValue {
         // Execute the tool with context
@@ -589,7 +589,7 @@ public struct ToolExecutionContext: Sendable {
         settings: GenerationSettings? = nil,
         sessionId: String = UUID().uuidString,
         stepIndex: Int = 0,
-        metadata: [String: String] = [:],
+        metadata: [String: String] = [:]
     ) {
         self.messages = messages
         self.model = model
@@ -627,7 +627,7 @@ public struct DynamicTool: Sendable {
         description: String,
         schema: DynamicSchema,
         namespace: String? = nil,
-        recipient: String? = nil,
+        recipient: String? = nil
     ) {
         self.name = name
         self.description = description
@@ -646,7 +646,7 @@ public struct DynamicTool: Sendable {
             parameters: self.schema.toAgentToolParameters(),
             namespace: self.namespace,
             recipient: self.recipient,
-            execute: executor,
+            execute: executor
         )
     }
 }
@@ -693,7 +693,7 @@ public struct DynamicSchema: Sendable, Codable {
             minimum: Double? = nil,
             maximum: Double? = nil,
             minLength: Int? = nil,
-            maxLength: Int? = nil,
+            maxLength: Int? = nil
         ) {
             self.type = type
             self.description = description
@@ -723,7 +723,7 @@ public struct DynamicSchema: Sendable, Codable {
         type: SchemaType,
         properties: [String: SchemaProperty]? = nil,
         required: [String]? = nil,
-        items: SchemaItems? = nil,
+        items: SchemaItems? = nil
     ) {
         self.type = type
         self.properties = properties
@@ -741,7 +741,7 @@ public struct DynamicSchema: Sendable, Codable {
                 let items = prop.items.map { schemaItems in
                     AgentToolParameterItems(
                         type: schemaItems.type.rawValue,
-                        description: schemaItems.description,
+                        description: schemaItems.description
                     )
                 }
 
@@ -753,14 +753,14 @@ public struct DynamicSchema: Sendable, Codable {
                     type: paramType,
                     description: prop.description ?? "",
                     enumValues: prop.enumValues,
-                    items: items,
+                    items: items
                 )
             }
         }
 
         return AgentToolParameters(
             properties: props,
-            required: self.required ?? [],
+            required: self.required ?? []
         )
     }
 }

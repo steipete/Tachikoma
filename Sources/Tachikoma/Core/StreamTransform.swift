@@ -133,7 +133,7 @@ public struct TapTransform<T: Sendable>: StreamTransform {
 extension AsyncThrowingStream where Element: Sendable {
     /// Apply a transform to the stream
     public func transform<T: StreamTransform>(
-        _ transform: T,
+        _ transform: T
     )
         -> AsyncThrowingStream<T.Output, Error>
         where Element == T.Input
@@ -157,7 +157,7 @@ extension AsyncThrowingStream where Element: Sendable {
 
     /// Filter stream elements
     public func filter(
-        _ predicate: @escaping @Sendable (Element) async -> Bool,
+        _ predicate: @escaping @Sendable (Element) async -> Bool
     )
     -> AsyncThrowingStream<Element, Error> {
         // Filter stream elements
@@ -166,7 +166,7 @@ extension AsyncThrowingStream where Element: Sendable {
 
     /// Map stream elements
     public func map<Output: Sendable>(
-        _ mapper: @escaping @Sendable (Element) async throws -> Output,
+        _ mapper: @escaping @Sendable (Element) async throws -> Output
     )
     -> AsyncThrowingStream<Output, Error> {
         // Map stream elements
@@ -175,7 +175,7 @@ extension AsyncThrowingStream where Element: Sendable {
 
     /// Add side effects to stream
     public func tap(
-        _ action: @escaping @Sendable (Element) async -> Void,
+        _ action: @escaping @Sendable (Element) async -> Void
     )
     -> AsyncThrowingStream<Element, Error> {
         // Add side effects to stream
@@ -185,13 +185,13 @@ extension AsyncThrowingStream where Element: Sendable {
     /// Buffer and batch stream elements
     public func buffer(
         size: Int,
-        flushInterval: TimeInterval? = nil,
+        flushInterval: TimeInterval? = nil
     )
     -> AsyncThrowingStream<[Element], Error> {
         // Buffer and batch stream elements
         let bufferTransform = BufferTransform<Element>(
             bufferSize: size,
-            flushInterval: flushInterval,
+            flushInterval: flushInterval
         )
 
         return AsyncThrowingStream<[Element], Error> { continuation in
@@ -216,7 +216,7 @@ extension AsyncThrowingStream where Element: Sendable {
 
     /// Throttle stream elements
     public func throttle(
-        interval: TimeInterval,
+        interval: TimeInterval
     )
     -> AsyncThrowingStream<Element, Error> {
         // Throttle stream elements
@@ -230,20 +230,20 @@ extension AsyncThrowingStream where Element: Sendable {
 extension StreamTextResult {
     /// Filter text deltas
     public func filter(
-        _ predicate: @escaping @Sendable (TextStreamDelta) async -> Bool,
+        _ predicate: @escaping @Sendable (TextStreamDelta) async -> Bool
     )
     -> StreamTextResult {
         // Filter text deltas
         StreamTextResult(
             stream: stream.filter(predicate),
             model: model,
-            settings: settings,
+            settings: settings
         )
     }
 
     /// Map text deltas
     public func map<Output: Sendable>(
-        _ mapper: @escaping @Sendable (TextStreamDelta) async throws -> Output,
+        _ mapper: @escaping @Sendable (TextStreamDelta) async throws -> Output
     )
     -> AsyncThrowingStream<Output, Error> {
         // Map text deltas
@@ -252,14 +252,14 @@ extension StreamTextResult {
 
     /// Add side effects to text stream
     public func tap(
-        _ action: @escaping @Sendable (TextStreamDelta) async -> Void,
+        _ action: @escaping @Sendable (TextStreamDelta) async -> Void
     )
     -> StreamTextResult {
         // Add side effects to text stream
         StreamTextResult(
             stream: stream.tap(action),
             model: model,
-            settings: settings,
+            settings: settings
         )
     }
 
@@ -297,7 +297,7 @@ extension StreamTextResult {
 extension StreamObjectResult {
     /// Filter object deltas
     public func filter(
-        _ predicate: @escaping @Sendable (ObjectStreamDelta<T>) async -> Bool,
+        _ predicate: @escaping @Sendable (ObjectStreamDelta<T>) async -> Bool
     )
     -> StreamObjectResult<T> {
         // Filter object deltas
@@ -305,13 +305,13 @@ extension StreamObjectResult {
             objectStream: objectStream.filter(predicate),
             model: model,
             settings: settings,
-            schema: schema,
+            schema: schema
         )
     }
 
     /// Map object deltas
     public func map<Output: Sendable>(
-        _ mapper: @escaping @Sendable (ObjectStreamDelta<T>) async throws -> Output,
+        _ mapper: @escaping @Sendable (ObjectStreamDelta<T>) async throws -> Output
     )
     -> AsyncThrowingStream<Output, Error> {
         // Map object deltas
@@ -320,7 +320,7 @@ extension StreamObjectResult {
 
     /// Add side effects to object stream
     public func tap(
-        _ action: @escaping @Sendable (ObjectStreamDelta<T>) async -> Void,
+        _ action: @escaping @Sendable (ObjectStreamDelta<T>) async -> Void
     )
     -> StreamObjectResult<T> {
         // Add side effects to object stream
@@ -328,7 +328,7 @@ extension StreamObjectResult {
             objectStream: objectStream.tap(action),
             model: model,
             settings: settings,
-            schema: schema,
+            schema: schema
         )
     }
 
@@ -398,7 +398,7 @@ public struct TransformBuilder {
 
     public static func buildBlock<T1: StreamTransform, T2: StreamTransform>(
         _ t1: T1,
-        _ t2: T2,
+        _ t2: T2
     )
     -> some StreamTransform where T1.Output == T2.Input {
         CombinedTransform(first: t1, second: t2)
