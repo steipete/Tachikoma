@@ -233,7 +233,7 @@ struct StreamTransformTests {
         let result = StreamTextResult(
             stream: stream,
             model: .openai(.gpt4o),
-            settings: .default
+            settings: .default,
         )
 
         let filtered = result.stream.filter { delta in
@@ -266,7 +266,7 @@ struct StreamTransformTests {
         let result = StreamTextResult(
             stream: stream,
             model: .openai(.gpt4o),
-            settings: .default
+            settings: .default,
         )
 
         var texts: [String] = []
@@ -293,7 +293,7 @@ struct StreamTransformTests {
         let result = StreamTextResult(
             stream: stream,
             model: .openai(.gpt4o),
-            settings: .default
+            settings: .default,
         )
 
         let fullText = try await result.fullText()
@@ -307,7 +307,7 @@ struct StreamTransformTests {
 
         let combined = CombinedTransform(
             first: filterTransform,
-            second: mapTransform
+            second: mapTransform,
         )
 
         #expect(try await combined.transform(2) == "20")

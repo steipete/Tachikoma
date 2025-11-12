@@ -27,7 +27,7 @@ public final class GrokProvider: ModelProvider {
             supportsTools: model.supportsTools,
             supportsStreaming: true,
             contextLength: model.contextLength,
-            maxOutputTokens: 4096
+            maxOutputTokens: 4096,
         )
     }
 
@@ -38,7 +38,7 @@ public final class GrokProvider: ModelProvider {
             modelId: self.modelId,
             baseURL: self.baseURL!,
             apiKey: self.apiKey!,
-            providerName: "Grok"
+            providerName: "Grok",
         )
     }
 
@@ -49,7 +49,7 @@ public final class GrokProvider: ModelProvider {
             modelId: self.modelId,
             baseURL: self.baseURL!,
             apiKey: self.apiKey!,
-            providerName: "Grok"
+            providerName: "Grok",
         )
     }
 }

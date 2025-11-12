@@ -61,7 +61,7 @@ public struct ProviderConfiguration: Sendable {
         maxToolCalls: Int = 10,
         supportsSystemRole: Bool = true,
         requiresAlternatingRoles: Bool = false,
-        customHeaders: [String: String] = [:]
+        customHeaders: [String: String] = [:],
     ) {
         self.maxTokens = maxTokens
         self.maxContextLength = maxContextLength
@@ -77,28 +77,28 @@ public struct ProviderConfiguration: Sendable {
     public static let openAI = ProviderConfiguration(
         maxTokens: 4096,
         maxContextLength: 128_000,
-        supportsSystemRole: true
+        supportsSystemRole: true,
     )
 
     public static let anthropic = ProviderConfiguration(
         maxTokens: 4096,
         maxContextLength: 200_000,
         supportsSystemRole: true,
-        requiresAlternatingRoles: true
+        requiresAlternatingRoles: true,
     )
 
     public static let google = ProviderConfiguration(
         maxTokens: 8192,
         maxContextLength: 1_048_576, // 1M tokens for Gemini 1.5
         supportsSystemRole: false, // Uses "user" role for system
-        requiresAlternatingRoles: true
+        requiresAlternatingRoles: true,
     )
 
     public static let ollama = ProviderConfiguration(
         maxTokens: 2048,
         maxContextLength: 32000,
         maxToolCalls: 0, // No tool support by default
-        supportsSystemRole: true
+        supportsSystemRole: true,
     )
 }
 
@@ -206,7 +206,7 @@ public final class ProviderAdapter: EnhancedModelProvider {
             messages: validatedMessages,
             tools: validatedTools,
             settings: validatedSettings,
-            outputFormat: request.outputFormat
+            outputFormat: request.outputFormat,
         )
     }
 
@@ -318,7 +318,7 @@ public final class ProviderAdapter: EnhancedModelProvider {
                     continuation.yield(TextStreamDelta(
                         type: .done,
                         usage: response.usage,
-                        finishReason: response.finishReason ?? .stop
+                        finishReason: response.finishReason ?? .stop,
                     ))
                     continuation.finish()
                 } catch {

@@ -19,15 +19,15 @@ class RealtimeVoiceAssistant {
                 properties: [
                     "location": AgentToolParameterProperty(
                         type: .string,
-                        description: "The city and state, e.g. San Francisco, CA"
+                        description: "The city and state, e.g. San Francisco, CA",
                     ),
                 ],
-                required: ["location"]
+                required: ["location"],
             ),
             execute: { args in
                 let location = args["location"]?.stringValue ?? "Unknown"
                 return .string("The weather in \(location) is sunny and 72°F")
-            }
+            },
         )
 
         let calculatorTool = AgentTool(
@@ -37,16 +37,16 @@ class RealtimeVoiceAssistant {
                 properties: [
                     "expression": AgentToolParameterProperty(
                         type: .string,
-                        description: "Mathematical expression to evaluate"
+                        description: "Mathematical expression to evaluate",
                     ),
                 ],
-                required: ["expression"]
+                required: ["expression"],
             ),
             execute: { args in
                 let expression = args["expression"]?.stringValue ?? "0"
                 // In a real implementation, you'd evaluate the expression
                 return .double(42.0)
-            }
+            },
         )
 
         // Start the conversation
@@ -57,7 +57,7 @@ class RealtimeVoiceAssistant {
             You are a helpful voice assistant. Keep responses concise and natural.
             Use the available tools when needed to help answer questions.
             """,
-            tools: [weatherTool, calculatorTool]
+            tools: [weatherTool, calculatorTool],
         )
 
         print("✅ Voice assistant ready!")
@@ -155,7 +155,7 @@ class RealtimeDemo {
         let conversation = try await startRealtimeConversation(
             model: .gpt4oRealtime,
             voice: .alloy,
-            instructions: "You are a voice assistant with server-side voice activity detection"
+            instructions: "You are a voice assistant with server-side voice activity detection",
         )
 
         // The server will automatically:
@@ -174,7 +174,7 @@ class RealtimeDemo {
         // Configure for both text and audio responses
         let conversation = try await startRealtimeConversation(
             model: .gpt4oRealtime,
-            voice: .shimmer
+            voice: .shimmer,
         )
 
         // Responses will include both:
@@ -203,32 +203,32 @@ class RealtimeDemo {
                 properties: [
                     "device": AgentToolParameterProperty(
                         type: .string,
-                        description: "Device name (lights, thermostat, door)"
+                        description: "Device name (lights, thermostat, door)",
                     ),
                     "action": AgentToolParameterProperty(
                         type: .string,
-                        description: "Action to perform (on, off, set)"
+                        description: "Action to perform (on, off, set)",
                     ),
                     "value": AgentToolParameterProperty(
                         type: .number,
-                        description: "Optional value for the action"
+                        description: "Optional value for the action",
                     ),
                 ],
-                required: ["device", "action"]
+                required: ["device", "action"],
             ),
             execute: { args in
                 let device = args["device"]?.stringValue ?? ""
                 let action = args["action"]?.stringValue ?? ""
                 print("🏠 Executing: \(action) on \(device)")
                 return .string("Done! \(device) is now \(action)")
-            }
+            },
         )
 
         let conversation = try await startRealtimeConversation(
             model: .gpt4oRealtime,
             voice: .echo,
             instructions: "You are a smart home assistant. Use the available tools to control devices.",
-            tools: [smartHomeTool]
+            tools: [smartHomeTool],
         )
 
         // Voice commands will trigger function calls
@@ -319,7 +319,7 @@ struct RealtimeVoiceView: View {
         do {
             conversation = try await startRealtimeConversation(
                 model: .gpt4oRealtime,
-                voice: .nova
+                voice: .nova,
             )
 
             // Listen for updates

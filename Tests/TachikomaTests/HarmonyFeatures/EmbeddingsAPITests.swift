@@ -98,7 +98,7 @@ struct EmbeddingsAPITests {
         let settings = EmbeddingSettings(
             dimensions: 512,
             normalizeEmbeddings: false,
-            truncate: .end
+            truncate: .end,
         )
 
         #expect(settings.dimensions == 512)
@@ -124,7 +124,7 @@ struct EmbeddingsAPITests {
             embeddings: embeddings,
             model: "text-embedding-3-small",
             usage: Usage(inputTokens: 10, outputTokens: 0),
-            metadata: EmbeddingMetadata(truncated: false, normalizedL2: true)
+            metadata: EmbeddingMetadata(truncated: false, normalizedL2: true),
         )
 
         #expect(result.embeddings == embeddings)
@@ -139,7 +139,7 @@ struct EmbeddingsAPITests {
 
         let result = EmbeddingResult(
             embeddings: embeddings,
-            model: "test-model"
+            model: "test-model",
         )
 
         // First embedding
@@ -153,7 +153,7 @@ struct EmbeddingsAPITests {
     func embeddingResultEmpty() {
         let result = EmbeddingResult(
             embeddings: [],
-            model: "test-model"
+            model: "test-model",
         )
 
         #expect(result.embedding == nil)
@@ -179,7 +179,7 @@ struct EmbeddingsAPITests {
         let original = EmbeddingSettings(
             dimensions: 256,
             normalizeEmbeddings: true,
-            truncate: .start
+            truncate: .start,
         )
 
         let data = try encoder.encode(original)
@@ -230,7 +230,7 @@ struct EmbeddingsAPITests {
     func embeddingRequest() {
         let request = EmbeddingRequest(
             input: .text("Test input"),
-            settings: EmbeddingSettings(dimensions: 128)
+            settings: EmbeddingSettings(dimensions: 128),
         )
 
         #expect(request.input.asTexts == ["Test input"])
@@ -243,26 +243,26 @@ struct EmbeddingsAPITests {
 
         let openAIProvider = try EmbeddingProviderFactory.createProvider(
             for: .openai(.small3),
-            configuration: configuration
+            configuration: configuration,
         )
         #expect(openAIProvider is OpenAIEmbeddingProvider)
 
         let cohereProvider = try EmbeddingProviderFactory.createProvider(
             for: .cohere(.english3),
-            configuration: configuration
+            configuration: configuration,
         )
         #expect(cohereProvider is CohereEmbeddingProvider)
 
         let voyageProvider = try EmbeddingProviderFactory.createProvider(
             for: .voyage(.voyage2),
-            configuration: configuration
+            configuration: configuration,
         )
         #expect(voyageProvider is VoyageEmbeddingProvider)
 
         do {
             _ = try EmbeddingProviderFactory.createProvider(for: .custom("experimental"), configuration: configuration)
             Issue.record("Expected unsupported operation for custom embedding model")
-        } catch TachikomaError.unsupportedOperation(let message) {
+        } catch let TachikomaError.unsupportedOperation(message) {
             #expect(message.contains("experimental"))
         }
     }

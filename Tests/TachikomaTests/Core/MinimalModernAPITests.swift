@@ -51,7 +51,7 @@ struct MinimalModernAPITests {
             name: "test_tool",
             description: "A test tool",
             parameters: [],
-            required: []
+            required: [],
         ) { _ in
             AnyAgentToolValue(string: "Tool executed")
         }
@@ -120,7 +120,7 @@ extension MinimalModernAPITests {
             id: "test",
             role: .user,
             content: "Test",
-            timestamp: Date()
+            timestamp: Date(),
         )
 
         #expect(message.id == "test")

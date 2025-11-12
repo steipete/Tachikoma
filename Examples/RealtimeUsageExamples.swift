@@ -26,7 +26,7 @@ class BasicVoiceAssistant: ObservableObject {
         try await self.conversation?.start(
             model: .gpt4oRealtime,
             voice: .nova,
-            instructions: "You are a helpful voice assistant. Keep responses concise."
+            instructions: "You are a helpful voice assistant. Keep responses concise.",
         )
 
         // Listen for transcripts
@@ -78,7 +78,7 @@ class SmartAssistant: ObservableObject {
         // Configure with tools
         var config = SessionConfiguration.withTools(
             voice: .alloy,
-            tools: self.createTools()
+            tools: self.createTools(),
         )
 
         // Enable server VAD for automatic turn detection
@@ -91,7 +91,7 @@ class SmartAssistant: ObservableObject {
         self.conversation = try RealtimeConversation(
             apiKey: apiKey,
             configuration: config,
-            settings: settings
+            settings: settings,
         )
 
         // Register built-in tools
@@ -112,7 +112,7 @@ class SmartAssistant: ObservableObject {
             RealtimeTool(
                 name: "getCurrentTime",
                 description: "Get the current time",
-                parameters: AgentToolParameters(properties: [:], required: [])
+                parameters: AgentToolParameters(properties: [:], required: []),
             ),
             RealtimeTool(
                 name: "setReminder",
@@ -122,16 +122,16 @@ class SmartAssistant: ObservableObject {
                         "text": AgentToolParameterProperty(
                             name: "text",
                             type: .string,
-                            description: "Reminder text"
+                            description: "Reminder text",
                         ),
                         "time": AgentToolParameterProperty(
                             name: "time",
                             type: .string,
-                            description: "Time for reminder"
+                            description: "Time for reminder",
                         ),
                     ],
-                    required: ["text", "time"]
-                )
+                    required: ["text", "time"],
+                ),
             ),
         ]
     }
@@ -146,7 +146,7 @@ class SmartAssistant: ObservableObject {
                     let formatter = DateFormatter()
                     formatter.timeStyle = .medium
                     return .string(formatter.string(from: Date()))
-                }
+                },
             ),
             AgentTool(
                 name: "setReminder",
@@ -156,22 +156,22 @@ class SmartAssistant: ObservableObject {
                         "text": AgentToolParameterProperty(
                             name: "text",
                             type: .string,
-                            description: "Reminder text"
+                            description: "Reminder text",
                         ),
                         "time": AgentToolParameterProperty(
                             name: "time",
                             type: .string,
-                            description: "Time for reminder"
+                            description: "Time for reminder",
                         ),
                     ],
-                    required: ["text", "time"]
+                    required: ["text", "time"],
                 ),
                 execute: { args in
                     let text = try args.stringValue("text")
                     let time = try args.stringValue("time")
                     // In real app, would schedule notification
                     return .string("Reminder set: '\(text)' at \(time)")
-                }
+                },
             ),
         ]
     }
@@ -249,7 +249,7 @@ struct VoiceAssistantView: View {
                     configuration: .voiceConversation(),
                     onError: { error in
                         print("Error: \(error)")
-                    }
+                    },
                 )
 
                 // Custom Controls
@@ -290,7 +290,7 @@ struct VoiceAssistantView: View {
         do {
             try await self.viewModel.initialize(
                 apiKey: self.apiKey,
-                configuration: .voiceConversation()
+                configuration: .voiceConversation(),
             )
             self.isConfigured = true
         } catch {
@@ -315,7 +315,7 @@ class AudioStreamingExample {
             inputAudioFormat: .pcm16,
             outputAudioFormat: .pcm16,
             turnDetection: .serverVAD,
-            modalities: .audio // Audio only for streaming
+            modalities: .audio, // Audio only for streaming
         )
 
         // Audio-optimized settings
@@ -325,13 +325,13 @@ class AudioStreamingExample {
             maxAudioBufferSize: 1024 * 1024 * 5, // 5MB buffer
             enableEchoCancellation: true,
             enableNoiseSuppression: true,
-            localVADThreshold: 0.3
+            localVADThreshold: 0.3,
         )
 
         self.conversation = try RealtimeConversation(
             apiKey: apiKey,
             configuration: config,
-            settings: settings
+            settings: settings,
         )
 
         // Setup audio pipeline
@@ -383,12 +383,12 @@ class MultiTurnConversation {
             """,
             turnDetection: .serverVAD,
             temperature: 0.7,
-            maxResponseOutputTokens: 500
+            maxResponseOutputTokens: 500,
         )
 
         self.conversation = try RealtimeConversation(
             apiKey: apiKey,
-            configuration: config
+            configuration: config,
         )
 
         try await self.conversation?.start()
@@ -435,14 +435,14 @@ class RobustConversation {
             autoReconnect: true,
             maxReconnectAttempts: 5,
             reconnectDelay: 2.0,
-            bufferWhileDisconnected: true
+            bufferWhileDisconnected: true,
         )
 
         do {
             self.conversation = try RealtimeConversation(
                 apiKey: apiKey,
                 configuration: config,
-                settings: settings
+                settings: settings,
             )
 
             try await self.conversation?.start()
@@ -525,7 +525,7 @@ class VoiceAssistantViewController: UIViewController {
         self.recordButton.addTarget(
             self,
             action: #selector(self.recordButtonReleased),
-            for: [.touchUpInside, .touchUpOutside]
+            for: [.touchUpInside, .touchUpOutside],
         )
         view.addSubview(self.recordButton)
 
@@ -552,7 +552,7 @@ class VoiceAssistantViewController: UIViewController {
 
                 try await self.conversation?.start(
                     model: .gpt4oRealtime,
-                    voice: .shimmer
+                    voice: .shimmer,
                 )
 
                 // Listen for updates

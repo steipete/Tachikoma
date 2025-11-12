@@ -19,7 +19,7 @@ struct AsyncSequenceTests {
         let result = StreamTextResult(
             stream: testStream,
             model: .openai(.gpt4o),
-            settings: .default
+            settings: .default,
         )
 
         // Test AsyncSequence iteration
@@ -48,7 +48,7 @@ struct AsyncSequenceTests {
         let result = StreamTextResult(
             stream: testStream,
             model: .anthropic(.opus4),
-            settings: .default
+            settings: .default,
         )
 
         // Test with for-await-in loop
@@ -70,15 +70,15 @@ struct AsyncSequenceTests {
                 continuation.yield(ObjectStreamDelta(type: .start))
                 continuation.yield(ObjectStreamDelta(
                     type: .partial,
-                    object: TestData(value: 1)
+                    object: TestData(value: 1),
                 ))
                 continuation.yield(ObjectStreamDelta(
                     type: .partial,
-                    object: TestData(value: 2)
+                    object: TestData(value: 2),
                 ))
                 continuation.yield(ObjectStreamDelta(
                     type: .complete,
-                    object: TestData(value: 3)
+                    object: TestData(value: 3),
                 ))
                 continuation.yield(ObjectStreamDelta(type: .done))
                 continuation.finish()
@@ -89,7 +89,7 @@ struct AsyncSequenceTests {
             objectStream: testStream,
             model: .openai(.gpt4o),
             settings: .default,
-            schema: TestData.self
+            schema: TestData.self,
         )
 
         // Test AsyncSequence iteration
@@ -108,7 +108,7 @@ struct AsyncSequenceTests {
                 for i in 1...5 {
                     continuation.yield(TextStreamDelta(
                         type: .textDelta,
-                        content: String(i)
+                        content: String(i),
                     ))
                 }
                 continuation.yield(TextStreamDelta(type: .done))
@@ -119,7 +119,7 @@ struct AsyncSequenceTests {
         let result = StreamTextResult(
             stream: testStream,
             model: .openai(.gpt4o),
-            settings: .default
+            settings: .default,
         )
 
         // Test with compactMap
@@ -151,7 +151,7 @@ struct AsyncSequenceTests {
         let result = StreamTextResult(
             stream: testStream,
             model: .openai(.gpt4o),
-            settings: .default
+            settings: .default,
         )
 
         var receivedError = false
@@ -174,7 +174,7 @@ struct AsyncSequenceTests {
                     try await Task.sleep(nanoseconds: 1_000_000) // 1ms
                     continuation.yield(TextStreamDelta(
                         type: .textDelta,
-                        content: "Item \(i)"
+                        content: "Item \(i)",
                     ))
                 }
                 continuation.yield(TextStreamDelta(type: .done))
@@ -185,7 +185,7 @@ struct AsyncSequenceTests {
         let result = StreamTextResult(
             stream: testStream,
             model: .openai(.gpt4o),
-            settings: .default
+            settings: .default,
         )
 
         // Start iteration and cancel after a few items
@@ -220,7 +220,7 @@ struct AsyncSequenceTests {
         let result = StreamTextResult(
             stream: testStream,
             model: .openai(.gpt4o),
-            settings: .default
+            settings: .default,
         )
 
         // Test collectText extension
@@ -246,15 +246,15 @@ struct AsyncSequenceTests {
                 continuation.yield(ObjectStreamDelta(type: .start))
                 continuation.yield(ObjectStreamDelta(
                     type: .partial,
-                    object: TestItem(id: 1, name: "First")
+                    object: TestItem(id: 1, name: "First"),
                 ))
                 continuation.yield(ObjectStreamDelta(
                     type: .partial,
-                    object: TestItem(id: 2, name: "Second")
+                    object: TestItem(id: 2, name: "Second"),
                 ))
                 continuation.yield(ObjectStreamDelta(
                     type: .complete,
-                    object: TestItem(id: 3, name: "Final")
+                    object: TestItem(id: 3, name: "Final"),
                 ))
                 continuation.yield(ObjectStreamDelta(type: .done))
                 continuation.finish()
@@ -265,7 +265,7 @@ struct AsyncSequenceTests {
             objectStream: testStream,
             model: .openai(.gpt4o),
             settings: .default,
-            schema: TestItem.self
+            schema: TestItem.self,
         )
 
         // Test partialObjects extension

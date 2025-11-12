@@ -31,7 +31,7 @@ public func transcribe(
     responseFormat: TranscriptionResponseFormat = .verbose,
     abortSignal: AbortSignal? = nil,
     headers: [String: String] = [:],
-    configuration: TachikomaConfiguration = TachikomaConfiguration()
+    configuration: TachikomaConfiguration = TachikomaConfiguration(),
 ) async throws
 -> TranscriptionResult {
     let provider = try TranscriptionProviderFactory.createProvider(for: model, configuration: configuration)
@@ -43,7 +43,7 @@ public func transcribe(
         timestampGranularities: timestampGranularities,
         responseFormat: responseFormat,
         abortSignal: abortSignal,
-        headers: headers
+        headers: headers,
     )
 
     return try await provider.transcribe(request: request)
@@ -82,7 +82,7 @@ public func generateSpeech(
     instructions: String? = nil,
     abortSignal: AbortSignal? = nil,
     headers: [String: String] = [:],
-    configuration: TachikomaConfiguration = TachikomaConfiguration()
+    configuration: TachikomaConfiguration = TachikomaConfiguration(),
 ) async throws
 -> SpeechResult {
     let provider = try SpeechProviderFactory.createProvider(for: model, configuration: configuration)
@@ -95,7 +95,7 @@ public func generateSpeech(
         format: format,
         instructions: instructions,
         abortSignal: abortSignal,
-        headers: headers
+        headers: headers,
     )
 
     return try await provider.generateSpeech(request: request)
@@ -116,14 +116,14 @@ public func generateSpeech(
 public func transcribe(
     _ audio: AudioData,
     language: String? = nil,
-    configuration: TachikomaConfiguration = TachikomaConfiguration()
+    configuration: TachikomaConfiguration = TachikomaConfiguration(),
 ) async throws
 -> String {
     let result = try await transcribe(
         audio,
         using: .default,
         language: language,
-        configuration: configuration
+        configuration: configuration,
     )
     return result.text
 }
@@ -139,7 +139,7 @@ public func transcribe(
     contentsOf url: URL,
     using model: TranscriptionModel = .default,
     language: String? = nil,
-    configuration: TachikomaConfiguration = TachikomaConfiguration()
+    configuration: TachikomaConfiguration = TachikomaConfiguration(),
 ) async throws
 -> String {
     let audio = try AudioData(contentsOf: url)
@@ -159,14 +159,14 @@ public func transcribe(
 public func generateSpeech(
     _ text: String,
     voice: VoiceOption = .alloy,
-    configuration: TachikomaConfiguration = TachikomaConfiguration()
+    configuration: TachikomaConfiguration = TachikomaConfiguration(),
 ) async throws
 -> AudioData {
     let result = try await generateSpeech(
         text,
         using: .default,
         voice: voice,
-        configuration: configuration
+        configuration: configuration,
     )
     return result.audioData
 }
@@ -184,7 +184,7 @@ public func generateSpeech(
     voice: VoiceOption = .alloy,
     speed: Double = 1.0,
     format: AudioFormat = .mp3,
-    configuration: TachikomaConfiguration = TachikomaConfiguration()
+    configuration: TachikomaConfiguration = TachikomaConfiguration(),
 ) async throws {
     let result = try await generateSpeech(
         text,
@@ -192,7 +192,7 @@ public func generateSpeech(
         voice: voice,
         speed: speed,
         format: format,
-        configuration: configuration
+        configuration: configuration,
     )
     try result.audioData.write(to: url)
 }
@@ -214,12 +214,12 @@ public func transcribeBatch(
     using model: TranscriptionModel,
     language: String? = nil,
     concurrency: Int = 3,
-    configuration: TachikomaConfiguration = TachikomaConfiguration()
+    configuration: TachikomaConfiguration = TachikomaConfiguration(),
 ) async throws
 -> [TranscriptionResult] {
     try await withThrowingTaskGroup(
         of: (Int, TranscriptionResult).self,
-        returning: [TranscriptionResult].self
+        returning: [TranscriptionResult].self,
     ) { group in
         let semaphore = AsyncSemaphore(value: concurrency)
 
@@ -260,7 +260,7 @@ public func generateSpeechBatch(
     using model: SpeechModel,
     voice: VoiceOption = .alloy,
     concurrency: Int = 3,
-    configuration: TachikomaConfiguration = TachikomaConfiguration()
+    configuration: TachikomaConfiguration = TachikomaConfiguration(),
 ) async throws
 -> [SpeechResult] {
     try await withThrowingTaskGroup(of: (Int, SpeechResult).self, returning: [SpeechResult].self) { group in
@@ -339,7 +339,7 @@ public func availableSpeechModels() -> [SpeechModel] {
 @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public func capabilities(
     for model: TranscriptionModel,
-    configuration: TachikomaConfiguration = TachikomaConfiguration()
+    configuration: TachikomaConfiguration = TachikomaConfiguration(),
 ) throws
 -> TranscriptionCapabilities {
     let provider = try TranscriptionProviderFactory.createProvider(for: model, configuration: configuration)
@@ -350,7 +350,7 @@ public func capabilities(
 @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public func capabilities(
     for model: SpeechModel,
-    configuration: TachikomaConfiguration = TachikomaConfiguration()
+    configuration: TachikomaConfiguration = TachikomaConfiguration(),
 ) throws
 -> SpeechCapabilities {
     let provider = try SpeechProviderFactory.createProvider(for: model, configuration: configuration)

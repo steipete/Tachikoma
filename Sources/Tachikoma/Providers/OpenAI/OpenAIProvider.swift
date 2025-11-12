@@ -14,7 +14,7 @@ public final class OpenAIProvider: ModelProvider {
     public init(
         model: LanguageModel.OpenAI,
         configuration: TachikomaConfiguration,
-        session: URLSession = .shared
+        session: URLSession = .shared,
     ) throws {
         self.model = model
         self.modelId = model.modelId
@@ -33,7 +33,7 @@ public final class OpenAIProvider: ModelProvider {
             supportsTools: model.supportsTools,
             supportsStreaming: true,
             contextLength: model.contextLength,
-            maxOutputTokens: 4096
+            maxOutputTokens: 4096,
         )
     }
 
@@ -52,7 +52,7 @@ public final class OpenAIProvider: ModelProvider {
             apiKey: self.apiKey!,
             providerName: "OpenAI",
             additionalHeaders: additionalHeaders,
-            session: self.session
+            session: self.session,
         )
     }
 
@@ -71,7 +71,7 @@ public final class OpenAIProvider: ModelProvider {
             apiKey: self.apiKey!,
             providerName: "OpenAI",
             additionalHeaders: additionalHeaders,
-            session: self.session
+            session: self.session,
         )
     }
 }

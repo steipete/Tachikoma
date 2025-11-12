@@ -1626,3 +1626,11 @@ Tachikoma is available under the MIT License. See [LICENSE](LICENSE) for details
 Built with ❤️ for the Swift AI community
 
 *Intelligent • Adaptable • Reliable*
+
+## Coverage
+
+| Date       | Command                                                             | Scope             | Line Coverage |
+| ---------- | ------------------------------------------------------------------- | ----------------- | ------------- |
+| 2025-11-12 | `./runner swift test --package-path Tachikoma --enable-code-coverage` | Tachikoma package | 41.69 %       |
+
+> Coverage derived from `xcrun llvm-cov report Tachikoma/.build/debug/TachikomaPackageTests.xctest/Contents/MacOS/TachikomaPackageTests -instr-profile Tachikoma/.build/debug/codecov/default.profdata`.

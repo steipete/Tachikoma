@@ -51,7 +51,7 @@ public final class HTTPTransport: MCPTransport {
 
     public func sendRequest<R: Decodable>(
         method: String,
-        params: some Encodable
+        params: some Encodable,
     ) async throws
     -> R {
         guard
@@ -136,7 +136,7 @@ public final class HTTPTransport: MCPTransport {
 
     public func sendNotification(
         method: String,
-        params: some Encodable
+        params: some Encodable,
     ) async throws {
         // Reuse request path; ignore result
         let _: EmptyResponse = try await sendRequest(method: method, params: params)

@@ -13,14 +13,14 @@ struct GenerationTests {
                 "What is 2+2?",
                 using: .openai(.gpt4o),
                 maxTokens: 100,
-                configuration: config
+                configuration: config,
             )
 
             self.assertOpenAIResult(
                 result,
                 prompt: "What is 2+2?",
                 modelId: "gpt-4o",
-                configuration: config
+                configuration: config,
             )
         }
     }
@@ -33,7 +33,7 @@ struct GenerationTests {
                 using: .anthropic(.sonnet4),
                 system: "You are a physics teacher",
                 maxTokens: 200,
-                configuration: config
+                configuration: config,
             )
 
             // Anthropic provider uses real implementation, so we expect actual response structure
@@ -60,13 +60,13 @@ struct GenerationTests {
                 using: .openai(.gpt4oMini),
                 system: "You are a comedian",
                 temperature: 0.8,
-                configuration: config
+                configuration: config,
             )
 
             self.assertOpenAIResult(
                 result,
                 prompt: "Tell me a joke",
-                configuration: config
+                configuration: config,
             )
         }
     }
@@ -80,7 +80,7 @@ struct GenerationTests {
                 "Count to 5",
                 using: .openai(.gpt4o),
                 maxTokens: 50,
-                configuration: config
+                configuration: config,
             )
 
             var tokens: [TextStreamDelta] = []
@@ -108,7 +108,7 @@ struct GenerationTests {
                 "Write a haiku",
                 using: .anthropic(.sonnet4),
                 system: "You are a poet",
-                configuration: config
+                configuration: config,
             )
 
             var receivedTokens = 0
@@ -143,13 +143,13 @@ struct GenerationTests {
                 image: .base64(testImageBase64),
                 prompt: "What do you see?",
                 using: .openai(.gpt4o),
-                configuration: config
+                configuration: config,
             )
 
             self.assertOpenAIResult(
                 result,
                 prompt: "What do you see?",
-                configuration: config
+                configuration: config,
             )
         }
     }
@@ -163,7 +163,7 @@ struct GenerationTests {
                     image: .base64("test-image"),
                     prompt: "Describe this",
                     using: .openai(.gpt41),
-                    configuration: config
+                    configuration: config,
                 )
             }
         }
@@ -177,14 +177,14 @@ struct GenerationTests {
             let result = try await analyze(
                 image: .base64(testImageBase64),
                 prompt: "Analyze this image",
-                configuration: config
+                configuration: config,
             )
 
             // Should default to GPT-4o for vision tasks
             self.assertOpenAIResult(
                 result,
                 prompt: "Analyze this image",
-                configuration: config
+                configuration: config,
             )
         }
     }
@@ -228,7 +228,7 @@ struct GenerationTests {
             let result = try await generate(
                 "Hello",
                 using: .openai(.gpt4o),
-                configuration: config
+                configuration: config,
             )
 
             #expect(!result.isEmpty)
@@ -243,7 +243,7 @@ struct GenerationTests {
                 name: "test_tool",
                 description: "A test tool",
                 parameters: [],
-                required: []
+                required: [],
             ) { _ in
                 AnyAgentToolValue(string: "Tool executed")
             }
@@ -253,7 +253,7 @@ struct GenerationTests {
                 model: .anthropic(.sonnet4),
                 messages: [.user("Use the test tool")],
                 tools: [testTool],
-                configuration: config
+                configuration: config,
             )
 
             #expect(!result.text.isEmpty)
@@ -292,7 +292,7 @@ struct GenerationTests {
         _ result: String,
         prompt: String,
         modelId: String? = nil,
-        configuration: TachikomaConfiguration
+        configuration: TachikomaConfiguration,
     ) {
         if TestHelpers.isMockAPIKey(configuration.getAPIKey(for: .openai)) {
             #expect(result.contains("OpenAI response"))
@@ -306,5 +306,4 @@ struct GenerationTests {
             #expect(!result.isEmpty)
         }
     }
-
 }

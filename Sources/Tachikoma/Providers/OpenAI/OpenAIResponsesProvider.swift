@@ -26,7 +26,7 @@ public final class OpenAIResponsesProvider: ModelProvider {
     public init(
         model: LanguageModel.OpenAI,
         configuration: TachikomaConfiguration,
-        session: URLSession = .shared
+        session: URLSession = .shared,
     ) throws {
         self.model = model
         self.modelId = model.modelId
@@ -50,7 +50,7 @@ public final class OpenAIResponsesProvider: ModelProvider {
             supportsTools: model.supportsTools,
             supportsStreaming: true,
             contextLength: model.contextLength,
-            maxOutputTokens: isReasoningModel || isGPT5 ? 128_000 : 4096
+            maxOutputTokens: isReasoningModel || isGPT5 ? 128_000 : 4096,
         )
     }
 
@@ -81,7 +81,7 @@ public final class OpenAIResponsesProvider: ModelProvider {
         // Linux: Use data task
         let (data, response) = try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<
             (Data, URLResponse),
-            Error
+            Error,
         >) in
             self.session.dataTask(with: urlRequest) { data, response, error in
                 if let error {
@@ -91,7 +91,7 @@ public final class OpenAIResponsesProvider: ModelProvider {
                 } else {
                     continuation.resume(throwing: TachikomaError.networkError(NSError(
                         domain: "Invalid response",
-                        code: 0
+                        code: 0,
                     )))
                 }
             }.resume()
@@ -166,7 +166,7 @@ public final class OpenAIResponsesProvider: ModelProvider {
                     // Linux: Use data task for now (streaming not available)
                     let (data, response) = try await withCheckedThrowingContinuation { (cont: CheckedContinuation<
                         (Data, URLResponse),
-                        Error
+                        Error,
                     >) in
                         self.session.dataTask(with: finalURLRequest) { data, response, error in
                             if let error {
@@ -176,7 +176,7 @@ public final class OpenAIResponsesProvider: ModelProvider {
                             } else {
                                 cont.resume(throwing: TachikomaError.networkError(NSError(
                                     domain: "Invalid response",
-                                    code: 0
+                                    code: 0,
                                 )))
                             }
                         }.resume()
@@ -249,8 +249,9 @@ public final class OpenAIResponsesProvider: ModelProvider {
                             if let data = jsonString.data(using: .utf8) {
                                 // Try GPT-5 format first
                                 if Self.isGPT5Model(self.model) {
-                                    if let event = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-                                       let eventType = event["type"] as? String
+                                    if
+                                        let event = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                                        let eventType = event["type"] as? String
                                     {
                                         if ProcessInfo.processInfo.environment["DEBUG_TACHIKOMA"] != nil {
                                             Self.debugLog("event: \(eventType) payload: \(event)")
@@ -268,8 +269,13 @@ public final class OpenAIResponsesProvider: ModelProvider {
                                                 let itemType = item["type"] as? String,
                                                 itemType == "function_call"
                                             {
-                                                let identifier = (item["id"] as? String) ?? (item["call_id"] as? String) ?? UUID().uuidString
-                                                var partial = pendingToolCalls[identifier] ?? PartialToolCall(id: identifier, name: nil, arguments: "")
+                                                let identifier = (item["id"] as? String) ??
+                                                    (item["call_id"] as? String) ?? UUID().uuidString
+                                                var partial = pendingToolCalls[identifier] ?? PartialToolCall(
+                                                    id: identifier,
+                                                    name: nil,
+                                                    arguments: "",
+                                                )
                                                 if let name = item["name"] as? String {
                                                     partial.name = name
                                                 }
@@ -281,7 +287,11 @@ public final class OpenAIResponsesProvider: ModelProvider {
                                                 let itemId = event["item_id"] as? String,
                                                 let delta = event["delta"] as? String
                                             {
-                                                var partial = pendingToolCalls[itemId] ?? PartialToolCall(id: itemId, name: nil, arguments: "")
+                                                var partial = pendingToolCalls[itemId] ?? PartialToolCall(
+                                                    id: itemId,
+                                                    name: nil,
+                                                    arguments: "",
+                                                )
                                                 partial.arguments.append(delta)
                                                 pendingToolCalls[itemId] = partial
                                             }
@@ -291,15 +301,21 @@ public final class OpenAIResponsesProvider: ModelProvider {
                                                 let itemId = event["item_id"] as? String,
                                                 let arguments = event["arguments"] as? String
                                             {
-                                                var partial = pendingToolCalls[itemId] ?? PartialToolCall(id: itemId, name: nil, arguments: "")
+                                                var partial = pendingToolCalls[itemId] ?? PartialToolCall(
+                                                    id: itemId,
+                                                    name: nil,
+                                                    arguments: "",
+                                                )
                                                 partial.arguments = arguments
                                                 pendingToolCalls[itemId] = partial
 
-                                                if let name = partial.name,
-                                                   let toolCall = Self.makeToolCall(
-                                                       id: itemId,
-                                                       name: name,
-                                                       argumentsJSON: arguments)
+                                                if
+                                                    let name = partial.name,
+                                                    let toolCall = Self.makeToolCall(
+                                                        id: itemId,
+                                                        name: name,
+                                                        argumentsJSON: arguments,
+                                                    )
                                                 {
                                                     continuation.yield(.tool(toolCall))
                                                     pendingToolCalls.removeValue(forKey: itemId)
@@ -319,7 +335,7 @@ public final class OpenAIResponsesProvider: ModelProvider {
                                     do {
                                         let chunk = try JSONDecoder().decode(
                                             OpenAIResponsesStreamChunk.self,
-                                            from: data
+                                            from: data,
                                         )
 
                                         // Convert to TextStreamDelta
@@ -375,7 +391,7 @@ public final class OpenAIResponsesProvider: ModelProvider {
 
     private func buildResponsesRequest(
         request: ProviderRequest,
-        streaming: Bool = false
+        streaming: Bool = false,
     ) throws
     -> OpenAIResponsesRequest {
         // Convert messages to Responses API format
@@ -401,7 +417,7 @@ public final class OpenAIResponsesProvider: ModelProvider {
             }
             reasoning = ReasoningConfig(
                 effort: effort,
-                summary: .auto
+                summary: .auto,
             )
         } else {
             reasoning = nil
@@ -440,12 +456,13 @@ public final class OpenAIResponsesProvider: ModelProvider {
             include: nil,
             reasoning: reasoning,
             truncation: Self.isReasoningModel(self.model) ? "auto" : nil,
-            stream: streaming
+            stream: streaming,
         )
 
-        if ProcessInfo.processInfo.environment["DEBUG_TACHIKOMA_STREAM"] != nil,
-           let data = try? JSONEncoder().encode(responsesRequest),
-           let jsonString = String(data: data, encoding: .utf8)
+        if
+            ProcessInfo.processInfo.environment["DEBUG_TACHIKOMA_STREAM"] != nil,
+            let data = try? JSONEncoder().encode(responsesRequest),
+            let jsonString = String(data: data, encoding: .utf8)
         {
             Self.debugLog("request payload: \(jsonString)")
         }
@@ -462,7 +479,7 @@ public final class OpenAIResponsesProvider: ModelProvider {
 
             return ResponsesMessage(
                 role: message.role.rawValue,
-                content: .parts(normalizedParts)
+                content: .parts(normalizedParts),
             )
         }
     }
@@ -577,13 +594,13 @@ public final class OpenAIResponsesProvider: ModelProvider {
             name: tool.name,
             description: tool.description,
             parameters: parameters,
-            inputSchema: parameters
+            inputSchema: parameters,
         )
 
         return ResponsesTool(
             name: tool.name, // Add name at root level for GPT-5
             type: "function",
-            function: function
+            function: function,
         )
     }
 
@@ -608,8 +625,10 @@ public final class OpenAIResponsesProvider: ModelProvider {
                                     collectedText.append(textSegment)
                                 }
                             case "tool_call":
-                                if let toolCall = chunk.toolCall,
-                                   let converted = Self.convertToolCall(toolCall) {
+                                if
+                                    let toolCall = chunk.toolCall,
+                                    let converted = Self.convertToolCall(toolCall)
+                                {
                                     collectedToolCalls.append(converted)
                                 }
                             default:
@@ -617,8 +636,10 @@ public final class OpenAIResponsesProvider: ModelProvider {
                             }
                         }
                     }
-                } else if output.type == "tool_call", let toolCall = output.toolCall,
-                          let converted = Self.convertToolCall(toolCall) {
+                } else if
+                    output.type == "tool_call", let toolCall = output.toolCall,
+                    let converted = Self.convertToolCall(toolCall)
+                {
                     collectedToolCalls.append(converted)
                 }
             }
@@ -662,7 +683,7 @@ public final class OpenAIResponsesProvider: ModelProvider {
 
             usage = Usage(
                 inputTokens: inputTokens,
-                outputTokens: outputTokens
+                outputTokens: outputTokens,
             )
         } else {
             usage = nil
@@ -672,7 +693,7 @@ public final class OpenAIResponsesProvider: ModelProvider {
             text: text,
             usage: usage,
             finishReason: finishReason,
-            toolCalls: toolCalls
+            toolCalls: toolCalls,
         )
     }
 
@@ -697,14 +718,15 @@ public final class OpenAIResponsesProvider: ModelProvider {
         return AgentToolCall(
             id: toolCall.id,
             name: toolCall.function.name,
-            arguments: arguments
+            arguments: arguments,
         )
     }
 
     private static func makeToolCall(id: String, name: String, argumentsJSON: String) -> AgentToolCall? {
-        guard let data = argumentsJSON.data(using: .utf8),
-              let jsonObject = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
-        else {
+        guard
+            let data = argumentsJSON.data(using: .utf8),
+            let jsonObject = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else
+        {
             return nil
         }
 

@@ -462,7 +462,7 @@ extension ProviderFactory {
     /// Create a provider with configuration
     public static func createConfiguredProvider(
         for model: LanguageModel,
-        configuration: TachikomaConfiguration
+        configuration: TachikomaConfiguration,
     ) throws
     -> any ModelProvider {
         // Create a provider with configuration

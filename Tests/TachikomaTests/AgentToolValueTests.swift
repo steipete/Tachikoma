@@ -234,7 +234,7 @@ struct AgentToolValueTests {
         let toolCall = AgentToolCall(
             id: "call_123",
             name: "generate",
-            arguments: arguments
+            arguments: arguments,
         )
 
         #expect(toolCall.id == "call_123")
@@ -255,7 +255,7 @@ struct AgentToolValueTests {
         let toolCall = try AgentToolCall(
             id: "call_456",
             name: "process",
-            arguments: arguments
+            arguments: arguments,
         )
 
         #expect(toolCall.arguments["text"]?.stringValue == "Hello")
@@ -267,7 +267,7 @@ struct AgentToolValueTests {
     func agentToolResult() {
         let successResult = AgentToolResult.success(
             toolCallId: "call_123",
-            result: AnyAgentToolValue(string: "Success!")
+            result: AnyAgentToolValue(string: "Success!"),
         )
 
         #expect(successResult.toolCallId == "call_123")
@@ -276,7 +276,7 @@ struct AgentToolValueTests {
 
         let errorResult = AgentToolResult.error(
             toolCallId: "call_456",
-            error: "Something went wrong"
+            error: "Something went wrong",
         )
 
         #expect(errorResult.toolCallId == "call_456")
@@ -399,10 +399,10 @@ struct AgentToolValueTests {
                         "units": AgentPropertySchema(
                             type: .string,
                             description: "Temperature units",
-                            enumValues: ["celsius", "fahrenheit"]
+                            enumValues: ["celsius", "fahrenheit"],
                         ),
                     ],
-                    required: ["location", "units"]
+                    required: ["location", "units"],
                 )
             }
 
@@ -427,7 +427,7 @@ struct AgentToolValueTests {
 
         let result = try await anyTool.execute(
             ["location": "NYC", "units": "celsius"],
-            context: context
+            context: context,
         )
         #expect(result.objectValue?["temperature"]?.doubleValue == 22.5)
     }

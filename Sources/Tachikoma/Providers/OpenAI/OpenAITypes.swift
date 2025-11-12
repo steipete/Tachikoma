@@ -24,7 +24,7 @@ struct OpenAIChatRequest: Codable {
         maxTokens: Int? = nil,
         tools: [OpenAITool]? = nil,
         stream: Bool? = nil,
-        stop: [String]? = nil
+        stop: [String]? = nil,
     ) {
         self.model = model
         self.messages = messages
@@ -161,7 +161,7 @@ enum OpenAIChatMessageContent: Codable {
             throw DecodingError.dataCorruptedError(
                 forKey: .type,
                 in: container,
-                debugDescription: "Unsupported content type: \(type)"
+                debugDescription: "Unsupported content type: \(type)",
             )
         }
     }
@@ -340,7 +340,7 @@ enum Either<Left, Right>: Codable where Left: Codable, Right: Codable {
         } else {
             throw DecodingError.typeMismatch(Either.self, DecodingError.Context(
                 codingPath: decoder.codingPath,
-                debugDescription: "Could not decode Either<\(Left.self), \(Right.self)>"
+                debugDescription: "Could not decode Either<\(Left.self), \(Right.self)>",
             ))
         }
     }

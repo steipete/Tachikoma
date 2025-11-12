@@ -194,7 +194,7 @@ extension TachikomaExamples {
             model: "gpt-4o".lowercased(),
             inputTokens: 100,
             outputTokens: 50,
-            cost: 0.003
+            cost: 0.003,
         )
 
         try? await tracker.recordUsage(
@@ -202,7 +202,7 @@ extension TachikomaExamples {
             model: "claude-opus-4".lowercased(),
             inputTokens: 200,
             outputTokens: 75,
-            cost: 0.006
+            cost: 0.006,
         )
 
         try? await tracker.recordUsage(
@@ -210,7 +210,7 @@ extension TachikomaExamples {
             model: "grok-4".lowercased(),
             inputTokens: 150,
             outputTokens: 100,
-            cost: 0.004
+            cost: 0.004,
         )
 
         // Generate reports

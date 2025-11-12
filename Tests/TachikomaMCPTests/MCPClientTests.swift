@@ -16,7 +16,7 @@ struct MCPClientTests {
             enabled: true,
             timeout: 30,
             autoReconnect: true,
-            description: "Test server"
+            description: "Test server",
         )
 
         #expect(config.transport == "stdio")
@@ -48,7 +48,7 @@ struct MCPClientTests {
         let config = MCPServerConfig(
             command: "test-command",
             args: ["arg1"],
-            description: "Test"
+            description: "Test",
         )
 
         _ = MCPClient(name: "test-client", config: config)
@@ -254,7 +254,7 @@ struct MCPClientTests {
                         "type": .string("string"),
                     ]),
                 ]),
-            ])
+            ]),
         )
 
         #expect(tool.name == "test-tool")

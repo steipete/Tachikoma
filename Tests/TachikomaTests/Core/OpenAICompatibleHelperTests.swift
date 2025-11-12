@@ -14,11 +14,11 @@ struct OpenAICompatibleHelperTests {
                     "query": AgentToolParameterProperty(
                         name: "query",
                         type: .string,
-                        description: "Query string"
+                        description: "Query string",
                     ),
                 ],
-                required: ["query"]
-            )
+                required: ["query"],
+            ),
         ) { _ in AnyAgentToolValue(string: "unused") }
 
         let request = ProviderRequest(
@@ -27,16 +27,16 @@ struct OpenAICompatibleHelperTests {
             settings: GenerationSettings(
                 maxTokens: 64,
                 temperature: 0.2,
-                stopConditions: StringStopCondition("END")
-            )
+                stopConditions: StringStopCondition("END"),
+            ),
         )
 
         let capture = CapturedRequest()
 
         let response = try await withMockedSession { urlRequest in
             #expect(urlRequest.value(forHTTPHeaderField: "Authorization")?.hasPrefix("Bearer ") == true)
-            capture.body = bodyData(from: urlRequest)
-            return jsonResponse(for: urlRequest, data: Self.chatCompletionPayload(text: "pong"))
+            capture.body = self.bodyData(from: urlRequest)
+            return self.jsonResponse(for: urlRequest, data: Self.chatCompletionPayload(text: "pong"))
         } operation: { session in
             try await OpenAICompatibleHelper.generateText(
                 request: request,
@@ -45,7 +45,7 @@ struct OpenAICompatibleHelperTests {
                 apiKey: "sk-test",
                 providerName: "TestProvider",
                 additionalHeaders: ["X-Test": "1"],
-                session: session
+                session: session,
             )
         }
 
@@ -70,7 +70,7 @@ struct OpenAICompatibleHelperTests {
     @Test("streamText emits deltas as SSE chunks arrive")
     func streamTextEmitsDeltas() async throws {
         let request = ProviderRequest(
-            messages: [ModelMessage(role: .user, content: [.text("stream")])]
+            messages: [ModelMessage(role: .user, content: [.text("stream")])],
         )
 
         let deltas = try await withMockedSession { urlRequest in
@@ -88,7 +88,7 @@ struct OpenAICompatibleHelperTests {
                 url: urlRequest.url!,
                 statusCode: 200,
                 httpVersion: nil,
-                headerFields: ["Content-Type": "text/event-stream"]
+                headerFields: ["Content-Type": "text/event-stream"],
             )!
             return (response, sse)
         } operation: { session in
@@ -98,7 +98,7 @@ struct OpenAICompatibleHelperTests {
                 baseURL: "https://mock.compatible",
                 apiKey: "sk-test",
                 providerName: "TestProvider",
-                session: session
+                session: session,
             )
 
             var collected = ""
@@ -115,7 +115,7 @@ struct OpenAICompatibleHelperTests {
 
     @Test("non-200 responses surface TachikomaError.apiError")
     func apiErrorsSurface() async throws {
-        try await withMockedSession { urlRequest in
+        try await self.withMockedSession { urlRequest in
             let errorJSON = """
             {"error":{"message":"bad request","type":"invalid_request_error"}}
             """.data(using: .utf8)!
@@ -123,7 +123,7 @@ struct OpenAICompatibleHelperTests {
                 url: urlRequest.url!,
                 statusCode: 400,
                 httpVersion: nil,
-                headerFields: ["Content-Type": "application/json"]
+                headerFields: ["Content-Type": "application/json"],
             )!
             return (response, errorJSON)
         } operation: { session in
@@ -134,7 +134,7 @@ struct OpenAICompatibleHelperTests {
                     baseURL: "https://mock.compatible",
                     apiKey: "sk-test",
                     providerName: "TestProvider",
-                    session: session
+                    session: session,
                 )
                 Issue.record("Expected error to be thrown")
             } catch let error as TachikomaError {
@@ -154,8 +154,9 @@ struct OpenAICompatibleHelperTests {
 
     private func withMockedSession<T>(
         handler: @Sendable @escaping (URLRequest) throws -> (HTTPURLResponse, Data),
-        operation: (URLSession) async throws -> T
-    ) async rethrows -> T {
+        operation: (URLSession) async throws -> T,
+    ) async rethrows
+    -> T {
         let previousHandler = OpenAIHelperURLProtocol.handler
         OpenAIHelperURLProtocol.handler = handler
         let configuration = URLSessionConfiguration.ephemeral
@@ -197,7 +198,7 @@ struct OpenAICompatibleHelperTests {
             url: request.url ?? URL(string: "https://mock.compatible/chat/completions")!,
             statusCode: status,
             httpVersion: nil,
-            headerFields: ["Content-Type": "application/json"]
+            headerFields: ["Content-Type": "application/json"],
         )!
         return (response, data)
     }
@@ -223,8 +224,8 @@ struct OpenAICompatibleHelperTests {
     }
 }
 
-private extension Data {
-    func jsonObject() throws -> [String: Any] {
+extension Data {
+    fileprivate func jsonObject() throws -> [String: Any] {
         try JSONSerialization.jsonObject(with: self) as? [String: Any] ?? [:]
     }
 }

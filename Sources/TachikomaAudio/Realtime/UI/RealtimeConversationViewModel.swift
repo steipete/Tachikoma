@@ -48,7 +48,7 @@ public final class RealtimeConversationViewModel: ObservableObject {
 
     public init(
         apiKey: String? = nil,
-        configuration: RealtimeConversation.ConversationConfiguration = .init()
+        configuration: RealtimeConversation.ConversationConfiguration = .init(),
     ) {
         self.apiKey = apiKey
         self.configuration = configuration
@@ -78,7 +78,7 @@ public final class RealtimeConversationViewModel: ObservableObject {
             }
 
             let conversation = try RealtimeConversation(
-                configuration: tachikomaConfig
+                configuration: tachikomaConfig,
             )
 
             self.conversation = conversation
@@ -89,7 +89,7 @@ public final class RealtimeConversationViewModel: ObservableObject {
             // Start conversation
             try await conversation.start(
                 voice: self.selectedVoice,
-                instructions: "You are a helpful voice assistant. Keep responses concise and natural."
+                instructions: "You are a helpful voice assistant. Keep responses concise and natural.",
             )
         } catch {
             print("Failed to initialize conversation: \(error)")
@@ -154,7 +154,7 @@ public final class RealtimeConversationViewModel: ObservableObject {
             // Start new session
             try await conversation.start(
                 voice: self.selectedVoice,
-                instructions: "You are a helpful voice assistant. Keep responses concise and natural."
+                instructions: "You are a helpful voice assistant. Keep responses concise and natural.",
             )
         } catch {
             print("Failed to reconnect: \(error)")
@@ -217,7 +217,7 @@ public final class RealtimeConversationViewModel: ObservableObject {
             self.$enableVAD,
             self.$enableEchoCancellation,
             self.$enableNoiseSupression,
-            self.$autoReconnect
+            self.$autoReconnect,
         )
         .dropFirst()
         .sink { [weak self] _ in
@@ -254,25 +254,25 @@ extension RealtimeConversationViewModel {
                 role: Tachikoma.ModelMessage.Role.user,
                 content: "Hello, how are you?",
                 timestamp: Date().addingTimeInterval(-60),
-                audioData: nil as Data?
+                audioData: nil as Data?,
             ),
             RealtimeConversation.ConversationMessage(
                 role: Tachikoma.ModelMessage.Role.assistant,
                 content: "I'm doing well, thank you! How can I help you today?",
                 timestamp: Date().addingTimeInterval(-30),
-                audioData: nil as Data?
+                audioData: nil as Data?,
             ),
             RealtimeConversation.ConversationMessage(
                 role: Tachikoma.ModelMessage.Role.user,
                 content: "What's the weather like?",
                 timestamp: Date().addingTimeInterval(-15),
-                audioData: nil as Data?
+                audioData: nil as Data?,
             ),
             RealtimeConversation.ConversationMessage(
                 role: Tachikoma.ModelMessage.Role.assistant,
                 content: "I'd be happy to help with weather information, but I'd need to know your location first. Where are you located?",
                 timestamp: Date(),
-                audioData: nil as Data?
+                audioData: nil as Data?,
             ),
         ]
 

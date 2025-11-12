@@ -12,14 +12,14 @@ public protocol MCPTransport: Sendable {
     /// Send a request and wait for response
     func sendRequest<R: Decodable>(
         method: String,
-        params: some Encodable
+        params: some Encodable,
     ) async throws
         -> R
 
     /// Send a notification (no response expected)
     func sendNotification(
         method: String,
-        params: some Encodable
+        params: some Encodable,
     ) async throws
 }
 

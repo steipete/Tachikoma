@@ -187,7 +187,7 @@ public final class StdioTransportPTY: MCPTransport {
 
     public func sendRequest<R: Decodable>(
         method: String,
-        params: some Encodable
+        params: some Encodable,
     ) async throws
     -> R {
         let id = await state.getNextId()

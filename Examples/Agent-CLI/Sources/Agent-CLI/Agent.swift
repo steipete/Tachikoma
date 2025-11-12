@@ -68,9 +68,9 @@ final class Agent {
                     messages: allMessages,
                     settings: GenerationSettings(
                         maxTokens: 2000,
-                        temperature: self.configuration.temperature
+                        temperature: self.configuration.temperature,
                     ),
-                    configuration: self.tachikomaConfig
+                    configuration: self.tachikomaConfig,
                 )
             } else {
                 // With tools - use generateText with tools
@@ -80,9 +80,9 @@ final class Agent {
                     tools: self.configuration.tools,
                     settings: GenerationSettings(
                         maxTokens: 2000,
-                        temperature: self.configuration.temperature
+                        temperature: self.configuration.temperature,
                     ),
-                    configuration: self.tachikomaConfig
+                    configuration: self.tachikomaConfig,
                 )
 
                 // Track tool calls from response steps
@@ -95,7 +95,7 @@ final class Agent {
                         let argsString = String(data: argsData ?? Data(), encoding: .utf8) ?? "{}"
                         self.eventDelegate?.agentDidEmitEvent(.toolCallStarted(
                             name: toolCall.name,
-                            arguments: argsString
+                            arguments: argsString,
                         ))
                     }
 
@@ -106,7 +106,7 @@ final class Agent {
                         let resultString = String(data: resultData ?? Data(), encoding: .utf8) ?? "{}"
                         self.eventDelegate?.agentDidEmitEvent(.toolCallCompleted(
                             name: toolResult.toolCallId,
-                            result: resultString
+                            result: resultString,
                         ))
                     }
                 }
@@ -127,7 +127,7 @@ final class Agent {
                 if let existing = totalUsage {
                     totalUsage = Usage(
                         inputTokens: existing.inputTokens + usage.inputTokens,
-                        outputTokens: existing.outputTokens + usage.outputTokens
+                        outputTokens: existing.outputTokens + usage.outputTokens,
                     )
                 } else {
                     totalUsage = usage
@@ -153,7 +153,7 @@ final class Agent {
             content: finalContent,
             toolCalls: toolCallHistory,
             usage: totalUsage,
-            duration: duration
+            duration: duration,
         )
     }
 
@@ -216,7 +216,7 @@ final class Agent {
                     let toolCall = ToolCall(
                         id: UUID().uuidString,
                         name: name,
-                        arguments: self.convertToAgentArguments(args)
+                        arguments: self.convertToAgentArguments(args),
                     )
                     toolCalls.append(toolCall)
                 }

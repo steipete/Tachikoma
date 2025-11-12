@@ -13,11 +13,11 @@ public struct RealtimeConversationView: View {
 
     public init(
         apiKey: String? = nil,
-        configuration: RealtimeConversation.ConversationConfiguration = .init()
+        configuration: RealtimeConversation.ConversationConfiguration = .init(),
     ) {
         _viewModel = StateObject(wrappedValue: RealtimeConversationViewModel(
             apiKey: apiKey,
-            configuration: configuration
+            configuration: configuration,
         ))
     }
 
@@ -87,9 +87,9 @@ public struct RealtimeConversationView: View {
             }
 
             // Settings button
-        Button(action: { self.showingSettings = true }, label: {
-            Image(systemName: "gearshape")
-        })
+            Button(action: { self.showingSettings = true }, label: {
+                Image(systemName: "gearshape")
+            })
         }
         .padding()
         .background(Color.secondary.opacity(0.1))
@@ -241,7 +241,7 @@ struct MessageBubble: View {
                     .padding(12)
                     .background(
                         RoundedRectangle(cornerRadius: 16)
-                            .fill(self.bubbleColor)
+                            .fill(self.bubbleColor),
                     )
                     .foregroundColor(self.textColor)
 

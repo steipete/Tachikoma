@@ -41,7 +41,7 @@ public actor RealtimeToolExecutor {
             description: String,
             version: String = "1.0.0",
             category: ToolCategory = .custom,
-            parameters: AgentToolParameters
+            parameters: AgentToolParameters,
         ) {
             self.name = name
             self.description = description
@@ -79,7 +79,7 @@ public actor RealtimeToolExecutor {
         let metadata = tool.metadata
         self.tools[metadata.name] = RealtimeToolWrapper(
             tool: tool,
-            metadata: metadata
+            metadata: metadata,
         )
     }
 
@@ -115,7 +115,7 @@ public actor RealtimeToolExecutor {
     public func execute(
         toolName: String,
         arguments: String,
-        timeout: TimeInterval = 30
+        timeout: TimeInterval = 30,
     ) async
     -> ToolExecution {
         // Execute a tool by name with arguments
@@ -130,7 +130,7 @@ public actor RealtimeToolExecutor {
                 arguments: arguments,
                 result: .failure("Tool '\(toolName)' not found"),
                 timestamp: startTime,
-                duration: Date().timeIntervalSince(startTime)
+                duration: Date().timeIntervalSince(startTime),
             )
             self.addToHistory(execution)
             return execution
@@ -147,7 +147,7 @@ public actor RealtimeToolExecutor {
                 arguments: arguments,
                 result: .failure("Failed to parse arguments: \(error)"),
                 timestamp: startTime,
-                duration: Date().timeIntervalSince(startTime)
+                duration: Date().timeIntervalSince(startTime),
             )
             self.addToHistory(execution)
             return execution
@@ -181,7 +181,7 @@ public actor RealtimeToolExecutor {
                 arguments: arguments,
                 result: .timeout,
                 timestamp: startTime,
-                duration: Date().timeIntervalSince(startTime)
+                duration: Date().timeIntervalSince(startTime),
             )
             self.addToHistory(execution)
             return execution
@@ -194,7 +194,7 @@ public actor RealtimeToolExecutor {
             arguments: arguments,
             result: .success(result),
             timestamp: startTime,
-            duration: Date().timeIntervalSince(startTime)
+            duration: Date().timeIntervalSince(startTime),
         )
         self.addToHistory(execution)
         return execution
@@ -204,14 +204,14 @@ public actor RealtimeToolExecutor {
     public func executeSimple(
         toolName: String,
         arguments: String,
-        timeout: TimeInterval = 30
+        timeout: TimeInterval = 30,
     ) async
     -> String {
         // Execute a tool and return just the result string
         let execution = await execute(
             toolName: toolName,
             arguments: arguments,
-            timeout: timeout
+            timeout: timeout,
         )
 
         switch execution.result {
@@ -254,7 +254,7 @@ public actor RealtimeToolExecutor {
 
     private func parseArguments(
         _ jsonString: String,
-        for parameters: AgentToolParameters
+        for parameters: AgentToolParameters,
     ) throws
     -> RealtimeToolArguments {
         guard let data = jsonString.data(using: .utf8) else {

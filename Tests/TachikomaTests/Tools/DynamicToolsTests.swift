@@ -12,13 +12,13 @@ struct DynamicToolsTests {
                 "query": DynamicSchema.SchemaProperty(type: .string, description: "Search query"),
                 "limit": DynamicSchema.SchemaProperty(type: .integer, description: "Result limit"),
             ],
-            required: ["query"]
+            required: ["query"],
         )
 
         let dynamicTool = DynamicTool(
             name: "search",
             description: "Search for information",
-            schema: schema
+            schema: schema,
         )
 
         let agentTool = dynamicTool.toAgentTool { args in
@@ -45,7 +45,7 @@ struct DynamicToolsTests {
                 "age": DynamicSchema.SchemaProperty(type: .integer, description: "User age"),
                 "active": DynamicSchema.SchemaProperty(type: .boolean, description: "Is active"),
             ],
-            required: ["name"]
+            required: ["name"],
         )
 
         let parameters = schema.toAgentToolParameters()
@@ -65,7 +65,7 @@ struct DynamicToolsTests {
             properties: [
                 "street": DynamicSchema.SchemaProperty(type: .string, description: "Street name"),
                 "city": DynamicSchema.SchemaProperty(type: .string, description: "City name"),
-            ]
+            ],
         )
 
         let userSchema = DynamicSchema(
@@ -73,7 +73,7 @@ struct DynamicToolsTests {
             properties: [
                 "name": DynamicSchema.SchemaProperty(type: .string, description: "Name"),
                 "address": addressSchema,
-            ]
+            ],
         )
 
         let parameters = userSchema.toAgentToolParameters()
@@ -88,14 +88,14 @@ struct DynamicToolsTests {
         let tool = DynamicTool(
             name: "test_tool",
             description: "A test tool",
-            schema: DynamicSchema(type: .object)
+            schema: DynamicSchema(type: .object),
         )
 
         let provider = MockDynamicToolProvider(
             tools: [tool],
             executor: { name, _ in
                 AnyAgentToolValue(string: "Executed \(name)")
-            }
+            },
         )
 
         // Register the provider
@@ -110,7 +110,7 @@ struct DynamicToolsTests {
         let context = ToolExecutionContext()
         let result = try await agentTools[0].execute(
             AgentToolArguments([:]),
-            context: context
+            context: context,
         )
         #expect(result.stringValue == "Executed test_tool")
 
@@ -125,13 +125,13 @@ struct DynamicToolsTests {
         let searchTool = DynamicTool(
             name: "search_web",
             description: "Search the web",
-            schema: DynamicSchema(type: .object)
+            schema: DynamicSchema(type: .object),
         )
 
         let weatherTool = DynamicTool(
             name: "get_weather",
             description: "Get weather info",
-            schema: DynamicSchema(type: .object)
+            schema: DynamicSchema(type: .object),
         )
 
         let provider = MockDynamicToolProvider(tools: [searchTool, weatherTool])
@@ -144,7 +144,7 @@ struct DynamicToolsTests {
         // Test tool execution
         let result = try await provider.executeTool(
             name: "search_web",
-            arguments: AgentToolArguments(["query": AnyAgentToolValue(string: "Swift")])
+            arguments: AgentToolArguments(["query": AnyAgentToolValue(string: "Swift")]),
         )
         #expect(result.stringValue?.contains("Mock result for") == true)
     }
@@ -225,9 +225,9 @@ struct DynamicToolsTests {
                 "children": DynamicSchema.SchemaProperty(
                     type: .array,
                     description: "Child nodes",
-                    items: DynamicSchema.SchemaItems(type: .object, description: "Child node")
+                    items: DynamicSchema.SchemaItems(type: .object, description: "Child node"),
                 ),
-            ]
+            ],
         )
 
         // Box type test - simplified since Box doesn't exist
@@ -241,7 +241,7 @@ struct DynamicToolsTests {
         let objectSchema = DynamicSchema(
             type: .object,
             properties: ["value": DynamicSchema.SchemaProperty(type: .string, description: "A string value")],
-            required: ["value"]
+            required: ["value"],
         )
         let parameters = objectSchema.toAgentToolParameters()
 
@@ -259,7 +259,7 @@ struct DynamicToolsTests {
             let tool = DynamicTool(
                 name: "tool_\(i)",
                 description: "Tool \(i)",
-                schema: DynamicSchema(type: .object)
+                schema: DynamicSchema(type: .object),
             )
             let provider = MockDynamicToolProvider(tools: [tool])
             await registry.register(provider, id: "tool_\(i)")

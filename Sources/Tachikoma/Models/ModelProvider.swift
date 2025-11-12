@@ -36,7 +36,7 @@ public struct ModelCapabilities: Sendable {
         supportsAudioOutput: Bool = false,
         contextLength: Int = 128_000,
         maxOutputTokens: Int = 4096,
-        costPerToken: (input: Double, output: Double)? = nil
+        costPerToken: (input: Double, output: Double)? = nil,
     ) {
         self.supportsVision = supportsVision
         self.supportsTools = supportsTools
@@ -68,7 +68,7 @@ public struct ProviderRequest: Sendable {
         messages: [ModelMessage],
         tools: [AgentTool]? = nil,
         settings: GenerationSettings = .default,
-        outputFormat: OutputFormat? = nil
+        outputFormat: OutputFormat? = nil,
     ) {
         self.messages = messages
         self.tools = tools
@@ -89,7 +89,7 @@ public struct ProviderResponse: Sendable {
         text: String,
         usage: Usage? = nil,
         finishReason: FinishReason? = nil,
-        toolCalls: [AgentToolCall]? = nil
+        toolCalls: [AgentToolCall]? = nil,
     ) {
         self.text = text
         self.usage = usage

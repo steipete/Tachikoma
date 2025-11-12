@@ -160,7 +160,7 @@ extension Provider {
 
     @available(macOS 15.0, iOS 18.0, watchOS 11.0, tvOS 18.0, *)
     private static var environmentReader: ConfigReader {
-        struct Holder {
+        enum Holder {
             static let reader = ConfigReader(
                 keyDecoder: IdentityKeyDecoder(),
                 provider: EnvironmentVariablesProvider(
@@ -169,8 +169,8 @@ extension Provider {
                         return lowercased.contains("key") ||
                             lowercased.contains("token") ||
                             lowercased.contains("secret")
-                    }
-                )
+                    },
+                ),
             )
         }
         return Holder.reader
@@ -182,13 +182,15 @@ extension Provider {
         // Check primary environment variable
         if !self.environmentVariable.isEmpty {
             if #available(macOS 15.0, iOS 18.0, watchOS 11.0, tvOS 18.0, *) {
-                if let key = Self.environmentReader.string(forKey: self.environmentVariable, isSecret: true),
-                   !key.isEmpty
+                if
+                    let key = Self.environmentReader.string(forKey: self.environmentVariable, isSecret: true),
+                    !key.isEmpty
                 {
                     return key
                 }
-            } else if let key = ProcessInfo.processInfo.environment[self.environmentVariable],
-                      !key.isEmpty
+            } else if
+                let key = ProcessInfo.processInfo.environment[self.environmentVariable],
+                !key.isEmpty
             {
                 return key
             }

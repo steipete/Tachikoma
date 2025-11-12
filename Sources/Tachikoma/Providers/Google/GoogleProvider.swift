@@ -30,7 +30,7 @@ public final class GoogleProvider: ModelProvider {
             supportsTools: model.supportsTools,
             supportsStreaming: true,
             contextLength: model.contextLength,
-            maxOutputTokens: 8192
+            maxOutputTokens: 8192,
         )
     }
 
@@ -54,7 +54,7 @@ public final class GoogleProvider: ModelProvider {
         return ProviderResponse(
             text: fullText,
             usage: usage,
-            finishReason: finishReason
+            finishReason: finishReason,
         )
     }
 
@@ -67,13 +67,13 @@ public final class GoogleProvider: ModelProvider {
                     let requestBody = try JSONEncoder().encode(googleRequest)
                     let urlRequest = try self.makeStreamRequest(body: requestBody)
 
-#if canImport(FoundationNetworking)
+                    #if canImport(FoundationNetworking)
                     let (data, response) = try await URLSession.shared.data(for: urlRequest)
                     let httpResponse = try self.httpResponse(response)
                     guard 200..<300 ~= httpResponse.statusCode else {
                         let body = String(data: data, encoding: .utf8) ?? ""
                         throw TachikomaError.apiError(
-                            "Google API request failed (HTTP \(httpResponse.statusCode)): \(body)"
+                            "Google API request failed (HTTP \(httpResponse.statusCode)): \(body)",
                         )
                     }
 
@@ -82,7 +82,7 @@ public final class GoogleProvider: ModelProvider {
                     }
                     try parser.feed(data: data)
                     continuation.yield(parser.makeDoneDelta())
-#else
+                    #else
                     let (bytes, response) = try await URLSession.shared.bytes(for: urlRequest)
                     let httpResponse = try self.httpResponse(response)
                     if !(200..<300 ~= httpResponse.statusCode) {
@@ -96,7 +96,7 @@ public final class GoogleProvider: ModelProvider {
                             }
                         }
                         throw TachikomaError.apiError(
-                            "Google API request failed (HTTP \(httpResponse.statusCode)): \(errorBody)"
+                            "Google API request failed (HTTP \(httpResponse.statusCode)): \(errorBody)",
                         )
                     }
 
@@ -108,7 +108,7 @@ public final class GoogleProvider: ModelProvider {
                     }
                     parser.finish()
                     continuation.yield(parser.makeDoneDelta())
-#endif
+                    #endif
 
                     continuation.finish()
                 } catch {
@@ -131,7 +131,7 @@ public final class GoogleProvider: ModelProvider {
                 case let .image(imageContent):
                     let inline = GoogleGenerateRequest.Content.InlineData(
                         mimeType: imageContent.mimeType,
-                        data: imageContent.data
+                        data: imageContent.data,
                     )
                     parts.append(.init(text: nil, inlineData: inline))
                 default:
@@ -148,7 +148,7 @@ public final class GoogleProvider: ModelProvider {
             temperature: request.settings.temperature ?? 0.7,
             maxOutputTokens: request.settings.maxTokens ?? 2048,
             topP: request.settings.topP ?? 0.95,
-            topK: request.settings.topK ?? 40
+            topK: request.settings.topK ?? 40,
         )
 
         return GoogleGenerateRequest(contents: contents, generationConfig: config)
@@ -195,13 +195,13 @@ extension GoogleProvider {
     fileprivate static func mapFinishReason(_ reason: String) -> FinishReason {
         switch reason.lowercased() {
         case "stop", "stop_sequence":
-            return .stop
+            .stop
         case "max_tokens", "length":
-            return .length
+            .length
         case "safety":
-            return .contentFilter
+            .contentFilter
         default:
-            return .other
+            .other
         }
     }
 }
@@ -219,7 +219,7 @@ private struct GoogleSSEParser {
         let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines)
         guard trimmed.hasPrefix("data:") else { return }
         let payload = trimmed.dropFirst(5).drop(while: { $0 == " " })
-        try process(payload: String(payload))
+        try self.process(payload: String(payload))
     }
 
     mutating func feed(data: Data) throws {
@@ -228,7 +228,7 @@ private struct GoogleSSEParser {
         }
         let lines = body.components(separatedBy: .newlines)
         for line in lines {
-            try feed(line: line)
+            try self.feed(line: line)
         }
     }
 
@@ -244,11 +244,11 @@ private struct GoogleSSEParser {
                 if let textParts = candidate.content?.parts?.compactMap(\.text), !textParts.isEmpty {
                     let text = textParts.joined()
                     if !text.isEmpty {
-                        onText(text)
+                        self.onText(text)
                     }
                 }
                 if let reason = candidate.finishReason {
-                    finishReason = GoogleProvider.mapFinishReason(reason)
+                    self.finishReason = GoogleProvider.mapFinishReason(reason)
                 }
             }
         }
@@ -257,12 +257,12 @@ private struct GoogleSSEParser {
             let input = metadata.promptTokenCount ?? 0
             let output = metadata.candidatesTokenCount
                 ?? max(0, (metadata.totalTokenCount ?? 0) - (metadata.promptTokenCount ?? 0))
-            usage = Usage(inputTokens: input, outputTokens: output)
+            self.usage = Usage(inputTokens: input, outputTokens: output)
         }
     }
 
     func makeDoneDelta() -> TextStreamDelta {
-        TextStreamDelta.done(usage: usage, finishReason: finishReason)
+        TextStreamDelta.done(usage: self.usage, finishReason: self.finishReason)
     }
 }
 
@@ -324,9 +324,9 @@ private struct GoogleGenerateRequest: Encodable {
 
         enum CodingKeys: String, CodingKey {
             case temperature
-            case maxOutputTokens = "maxOutputTokens"
-            case topP = "topP"
-            case topK = "topK"
+            case maxOutputTokens
+            case topP
+            case topK
         }
     }
 

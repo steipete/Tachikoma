@@ -15,7 +15,7 @@ struct OpenAICompatibleHelper {
         apiKey: String,
         providerName: String,
         additionalHeaders: [String: String] = [:],
-        session: URLSession = .shared
+        session: URLSession = .shared,
     ) async throws
     -> ProviderResponse {
         let url = URL(string: "\(baseURL)/chat/completions")!
@@ -40,7 +40,7 @@ struct OpenAICompatibleHelper {
             maxTokens: request.settings.maxTokens,
             tools: request.tools?.compactMap { try self.convertTool($0) },
             stream: false,
-            stop: stopSequences.isEmpty ? nil : stopSequences
+            stop: stopSequences.isEmpty ? nil : stopSequences,
         )
 
         let encoder = JSONEncoder()
@@ -58,7 +58,7 @@ struct OpenAICompatibleHelper {
                     let startIndex = toolsRange.lowerBound
                     let endIndex = jsonString.index(
                         startIndex,
-                        offsetBy: min(500, jsonString.distance(from: startIndex, to: jsonString.endIndex))
+                        offsetBy: min(500, jsonString.distance(from: startIndex, to: jsonString.endIndex)),
                     )
                     let toolsSubstring = String(jsonString[startIndex..<endIndex])
                     print("DEBUG OpenAI Request Tools (first 500 chars): \(toolsSubstring)")
@@ -127,7 +127,7 @@ struct OpenAICompatibleHelper {
             return AgentToolCall(
                 id: openAIToolCall.id,
                 name: openAIToolCall.function.name,
-                arguments: arguments
+                arguments: arguments,
             )
         }
 
@@ -135,7 +135,7 @@ struct OpenAICompatibleHelper {
             text: text,
             usage: usage,
             finishReason: finishReason,
-            toolCalls: toolCalls
+            toolCalls: toolCalls,
         )
     }
 
@@ -146,7 +146,7 @@ struct OpenAICompatibleHelper {
         apiKey: String,
         providerName: String,
         additionalHeaders: [String: String] = [:],
-        session: URLSession = .shared
+        session: URLSession = .shared,
     ) async throws
     -> AsyncThrowingStream<TextStreamDelta, Error> {
         let url = URL(string: "\(baseURL)/chat/completions")!
@@ -171,7 +171,7 @@ struct OpenAICompatibleHelper {
             maxTokens: request.settings.maxTokens,
             tools: request.tools?.compactMap { try self.convertTool($0) },
             stream: true,
-            stop: stopSequences.isEmpty ? nil : stopSequences
+            stop: stopSequences.isEmpty ? nil : stopSequences,
         )
 
         let encoder = JSONEncoder()
@@ -205,7 +205,7 @@ struct OpenAICompatibleHelper {
                     // Linux: Use data task
                     let (data, response) = try await withCheckedThrowingContinuation { (cont: CheckedContinuation<
                         (Data, URLResponse),
-                        Error
+                        Error,
                     >) in
                         session.dataTask(with: finalRequest) { data, response, error in
                             if let error {
@@ -215,7 +215,7 @@ struct OpenAICompatibleHelper {
                             } else {
                                 cont.resume(throwing: TachikomaError.networkError(NSError(
                                     domain: "Invalid response",
-                                    code: 0
+                                    code: 0,
                                 )))
                             }
                         }.resume()
@@ -325,7 +325,7 @@ struct OpenAICompatibleHelper {
                                                     let agentToolCall = AgentToolCall(
                                                         id: toolCall.id ?? UUID().uuidString,
                                                         name: name,
-                                                        arguments: argumentsDict
+                                                        arguments: argumentsDict,
                                                     )
                                                     continuation.yield(TextStreamDelta.tool(agentToolCall))
                                                     hasReceivedContent = true
@@ -405,7 +405,7 @@ struct OpenAICompatibleHelper {
                                                     let call = AgentToolCall(
                                                         id: toolCall.id ?? UUID().uuidString,
                                                         name: name,
-                                                        arguments: argumentsDict
+                                                        arguments: argumentsDict,
                                                     )
                                                     continuation.yield(TextStreamDelta.tool(call))
                                                     hasReceivedContent = true
@@ -522,7 +522,7 @@ struct OpenAICompatibleHelper {
                             let base64URL = "data:\(imageContent.mimeType);base64,\(imageContent.data)"
                             return .imageUrl(OpenAIChatMessageContent.ImageUrlContent(
                                 type: "image_url",
-                                imageUrl: OpenAIChatMessageContent.ImageUrl(url: base64URL)
+                                imageUrl: OpenAIChatMessageContent.ImageUrl(url: base64URL),
                             ))
                         case .toolCall, .toolResult:
                             return nil // Skip tool calls and results in user messages
@@ -544,8 +544,8 @@ struct OpenAICompatibleHelper {
                             type: "function",
                             function: OpenAIChatMessage.AgentToolCall.Function(
                                 name: toolCall.name,
-                                arguments: jsonString
-                            )
+                                arguments: jsonString,
+                            ),
                         )
                     }
                     return nil
@@ -562,7 +562,7 @@ struct OpenAICompatibleHelper {
                     return OpenAIChatMessage(
                         role: "assistant",
                         content: textContent.isEmpty ? nil : textContent,
-                        toolCalls: toolCalls
+                        toolCalls: toolCalls,
                     )
                 } else {
                     // Regular text message
@@ -647,7 +647,7 @@ struct OpenAICompatibleHelper {
             ProcessInfo.processInfo.arguments.contains("-v")
         {
             print(
-                "DEBUG: Converting tool '\(tool.name)' with \(tool.parameters.properties.count) properties, \(tool.parameters.required.count) required"
+                "DEBUG: Converting tool '\(tool.name)' with \(tool.parameters.properties.count) properties, \(tool.parameters.required.count) required",
             )
             if tool.parameters.required.isEmpty {
                 print("DEBUG: Omitting required field for '\(tool.name)' as it's empty")
@@ -659,8 +659,8 @@ struct OpenAICompatibleHelper {
             function: OpenAITool.Function(
                 name: tool.name,
                 description: tool.description,
-                parameters: parameters
-            )
+                parameters: parameters,
+            ),
         )
     }
 }

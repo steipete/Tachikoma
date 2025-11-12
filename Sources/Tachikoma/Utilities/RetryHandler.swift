@@ -18,7 +18,7 @@ public struct RetryPolicy: Sendable {
         maxDelay: TimeInterval = 30.0,
         exponentialBase: Double = 2.0,
         jitterRange: ClosedRange<Double> = 0.9...1.1,
-        shouldRetry: @escaping @Sendable (Error) -> Bool = RetryPolicy.defaultShouldRetry
+        shouldRetry: @escaping @Sendable (Error) -> Bool = RetryPolicy.defaultShouldRetry,
     ) {
         self.maxAttempts = maxAttempts
         self.baseDelay = baseDelay
@@ -36,7 +36,7 @@ public struct RetryPolicy: Sendable {
         maxAttempts: 5,
         baseDelay: 0.5,
         maxDelay: 60.0,
-        exponentialBase: 1.5
+        exponentialBase: 1.5,
     )
 
     /// Conservative retry policy for non-critical operations
@@ -44,7 +44,7 @@ public struct RetryPolicy: Sendable {
         maxAttempts: 2,
         baseDelay: 2.0,
         maxDelay: 10.0,
-        exponentialBase: 2.0
+        exponentialBase: 2.0,
     )
 
     /// Default retry logic - retries on rate limits and network errors
@@ -112,7 +112,7 @@ public actor RetryHandler {
     /// Execute an async operation with automatic retry
     public func execute<T: Sendable>(
         operation: @Sendable () async throws -> T,
-        onRetry: (@Sendable (Int, TimeInterval, Error) async -> Void)? = nil
+        onRetry: (@Sendable (Int, TimeInterval, Error) async -> Void)? = nil,
     ) async throws
     -> T {
         // Execute an async operation with automatic retry
@@ -160,7 +160,7 @@ public actor RetryHandler {
     /// Note: Streaming operations are generally not retried mid-stream to avoid data corruption
     public func executeStream<T: Sendable>(
         operation: @escaping @Sendable () async throws -> AsyncThrowingStream<T, Error>,
-        onRetry: (@Sendable (Int, TimeInterval, Error) async -> Void)? = nil
+        onRetry: (@Sendable (Int, TimeInterval, Error) async -> Void)? = nil,
     ) async throws
     -> AsyncThrowingStream<T, Error> {
         // For streaming, we only retry the initial connection, not mid-stream errors

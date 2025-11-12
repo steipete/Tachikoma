@@ -44,7 +44,7 @@ public struct DynamicCodingKey: CodingKey {
 /// Encode any value into a nested container
 public func encodeAnyValue(
     _ value: Any,
-    to container: inout KeyedEncodingContainer<DynamicCodingKey>
+    to container: inout KeyedEncodingContainer<DynamicCodingKey>,
 ) throws {
     // Encode any value into a nested container
     if let dict = value as? [String: Any] {
@@ -59,7 +59,7 @@ public func encodeAnyValue(
 private func encodeAnyValueRecursive(
     _ value: Any,
     to container: inout KeyedEncodingContainer<DynamicCodingKey>,
-    forKey key: DynamicCodingKey
+    forKey key: DynamicCodingKey,
 ) throws {
     // Recursively encode any value type
     switch value {
@@ -93,7 +93,7 @@ private func encodeAnyValueRecursive(
 /// Encode any element into an unkeyed container (for arrays)
 private func encodeAnyElement(
     _ value: Any,
-    to container: inout UnkeyedEncodingContainer
+    to container: inout UnkeyedEncodingContainer,
 ) throws {
     // Encode any element into an unkeyed container (for arrays)
     switch value {

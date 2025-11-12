@@ -154,9 +154,9 @@ struct ModelCapabilitiesTests {
                 providerOptions: .init(
                     openai: .init(
                         verbosity: .high,
-                        previousResponseId: "test-123"
-                    )
-                )
+                        previousResponseId: "test-123",
+                    ),
+                ),
             )
 
             let validated = settings.validated(for: .openai(.gpt5))
@@ -178,9 +178,9 @@ struct ModelCapabilitiesTests {
                 providerOptions: .init(
                     openai: .init(
                         verbosity: .medium, // Should be removed as not supported
-                        reasoningEffort: .high
-                    )
-                )
+                        reasoningEffort: .high,
+                    ),
+                ),
             )
 
             let validated = settings.validated(for: LanguageModel.openai(.o4Mini))
@@ -204,9 +204,9 @@ struct ModelCapabilitiesTests {
                         parallelToolCalls: true,
                         responseFormat: .json,
                         logprobs: true,
-                        topLogprobs: 3
-                    )
-                )
+                        topLogprobs: 3,
+                    ),
+                ),
             )
 
             let validated = settings.validated(for: .openai(.gpt4o))
@@ -228,13 +228,13 @@ struct ModelCapabilitiesTests {
                 temperature: 0.7,
                 providerOptions: .init(
                     openai: .init( // Should be ignored for Anthropic
-                        verbosity: .high
+                        verbosity: .high,
                     ),
                     anthropic: .init(
                         thinking: .enabled(budgetTokens: 3000),
-                        cacheControl: .persistent
-                    )
-                )
+                        cacheControl: .persistent,
+                    ),
+                ),
             )
 
             let validated = settings.validated(for: LanguageModel.anthropic(.opus4))
@@ -256,11 +256,11 @@ struct ModelCapabilitiesTests {
                 supportsTopP: false,
                 supportsMaxTokens: true,
                 forcedTemperature: 0.8,
-                excludedParameters: ["temperature", "topP"]
+                excludedParameters: ["temperature", "topP"],
             )
 
             let model = LanguageModel.custom(
-                provider: TestModelProvider(modelId: "test-model")
+                provider: TestModelProvider(modelId: "test-model"),
             )
             ModelCapabilityRegistry.shared.register(customCaps, for: model)
 
@@ -277,18 +277,18 @@ struct ModelCapabilitiesTests {
             let capabilities = ModelParameterCapabilities(
                 supportsTemperature: true,
                 supportsTopK: true,
-                temperatureRange: 0.0...1.5
+                temperatureRange: 0.0...1.5,
             )
 
             ModelCapabilityRegistry.shared.registerOpenAICompatible(
                 endpoint: "https://test.example.com",
-                capabilities: capabilities
+                capabilities: capabilities,
             )
 
             // The capability is registered but we need the actual model to retrieve it
             let model = LanguageModel.openaiCompatible(
                 modelId: "test-model",
-                baseURL: "https://test.example.com"
+                baseURL: "https://test.example.com",
             )
 
             // Default capabilities will be returned since we register by endpoint
@@ -321,20 +321,20 @@ struct ModelCapabilitiesTests {
                 for i in 0..<10 {
                     group.addTask {
                         let caps = ModelParameterCapabilities(
-                            supportsTemperature: Bool.random()
+                            supportsTemperature: Bool.random(),
                         )
                         let model = LanguageModel.custom(
-                            provider: TestModelProvider(modelId: "concurrent-\(i)")
+                            provider: TestModelProvider(modelId: "concurrent-\(i)"),
                         )
                         ModelCapabilityRegistry.shared.register(caps, for: model)
                     }
                 }
             }
 
-        // Should complete without crashes
-        #expect(Bool(true))
+            // Should complete without crashes
+            #expect(Bool(true))
+        }
     }
-}
 }
 
 // Helper for testing custom models
@@ -347,7 +347,7 @@ private struct TestModelProvider: ModelProvider {
         supportsTools: false,
         supportsStreaming: true,
         contextLength: 4096,
-        maxOutputTokens: 4096
+        maxOutputTokens: 4096,
     )
 
     func generateText(request: ProviderRequest) async throws -> ProviderResponse {

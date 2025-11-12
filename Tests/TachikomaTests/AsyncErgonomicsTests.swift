@@ -74,7 +74,7 @@ struct AsyncErgonomicsTests {
     @Test("Retry with cancellation - immediate success")
     func retryWithCancellationImmediateSuccess() async throws {
         let result = try await retryWithCancellation(
-            configuration: .init(maxAttempts: 3, delay: 0.01)
+            configuration: .init(maxAttempts: 3, delay: 0.01),
         ) {
             "Success"
         }

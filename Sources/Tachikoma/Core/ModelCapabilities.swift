@@ -46,7 +46,7 @@ public struct ModelParameterCapabilities: Sendable {
         maxTokenLimit: Int? = nil,
         supportedProviderOptions: SupportedProviderOptions = .init(),
         forcedTemperature: Double? = nil,
-        excludedParameters: Set<String> = []
+        excludedParameters: Set<String> = [],
     ) {
         self.supportsTemperature = supportsTemperature
         self.supportsTopP = supportsTopP
@@ -115,7 +115,7 @@ public struct SupportedProviderOptions: Sendable {
         supportsSafeMode: Bool = false,
         supportsSpeedLevel: Bool = false,
         supportsFunMode: Bool = false,
-        supportsCurrentEvents: Bool = false
+        supportsCurrentEvents: Bool = false,
     ) {
         self.supportsParallelToolCalls = supportsParallelToolCalls
         self.supportsResponseFormat = supportsResponseFormat
@@ -230,9 +230,9 @@ public final class ModelCapabilityRegistry: @unchecked Sendable {
             supportsPresencePenalty: false,
             supportedProviderOptions: .init(
                 supportsVerbosity: true,
-                supportsPreviousResponseId: true
+                supportsPreviousResponseId: true,
             ),
-            excludedParameters: ["temperature", "topP", "frequencyPenalty", "presencePenalty"]
+            excludedParameters: ["temperature", "topP", "frequencyPenalty", "presencePenalty"],
         )
 
         self.capabilities["openai:gpt-5"] = gpt5Capabilities
@@ -250,10 +250,10 @@ public final class ModelCapabilityRegistry: @unchecked Sendable {
             supportsTopP: false,
             supportedProviderOptions: .init(
                 supportsReasoningEffort: true,
-                supportsPreviousResponseId: true
+                supportsPreviousResponseId: true,
             ),
             forcedTemperature: 1.0,
-            excludedParameters: ["temperature", "topP"]
+            excludedParameters: ["temperature", "topP"],
         )
 
         self.capabilities["openai:o4"] = reasoningCapabilities
@@ -264,8 +264,8 @@ public final class ModelCapabilityRegistry: @unchecked Sendable {
             supportedProviderOptions: .init(
                 supportsParallelToolCalls: true,
                 supportsResponseFormat: true,
-                supportsLogprobs: true
-            )
+                supportsLogprobs: true,
+            ),
         )
 
         self.capabilities["openai:gpt-4o"] = gpt4Capabilities
@@ -278,8 +278,8 @@ public final class ModelCapabilityRegistry: @unchecked Sendable {
         let claude4Capabilities = ModelParameterCapabilities(
             supportedProviderOptions: .init(
                 supportsThinking: true,
-                supportsCacheControl: true
-            )
+                supportsCacheControl: true,
+            ),
         )
 
         self.capabilities["anthropic:claude-opus-4-1-20250805"] = claude4Capabilities
@@ -292,8 +292,8 @@ public final class ModelCapabilityRegistry: @unchecked Sendable {
             supportsTopK: true,
             supportedProviderOptions: .init(
                 supportsThinkingConfig: true,
-                supportsSafetySettings: true
-            )
+                supportsSafetySettings: true,
+            ),
         )
 
         self.capabilities["google:gemini-2.5-pro"] = geminiCapabilities
@@ -303,8 +303,8 @@ public final class ModelCapabilityRegistry: @unchecked Sendable {
         // Mistral models
         let mistralCapabilities = ModelParameterCapabilities(
             supportedProviderOptions: .init(
-                supportsSafeMode: true
-            )
+                supportsSafeMode: true,
+            ),
         )
 
         self.capabilities["mistral:mistral-large-2"] = mistralCapabilities
@@ -313,8 +313,8 @@ public final class ModelCapabilityRegistry: @unchecked Sendable {
         // Groq models (ultra-fast inference)
         let groqCapabilities = ModelParameterCapabilities(
             supportedProviderOptions: .init(
-                supportsSpeedLevel: true
-            )
+                supportsSpeedLevel: true,
+            ),
         )
 
         self.capabilities["groq:llama-3.1-70b"] = groqCapabilities
@@ -328,8 +328,8 @@ public final class ModelCapabilityRegistry: @unchecked Sendable {
         let grokCapabilities = ModelParameterCapabilities(
             supportedProviderOptions: .init(
                 supportsFunMode: true,
-                supportsCurrentEvents: true
-            )
+                supportsCurrentEvents: true,
+            ),
         )
 
         self.capabilities["grok:grok-4-0709"] = grokCapabilities
@@ -362,8 +362,8 @@ public final class ModelCapabilityRegistry: @unchecked Sendable {
             // Default Anthropic capabilities
             return ModelParameterCapabilities(
                 supportedProviderOptions: .init(
-                    supportsCacheControl: true
-                )
+                    supportsCacheControl: true,
+                ),
             )
 
         case .google:
@@ -371,14 +371,14 @@ public final class ModelCapabilityRegistry: @unchecked Sendable {
             return ModelParameterCapabilities(
                 supportsTopK: true,
                 supportedProviderOptions: .init(
-                    supportsSafetySettings: true
-                )
+                    supportsSafetySettings: true,
+                ),
             )
 
         case .ollama, .lmstudio:
             // Local models - basic capabilities
             return ModelParameterCapabilities(
-                supportsSeed: true
+                supportsSeed: true,
             )
 
         default:
@@ -426,7 +426,7 @@ extension GenerationSettings {
         adjustedProviderOptions = self.validateProviderOptions(
             adjustedProviderOptions,
             capabilities: capabilities,
-            model: model
+            model: model,
         )
 
         return GenerationSettings(
@@ -440,14 +440,14 @@ extension GenerationSettings {
             reasoningEffort: reasoningEffort,
             stopConditions: stopConditions,
             seed: seed,
-            providerOptions: adjustedProviderOptions
+            providerOptions: adjustedProviderOptions,
         )
     }
 
     private func validateProviderOptions(
         _ options: ProviderOptions,
         capabilities: ModelParameterCapabilities,
-        model: LanguageModel
+        model: LanguageModel,
     )
     -> ProviderOptions {
         var validated = options

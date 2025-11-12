@@ -32,7 +32,7 @@ private enum AutoConnectPolicy {
     }
 
     static func setOverride(_ value: Bool?) {
-        overrideLock.withLock { $0 = value }
+        self.overrideLock.withLock { $0 = value }
     }
 }
 
@@ -153,7 +153,7 @@ public final class TachikomaMCPClientManager {
     public func executeTool(
         serverName: String,
         toolName: String,
-        arguments: [String: Any]
+        arguments: [String: Any],
     ) async throws
     -> ToolResponse {
         guard let client = connections[serverName] else {
@@ -348,7 +348,7 @@ public final class TachikomaMCPClientManager {
             }
         }
 
-        if connect && AutoConnectPolicy.shouldConnect {
+        if connect, AutoConnectPolicy.shouldConnect {
             await withTaskGroup(of: Void.self) { group in
                 for (name, cfg) in configs where cfg.enabled {
                     group.addTask { [weak self] in
@@ -363,7 +363,7 @@ public final class TachikomaMCPClientManager {
 
     private func merge(
         defaults D: [String: MCPServerConfig],
-        file F: [String: MCPServerConfig]
+        file F: [String: MCPServerConfig],
     )
     -> [String: MCPServerConfig] {
         var result: [String: MCPServerConfig] = [:]
@@ -417,7 +417,7 @@ public final class TachikomaMCPClientManager {
                 enabled: enabled,
                 timeout: timeout,
                 autoReconnect: autoReconnect,
-                description: description
+                description: description,
             )
         }
         return out
@@ -524,7 +524,7 @@ public final class TachikomaMCPClientManager {
             if
                 nameRange.location != NSNotFound, let swiftName = Range(nameRange, in: text), let swiftFull = Range(
                     fullRange,
-                    in: text
+                    in: text,
                 )
             {
                 let name = String(text[swiftName])

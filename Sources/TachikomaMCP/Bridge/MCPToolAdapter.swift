@@ -17,12 +17,12 @@ public enum MCPToolAdapter {
                 // Execute the tool via MCP client
                 let response = try await client.executeTool(
                     name: mcpTool.name,
-                    arguments: self.convertArguments(arguments)
+                    arguments: self.convertArguments(arguments),
                 )
 
                 // Convert response to AnyAgentToolValue
                 return self.convertResponse(response)
-            }
+            },
         )
     }
 
@@ -32,7 +32,7 @@ public enum MCPToolAdapter {
         guard let schema else {
             return AgentToolParameters(
                 properties: [:],
-                required: []
+                required: [],
             )
         }
 
@@ -67,7 +67,7 @@ public enum MCPToolAdapter {
 
         return AgentToolParameters(
             properties: properties,
-            required: required
+            required: required,
         )
     }
 
@@ -78,7 +78,7 @@ public enum MCPToolAdapter {
             return AgentToolParameterProperty(
                 name: name,
                 type: .string,
-                description: "String parameter"
+                description: "String parameter",
             )
         }
 
@@ -136,13 +136,13 @@ public enum MCPToolAdapter {
                 // AgentToolParameterItems does not currently support enum metadata
                 items = AgentToolParameterItems(
                     type: itemType.rawValue,
-                    description: nil
+                    description: nil,
                 )
             } else {
                 // If array type but no items specified, default to string items
                 items = AgentToolParameterItems(
                     type: AgentToolParameterProperty.ParameterType.string.rawValue,
-                    description: nil
+                    description: nil,
                 )
             }
         }
@@ -152,7 +152,7 @@ public enum MCPToolAdapter {
             type: paramType,
             description: description,
             enumValues: enumValues,
-            items: items
+            items: items,
         )
     }
 
@@ -177,7 +177,7 @@ public enum MCPToolAdapter {
         } catch {
             return [
                 "serializationError": error.localizedDescription,
-                "fallback": String(describing: argument)
+                "fallback": String(describing: argument),
             ]
         }
     }
