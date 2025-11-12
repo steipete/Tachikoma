@@ -58,8 +58,8 @@ struct AnyEncodable: Encodable {
                 self.value,
                 .init(
                     codingPath: encoder.codingPath,
-                    debugDescription: "Cannot encode value of type \(type(of: self.value))",
-                ),
+                    debugDescription: "Cannot encode value of type \(type(of: self.value))"
+                )
             )
         }
     }
@@ -96,7 +96,7 @@ struct AnyDecodable: Decodable {
         } else {
             throw DecodingError.dataCorruptedError(
                 in: container,
-                debugDescription: "Cannot decode value",
+                debugDescription: "Cannot decode value"
             )
         }
     }

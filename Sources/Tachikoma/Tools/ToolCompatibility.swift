@@ -8,7 +8,7 @@ public func createTool(
     description: String,
     parameters: [AgentToolParameterProperty] = [],
     required: [String] = [],
-    execute: @escaping @Sendable (AgentToolArguments) async throws -> AnyAgentToolValue,
+    execute: @escaping @Sendable (AgentToolArguments) async throws -> AnyAgentToolValue
 )
 -> AgentTool {
     // Convert array of properties to dictionary keyed by name
@@ -21,7 +21,7 @@ public func createTool(
         name: name,
         description: description,
         parameters: AgentToolParameters(properties: properties, required: required),
-        execute: execute,
+        execute: execute
     )
 }
 
@@ -33,7 +33,7 @@ extension AgentTool {
         AgentToolDefinition(
             name: name,
             description: description,
-            parameters: parameters,
+            parameters: parameters
         )
     }
 }
@@ -48,10 +48,10 @@ public let calculatorTool = createTool(
         AgentToolParameterProperty(
             name: "expression",
             type: .string,
-            description: "Mathematical expression to evaluate (e.g., '2 + 2', 'sqrt(16)', 'sin(pi/2)')",
+            description: "Mathematical expression to evaluate (e.g., '2 + 2', 'sqrt(16)', 'sin(pi/2)')"
         ),
     ],
-    required: ["expression"],
+    required: ["expression"]
 ) { args in
     let expression = try args.stringValue("expression")
 
@@ -65,7 +65,7 @@ public let timeTool = createTool(
     name: "get_current_time",
     description: "Get the current date and time",
     parameters: [],
-    required: [],
+    required: []
 ) { _ in
     let formatter = DateFormatter()
     formatter.dateStyle = .full
@@ -82,10 +82,10 @@ public let weatherTool = createTool(
         AgentToolParameterProperty(
             name: "location",
             type: .string,
-            description: "The city or location to get weather for",
+            description: "The city or location to get weather for"
         ),
     ],
-    required: ["location"],
+    required: ["location"]
 ) { args in
     let location = try args.stringValue("location")
     // This is a mock implementation - replace with real weather API
@@ -181,78 +181,78 @@ public enum ParameterSchema {
         name: String,
         description: String,
         required: Bool = false,
-        enumValues: [String]? = nil,
+        enumValues: [String]? = nil
     )
     -> AgentToolParameterProperty {
         AgentToolParameterProperty(
             name: name,
             type: .string,
             description: description,
-            enumValues: enumValues,
+            enumValues: enumValues
         )
     }
 
     public static func number(
         name: String,
         description: String,
-        required: Bool = false,
+        required: Bool = false
     )
     -> AgentToolParameterProperty {
         AgentToolParameterProperty(
             name: name,
             type: .number,
-            description: description,
+            description: description
         )
     }
 
     public static func integer(
         name: String,
         description: String,
-        required: Bool = false,
+        required: Bool = false
     )
     -> AgentToolParameterProperty {
         AgentToolParameterProperty(
             name: name,
             type: .integer,
-            description: description,
+            description: description
         )
     }
 
     public static func boolean(
         name: String,
         description: String,
-        required: Bool = false,
+        required: Bool = false
     )
     -> AgentToolParameterProperty {
         AgentToolParameterProperty(
             name: name,
             type: .boolean,
-            description: description,
+            description: description
         )
     }
 
     public static func array(
         name: String,
         description: String,
-        required: Bool = false,
+        required: Bool = false
     )
     -> AgentToolParameterProperty {
         AgentToolParameterProperty(
             name: name,
             type: .array,
-            description: description,
+            description: description
         )
     }
 
     public static func object(
         name: String,
-        description: String,
+        description: String
     )
     -> AgentToolParameterProperty {
         AgentToolParameterProperty(
             name: name,
             type: .object,
-            description: description,
+            description: description
         )
     }
 }
@@ -301,6 +301,6 @@ private func evaluateExpression(_ expression: String) throws -> Double {
 
     throw AgentToolError
         .executionFailed(
-            "Unsupported mathematical expression: \(cleanExpression). Supported: basic arithmetic (+, -, *, /), sqrt()",
+            "Unsupported mathematical expression: \(cleanExpression). Supported: basic arithmetic (+, -, *, /), sqrt()"
         )
 }

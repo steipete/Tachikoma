@@ -77,7 +77,7 @@ public actor ResponseCache {
     /// Get cached response with TTL validation
     public func get(
         for request: ProviderRequest,
-        ttlOverride: TimeInterval? = nil,
+        ttlOverride: TimeInterval? = nil
     )
     -> ProviderResponse? {
         // Get cached response with TTL validation
@@ -110,7 +110,7 @@ public actor ResponseCache {
         _ response: ProviderResponse,
         for request: ProviderRequest,
         ttl: TimeInterval? = nil,
-        priority: CachePriority = .normal,
+        priority: CachePriority = .normal
     ) {
         // Store response with custom TTL and priority
         let key = CacheKey(from: request)
@@ -128,7 +128,7 @@ public actor ResponseCache {
         let entry = CacheEntry(
             response: response,
             ttl: ttl,
-            priority: priority,
+            priority: priority
         )
 
         self.cache[key] = entry
@@ -138,7 +138,7 @@ public actor ResponseCache {
 
     /// Invalidate entries matching predicate
     func invalidate(
-        matching predicate: @escaping (CacheKey, CacheEntry) -> Bool,
+        matching predicate: @escaping (CacheKey, CacheEntry) -> Bool
     ) {
         // Invalidate entries matching predicate
         let toRemove = self.cache.filter { predicate($0.key, $0.value) }
@@ -181,14 +181,14 @@ public actor ResponseCache {
         // Get cache statistics
         self.statistics.snapshot(
             currentEntries: self.cache.count,
-            maxEntries: self.configuration.maxEntries,
+            maxEntries: self.configuration.maxEntries
         )
     }
 
     /// Prewarm cache with common requests
     public func prewarm(
         with requests: [(ProviderRequest, ProviderResponse)],
-        ttl: TimeInterval? = nil,
+        ttl: TimeInterval? = nil
     ) {
         // Prewarm cache with common requests
         for (request, response) in requests {
@@ -203,7 +203,7 @@ public actor ResponseCache {
         self.memoryPressureObserver = NotificationCenter.default.addObserver(
             forName: UIApplication.didReceiveMemoryWarningNotification,
             object: nil,
-            queue: .main,
+            queue: .main
         ) { [weak self] _ in
             Task {
                 await self?.handleMemoryPressure()
@@ -369,7 +369,7 @@ public struct CacheConfiguration: Sendable {
         defaultTTL: TimeInterval = 3600, // 1 hour
         memoryLimit: Int = 100 * 1024 * 1024, // 100MB
         evictionStrategy: EvictionStrategy = .lru,
-        memoryPressureStrategy: MemoryPressureStrategy = .adaptive,
+        memoryPressureStrategy: MemoryPressureStrategy = .adaptive
     ) {
         self.maxEntries = maxEntries
         self.defaultTTL = defaultTTL
@@ -383,13 +383,13 @@ public struct CacheConfiguration: Sendable {
     public static let aggressive = CacheConfiguration(
         maxEntries: 100,
         defaultTTL: 300, // 5 minutes
-        memoryLimit: 10 * 1024 * 1024, // 10MB
+        memoryLimit: 10 * 1024 * 1024 // 10MB
     )
 
     public static let generous = CacheConfiguration(
         maxEntries: 10000,
         defaultTTL: 7200, // 2 hours
-        memoryLimit: 500 * 1024 * 1024, // 500MB
+        memoryLimit: 500 * 1024 * 1024 // 500MB
     )
 }
 
@@ -436,7 +436,7 @@ final class CacheEntry: @unchecked Sendable {
     init(
         response: ProviderResponse,
         ttl: TimeInterval? = nil,
-        priority: CachePriority = .normal,
+        priority: CachePriority = .normal
     ) {
         self.response = response
         self.createdAt = Date()
@@ -506,7 +506,7 @@ final class CacheStatisticsTracker: @unchecked Sendable {
             hitRate: hitRate,
             stores: self.stores,
             evictions: self.evictions,
-            uptime: Date().timeIntervalSince(self.startTime),
+            uptime: Date().timeIntervalSince(self.startTime)
         )
     }
 }

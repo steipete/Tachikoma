@@ -70,7 +70,7 @@ public struct AgentToolDefinition: Sendable, Codable {
         self.function = AgentFunctionDefinition(
             name: name,
             description: description,
-            parameters: parameters,
+            parameters: parameters
         )
     }
 }
@@ -120,7 +120,7 @@ public struct AnyAgentTool: Sendable {
 
     public func execute(
         _ arguments: AnyAgentToolValue,
-        context: ToolExecutionContext,
+        context: ToolExecutionContext
     ) async throws
     -> AnyAgentToolValue {
         try await self._execute(arguments, context)

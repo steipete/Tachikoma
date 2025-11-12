@@ -1,3 +1,6 @@
+// This file imports and re-exports all tool-related functionality
+// that has been organized into separate files for better maintainability.
+
 @_exported import Foundation
 
 // Re-export all tool functionality from organized files
