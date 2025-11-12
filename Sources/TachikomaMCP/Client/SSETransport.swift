@@ -75,7 +75,7 @@ public final class SSETransport: MCPTransport {
             endpoint: url,
             configuration: sessionConfiguration,
             streaming: true,
-            sseInitializationTimeout: min(max(config.timeout, 1), 60),
+            sseInitializationTimeout: min(max(config.timeout, 1), 60)
         )
         try await transport.connect()
         await self.state.setTransport(transport)
@@ -103,7 +103,7 @@ public final class SSETransport: MCPTransport {
 
     public func sendRequest<R: Decodable>(
         method: String,
-        params: some Encodable,
+        params: some Encodable
     ) async throws
     -> R {
         let id = await state.getNextId()
@@ -122,7 +122,7 @@ public final class SSETransport: MCPTransport {
             let baseURL = await state.getBaseURL()
             self.logger
                 .error(
-                    "SSE endpoint not established before send; method=\(method), baseURL=\(baseURL?.absoluteString ?? "nil")",
+                    "SSE endpoint not established before send; method=\(method), baseURL=\(baseURL?.absoluteString ?? "nil")"
                 )
             throw MCPError.connectionFailed("SSE endpoint not established")
         }
@@ -131,7 +131,7 @@ public final class SSETransport: MCPTransport {
         // Register pending BEFORE POSTing
         let responseData = try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<
             Data,
-            Swift.Error,
+            Swift.Error
         >) in
             Task { @MainActor in
                 await self.state.addPending(id, continuation)
@@ -166,7 +166,7 @@ public final class SSETransport: MCPTransport {
                             let body = String(data: respData, encoding: .utf8) ?? "<non-utf8>"
                             logger
                                 .error(
-                                    "MCP SSE POST error: HTTP \(http.statusCode) for method=\(method), id=\(id) body=\(body)",
+                                    "MCP SSE POST error: HTTP \(http.statusCode) for method=\(method), id=\(id) body=\(body)"
                                 )
                         } else {
                             logger.debug("MCP SSE POST sent: method=\(method), id=\(id)")
@@ -188,7 +188,7 @@ public final class SSETransport: MCPTransport {
 
     public func sendNotification(
         method: String,
-        params: some Encodable,
+        params: some Encodable
     ) async throws {
         let note = JSONRPCNotification(jsonrpc: "2.0", method: method, params: params)
         let data = try JSONEncoder().encode(note)
@@ -335,7 +335,7 @@ private enum JSONRPCID: Decodable { case int(Int), string(String), null
         }
         throw DecodingError.typeMismatch(
             JSONRPCID.self,
-            .init(codingPath: decoder.codingPath, debugDescription: "Unsupported id type"),
+            .init(codingPath: decoder.codingPath, debugDescription: "Unsupported id type")
         )
     }
 }

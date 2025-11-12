@@ -40,8 +40,8 @@ public struct ToolArguments: Sendable {
             case let .int(i): i
             case let .double(d): d
             case let .bool(b): b
-            case let .array(arr): arr.map { valueToAny($0) }
-            case let .object(obj): obj.mapValues { valueToAny($0) }
+            case let .array(arr): arr.map { ValueToAny($0) }
+            case let .object(obj): obj.mapValues { ValueToAny($0) }
             case .null: NSNull()
             case let .data(mime, data): ["type": "data", "mimeType": mime ?? "application/octet-stream", "data": data]
             }
@@ -161,14 +161,14 @@ public struct ToolArguments: Sendable {
     }
 }
 
-private func valueToAny(_ value: Value) -> Any {
+private func ValueToAny(_ value: Value) -> Any {
     switch value {
     case let .string(s): s
     case let .int(i): i
     case let .double(d): d
     case let .bool(b): b
-    case let .array(arr): arr.map { valueToAny($0) }
-    case let .object(obj): obj.mapValues { valueToAny($0) }
+    case let .array(arr): arr.map { ValueToAny($0) }
+    case let .object(obj): obj.mapValues { ValueToAny($0) }
     case .null: NSNull()
     case let .data(mime, data): ["type": "data", "mimeType": mime ?? "application/octet-stream", "data": data]
     }
@@ -215,7 +215,7 @@ public struct ToolResponse: Sendable {
         ToolResponse(
             content: [.text(text)],
             isError: false,
-            meta: meta,
+            meta: meta
         )
     }
 
@@ -225,7 +225,7 @@ public struct ToolResponse: Sendable {
         ToolResponse(
             content: [.text(message)],
             isError: true,
-            meta: meta,
+            meta: meta
         )
     }
 
@@ -235,7 +235,7 @@ public struct ToolResponse: Sendable {
         ToolResponse(
             content: [.image(data: data.base64EncodedString(), mimeType: mimeType, metadata: nil)],
             isError: false,
-            meta: meta,
+            meta: meta
         )
     }
 
@@ -245,7 +245,7 @@ public struct ToolResponse: Sendable {
         ToolResponse(
             content: contents,
             isError: false,
-            meta: meta,
+            meta: meta
         )
     }
 }

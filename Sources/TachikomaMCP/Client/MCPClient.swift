@@ -42,7 +42,7 @@ public struct MCPServerConfig: Sendable, Codable {
         enabled: Bool = true,
         timeout: TimeInterval = 30,
         autoReconnect: Bool = true,
-        description: String? = nil,
+        description: String? = nil
     ) {
         self.transport = transport
         self.command = command
@@ -93,7 +93,7 @@ public final class MCPClient: Sendable {
         self.logger = Logger(label: "tachikoma.mcp.client.\(name)")
         self.client = Client(
             name: "tachikoma-mcp-client",
-            version: "1.0.0",
+            version: "1.0.0"
         )
     }
 
@@ -129,7 +129,7 @@ public final class MCPClient: Sendable {
         let initParams = InitializeParams(
             protocolVersion: "2025-03-26",
             clientInfo: ClientInfo(name: "tachikoma-mcp-client", version: "1.0.0"),
-            capabilities: ClientCapabilities(),
+            capabilities: ClientCapabilities()
         )
         let initResponse: InitializeResponse
         do {
@@ -139,7 +139,7 @@ public final class MCPClient: Sendable {
             let oldParams = InitializeParams(
                 protocolVersion: "2024-11-05",
                 clientInfo: initParams.clientInfo,
-                capabilities: initParams.capabilities,
+                capabilities: initParams.capabilities
             )
             do {
                 initResponse = try await transport.sendRequest(method: "initialize", params: oldParams)
@@ -148,7 +148,7 @@ public final class MCPClient: Sendable {
                 let snake = InitializeParamsSnake(
                     protocolVersion: oldParams.protocolVersion,
                     clientInfo: initParams.clientInfo,
-                    capabilities: initParams.capabilities,
+                    capabilities: initParams.capabilities
                 )
                 initResponse = try await transport.sendRequest(method: "initialize", params: snake)
             }
@@ -205,7 +205,7 @@ public final class MCPClient: Sendable {
 
             let response: ToolsListResponse = try await transport.sendRequest(
                 method: "tools/list",
-                params: EmptyParams(),
+                params: EmptyParams()
             )
 
             await self.state.setTools(response.tools)
@@ -234,14 +234,14 @@ public final class MCPClient: Sendable {
             method: "tools/call",
             params: ToolCallParams(
                 name: name,
-                arguments: args.rawValue,
-            ),
+                arguments: args.rawValue
+            )
         )
 
         // Convert response to ToolResponse
         return ToolResponse(
             content: response.content,
-            isError: response.isError ?? false,
+            isError: response.isError ?? false
         )
     }
 }

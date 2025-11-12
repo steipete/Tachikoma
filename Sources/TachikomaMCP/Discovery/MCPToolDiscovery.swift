@@ -13,7 +13,7 @@ public enum MCPToolDiscovery {
         let config = MCPServerConfig(
             transport: "stdio",
             command: command,
-            args: args,
+            args: args
         )
 
         return try await self.discover(from: config, name: self.extractName(from: command))
@@ -106,27 +106,27 @@ public enum MCPToolDiscovery {
                 transport: "stdio",
                 command: "npx",
                 args: ["-y", "@modelcontextprotocol/server-filesystem"],
-                description: "File system operations",
+                description: "File system operations"
             ),
             "github": MCPServerConfig(
                 transport: "stdio",
                 command: "npx",
                 args: ["-y", "@modelcontextprotocol/server-github"],
                 env: ["GITHUB_PERSONAL_ACCESS_TOKEN": ProcessInfo.processInfo.environment["GITHUB_TOKEN"] ?? ""],
-                description: "GitHub API access",
+                description: "GitHub API access"
             ),
             "browser": MCPServerConfig(
                 transport: "stdio",
                 command: "npx",
                 args: ["-y", "@agent-infra/mcp-server-browser"],
-                description: "Browser automation",
+                description: "Browser automation"
             ),
             "postgres": MCPServerConfig(
                 transport: "stdio",
                 command: "npx",
                 args: ["-y", "@modelcontextprotocol/server-postgres"],
                 env: ["DATABASE_URL": ProcessInfo.processInfo.environment["DATABASE_URL"] ?? ""],
-                description: "PostgreSQL database access",
+                description: "PostgreSQL database access"
             ),
         ]
     }
@@ -154,7 +154,7 @@ extension MCPToolDiscovery {
         let config = MCPServerConfig(
             transport: "stdio",
             command: "npx",
-            args: ["-y", "@modelcontextprotocol/server-filesystem", path],
+            args: ["-y", "@modelcontextprotocol/server-filesystem", path]
         )
         return try await self.discover(from: config, name: "filesystem")
     }
@@ -172,7 +172,7 @@ extension MCPToolDiscovery {
             transport: "stdio",
             command: "npx",
             args: ["-y", "@modelcontextprotocol/server-github"],
-            env: ["GITHUB_PERSONAL_ACCESS_TOKEN": githubToken],
+            env: ["GITHUB_PERSONAL_ACCESS_TOKEN": githubToken]
         )
 
         return try await self.discover(from: config, name: "github")
@@ -184,7 +184,7 @@ extension MCPToolDiscovery {
         let config = MCPServerConfig(
             transport: "stdio",
             command: "npx",
-            args: ["-y", "@agent-infra/mcp-server-browser"],
+            args: ["-y", "@agent-infra/mcp-server-browser"]
         )
         return try await self.discover(from: config, name: "browser")
     }

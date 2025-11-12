@@ -8,7 +8,7 @@ public enum SchemaBuilder {
         properties: [String: Value],
         required: [String] = [],
         description: String? = nil,
-        additionalProperties: Bool = false,
+        additionalProperties: Bool = false
     )
         -> Value
     {
@@ -36,7 +36,7 @@ public enum SchemaBuilder {
         enum values: [String]? = nil,
         default: String? = nil,
         minLength: Int? = nil,
-        maxLength: Int? = nil,
+        maxLength: Int? = nil
     )
         -> Value
     {
@@ -69,7 +69,7 @@ public enum SchemaBuilder {
     /// Build a JSON Schema for a boolean
     public static func boolean(
         description: String? = nil,
-        default: Bool? = nil,
+        default: Bool? = nil
     )
         -> Value
     {
@@ -92,7 +92,7 @@ public enum SchemaBuilder {
         description: String? = nil,
         minimum: Double? = nil,
         maximum: Double? = nil,
-        default: Double? = nil,
+        default: Double? = nil
     )
         -> Value
     {
@@ -123,7 +123,7 @@ public enum SchemaBuilder {
         description: String? = nil,
         minimum: Int? = nil,
         maximum: Int? = nil,
-        default: Int? = nil,
+        default: Int? = nil
     )
         -> Value
     {
@@ -155,7 +155,7 @@ public enum SchemaBuilder {
         description: String? = nil,
         minItems: Int? = nil,
         maxItems: Int? = nil,
-        uniqueItems: Bool = false,
+        uniqueItems: Bool = false
     )
         -> Value
     {
