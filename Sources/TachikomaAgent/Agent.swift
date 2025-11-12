@@ -43,7 +43,7 @@ public final class Agent<Context>: @unchecked Sendable {
         model: LanguageModel = .default,
         tools: [AgentTool] = [],
         settings: GenerationSettings = .default,
-        context: Context,
+        context: Context
     ) {
         self.name = name
         self.instructions = instructions
@@ -80,7 +80,7 @@ public final class Agent<Context>: @unchecked Sendable {
             messages: conversation.getModelMessages(),
             tools: self.tools.isEmpty ? nil : self.tools,
             settings: self.settings,
-            maxSteps: 5, // Allow multi-step tool execution
+            maxSteps: 5 // Allow multi-step tool execution
         )
 
         // Add assistant response to conversation
@@ -105,7 +105,7 @@ public final class Agent<Context>: @unchecked Sendable {
             usage: result.usage,
             finishReason: result.finishReason ?? .other,
             steps: result.steps,
-            conversationLength: self.conversation.messages.count,
+            conversationLength: self.conversation.messages.count
         )
     }
 
@@ -120,7 +120,7 @@ public final class Agent<Context>: @unchecked Sendable {
             messages: conversation.getModelMessages(),
             tools: self.tools.isEmpty ? nil : self.tools,
             settings: self.settings,
-            maxSteps: 5,
+            maxSteps: 5
         )
 
         // Track final message in conversation (this is approximate for streaming)
@@ -195,7 +195,7 @@ public struct AgentResponse: Sendable {
         usage: Usage?,
         finishReason: FinishReason,
         steps: [GenerationStep],
-        conversationLength: Int,
+        conversationLength: Int
     ) {
         self.text = text
         self.usage = usage
@@ -253,7 +253,7 @@ public final class AgentSessionManager: @unchecked Sendable {
     /// Create a new agent session
     public func createSession(
         sessionId: String,
-        agent: Agent<some Any>,
+        agent: Agent<some Any>
     ) {
         // Create a new agent session
         self.lock.lock()
@@ -265,14 +265,14 @@ public final class AgentSessionManager: @unchecked Sendable {
             createdAt: Date(),
             lastAccessedAt: Date(),
             messageCount: agent.messages.count,
-            status: .active,
+            status: .active
         )
     }
 
     /// Update session data
     public func updateSession(
         sessionId: String,
-        agent: Agent<some Any>,
+        agent: Agent<some Any>
     ) {
         // Update session data
         self.lock.lock()
@@ -313,7 +313,7 @@ public final class AgentSessionManager: @unchecked Sendable {
             lastAccessedAt: sessionData.lastAccessedAt,
             messageCount: sessionData.messageCount,
             status: sessionData.status,
-            summary: nil, // Could be enhanced to generate summaries
+            summary: nil // Could be enhanced to generate summaries
         )
     }
 
@@ -326,7 +326,7 @@ public final class AgentSessionManager: @unchecked Sendable {
             let sessionFiles = try? fileManager.contentsOfDirectory(
                 at: sessionsDir,
                 includingPropertiesForKeys: [.creationDateKey, .contentModificationDateKey],
-                options: .skipsHiddenFiles,
+                options: .skipsHiddenFiles
             ) else
         {
             return []
@@ -348,7 +348,7 @@ public final class AgentSessionManager: @unchecked Sendable {
                     lastAccessedAt: session.lastAccessedAt,
                     messageCount: session.messages.count,
                     status: .active, // All loaded sessions are considered active
-                    summary: extractTextFromContentPart(session.messages.last?.content.first),
+                    summary: extractTextFromContentPart(session.messages.last?.content.first)
                 )
                 summaries.append(summary)
             } catch {
@@ -403,7 +403,7 @@ public final class AgentSessionManager: @unchecked Sendable {
                     createdAt: session.createdAt,
                     lastAccessedAt: session.lastAccessedAt,
                     messageCount: session.messages.count,
-                    status: .active,
+                    status: .active
                 )
                 self.sessions[session.id] = sessionData
             }
@@ -443,7 +443,7 @@ public final class AgentSessionManager: @unchecked Sendable {
                 createdAt: session.createdAt,
                 lastAccessedAt: session.lastAccessedAt,
                 messageCount: session.messages.count,
-                status: .active,
+                status: .active
             )
             self.sessions[session.id] = sessionData
         }
@@ -466,7 +466,7 @@ public struct AgentSession: Codable {
         messages: [ModelMessage],
         createdAt: Date,
         lastAccessedAt: Date,
-        metadata: [String: String] = [:],
+        metadata: [String: String] = [:]
     ) {
         self.id = id
         self.modelName = modelName
@@ -519,7 +519,7 @@ public struct SessionSummary: Sendable, Codable {
         lastAccessedAt: Date,
         messageCount: Int,
         status: SessionStatus,
-        summary: String? = nil,
+        summary: String? = nil
     ) {
         self.id = id
         self.modelName = modelName
