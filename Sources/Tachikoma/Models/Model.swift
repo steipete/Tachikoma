@@ -1059,7 +1059,8 @@ extension LanguageModel {
             return .openai(.gpt41)
         }
 
-        if dashed == "o3" || compact == "o3" || dashed == "o3-pro" || dashed == "o3-mini" || compact == "o3mini" ||
+        if
+            dashed == "o3" || compact == "o3" || dashed == "o3-pro" || dashed == "o3-mini" || compact == "o3mini" ||
             compact == "o3pro"
         {
             // o3 family is deprecated; steer callers to GPT-5 Mini

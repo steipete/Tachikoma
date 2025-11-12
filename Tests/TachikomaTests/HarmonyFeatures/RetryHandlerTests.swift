@@ -50,7 +50,7 @@ struct RetryHandlerTests {
             baseDelay: 1.0,
             maxDelay: 10.0,
             exponentialBase: 2.0,
-            jitterRange: 1.0...1.0 // No jitter for predictable testing
+            jitterRange: 1.0...1.0, // No jitter for predictable testing
         )
 
         // First retry (attempt 0)
@@ -79,7 +79,7 @@ struct RetryHandlerTests {
         let policy = RetryPolicy(
             baseDelay: 1.0,
             exponentialBase: 2.0,
-            jitterRange: 0.5...1.5
+            jitterRange: 0.5...1.5,
         )
 
         // Delay should be within jitter range
@@ -148,7 +148,7 @@ struct RetryHandlerTests {
             operation: {
                 await callCounter.increment()
                 return "Success"
-            }
+            },
         )
 
         #expect(result == "Success")
@@ -160,7 +160,7 @@ struct RetryHandlerTests {
         let policy = RetryPolicy(
             maxAttempts: 3,
             baseDelay: 0.01, // Short delay for testing
-            shouldRetry: { _ in true }
+            shouldRetry: { _ in true },
         )
         let handler = RetryHandler(policy: policy)
 
@@ -182,7 +182,7 @@ struct RetryHandlerTests {
                     let retryCount = await retryCounter.count
                     #expect(attempt == retryCount)
                     #expect(delay >= 0.009) // Allow for timing precision
-                }
+                },
             )
 
             #expect(await callCounter.count == 3)
@@ -197,7 +197,7 @@ struct RetryHandlerTests {
         let policy = RetryPolicy(
             maxAttempts: 2,
             baseDelay: 0.01,
-            shouldRetry: { _ in true }
+            shouldRetry: { _ in true },
         )
         let handler = RetryHandler(policy: policy)
 
@@ -208,7 +208,7 @@ struct RetryHandlerTests {
                 operation: {
                     await callCounter.increment()
                     throw TachikomaError.rateLimited(retryAfter: nil)
-                }
+                },
             )
         }
 
@@ -225,7 +225,7 @@ struct RetryHandlerTests {
                 operation: {
                     await callCounter.increment()
                     throw TachikomaError.authenticationFailed("Invalid key")
-                }
+                },
             )
         }
 
@@ -245,7 +245,7 @@ struct RetryHandlerTests {
                     continuation.yield("Item 2")
                     continuation.finish()
                 }
-            }
+            },
         )
 
         var items: [String] = []

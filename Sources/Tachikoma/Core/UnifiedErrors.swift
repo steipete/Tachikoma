@@ -16,7 +16,7 @@ public struct TachikomaUnifiedError: Error, LocalizedError, Sendable {
         message: String,
         details: ErrorDetails? = nil,
         underlyingError: Error? = nil,
-        recovery: RecoverySuggestion? = nil
+        recovery: RecoverySuggestion? = nil,
     ) {
         self.code = code
         self.message = message
@@ -120,7 +120,7 @@ public struct ErrorDetails: Sendable {
         modelId: String? = nil,
         requestId: String? = nil,
         retryAfter: TimeInterval? = nil,
-        metadata: [String: String] = [:]
+        metadata: [String: String] = [:],
     ) {
         self.reason = reason
         self.statusCode = statusCode
@@ -144,7 +144,7 @@ public struct RecoverySuggestion: Sendable {
     public init(
         suggestion: String,
         actions: [RecoveryAction] = [],
-        helpURL: String? = nil
+        helpURL: String? = nil,
     ) {
         self.suggestion = suggestion
         self.actions = actions
@@ -155,22 +155,22 @@ public struct RecoverySuggestion: Sendable {
     public static let checkAPIKey = RecoverySuggestion(
         suggestion: "Check that your API key is valid and has the necessary permissions",
         actions: [.validateAPIKey, .regenerateAPIKey],
-        helpURL: "https://docs.tachikoma.ai/errors/authentication"
+        helpURL: "https://docs.tachikoma.ai/errors/authentication",
     )
 
     public static let retryLater = RecoverySuggestion(
         suggestion: "The service is temporarily unavailable. Please try again later",
-        actions: [.retry(after: 60)]
+        actions: [.retry(after: 60)],
     )
 
     public static let upgradeModel = RecoverySuggestion(
         suggestion: "This feature requires a more capable model",
-        actions: [.selectDifferentModel]
+        actions: [.selectDifferentModel],
     )
 
     public static let checkNetwork = RecoverySuggestion(
         suggestion: "Check your network connection and try again",
-        actions: [.retry(after: 5)]
+        actions: [.retry(after: 5)],
     )
 }
 
@@ -200,8 +200,8 @@ extension TachikomaError {
                 details: ErrorDetails(modelId: model),
                 recovery: RecoverySuggestion(
                     suggestion: "Check the model name or use a different model",
-                    actions: [.selectDifferentModel]
-                )
+                    actions: [.selectDifferentModel],
+                ),
             )
 
         case let .invalidConfiguration(message):
@@ -210,22 +210,22 @@ extension TachikomaError {
                 message: message,
                 recovery: RecoverySuggestion(
                     suggestion: "Review your configuration settings",
-                    actions: [.checkDocumentation]
-                )
+                    actions: [.checkDocumentation],
+                ),
             )
 
         case let .unsupportedOperation(operation):
             TachikomaUnifiedError(
                 code: .unsupportedFeature,
                 message: "Operation '\(operation)' is not supported",
-                recovery: .upgradeModel
+                recovery: .upgradeModel,
             )
 
         case let .apiError(message):
             TachikomaUnifiedError(
                 code: .serverError,
                 message: message,
-                recovery: .retryLater
+                recovery: .retryLater,
             )
 
         case let .networkError(error):
@@ -233,19 +233,19 @@ extension TachikomaError {
                 code: .networkError,
                 message: "Network error occurred",
                 underlyingError: error,
-                recovery: .checkNetwork
+                recovery: .checkNetwork,
             )
 
         case let .toolCallFailed(message):
             TachikomaUnifiedError(
                 code: .toolExecutionFailed,
-                message: message
+                message: message,
             )
 
         case let .invalidInput(message):
             TachikomaUnifiedError(
                 code: .invalidParameter,
-                message: message
+                message: message,
             )
 
         case let .rateLimited(retryAfter):
@@ -255,15 +255,15 @@ extension TachikomaError {
                 details: ErrorDetails(retryAfter: retryAfter),
                 recovery: RecoverySuggestion(
                     suggestion: "You've exceeded the rate limit. Please wait before retrying",
-                    actions: [.retry(after: retryAfter ?? 60)]
-                )
+                    actions: [.retry(after: retryAfter ?? 60)],
+                ),
             )
 
         case let .authenticationFailed(message):
             TachikomaUnifiedError(
                 code: .authenticationFailed,
                 message: message,
-                recovery: .checkAPIKey
+                recovery: .checkAPIKey,
             )
 
         case let .apiCallError(apiError):
@@ -276,8 +276,8 @@ extension TachikomaError {
                     provider: apiError.provider,
                     modelId: apiError.modelId,
                     requestId: apiError.requestId,
-                    retryAfter: apiError.retryAfter
-                )
+                    retryAfter: apiError.retryAfter,
+                ),
             )
 
         case let .retryError(retryError):
@@ -285,9 +285,9 @@ extension TachikomaError {
                 code: .serverError,
                 message: retryError.lastError?.localizedDescription ?? "Retry failed",
                 details: ErrorDetails(
-                    reason: "Failed after \(retryError.attempts) attempts"
+                    reason: "Failed after \(retryError.attempts) attempts",
                 ),
-                underlyingError: retryError.lastError
+                underlyingError: retryError.lastError,
             )
         }
     }
@@ -320,7 +320,7 @@ extension Error {
         return TachikomaUnifiedError(
             code: .serverError,
             message: self.localizedDescription,
-            underlyingError: self
+            underlyingError: self,
         )
     }
 }
@@ -341,8 +341,8 @@ extension ModelError {
                 details: ErrorDetails(retryAfter: retryAfter),
                 recovery: RecoverySuggestion(
                     suggestion: "Wait before retrying",
-                    actions: [.retry(after: retryAfter ?? 60)]
-                )
+                    actions: [.retry(after: retryAfter ?? 60)],
+                ),
             )
         case let .modelNotFound(model):
             TachikomaUnifiedError(code: .modelNotFound, message: "Model not found: \(model)")
@@ -350,7 +350,7 @@ extension ModelError {
             TachikomaUnifiedError(
                 code: .serverError,
                 message: message,
-                details: ErrorDetails(statusCode: statusCode)
+                details: ErrorDetails(statusCode: statusCode),
             )
         case let .networkError(error):
             TachikomaUnifiedError(code: .networkError, message: "Network error", underlyingError: error)
@@ -369,12 +369,12 @@ extension AgentToolError {
         case let .missingParameter(param):
             TachikomaUnifiedError(
                 code: .missingParameter,
-                message: "Missing required parameter: \(param)"
+                message: "Missing required parameter: \(param)",
             )
         case let .invalidParameterType(param, expected, actual):
             TachikomaUnifiedError(
                 code: .invalidParameter,
-                message: "Invalid type for '\(param)': expected \(expected), got \(actual)"
+                message: "Invalid type for '\(param)': expected \(expected), got \(actual)",
             )
         case let .executionFailed(message):
             TachikomaUnifiedError(code: .toolExecutionFailed, message: message)

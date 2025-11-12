@@ -14,7 +14,7 @@ func testRealtimeConfiguration() async throws {
     print("\n1️⃣ Testing Session Configuration:")
     let voiceConfig = SessionConfiguration.voiceConversation(
         model: "gpt-4o-realtime-preview",
-        voice: .nova
+        voice: .nova,
     )
     print("   ✅ Model: \(voiceConfig.model)")
     print("   ✅ Voice: \(voiceConfig.voice)")
@@ -54,11 +54,11 @@ func testRealtimeConfiguration() async throws {
                 "input": AgentToolParameterProperty(
                     name: "input",
                     type: .string,
-                    description: "Test input"
+                    description: "Test input",
                 ),
             ],
-            required: ["input"]
-        )
+            required: ["input"],
+        ),
     )
     print("   ✅ Tool name: \(tool.name)")
     print("   ✅ Parameters: \(tool.parameters.properties.count)")
@@ -71,8 +71,8 @@ func testRealtimeConfiguration() async throws {
             modalities: ["text", "audio"],
             instructions: "Test instructions",
             voice: .nova,
-            temperature: 0.8
-        )
+            temperature: 0.8,
+        ),
     )
     if case let .responseCreate(createEvent) = event {
         print("   ✅ Event type: responseCreate")
@@ -93,7 +93,7 @@ func testRealtimeConfiguration() async throws {
         id: "test-123",
         type: "message",
         role: "user",
-        content: [ConversationContent(type: "text", text: "Test message")]
+        content: [ConversationContent(type: "text", text: "Test message")],
     )
     print("   ✅ Item ID: \(item.id)")
     print("   ✅ Type: \(item.type)")

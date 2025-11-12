@@ -12,7 +12,7 @@ public struct AgentToolWrapper: RealtimeExecutableTool {
         RealtimeToolExecutor.ToolMetadata(
             name: self.tool.name,
             description: self.tool.description,
-            parameters: self.tool.parameters
+            parameters: self.tool.parameters,
         )
     }
 
@@ -145,7 +145,7 @@ extension ConversationItem {
         callId: String? = nil,
         name: String? = nil,
         arguments: String? = nil,
-        output: String? = nil
+        output: String? = nil,
     ) {
         self.id = id
         self.type = type

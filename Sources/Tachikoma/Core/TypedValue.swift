@@ -172,7 +172,7 @@ public enum TypedValue: Codable, Sendable, Equatable, Hashable {
         } else {
             throw DecodingError.dataCorruptedError(
                 in: container,
-                debugDescription: "Unable to decode TypedValue from container"
+                debugDescription: "Unable to decode TypedValue from container",
             )
         }
     }

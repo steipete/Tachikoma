@@ -143,7 +143,7 @@ struct StopConditionsTests {
 
         // Configure with stop condition
         let settings = GenerationSettings(
-            stopConditions: StringStopCondition("STOP HERE")
+            stopConditions: StringStopCondition("STOP HERE"),
         )
 
         // This test would require a mock provider setup
@@ -204,7 +204,7 @@ struct StopConditionsTests {
             StringStopCondition("STOP"),
             TokenCountStopCondition(maxTokens: 100),
             maxTokens: 500,
-            temperature: 0.7
+            temperature: 0.7,
         )
 
         #expect(settings.stopConditions != nil)
@@ -234,7 +234,7 @@ struct StopConditionsTests {
     func repetitionStopCondition() async throws {
         let condition = RepetitionStopCondition(
             windowSize: 50, // Increased to ensure we don't hit the window limit
-            threshold: 0.8
+            threshold: 0.8,
         )
 
         // Similar content should trigger after threshold
@@ -253,7 +253,7 @@ struct StopConditionsTests {
         // Third time should trigger (adds second identical chunk)
         #expect(await condition.shouldStop(
             text: repeatedText + repeatedText + repeatedText,
-            delta: repeatedText
+            delta: repeatedText,
         ) == true)
     }
 

@@ -55,7 +55,7 @@ public final class RealtimeAudioManager: NSObject {
         commonFormat: .pcmFormatInt16,
         sampleRate: 24000,
         channels: 1,
-        interleaved: true
+        interleaved: true,
     )!
 
     // Buffer for audio playback queue
@@ -85,7 +85,7 @@ public final class RealtimeAudioManager: NSObject {
         self.audioEngine.connect(
             self.playerNode,
             to: self.outputNode,
-            format: self.apiFormat
+            format: self.apiFormat,
         )
 
         // Configure audio session for iOS
@@ -94,7 +94,7 @@ public final class RealtimeAudioManager: NSObject {
             try self.audioSession.setCategory(
                 .playAndRecord,
                 mode: .voiceChat,
-                options: [.defaultToSpeaker, .allowBluetooth]
+                options: [.defaultToSpeaker, .allowBluetooth],
             )
             try self.audioSession.setActive(true)
         } catch {
@@ -131,7 +131,7 @@ public final class RealtimeAudioManager: NSObject {
         self.inputNode.installTap(
             onBus: 0,
             bufferSize: 1024,
-            format: inputFormat
+            format: inputFormat,
         ) { [weak self] buffer, _ in
             Task { @MainActor [weak self] in
                 await self?.processAudioBuffer(buffer)
@@ -323,7 +323,7 @@ extension RealtimeAudioManager {
             try self.audioSession.setCategory(
                 .playAndRecord,
                 mode: .voiceChat,
-                options: [.defaultToSpeaker, .allowBluetooth, .mixWithOthers]
+                options: [.defaultToSpeaker, .allowBluetooth, .mixWithOthers],
             )
 
             // Optimize for low latency

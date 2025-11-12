@@ -188,7 +188,7 @@ public struct RealtimeSessionConfig: Codable, Sendable {
         voice: RealtimeVoice = .alloy,
         instructions: String? = nil,
         tools: [RealtimeTool]? = nil,
-        temperature: Double = 0.8
+        temperature: Double = 0.8,
     ) {
         self.model = model
         self.voice = voice
@@ -303,7 +303,7 @@ public struct ConversationItem: Codable, Sendable {
         id: String = UUID().uuidString,
         type: String,
         role: String? = nil,
-        content: [ConversationContent]? = nil
+        content: [ConversationContent]? = nil,
     ) {
         self.id = id
         self.type = type
@@ -357,7 +357,7 @@ public struct ResponseCreateEvent: Codable, Sendable {
         modalities: [String]? = ["text", "audio"],
         instructions: String? = nil,
         voice: RealtimeVoice? = nil,
-        temperature: Double? = nil
+        temperature: Double? = nil,
     ) {
         self.modalities = modalities
         self.instructions = instructions
@@ -754,7 +754,7 @@ public struct TurnDetection: Codable, Sendable {
         type: String = "server_vad",
         threshold: Double = 0.5,
         prefixPaddingMs: Int = 300,
-        silenceDurationMs: Int = 200
+        silenceDurationMs: Int = 200,
     ) {
         self.type = type
         self.threshold = threshold

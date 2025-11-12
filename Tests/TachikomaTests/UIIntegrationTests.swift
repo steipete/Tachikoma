@@ -14,16 +14,16 @@ struct UIIntegrationTests {
                 UIAttachment(
                     type: .image,
                     data: Data("test".utf8),
-                    mimeType: "image/png"
+                    mimeType: "image/png",
                 ),
             ],
             toolCalls: [
                 AgentToolCall(
                     id: "test-1",
                     name: "calculator",
-                    arguments: ["expression": "2+2"]
+                    arguments: ["expression": "2+2"],
                 ),
-            ]
+            ],
         )
 
         // Convert to model messages
@@ -60,14 +60,14 @@ struct UIIntegrationTests {
                 .text("Here's the result:"),
                 .image(ModelMessage.ContentPart.ImageContent(
                     data: "https://example.com/image.jpg",
-                    mimeType: "image/jpeg"
+                    mimeType: "image/jpeg",
                 )),
                 .toolCall(AgentToolCall(
                     id: "calc-1",
                     name: "calculator",
-                    arguments: ["result": 42]
+                    arguments: ["result": 42],
                 )),
-            ]
+            ],
         )
 
         // Convert to UI messages
@@ -87,15 +87,15 @@ struct UIIntegrationTests {
             Task {
                 continuation.yield(TextStreamDelta(
                     type: .textDelta,
-                    content: "Hello"
+                    content: "Hello",
                 ))
                 continuation.yield(TextStreamDelta(
                     type: .textDelta,
-                    content: " world"
+                    content: " world",
                 ))
                 continuation.yield(TextStreamDelta(
                     type: .done,
-                    content: nil
+                    content: nil,
                 ))
                 continuation.finish()
             }
@@ -104,7 +104,7 @@ struct UIIntegrationTests {
         let streamResult = StreamTextResult(
             stream: textStream,
             model: .openai(.gpt4o),
-            settings: .default
+            settings: .default,
         )
 
         // Convert to UI stream
@@ -144,15 +144,15 @@ struct UIIntegrationTests {
             Task {
                 continuation.yield(TextStreamDelta(
                     type: .textDelta,
-                    content: "The quick "
+                    content: "The quick ",
                 ))
                 continuation.yield(TextStreamDelta(
                     type: .textDelta,
-                    content: "brown fox"
+                    content: "brown fox",
                 ))
                 continuation.yield(TextStreamDelta(
                     type: .done,
-                    content: nil
+                    content: nil,
                 ))
                 continuation.finish()
             }
@@ -161,7 +161,7 @@ struct UIIntegrationTests {
         let streamResult = StreamTextResult(
             stream: textStream,
             model: .openai(.gpt4o),
-            settings: .default
+            settings: .default,
         )
 
         let collectedText = try await streamResult.collectText()
@@ -183,7 +183,7 @@ struct UIIntegrationTests {
         let response = UIStreamResponse(
             stream: stream,
             messageId: "msg-1",
-            role: .assistant
+            role: .assistant,
         )
 
         let message = await response.collectMessage()
@@ -202,7 +202,7 @@ struct UIIntegrationTests {
             type: .image,
             data: imageData,
             mimeType: "image/png",
-            name: "test.png"
+            name: "test.png",
         )
 
         #expect(attachment.type == .image)
@@ -217,7 +217,7 @@ struct UIIntegrationTests {
             role: .user,
             content: "Test message",
             attachments: [],
-            toolCalls: nil
+            toolCalls: nil,
         )
 
         // Convert UIMessage -> ModelMessage -> UIMessage

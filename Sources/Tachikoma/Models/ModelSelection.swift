@@ -146,17 +146,17 @@ public struct ModelSelector {
     private static func parseGoogleModel(_ input: String) -> Model.Google? {
         switch input {
         case "gemini-2.5-pro", "gemini25pro", "gemini2.5pro":
-            return .gemini25Pro
+            .gemini25Pro
         case "gemini-2.5-flash", "gemini25flash":
-            return .gemini25Flash
+            .gemini25Flash
         case "gemini-2.5-flash-lite", "gemini25flashlite", "gemini-2.5-flashlite":
-            return .gemini25FlashLite
+            .gemini25FlashLite
         case "gemini":
-            return .gemini25Flash
+            .gemini25Flash
         case "google":
-            return .gemini25Pro
+            .gemini25Pro
         default:
-            return nil
+            nil
         }
     }
 
@@ -283,7 +283,7 @@ public struct ModelSelector {
                 return $0.modelId
             }
         case "google", "gemini":
-            return Model.Google.allCases.map { $0.rawValue }
+            return Model.Google.allCases.map(\.rawValue)
         case "ollama":
             return Model.Ollama.allCases.compactMap {
                 if case .custom = $0 { return nil }
@@ -302,7 +302,7 @@ public struct ModelSelector {
             supportsTools: model.supportsTools,
             supportsStreaming: model.supportsStreaming,
             provider: model.providerName,
-            modelId: model.modelId
+            modelId: model.modelId,
         )
     }
 }
@@ -346,27 +346,27 @@ public func getAllAvailableModels() -> String {
 
     output += formatModelList(
         title: "OpenAI",
-        models: ModelSelector.availableModels(for: "openai")
+        models: ModelSelector.availableModels(for: "openai"),
     )
 
     output += formatModelList(
         title: "Anthropic",
-        models: ModelSelector.availableModels(for: "anthropic")
+        models: ModelSelector.availableModels(for: "anthropic"),
     )
 
     output += formatModelList(
         title: "Google",
-        models: ModelSelector.availableModels(for: "google")
+        models: ModelSelector.availableModels(for: "google"),
     )
 
     output += formatModelList(
         title: "Grok (xAI)",
-        models: ModelSelector.availableModels(for: "grok")
+        models: ModelSelector.availableModels(for: "grok"),
     )
 
     output += formatModelList(
         title: "Ollama",
-        models: ModelSelector.availableModels(for: "ollama")
+        models: ModelSelector.availableModels(for: "ollama"),
     )
 
     output += "\nShortcuts:\n"

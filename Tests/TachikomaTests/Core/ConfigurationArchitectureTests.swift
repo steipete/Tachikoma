@@ -62,7 +62,7 @@ struct ConfigurationArchitectureTests {
         // Example 2: App sets default once
         _ = {
             TachikomaConfiguration.default = TachikomaConfiguration(
-                apiKeys: ["openai": "app-key"]
+                apiKeys: ["openai": "app-key"],
             )
 
             Task {
@@ -74,13 +74,13 @@ struct ConfigurationArchitectureTests {
         _ = {
             Task {
                 let testConfig = TachikomaConfiguration(
-                    apiKeys: ["openai": "test-key"]
+                    apiKeys: ["openai": "test-key"],
                 )
 
                 _ = try await generate(
                     "Test prompt",
                     using: .openai(.gpt4o),
-                    configuration: testConfig
+                    configuration: testConfig,
                 )
             }
         }

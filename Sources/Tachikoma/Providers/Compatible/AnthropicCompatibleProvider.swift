@@ -31,7 +31,7 @@ public final class AnthropicCompatibleProvider: ModelProvider {
             supportsTools: true,
             supportsStreaming: true,
             contextLength: 200_000,
-            maxOutputTokens: 8192
+            maxOutputTokens: 8192,
         )
     }
 
@@ -61,7 +61,7 @@ public final class AnthropicCompatibleProvider: ModelProvider {
 
         return try AnthropicProvider(
             model: .custom(self.modelId),
-            configuration: compatConfig
+            configuration: compatConfig,
         )
     }
 }

@@ -2,7 +2,7 @@
 # https://github.com/nicklockwood/SwiftFormat
 
 # Swift version
---swiftversion 6.0
+--swiftversion 6.2
 
 # Indentation
 --indent 4
@@ -16,7 +16,7 @@
 # Spacing
 --commas always
 --semicolons never
---ranges spaced
+--ranges no-space
 --trimwhitespace always
 
 # Wrapping

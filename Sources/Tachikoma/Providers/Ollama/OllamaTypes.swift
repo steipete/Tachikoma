@@ -148,7 +148,7 @@ struct OllamaTool: Codable {
 
         private func encodeAnyDictionary(
             _ dict: [String: Any],
-            to container: inout KeyedEncodingContainer<AnyCodingKey>
+            to container: inout KeyedEncodingContainer<AnyCodingKey>,
         ) throws {
             for (key, value) in dict {
                 guard let codingKey = AnyCodingKey(stringValue: key) else { continue }

@@ -127,7 +127,7 @@ public final class CustomProviderRegistry: @unchecked Sendable {
             if
                 nameRange.location != NSNotFound, let swiftName = Range(nameRange, in: text), let swiftFull = Range(
                     fullRange,
-                    in: text
+                    in: text,
                 )
             {
                 let name = String(text[swiftName])

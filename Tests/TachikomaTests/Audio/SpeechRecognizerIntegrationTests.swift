@@ -267,8 +267,9 @@ struct AudioSystemIntegrationTests {
                 do {
                     try recognizer.startListening()
                     // Should start successfully
-                    #expect(recognizer.isListening || recognizer
-                        .error != nil
+                    #expect(
+                        recognizer.isListening || recognizer
+                            .error != nil,
                     ) // Either starts or shows permission error
 
                     // Stop if it started

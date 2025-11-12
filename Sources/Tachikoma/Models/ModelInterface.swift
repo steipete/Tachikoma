@@ -46,7 +46,7 @@ public struct StreamingDelta: Sendable, Codable {
         content: String? = nil,
         toolCall: AgentToolCall? = nil,
         toolResult: AgentToolResult? = nil,
-        error: String? = nil
+        error: String? = nil,
     ) {
         self.type = type
         self.content = content
@@ -73,7 +73,7 @@ public struct ModelSettings: Sendable, Codable {
     public init(
         model: LanguageModel,
         settings: GenerationSettings = .default,
-        stream: Bool = false
+        stream: Bool = false,
     ) {
         self.modelName = model.modelId
         self.maxTokens = settings.maxTokens
@@ -96,7 +96,7 @@ public struct ModelSettings: Sendable, Codable {
         frequencyPenalty: Double? = nil,
         presencePenalty: Double? = nil,
         stopSequences: [String]? = nil,
-        stream: Bool = false
+        stream: Bool = false,
     ) {
         self.modelName = modelName
         self.maxTokens = maxTokens
@@ -122,7 +122,7 @@ public struct ModelRequest: Sendable {
         messages: [ModelMessage],
         settings: ModelSettings,
         tools: [AgentTool]? = nil,
-        stream: Bool = false
+        stream: Bool = false,
     ) {
         self.messages = messages
         self.settings = settings
@@ -153,7 +153,7 @@ public struct ModelResponse: Sendable {
         finishReason: FinishReason? = nil,
         usage: Usage? = nil,
         toolCalls: [AgentToolCall]? = nil,
-        model: String? = nil
+        model: String? = nil,
     ) {
         self.text = text
         self.finishReason = finishReason
@@ -169,7 +169,7 @@ public struct ModelResponse: Sendable {
             text: self.text,
             usage: self.usage,
             finishReason: self.finishReason,
-            toolCalls: self.toolCalls
+            toolCalls: self.toolCalls,
         )
     }
 }

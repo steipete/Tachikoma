@@ -28,14 +28,14 @@ struct GrokModelCatalogTests {
 
     @Test("CaseIterable reflects the official Grok catalog")
     func catalogAlignment() {
-        requireModernPlatforms {
+        self.requireModernPlatforms {
             #expect(Model.Grok.allCases == Self.catalog)
         }
     }
 
     @Test("ModelSelector parses every Grok model identifier")
     func selectorParsesCatalog() throws {
-        try requireModernPlatforms {
+        try self.requireModernPlatforms {
             for model in Self.catalog {
                 let parsed = try ModelSelector.parseModel(model.modelId)
                 #expect(parsed == .grok(model))
@@ -45,7 +45,7 @@ struct GrokModelCatalogTests {
 
     @Test("Available-model CLI listing matches catalog IDs")
     func availableModelListingMatchesCatalog() {
-        requireModernPlatforms {
+        self.requireModernPlatforms {
             let listed = Set(ModelSelector.availableModels(for: "grok"))
             let expected = Set(Self.catalog.map(\.modelId))
             #expect(listed == expected)
@@ -54,7 +54,7 @@ struct GrokModelCatalogTests {
 
     @Test("Vision capability only flips on for vision/image Grok models")
     func visionCapabilityMatchesModelType() {
-        requireModernPlatforms {
+        self.requireModernPlatforms {
             let visionModels: Set<Model.Grok> = [.grok2Vision, .grok2Image, .grokVisionBeta]
 
             for model in Self.catalog {

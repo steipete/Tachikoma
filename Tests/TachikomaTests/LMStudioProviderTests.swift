@@ -9,7 +9,7 @@ struct LMStudioProviderTests {
         let provider = LMStudioProvider(
             baseURL: "http://localhost:1234/v1",
             modelId: "gpt-oss-120b",
-            apiKey: nil
+            apiKey: nil,
         )
 
         // Access actor-isolated properties within the actor context
@@ -143,12 +143,12 @@ struct LMStudioProviderTests {
                             "expression": AgentToolParameterProperty(
                                 name: "expression",
                                 type: .string,
-                                description: "Mathematical expression"
+                                description: "Mathematical expression",
                             ),
                         ],
-                        required: ["expression"]
+                        required: ["expression"],
                     ),
-                    execute: { _ in AnyAgentToolValue(string: "42") }
+                    execute: { _ in AnyAgentToolValue(string: "42") },
                 ),
             ],
             settings: GenerationSettings(
@@ -156,8 +156,8 @@ struct LMStudioProviderTests {
                 temperature: 0.7,
                 topP: 0.95,
                 stopSequences: ["END"],
-                reasoningEffort: .medium
-            )
+                reasoningEffort: .medium,
+            ),
         )
 
         // Just verify the provider can handle the request structure

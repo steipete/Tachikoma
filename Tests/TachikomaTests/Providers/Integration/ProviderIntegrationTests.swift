@@ -21,15 +21,16 @@ struct ProviderIntegrationTests {
         return !value.isEmpty
     }
 
-    private static var hasOpenAIKey: Bool { Self.hasEnv("OPENAI_API_KEY") }
-    private static var hasAnthropicKey: Bool { Self.hasEnv("ANTHROPIC_API_KEY") }
+    private static var hasOpenAIKey: Bool { hasEnv("OPENAI_API_KEY") }
+    private static var hasAnthropicKey: Bool { hasEnv("ANTHROPIC_API_KEY") }
     private static var hasGoogleKey: Bool {
-        Self.hasEnv("GEMINI_API_KEY") || Self.hasEnv("GOOGLE_API_KEY")
+        hasEnv("GEMINI_API_KEY") || hasEnv("GOOGLE_API_KEY")
     }
-    private static var hasMistralKey: Bool { Self.hasEnv("MISTRAL_API_KEY") }
-    private static var hasGroqKey: Bool { Self.hasEnv("GROQ_API_KEY") }
+
+    private static var hasMistralKey: Bool { hasEnv("MISTRAL_API_KEY") }
+    private static var hasGroqKey: Bool { hasEnv("GROQ_API_KEY") }
     private static var hasGrokKey: Bool {
-        Self.hasEnv("X_AI_API_KEY") || Self.hasEnv("XAI_API_KEY")
+        hasEnv("X_AI_API_KEY") || hasEnv("XAI_API_KEY")
     }
 
     // MARK: - OpenAI Integration Tests
@@ -46,7 +47,7 @@ struct ProviderIntegrationTests {
                 using: model,
                 maxTokens: 50,
                 temperature: 0.0,
-                configuration: config
+                configuration: config,
             )
 
             if !(response.lowercased().contains("hello") && response.contains("Tachikoma")) {
@@ -65,30 +66,30 @@ struct ProviderIntegrationTests {
         do {
             let provider = try await ProviderFactory.createProvider(for: model, configuration: config)
 
-        let tool = AgentTool(
-            name: "get_weather",
-            description: "Get the current weather for a location",
-            parameters: AgentToolParameters(
-                properties: [
-                    "location": AgentToolParameterProperty(
-                        name: "location",
-                        type: .string,
-                        description: "The city and state, e.g. San Francisco, CA"
-                    ),
-                ],
-                required: ["location"]
-            )
-        ) { _ in
-            AnyAgentToolValue(string: "Weather: 72°F, sunny")
-        }
+            let tool = AgentTool(
+                name: "get_weather",
+                description: "Get the current weather for a location",
+                parameters: AgentToolParameters(
+                    properties: [
+                        "location": AgentToolParameterProperty(
+                            name: "location",
+                            type: .string,
+                            description: "The city and state, e.g. San Francisco, CA",
+                        ),
+                    ],
+                    required: ["location"],
+                ),
+            ) { _ in
+                AnyAgentToolValue(string: "Weather: 72°F, sunny")
+            }
 
-        let request = ProviderRequest(
-            messages: [
-                ModelMessage(role: .user, content: [.text(TestConfig.toolMessage)]),
-            ],
-            tools: [tool],
-            settings: .init(temperature: 0.0)
-        )
+            let request = ProviderRequest(
+                messages: [
+                    ModelMessage(role: .user, content: [.text(TestConfig.toolMessage)]),
+                ],
+                tools: [tool],
+                settings: .init(temperature: 0.0),
+            )
 
             let response = try await provider.generateText(request: request)
 
@@ -110,13 +111,13 @@ struct ProviderIntegrationTests {
         do {
             let provider = try await ProviderFactory.createProvider(for: model, configuration: config)
 
-        let request = ProviderRequest(
-            messages: [
-                ModelMessage(role: .user, content: [.text(TestConfig.streamMessage)]),
-            ],
-            tools: nil,
-            settings: .init(maxTokens: 100, temperature: 0.0)
-        )
+            let request = ProviderRequest(
+                messages: [
+                    ModelMessage(role: .user, content: [.text(TestConfig.streamMessage)]),
+                ],
+                tools: nil,
+                settings: .init(maxTokens: 100, temperature: 0.0),
+            )
 
             let stream = try await provider.streamText(request: request)
 
@@ -171,33 +172,33 @@ struct ProviderIntegrationTests {
         do {
             let provider = try await ProviderFactory.createProvider(for: model, configuration: config)
 
-        let tool = AgentTool(
-            name: "calculate",
-            description: "Perform basic arithmetic calculations",
-            parameters: AgentToolParameters(
-                properties: [
-                    "expression": AgentToolParameterProperty(
-                        name: "expression",
-                        type: .string,
-                        description: "The arithmetic expression to evaluate"
-                    ),
-                ],
-                required: ["expression"]
-            )
-        ) { _ in
-            AnyAgentToolValue(string: "59")
-        }
+            let tool = AgentTool(
+                name: "calculate",
+                description: "Perform basic arithmetic calculations",
+                parameters: AgentToolParameters(
+                    properties: [
+                        "expression": AgentToolParameterProperty(
+                            name: "expression",
+                            type: .string,
+                            description: "The arithmetic expression to evaluate",
+                        ),
+                    ],
+                    required: ["expression"],
+                ),
+            ) { _ in
+                AnyAgentToolValue(string: "59")
+            }
 
-        let request = ProviderRequest(
-            messages: [
-                ModelMessage(role: .user, content: [.text("What is 42 plus 17?")]),
-            ],
-            tools: [tool],
-            settings: .init(temperature: 0.0)
-        )
+            let request = ProviderRequest(
+                messages: [
+                    ModelMessage(role: .user, content: [.text("What is 42 plus 17?")]),
+                ],
+                tools: [tool],
+                settings: .init(temperature: 0.0),
+            )
 
             let response = try await provider.generateText(request: request)
-            if response.toolCalls == nil && !response.text.contains("59") {
+            if response.toolCalls == nil, !response.text.contains("59") {
                 Self.warn("Anthropic tool call not executed; response: \(response.text.prefix(100))…")
             }
         } catch {
@@ -299,7 +300,7 @@ struct ProviderIntegrationTests {
 
         let imageContent = ModelMessage.ContentPart.ImageContent(
             data: redPixelPNG,
-            mimeType: "image/png"
+            mimeType: "image/png",
         )
 
         let request = ProviderRequest(
@@ -310,7 +311,7 @@ struct ProviderIntegrationTests {
                 ]),
             ],
             tools: nil,
-            settings: .init(maxTokens: 50, temperature: 0.0)
+            settings: .init(maxTokens: 50, temperature: 0.0),
         )
 
         let response = try await provider.generateText(request: request)

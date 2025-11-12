@@ -19,7 +19,7 @@ struct ProviderOptionsTests {
                 presencePenalty: 0.3,
                 n: 2,
                 logprobs: true,
-                topLogprobs: 5
+                topLogprobs: 5,
             )
 
             #expect(options.parallelToolCalls == false)
@@ -42,7 +42,7 @@ struct ProviderOptionsTests {
                 cacheControl: .persistent,
                 maxTokensToSample: 2000,
                 stopSequences: ["END", "STOP"],
-                metadata: ["key": "value"]
+                metadata: ["key": "value"],
             )
 
             if case let .enabled(budget) = options.thinking {
@@ -63,7 +63,7 @@ struct ProviderOptionsTests {
                 thinkingConfig: .init(budgetTokens: 3000, includeThoughts: true),
                 safetySettings: .moderate,
                 candidateCount: 3,
-                stopSequences: ["###"]
+                stopSequences: ["###"],
             )
 
             #expect(options.thinkingConfig?.budgetTokens == 3000)
@@ -77,7 +77,7 @@ struct ProviderOptionsTests {
         func mistralOptions() {
             let options = MistralOptions(
                 safeMode: true,
-                randomSeed: 12345
+                randomSeed: 12345,
             )
 
             #expect(options.safeMode == true)
@@ -94,7 +94,7 @@ struct ProviderOptionsTests {
         func grokOptions() {
             let options = GrokOptions(
                 funMode: true,
-                includeCurrentEvents: true
+                includeCurrentEvents: true,
             )
 
             #expect(options.funMode == true)
@@ -112,7 +112,7 @@ struct ProviderOptionsTests {
                 google: .init(safetySettings: .strict),
                 mistral: .init(safeMode: true),
                 groq: .init(speed: .fast),
-                grok: .init(funMode: false)
+                grok: .init(funMode: false),
             )
 
             #expect(options.openai?.verbosity == .high)
@@ -146,9 +146,9 @@ struct ProviderOptionsTests {
                 providerOptions: .init(
                     openai: .init(
                         parallelToolCalls: true,
-                        verbosity: .medium
-                    )
-                )
+                        verbosity: .medium,
+                    ),
+                ),
             )
 
             #expect(settings.maxTokens == 1000)
@@ -161,7 +161,7 @@ struct ProviderOptionsTests {
         func settingsWithEmptyProviderOptions() {
             let settings = GenerationSettings(
                 maxTokens: 500,
-                temperature: 0.5
+                temperature: 0.5,
             )
 
             #expect(settings.maxTokens == 500)
@@ -178,7 +178,7 @@ struct ProviderOptionsTests {
                 parallelToolCalls: true,
                 seed: 42,
                 verbosity: .high,
-                reasoningEffort: .medium
+                reasoningEffort: .medium,
             )
 
             let encoder = JSONEncoder()
@@ -196,7 +196,7 @@ struct ProviderOptionsTests {
         @Test("Encode and decode Anthropic thinking mode")
         func anthropicThinkingCodable() throws {
             let original = AnthropicOptions(
-                thinking: .enabled(budgetTokens: 3000)
+                thinking: .enabled(budgetTokens: 3000),
             )
 
             let encoder = JSONEncoder()
@@ -217,7 +217,7 @@ struct ProviderOptionsTests {
             let original = ProviderOptions(
                 openai: .init(verbosity: .low),
                 anthropic: .init(cacheControl: .ephemeral),
-                google: .init(safetySettings: .relaxed)
+                google: .init(safetySettings: .relaxed),
             )
 
             let encoder = JSONEncoder()
@@ -239,9 +239,9 @@ struct ProviderOptionsTests {
                 providerOptions: .init(
                     openai: .init(
                         verbosity: .high,
-                        reasoningEffort: .low
-                    )
-                )
+                        reasoningEffort: .low,
+                    ),
+                ),
             )
 
             let encoder = JSONEncoder()

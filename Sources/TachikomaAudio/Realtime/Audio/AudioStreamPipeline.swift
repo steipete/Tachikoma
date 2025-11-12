@@ -62,15 +62,15 @@ public final class AudioStreamPipeline {
         self.processor = try RealtimeAudioProcessor()
         self.voiceDetector = VoiceActivityDetector(
             energyThreshold: configuration.voiceThreshold,
-            silenceDuration: configuration.silenceDuration
+            silenceDuration: configuration.silenceDuration,
         )
         self.inputBuffer = AudioStreamBuffer(
             chunkSize: configuration.inputChunkSize,
-            maxBufferSize: configuration.maxBufferSize
+            maxBufferSize: configuration.maxBufferSize,
         )
         self.outputBuffer = AudioStreamBuffer(
             chunkSize: configuration.outputChunkSize,
-            maxBufferSize: configuration.maxBufferSize
+            maxBufferSize: configuration.maxBufferSize,
         )
 
         self.setupAudioManager()

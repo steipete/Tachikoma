@@ -79,7 +79,7 @@ public enum ProviderParser {
             model: LanguageModel,
             hasConflict: Bool,
             environmentModel: String? = nil,
-            configModel: String? = nil
+            configModel: String? = nil,
         ) {
             self.model = model
             self.hasConflict = hasConflict
@@ -105,7 +105,7 @@ public enum ProviderParser {
         hasGrok: Bool = false,
         hasOllama: Bool = true,
         configuredDefault: LanguageModel? = nil,
-        isEnvironmentProvided: Bool = false
+        isEnvironmentProvided: Bool = false,
     )
     -> ModelDetermination {
         // Parse providers and find first available one
@@ -150,7 +150,7 @@ public enum ProviderParser {
                 hasOpenAI: hasOpenAI,
                 hasAnthropic: hasAnthropic,
                 hasGrok: hasGrok,
-                hasOllama: hasOllama
+                hasOllama: hasOllama,
             )
         }
 
@@ -158,7 +158,7 @@ public enum ProviderParser {
             model: finalModel,
             hasConflict: hasConflict,
             environmentModel: environmentModel?.description,
-            configModel: configuredDefault?.description
+            configModel: configuredDefault?.description,
         )
     }
 
@@ -169,7 +169,7 @@ public enum ProviderParser {
         hasAnthropic: Bool,
         hasGrok: Bool = false,
         hasOllama: Bool = true,
-        configuredDefault: LanguageModel? = nil
+        configuredDefault: LanguageModel? = nil,
     )
     -> LanguageModel {
         // Determine the default model based on available providers and API keys (simple version)
@@ -180,7 +180,7 @@ public enum ProviderParser {
             hasGrok: hasGrok,
             hasOllama: hasOllama,
             configuredDefault: configuredDefault,
-            isEnvironmentProvided: false
+            isEnvironmentProvided: false,
         )
         return determination.model
     }
@@ -286,7 +286,7 @@ public enum ProviderParser {
         hasOpenAI: Bool,
         hasAnthropic: Bool,
         hasGrok: Bool,
-        hasOllama: Bool
+        hasOllama: Bool,
     )
     -> LanguageModel {
         if hasAnthropic {

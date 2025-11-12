@@ -20,7 +20,7 @@ public struct UIMessage: Sendable, Codable {
         attachments: [UIAttachment] = [],
         toolCalls: [AgentToolCall]? = nil,
         metadata: [String: String] = [:],
-        timestamp: Date = Date()
+        timestamp: Date = Date(),
     ) {
         self.id = id
         self.role = role
@@ -56,7 +56,7 @@ public struct UIAttachment: Sendable, Codable {
         url: URL? = nil,
         data: Data? = nil,
         mimeType: String,
-        name: String? = nil
+        name: String? = nil,
     ) {
         self.id = id
         self.type = type
@@ -97,7 +97,7 @@ extension [UIMessage] {
                         let base64 = data.base64EncodedString()
                         let imageContent = ModelMessage.ContentPart.ImageContent(
                             data: base64,
-                            mimeType: attachment.mimeType
+                            mimeType: attachment.mimeType,
                         )
                         contentParts.append(.image(imageContent))
                     } else if let url = attachment.url {
@@ -105,7 +105,7 @@ extension [UIMessage] {
                         let urlString = url.absoluteString
                         let imageContent = ModelMessage.ContentPart.ImageContent(
                             data: urlString,
-                            mimeType: attachment.mimeType
+                            mimeType: attachment.mimeType,
                         )
                         contentParts.append(.image(imageContent))
                     }
@@ -121,7 +121,7 @@ extension [UIMessage] {
 
             return ModelMessage(
                 role: uiMessage.role,
-                content: contentParts
+                content: contentParts,
             )
         }
     }
@@ -149,7 +149,7 @@ extension [ModelMessage] {
                             attachments.append(UIAttachment(
                                 type: .image,
                                 url: imageUrl,
-                                mimeType: imageContent.mimeType
+                                mimeType: imageContent.mimeType,
                             ))
                         }
                     } else {
@@ -158,7 +158,7 @@ extension [ModelMessage] {
                             attachments.append(UIAttachment(
                                 type: .image,
                                 data: data,
-                                mimeType: imageContent.mimeType
+                                mimeType: imageContent.mimeType,
                             ))
                         }
                     }
@@ -173,7 +173,7 @@ extension [ModelMessage] {
                 role: modelMessage.role,
                 content: content,
                 attachments: attachments,
-                toolCalls: toolCalls.isEmpty ? nil : toolCalls
+                toolCalls: toolCalls.isEmpty ? nil : toolCalls,
             )
         }
     }
@@ -260,7 +260,7 @@ public struct UIStreamResponse: Sendable {
     public init(
         stream: AsyncStream<UIMessageChunk>,
         messageId: String = UUID().uuidString,
-        role: ModelMessage.Role = .assistant
+        role: ModelMessage.Role = .assistant,
     ) {
         self.stream = stream
         self.messageId = messageId
@@ -287,14 +287,14 @@ public struct UIStreamResponse: Sendable {
             case let .toolCallEnd(id):
                 if let tool = currentToolCall, tool.id == id {
                     let args: [String: Any] = (try? JSONSerialization.jsonObject(
-                        with: tool.arguments.data(using: .utf8) ?? Data()
+                        with: tool.arguments.data(using: .utf8) ?? Data(),
                     ) as? [String: Any]) ?? [:]
 
                     do {
                         try toolCalls.append(AgentToolCall(
                             id: tool.id,
                             name: tool.name,
-                            arguments: args
+                            arguments: args,
                         ))
                     } catch {
                         // Skip invalid tool call
@@ -313,7 +313,7 @@ public struct UIStreamResponse: Sendable {
             id: self.messageId,
             role: self.role,
             content: content,
-            toolCalls: toolCalls.isEmpty ? nil : toolCalls
+            toolCalls: toolCalls.isEmpty ? nil : toolCalls,
         )
     }
 }

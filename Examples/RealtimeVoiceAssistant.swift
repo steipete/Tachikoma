@@ -31,7 +31,7 @@ class RealtimeVoiceAssistant {
         try await conversation.start(
             model: .gpt4oRealtime,
             voice: .nova,
-            instructions: "You are a helpful, witty, and friendly AI assistant. Keep responses concise."
+            instructions: "You are a helpful, witty, and friendly AI assistant. Keep responses concise.",
         )
 
         print("✅ Connected to Realtime API")
@@ -92,13 +92,13 @@ class RealtimeVoiceAssistant {
                 threshold: 0.5,
                 silenceDurationMs: 200, // 200ms silence to end turn
                 prefixPaddingMs: 300, // Include 300ms before speech
-                createResponse: true // Auto-respond after turn
+                createResponse: true, // Auto-respond after turn
             ),
             tools: nil,
             toolChoice: nil,
             temperature: 0.8,
             maxResponseOutputTokens: 4096,
-            modalities: .all // Both text and audio
+            modalities: .all, // Both text and audio
         )
 
         // Production settings with auto-reconnect
@@ -112,14 +112,14 @@ class RealtimeVoiceAssistant {
             enableNoiseSuppression: true,
             localVADThreshold: 0.3,
             showAudioLevels: true,
-            persistConversation: false
+            persistConversation: false,
         )
 
         // Create advanced conversation
         self.conversation = try RealtimeConversation(
             apiKey: self.apiKey,
             configuration: config,
-            settings: settings
+            settings: settings,
         )
 
         // Start conversation
@@ -159,17 +159,17 @@ class RealtimeVoiceAssistant {
                             "location": AgentToolParameterProperty(
                                 name: "location",
                                 type: .string,
-                                description: "City and state/country, e.g., 'Tokyo, Japan'"
+                                description: "City and state/country, e.g., 'Tokyo, Japan'",
                             ),
                             "units": AgentToolParameterProperty(
                                 name: "units",
                                 type: .string,
                                 description: "Temperature units: 'celsius' or 'fahrenheit'",
-                                enumValues: ["celsius", "fahrenheit"]
+                                enumValues: ["celsius", "fahrenheit"],
                             ),
                         ],
-                        required: ["location"]
-                    )
+                        required: ["location"],
+                    ),
                 ),
 
                 // Calculator tool
@@ -181,11 +181,11 @@ class RealtimeVoiceAssistant {
                             "expression": AgentToolParameterProperty(
                                 name: "expression",
                                 type: .string,
-                                description: "Mathematical expression to evaluate"
+                                description: "Mathematical expression to evaluate",
                             ),
                         ],
-                        required: ["expression"]
-                    )
+                        required: ["expression"],
+                    ),
                 ),
 
                 // Time tool
@@ -197,19 +197,19 @@ class RealtimeVoiceAssistant {
                             "timezone": AgentToolParameterProperty(
                                 name: "timezone",
                                 type: .string,
-                                description: "Timezone name, e.g., 'America/New_York', 'Asia/Tokyo'"
+                                description: "Timezone name, e.g., 'America/New_York', 'Asia/Tokyo'",
                             ),
                         ],
-                        required: ["timezone"]
-                    )
+                        required: ["timezone"],
+                    ),
                 ),
-            ]
+            ],
         )
 
         self.conversation = try RealtimeConversation(
             apiKey: self.apiKey,
             configuration: config,
-            settings: .production
+            settings: .production,
         )
 
         // Register tool executors
@@ -219,7 +219,7 @@ class RealtimeVoiceAssistant {
                 parameters: [
                     AgentToolParameterProperty(name: "location", type: .string, description: "Location"),
                     AgentToolParameterProperty(name: "units", type: .string, description: "Units"),
-                ]
+                ],
             ) { args in
                 let location = try args.stringValue("location")
                 let units = args.optionalStringValue("units") ?? "celsius"
@@ -241,7 +241,7 @@ class RealtimeVoiceAssistant {
                 name: "calculate",
                 parameters: [
                     AgentToolParameterProperty(name: "expression", type: .string, description: "Math expression"),
-                ]
+                ],
             ) { args in
                 let expression = try args.stringValue("expression")
 
@@ -259,7 +259,7 @@ class RealtimeVoiceAssistant {
                 name: "get_time",
                 parameters: [
                     AgentToolParameterProperty(name: "timezone", type: .string, description: "Timezone"),
-                ]
+                ],
             ) { args in
                 let timezone = try args.stringValue("timezone")
 
@@ -313,7 +313,7 @@ class RealtimeVoiceAssistant {
         self.conversation = try RealtimeConversation(
             apiKey: self.apiKey,
             configuration: config,
-            settings: .production
+            settings: .production,
         )
 
         try await self.conversation!.start()
@@ -354,7 +354,7 @@ class RealtimeVoiceAssistant {
         self.conversation = try RealtimeConversation(
             apiKey: self.apiKey,
             configuration: config,
-            settings: .production
+            settings: .production,
         )
 
         try await self.conversation!.start()
@@ -408,13 +408,13 @@ class RealtimeVoiceAssistant {
             maxReconnectAttempts: 5,
             reconnectDelay: 1.0,
             bufferWhileDisconnected: true,
-            maxAudioBufferSize: 2 * 1024 * 1024 // 2MB buffer
+            maxAudioBufferSize: 2 * 1024 * 1024, // 2MB buffer
         )
 
         self.conversation = try RealtimeConversation(
             apiKey: self.apiKey,
             configuration: config,
-            settings: settings
+            settings: settings,
         )
 
         // Monitor connection state

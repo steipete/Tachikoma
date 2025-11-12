@@ -17,7 +17,7 @@ public struct AudioData: Sendable {
         format: AudioFormat = .wav,
         sampleRate: Int? = nil,
         channels: Int? = nil,
-        duration: TimeInterval? = nil
+        duration: TimeInterval? = nil,
     ) {
         self.data = data
         self.format = format
@@ -156,7 +156,7 @@ public struct TranscriptionResult: Sendable {
         duration: TimeInterval? = nil,
         segments: [TranscriptionSegment]? = nil,
         usage: TranscriptionUsage? = nil,
-        warnings: [String]? = nil
+        warnings: [String]? = nil,
     ) {
         self.text = text
         self.language = language
@@ -181,7 +181,7 @@ public struct TranscriptionSegment: Sendable {
         start: TimeInterval,
         end: TimeInterval,
         confidence: Double? = nil,
-        words: [TranscriptionWord]? = nil
+        words: [TranscriptionWord]? = nil,
     ) {
         self.text = text
         self.start = start
@@ -208,7 +208,7 @@ public struct TranscriptionWord: Sendable {
         word: String,
         start: TimeInterval,
         end: TimeInterval,
-        confidence: Double? = nil
+        confidence: Double? = nil,
     ) {
         self.word = word
         self.start = start
@@ -225,7 +225,7 @@ public struct TranscriptionUsage: Sendable {
 
     public init(
         durationSeconds: TimeInterval,
-        cost: Double? = nil
+        cost: Double? = nil,
     ) {
         self.durationSeconds = durationSeconds
         self.cost = cost
@@ -244,7 +244,7 @@ public struct SpeechResult: Sendable {
     public init(
         audioData: AudioData,
         usage: SpeechUsage? = nil,
-        warnings: [String]? = nil
+        warnings: [String]? = nil,
     ) {
         self.audioData = audioData
         self.usage = usage
@@ -260,7 +260,7 @@ public struct SpeechUsage: Sendable {
 
     public init(
         charactersProcessed: Int,
-        cost: Double? = nil
+        cost: Double? = nil,
     ) {
         self.charactersProcessed = charactersProcessed
         self.cost = cost
@@ -287,7 +287,7 @@ public struct TranscriptionRequest: Sendable {
         timestampGranularities: [TimestampGranularity] = [],
         responseFormat: TranscriptionResponseFormat = .verbose,
         abortSignal: AbortSignal? = nil,
-        headers: [String: String] = [:]
+        headers: [String: String] = [:],
     ) {
         self.audio = audio
         self.language = language
@@ -319,7 +319,7 @@ public struct SpeechRequest: Sendable {
         format: AudioFormat = .mp3,
         instructions: String? = nil,
         abortSignal: AbortSignal? = nil,
-        headers: [String: String] = [:]
+        headers: [String: String] = [:],
     ) {
         self.text = text
         self.voice = voice

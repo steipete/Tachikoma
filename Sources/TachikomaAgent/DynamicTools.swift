@@ -80,7 +80,7 @@ public struct MockDynamicToolProvider: DynamicToolProvider {
         tools: [DynamicTool],
         executor: @escaping @Sendable (String, AgentToolArguments) async throws -> AnyAgentToolValue = { name, _ in
             AnyAgentToolValue(string: "Mock result for \(name)")
-        }
+        },
     ) {
         self.tools = tools
         self.executor = executor
@@ -108,7 +108,7 @@ public struct DynamicToolBuilder {
         name: String,
         description: String,
         parameterName: String = "input",
-        parameterDescription: String = "Input string"
+        parameterDescription: String = "Input string",
     )
     -> DynamicTool {
         // Create a simple string-input, string-output tool
@@ -120,11 +120,11 @@ public struct DynamicToolBuilder {
                 properties: [
                     parameterName: DynamicSchema.SchemaProperty(
                         type: .string,
-                        description: parameterDescription
+                        description: parameterDescription,
                     ),
                 ],
-                required: [parameterName]
-            )
+                required: [parameterName],
+            ),
         )
     }
 
@@ -132,7 +132,7 @@ public struct DynamicToolBuilder {
     public static func multiParameterTool(
         name: String,
         description: String,
-        parameters: [(name: String, type: DynamicSchema.SchemaType, description: String, required: Bool)]
+        parameters: [(name: String, type: DynamicSchema.SchemaType, description: String, required: Bool)],
     )
     -> DynamicTool {
         // Create a tool with multiple parameters
@@ -142,7 +142,7 @@ public struct DynamicToolBuilder {
         for param in parameters {
             properties[param.name] = DynamicSchema.SchemaProperty(
                 type: param.type,
-                description: param.description
+                description: param.description,
             )
             if param.required {
                 required.append(param.name)
@@ -155,8 +155,8 @@ public struct DynamicToolBuilder {
             schema: DynamicSchema(
                 type: .object,
                 properties: properties,
-                required: required
-            )
+                required: required,
+            ),
         )
     }
 }
@@ -170,7 +170,7 @@ extension DynamicSchema.SchemaProperty {
         enumValues: [String]? = nil,
         minLength: Int? = nil,
         maxLength: Int? = nil,
-        format: String? = nil
+        format: String? = nil,
     )
     -> Self {
         // Create a string property with constraints
@@ -180,7 +180,7 @@ extension DynamicSchema.SchemaProperty {
             enumValues: enumValues,
             format: format,
             minLength: minLength,
-            maxLength: maxLength
+            maxLength: maxLength,
         )
     }
 
@@ -188,7 +188,7 @@ extension DynamicSchema.SchemaProperty {
     public static func number(
         description: String,
         minimum: Double? = nil,
-        maximum: Double? = nil
+        maximum: Double? = nil,
     )
     -> Self {
         // Create a number property with constraints
@@ -196,21 +196,21 @@ extension DynamicSchema.SchemaProperty {
             type: .number,
             description: description,
             minimum: minimum,
-            maximum: maximum
+            maximum: maximum,
         )
     }
 
     /// Create an array property
     public static func array(
         description: String,
-        items: DynamicSchema.SchemaItems
+        items: DynamicSchema.SchemaItems,
     )
     -> Self {
         // Create an array property
         Self(
             type: .array,
             description: description,
-            items: items
+            items: items,
         )
     }
 
@@ -218,7 +218,7 @@ extension DynamicSchema.SchemaProperty {
     public static func object(
         description: String,
         properties: [String: DynamicSchema.SchemaProperty]? = nil,
-        required: [String]? = nil
+        required: [String]? = nil,
     )
     -> Self {
         // Create an object property
@@ -226,7 +226,7 @@ extension DynamicSchema.SchemaProperty {
             type: .object,
             description: description,
             properties: properties,
-            required: required
+            required: required,
         )
     }
 }
@@ -276,7 +276,7 @@ public struct FilteringDynamicToolProvider: DynamicToolProvider {
 
     public init(
         baseProvider: DynamicToolProvider,
-        filter: @escaping @Sendable (DynamicTool) -> Bool
+        filter: @escaping @Sendable (DynamicTool) -> Bool,
     ) {
         self.baseProvider = baseProvider
         self.filter = filter
@@ -310,7 +310,7 @@ public actor CachingDynamicToolProvider: DynamicToolProvider {
 
     public init(
         baseProvider: DynamicToolProvider,
-        cacheDuration: TimeInterval = 60 // 1 minute default
+        cacheDuration: TimeInterval = 60, // 1 minute default
     ) {
         self.baseProvider = baseProvider
         self.cacheDuration = cacheDuration

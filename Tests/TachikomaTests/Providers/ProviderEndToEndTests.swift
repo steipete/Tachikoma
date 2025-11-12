@@ -16,7 +16,10 @@ struct ProviderEndToEndTests {
     func openAIResponsesProvider() async throws {
         try await NetworkMocking.withMockedNetwork { request in
             self.expectPath(request, endsWithAny: ["/responses", "/chat/completions"])
-            return NetworkMocking.jsonResponse(for: request, data: Self.openAIResponsesPayload(text: "Hello from GPT-5"))
+            return NetworkMocking.jsonResponse(
+                for: request,
+                data: Self.openAIResponsesPayload(text: "Hello from GPT-5"),
+            )
         } operation: {
             let config = Self.makeConfiguration { config in
                 config.setAPIKey("sk-live-openai", for: .openai)
@@ -34,7 +37,10 @@ struct ProviderEndToEndTests {
     func openAIChatProvider() async throws {
         try await NetworkMocking.withMockedNetwork { request in
             self.expectPath(request, endsWith: "/chat/completions")
-            return NetworkMocking.jsonResponse(for: request, data: Self.chatCompletionPayload(text: "OpenAI chat success"))
+            return NetworkMocking.jsonResponse(
+                for: request,
+                data: Self.chatCompletionPayload(text: "OpenAI chat success"),
+            )
         } operation: {
             let config = Self.makeConfiguration { config in
                 config.setAPIKey("sk-live-openai", for: .openai)
@@ -83,23 +89,23 @@ struct ProviderEndToEndTests {
 
     @Test("Mistral provider uses OpenAI-compatible flow")
     func mistralProvider() async throws {
-        try await assertOpenAICompatibleProvider(.mistral(.small), provider: .mistral)
+        try await self.assertOpenAICompatibleProvider(.mistral(.small), provider: .mistral)
     }
 
     @Test("Groq provider uses OpenAI-compatible flow")
     func groqProvider() async throws {
-        try await assertOpenAICompatibleProvider(.groq(.llama38b), provider: .groq)
+        try await self.assertOpenAICompatibleProvider(.groq(.llama38b), provider: .groq)
     }
 
     @Test("Grok provider uses OpenAI-compatible flow")
     func grokProvider() async throws {
-        try await assertOpenAICompatibleProvider(.grok(.grok4FastReasoning), provider: .grok)
+        try await self.assertOpenAICompatibleProvider(.grok(.grok4FastReasoning), provider: .grok)
     }
 
     @Test("All Grok catalog models share the same OpenAI-compatible flow")
     func grokCatalogUsesSameFlow() async throws {
         for grokModel in Model.Grok.allCases {
-            try await assertOpenAICompatibleProvider(.grok(grokModel), provider: .grok)
+            try await self.assertOpenAICompatibleProvider(.grok(grokModel), provider: .grok)
         }
     }
 
@@ -132,7 +138,7 @@ struct ProviderEndToEndTests {
             let provider = LMStudioProvider(
                 baseURL: "http://localhost:1234/v1",
                 modelId: "local",
-                sessionConfiguration: Self.mockedSessionConfiguration()
+                sessionConfiguration: Self.mockedSessionConfiguration(),
             )
             let response = try await provider.generateText(request: Self.basicRequest)
             #expect(response.text == "LMStudio result")
@@ -197,7 +203,10 @@ struct ProviderEndToEndTests {
     func openAICompatibleProvider() async throws {
         try await NetworkMocking.withMockedNetwork { request in
             #expect(request.url?.absoluteString == "https://compatible.test/chat/completions")
-            return NetworkMocking.jsonResponse(for: request, data: Self.chatCompletionPayload(text: "Compatible success"))
+            return NetworkMocking.jsonResponse(
+                for: request,
+                data: Self.chatCompletionPayload(text: "Compatible success"),
+            )
         } operation: {
             let config = Self.makeConfiguration { config in
                 config.setAPIKey("live-compatible", for: "openai_compatible")
@@ -205,7 +214,7 @@ struct ProviderEndToEndTests {
             let provider = try OpenAICompatibleProvider(
                 modelId: "any-model",
                 baseURL: "https://compatible.test",
-                configuration: config
+                configuration: config,
             )
             let response = try await provider.generateText(request: Self.basicRequest)
             #expect(response.text == "Compatible success")
@@ -224,7 +233,7 @@ struct ProviderEndToEndTests {
             let provider = try AnthropicCompatibleProvider(
                 modelId: "claude-compat-4",
                 baseURL: "https://compat.anthropic.test",
-                configuration: config
+                configuration: config,
             )
             let response = try await provider.generateText(request: Self.basicRequest)
             #expect(response.text == "Compat Claude")
@@ -237,7 +246,10 @@ struct ProviderEndToEndTests {
         try await NetworkMocking.withMockedNetwork { request in
             let path = request.url?.path ?? ""
             #expect(path.contains("chat/completions"))
-            return NetworkMocking.jsonResponse(for: request, data: Self.chatCompletionPayload(text: "Response for \(provider.identifier)"))
+            return NetworkMocking.jsonResponse(
+                for: request,
+                data: Self.chatCompletionPayload(text: "Response for \(provider.identifier)"),
+            )
         } operation: {
             let config = Self.makeConfiguration { config in
                 config.setAPIKey("live-\(provider.identifier)", for: provider)
@@ -258,7 +270,7 @@ struct ProviderEndToEndTests {
 
     private static var basicRequest: ProviderRequest {
         ProviderRequest(
-            messages: [ModelMessage(role: .user, content: [.text("Hello there")])]
+            messages: [ModelMessage(role: .user, content: [.text("Hello there")])],
         )
     }
 
@@ -381,11 +393,11 @@ struct ProviderEndToEndTests {
 }
 
 private let _isLiveSuite: Bool = {
-#if LIVE_PROVIDER_TESTS
+    #if LIVE_PROVIDER_TESTS
     true
-#else
+    #else
     false
-#endif
+    #endif
 }()
 
 // MARK: - Network Mock Helper
@@ -393,8 +405,9 @@ private let _isLiveSuite: Bool = {
 enum NetworkMocking {
     static func withMockedNetwork<T>(
         handler: @Sendable @escaping (URLRequest) throws -> (HTTPURLResponse, Data),
-        operation: () async throws -> T
-    ) async throws -> T {
+        operation: () async throws -> T,
+    ) async throws
+    -> T {
         let previousHandler = MockURLProtocol.handler
         MockURLProtocol.handler = handler
         URLProtocol.registerClass(MockURLProtocol.self)
@@ -410,7 +423,7 @@ enum NetworkMocking {
             url: request.url ?? URL(string: "https://mock.api.test")!,
             statusCode: statusCode,
             httpVersion: nil,
-            headerFields: ["Content-Type": "application/json"]
+            headerFields: ["Content-Type": "application/json"],
         )!
         return (response, data)
     }
@@ -420,7 +433,7 @@ enum NetworkMocking {
             url: request.url ?? URL(string: "https://mock.api.test/stream")!,
             statusCode: statusCode,
             httpVersion: nil,
-            headerFields: ["Content-Type": "text/event-stream"]
+            headerFields: ["Content-Type": "text/event-stream"],
         )!
         return (response, data)
     }

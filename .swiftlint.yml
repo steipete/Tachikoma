@@ -101,7 +101,7 @@ cyclomatic_complexity:
   ignores_case_statements: true
 
 file_length:
-  warning: 1700  # Increased to accommodate ProviderFactory.swift (consolidated provider implementations)
+  warning: 1000
   error: 2000
   ignore_comment_only_lines: true
 

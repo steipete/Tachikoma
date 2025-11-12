@@ -215,7 +215,7 @@ public struct ToolResponse: Sendable {
         ToolResponse(
             content: [.text(text)],
             isError: false,
-            meta: meta
+            meta: meta,
         )
     }
 
@@ -225,7 +225,7 @@ public struct ToolResponse: Sendable {
         ToolResponse(
             content: [.text(message)],
             isError: true,
-            meta: meta
+            meta: meta,
         )
     }
 
@@ -235,7 +235,7 @@ public struct ToolResponse: Sendable {
         ToolResponse(
             content: [.image(data: data.base64EncodedString(), mimeType: mimeType, metadata: nil)],
             isError: false,
-            meta: meta
+            meta: meta,
         )
     }
 
@@ -245,7 +245,7 @@ public struct ToolResponse: Sendable {
         ToolResponse(
             content: contents,
             isError: false,
-            meta: meta
+            meta: meta,
         )
     }
 }

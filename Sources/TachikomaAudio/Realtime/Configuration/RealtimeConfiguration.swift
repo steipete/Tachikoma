@@ -31,7 +31,7 @@ public struct RealtimeTurnDetection: Sendable, Codable {
         threshold: Float? = 0.5,
         silenceDurationMs: Int? = 200,
         prefixPaddingMs: Int? = 300,
-        createResponse: Bool? = true
+        createResponse: Bool? = true,
     ) {
         self.type = type
         self.threshold = threshold
@@ -46,7 +46,7 @@ public struct RealtimeTurnDetection: Sendable, Codable {
         threshold: 0.5,
         silenceDurationMs: 200,
         prefixPaddingMs: 300,
-        createResponse: true
+        createResponse: true,
     )
 
     /// Disable turn detection
@@ -55,7 +55,7 @@ public struct RealtimeTurnDetection: Sendable, Codable {
         threshold: nil,
         silenceDurationMs: nil,
         prefixPaddingMs: nil,
-        createResponse: false
+        createResponse: false,
     )
 }
 
@@ -197,7 +197,7 @@ public struct SessionConfiguration: Sendable, Codable {
                 default:
                     throw DecodingError.dataCorruptedError(
                         in: container,
-                        debugDescription: "Unknown tool choice: \(string)"
+                        debugDescription: "Unknown tool choice: \(string)",
                     )
                 }
             } else if
@@ -224,7 +224,7 @@ public struct SessionConfiguration: Sendable, Codable {
         toolChoice: ToolChoice? = nil,
         temperature: Double? = 0.8,
         maxResponseOutputTokens: Int? = nil,
-        modalities: ResponseModality? = .all
+        modalities: ResponseModality? = .all,
     ) {
         self.model = model
         self.voice = voice
@@ -243,7 +243,7 @@ public struct SessionConfiguration: Sendable, Codable {
     /// Create a default configuration for voice conversations
     public static func voiceConversation(
         model: String = "gpt-4o-realtime-preview",
-        voice: RealtimeVoice = .alloy
+        voice: RealtimeVoice = .alloy,
     )
     -> SessionConfiguration {
         // Create a default configuration for voice conversations
@@ -251,13 +251,13 @@ public struct SessionConfiguration: Sendable, Codable {
             model: model,
             voice: voice,
             turnDetection: .serverVAD,
-            modalities: .all
+            modalities: .all,
         )
     }
 
     /// Create a configuration for text-only interactions
     public static func textOnly(
-        model: String = "gpt-4o-realtime-preview"
+        model: String = "gpt-4o-realtime-preview",
     )
     -> SessionConfiguration {
         // Create a configuration for text-only interactions
@@ -265,7 +265,7 @@ public struct SessionConfiguration: Sendable, Codable {
             model: model,
             voice: .alloy,
             turnDetection: .disabled,
-            modalities: .text
+            modalities: .text,
         )
     }
 
@@ -273,7 +273,7 @@ public struct SessionConfiguration: Sendable, Codable {
     public static func withTools(
         model: String = "gpt-4o-realtime-preview",
         voice: RealtimeVoice = .alloy,
-        tools: [RealtimeTool]
+        tools: [RealtimeTool],
     )
     -> SessionConfiguration {
         // Create a configuration with tools
@@ -283,7 +283,7 @@ public struct SessionConfiguration: Sendable, Codable {
             turnDetection: .serverVAD,
             tools: tools,
             toolChoice: .auto,
-            modalities: .all
+            modalities: .all,
         )
     }
 }
@@ -337,7 +337,7 @@ public struct ConversationSettings: Sendable {
         localVADThreshold: Float = 0.3,
         showAudioLevels: Bool = true,
         persistConversation: Bool = false,
-        persistencePath: URL? = nil
+        persistencePath: URL? = nil,
     ) {
         self.autoReconnect = autoReconnect
         self.maxReconnectAttempts = maxReconnectAttempts
@@ -359,7 +359,7 @@ public struct ConversationSettings: Sendable {
         reconnectDelay: 2.0,
         bufferWhileDisconnected: true,
         enableEchoCancellation: true,
-        enableNoiseSuppression: true
+        enableNoiseSuppression: true,
     )
 
     /// Settings for development/testing
@@ -370,6 +370,6 @@ public struct ConversationSettings: Sendable {
         bufferWhileDisconnected: false,
         enableEchoCancellation: false,
         enableNoiseSuppression: false,
-        showAudioLevels: true
+        showAudioLevels: true,
     )
 }

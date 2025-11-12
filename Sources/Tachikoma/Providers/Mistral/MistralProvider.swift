@@ -14,7 +14,7 @@ public final class MistralProvider: ModelProvider {
     public init(
         model: LanguageModel.Mistral,
         configuration: TachikomaConfiguration,
-        session: URLSession = .shared
+        session: URLSession = .shared,
     ) throws {
         self.model = model
         self.modelId = model.rawValue
@@ -32,7 +32,7 @@ public final class MistralProvider: ModelProvider {
             supportsTools: model.supportsTools,
             supportsStreaming: true,
             contextLength: model.contextLength,
-            maxOutputTokens: 4096
+            maxOutputTokens: 4096,
         )
     }
 
@@ -44,7 +44,7 @@ public final class MistralProvider: ModelProvider {
             baseURL: self.baseURL!,
             apiKey: self.apiKey!,
             providerName: "Mistral",
-            session: self.session
+            session: self.session,
         )
     }
 
@@ -56,7 +56,7 @@ public final class MistralProvider: ModelProvider {
             baseURL: self.baseURL!,
             apiKey: self.apiKey!,
             providerName: "Mistral",
-            session: self.session
+            session: self.session,
         )
     }
 }

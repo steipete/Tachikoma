@@ -34,7 +34,7 @@ public final class AnthropicProvider: ModelProvider {
             supportsAudioInput: model.supportsAudioInput,
             supportsAudioOutput: model.supportsAudioOutput,
             contextLength: model.contextLength,
-            maxOutputTokens: 4096
+            maxOutputTokens: 4096,
         )
     }
 
@@ -60,7 +60,7 @@ public final class AnthropicProvider: ModelProvider {
             system: systemMessage,
             messages: messages,
             tools: request.tools?.map { try self.convertToolToAnthropic($0) },
-            stream: false
+            stream: false,
         )
 
         let encoder = JSONEncoder()
@@ -121,7 +121,7 @@ public final class AnthropicProvider: ModelProvider {
 
         let usage = Usage(
             inputTokens: anthropicResponse.usage.inputTokens,
-            outputTokens: anthropicResponse.usage.outputTokens
+            outputTokens: anthropicResponse.usage.outputTokens,
         )
 
         let finishReason: FinishReason? = switch anthropicResponse.stopReason {
@@ -155,7 +155,7 @@ public final class AnthropicProvider: ModelProvider {
                 return AgentToolCall(
                     id: toolUse.id,
                     name: toolUse.name,
-                    arguments: arguments
+                    arguments: arguments,
                 )
             }
         }
@@ -164,7 +164,7 @@ public final class AnthropicProvider: ModelProvider {
             text: text,
             usage: usage,
             finishReason: finishReason,
-            toolCalls: toolCalls.isEmpty ? nil : toolCalls
+            toolCalls: toolCalls.isEmpty ? nil : toolCalls,
         )
     }
 
@@ -190,7 +190,7 @@ public final class AnthropicProvider: ModelProvider {
             system: systemMessage,
             messages: messages,
             tools: request.tools?.map { try self.convertToolToAnthropic($0) },
-            stream: true
+            stream: true,
         )
 
         let encoder = JSONEncoder()
@@ -242,7 +242,7 @@ public final class AnthropicProvider: ModelProvider {
         // Linux: Use data task for now (streaming not available)
         let (data, response) = try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<
             (Data, URLResponse),
-            Error
+            Error,
         >) in
             URLSession.shared.dataTask(with: urlRequest) { data, response, error in
                 if let error {
@@ -252,7 +252,7 @@ public final class AnthropicProvider: ModelProvider {
                 } else {
                     continuation.resume(throwing: TachikomaError.networkError(NSError(
                         domain: "Invalid response",
-                        code: 0
+                        code: 0,
                     )))
                 }
             }.resume()
@@ -335,7 +335,7 @@ public final class AnthropicProvider: ModelProvider {
                                             currentToolCall = (
                                                 id: block.id ?? "",
                                                 name: block.name ?? "",
-                                                partialInput: ""
+                                                partialInput: "",
                                             )
                                         } else if block.type == "text" {
                                             // Text block starting
@@ -387,7 +387,7 @@ public final class AnthropicProvider: ModelProvider {
                                                     arguments[key] = try AnyAgentToolValue.fromJSON(value)
                                                 } catch {
                                                     print(
-                                                        "[WARNING] Failed to convert tool argument '\(key)': \(error)"
+                                                        "[WARNING] Failed to convert tool argument '\(key)': \(error)",
                                                     )
                                                 }
                                             }
@@ -395,7 +395,7 @@ public final class AnthropicProvider: ModelProvider {
                                             let agentToolCall = AgentToolCall(
                                                 id: toolCall.id,
                                                 name: toolCall.name,
-                                                arguments: arguments
+                                                arguments: arguments,
                                             )
                                             continuation.yield(TextStreamDelta.tool(agentToolCall))
                                         }
@@ -531,8 +531,8 @@ public final class AnthropicProvider: ModelProvider {
                             source: AnthropicContent.ImageSource(
                                 type: "base64",
                                 mediaType: imageContent.mimeType,
-                                data: imageContent.data
-                            )
+                                data: imageContent.data,
+                            ),
                         ))
                     case .toolCall, .toolResult:
                         return nil // Skip tool calls and results in user messages
@@ -561,7 +561,7 @@ public final class AnthropicProvider: ModelProvider {
                         content.append(.toolUse(AnthropicContent.ToolUseContent(
                             id: toolCall.id,
                             name: toolCall.name,
-                            input: arguments
+                            input: arguments,
                         )))
                     default:
                         continue
@@ -600,7 +600,7 @@ public final class AnthropicProvider: ModelProvider {
                         // Tool results need to be sent as user messages with tool_result blocks
                         content.append(.toolResult(AnthropicContent.ToolResultContent(
                             toolUseId: result.toolCallId,
-                            content: resultContent
+                            content: resultContent,
                         )))
                     case let .text(text):
                         // Sometimes tool messages include text
@@ -660,8 +660,8 @@ public final class AnthropicProvider: ModelProvider {
             inputSchema: AnthropicInputSchema(
                 type: tool.parameters.type,
                 properties: properties,
-                required: tool.parameters.required
-            )
+                required: tool.parameters.required,
+            ),
         )
     }
 }
@@ -699,7 +699,7 @@ public final class OllamaProvider: ModelProvider {
             supportsAudioInput: model.supportsAudioInput,
             supportsAudioOutput: model.supportsAudioOutput,
             contextLength: model.contextLength,
-            maxOutputTokens: 4096
+            maxOutputTokens: 4096,
         )
     }
 
@@ -721,7 +721,7 @@ public final class OllamaProvider: ModelProvider {
                 content: message.content.compactMap { part in
                     if case let .text(text) = part { return text }
                     return nil
-                }.joined()
+                }.joined(),
             )
         }
 
@@ -730,7 +730,7 @@ public final class OllamaProvider: ModelProvider {
             options = OllamaChatRequest.OllamaOptions(
                 temperature: request.settings.temperature,
                 numCtx: nil, // Context length managed by model
-                numPredict: request.settings.maxTokens
+                numPredict: request.settings.maxTokens,
             )
         }
 
@@ -739,7 +739,7 @@ public final class OllamaProvider: ModelProvider {
             messages: messages,
             tools: request.tools?.map { try self.convertToolToOllama($0) },
             stream: false,
-            options: options
+            options: options,
         )
 
         let encoder = JSONEncoder()
@@ -773,7 +773,7 @@ public final class OllamaProvider: ModelProvider {
                 if case let .text(text) = part { return text }
                 return nil
             }.joined().count / 4 }.reduce(0, +),
-            outputTokens: text.count / 4
+            outputTokens: text.count / 4,
         )
 
         let finishReason: FinishReason = ollamaResponse.done ? .stop : .other
@@ -797,7 +797,7 @@ public final class OllamaProvider: ModelProvider {
                 return AgentToolCall(
                     id: "ollama_\(UUID().uuidString)",
                     name: ollamaCall.function.name,
-                    arguments: arguments
+                    arguments: arguments,
                 )
             }
         }
@@ -827,7 +827,7 @@ public final class OllamaProvider: ModelProvider {
                 toolCalls = [AgentToolCall(
                     id: "ollama_\(UUID().uuidString)",
                     name: functionName,
-                    arguments: arguments
+                    arguments: arguments,
                 )]
             }
         }
@@ -836,7 +836,7 @@ public final class OllamaProvider: ModelProvider {
             text: text,
             usage: usage,
             finishReason: finishReason,
-            toolCalls: toolCalls
+            toolCalls: toolCalls,
         )
     }
 
@@ -858,7 +858,7 @@ public final class OllamaProvider: ModelProvider {
                 content: message.content.compactMap { part in
                     if case let .text(text) = part { return text }
                     return nil
-                }.joined()
+                }.joined(),
             )
         }
 
@@ -867,7 +867,7 @@ public final class OllamaProvider: ModelProvider {
             options = OllamaChatRequest.OllamaOptions(
                 temperature: request.settings.temperature,
                 numCtx: nil,
-                numPredict: request.settings.maxTokens
+                numPredict: request.settings.maxTokens,
             )
         }
 
@@ -876,7 +876,7 @@ public final class OllamaProvider: ModelProvider {
             messages: messages,
             tools: request.tools?.map { try self.convertToolToOllama($0) },
             stream: true,
-            options: options
+            options: options,
         )
 
         let encoder = JSONEncoder()
@@ -952,8 +952,8 @@ public final class OllamaProvider: ModelProvider {
             function: OllamaTool.Function(
                 name: tool.name,
                 description: tool.description,
-                parameters: parameters
-            )
+                parameters: parameters,
+            ),
         )
     }
 }

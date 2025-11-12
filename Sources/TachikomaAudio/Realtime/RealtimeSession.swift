@@ -58,7 +58,7 @@ public final class RealtimeSession {
         apiKey: String,
         baseURL: String = "wss://api.openai.com/v1/realtime",
         configuration: SessionConfiguration = SessionConfiguration(),
-        transport: RealtimeTransport? = nil
+        transport: RealtimeTransport? = nil,
     ) {
         self.id = UUID().uuidString
         self.apiKey = apiKey
@@ -154,7 +154,7 @@ public final class RealtimeSession {
         }
 
         let event = RealtimeClientEvent.inputAudioBufferAppend(
-            InputAudioBufferAppendEvent(audio: data)
+            InputAudioBufferAppendEvent(audio: data),
         )
         try await self.sendEvent(event)
     }
@@ -191,7 +191,7 @@ public final class RealtimeSession {
         }
 
         let event = RealtimeClientEvent.conversationItemCreate(
-            ConversationItemCreateEvent(item: item)
+            ConversationItemCreateEvent(item: item),
         )
         try await self.sendEvent(event)
     }
@@ -204,7 +204,7 @@ public final class RealtimeSession {
         }
 
         let event = RealtimeClientEvent.conversationItemDelete(
-            ConversationItemDeleteEvent(itemId: id)
+            ConversationItemDeleteEvent(itemId: id),
         )
         try await self.sendEvent(event)
     }
@@ -220,8 +220,8 @@ public final class RealtimeSession {
             ConversationItemTruncateEvent(
                 itemId: id,
                 contentIndex: contentIndex,
-                audioEndMs: audioEndMs
-            )
+                audioEndMs: audioEndMs,
+            ),
         )
         try await self.sendEvent(event)
     }
@@ -283,7 +283,7 @@ public final class RealtimeSession {
         let wrapper = EventWrapper(
             type: event.type,
             eventId: event.eventId,
-            event: event
+            event: event,
         )
 
         // Encode to JSON
@@ -456,7 +456,7 @@ private struct EventWrapper<T: Encodable>: Encodable {
     private func encodeAny(
         _ value: Any,
         forKey key: DynamicCodingKey,
-        container: inout KeyedEncodingContainer<DynamicCodingKey>
+        container: inout KeyedEncodingContainer<DynamicCodingKey>,
     ) throws {
         switch value {
         case let string as String:
@@ -544,7 +544,7 @@ private struct ResponseTextDeltaEventWrapper: Decodable {
             itemId: itemId,
             outputIndex: outputIndex,
             contentIndex: contentIndex,
-            delta: delta
+            delta: delta,
         )
     }
 
@@ -574,7 +574,7 @@ private struct ResponseTextDoneEventWrapper: Decodable {
             itemId: itemId,
             outputIndex: outputIndex,
             contentIndex: contentIndex,
-            text: text
+            text: text,
         )
     }
 
@@ -604,7 +604,7 @@ private struct ResponseAudioDeltaEventWrapper: Decodable {
             itemId: itemId,
             outputIndex: outputIndex,
             contentIndex: contentIndex,
-            delta: delta
+            delta: delta,
         )
     }
 
@@ -632,7 +632,7 @@ private struct ResponseAudioDoneEventWrapper: Decodable {
             responseId: responseId,
             itemId: itemId,
             outputIndex: outputIndex,
-            contentIndex: contentIndex
+            contentIndex: contentIndex,
         )
     }
 
@@ -663,7 +663,7 @@ private struct ResponseFunctionCallArgumentsDoneEventWrapper: Decodable {
             outputIndex: outputIndex,
             callId: callId,
             name: name,
-            arguments: arguments
+            arguments: arguments,
         )
     }
 

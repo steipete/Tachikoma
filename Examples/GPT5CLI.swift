@@ -1,7 +1,3 @@
-// CLI for querying GPT-5 with both Chat Completions and Responses API support
-// Compile with: swift build --product gpt5cli
-// Run with: .build/debug/gpt5cli [--api chat|responses] [--model gpt-5|gpt-5-mini|gpt-5-nano] "Your question here"
-
 import Foundation
 import Tachikoma
 
@@ -87,7 +83,7 @@ struct GPT5CLI {
             let request = ProviderRequest(
                 messages: messages,
                 tools: nil,
-                settings: GenerationSettings(maxTokens: 2000)
+                settings: GenerationSettings(maxTokens: 2000),
             )
 
             let providerResponse: ProviderResponse
@@ -110,7 +106,7 @@ struct GPT5CLI {
                 usage: providerResponse.usage,
                 finishReason: providerResponse.finishReason,
                 steps: [],
-                messages: messages
+                messages: messages,
             )
 
             // Print the response

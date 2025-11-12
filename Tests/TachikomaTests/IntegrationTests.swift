@@ -31,7 +31,7 @@ struct IntegrationTests {
         let streamResult = StreamTextResult(
             stream: textStream,
             model: .openai(.gpt4o),
-            settings: .default
+            settings: .default,
         )
 
         // Convert to UI stream
@@ -61,7 +61,7 @@ struct IntegrationTests {
         let calculator = SimplifiedToolBuilder.tool(
             "math",
             description: "Perform mathematical operations",
-            inputSchema: MathInput.self
+            inputSchema: MathInput.self,
         ) { (input: MathInput) async throws -> MathOutput in
             let result: Double
             switch input.operation {
@@ -124,9 +124,9 @@ struct IntegrationTests {
                 configuration: .init(
                     maxAttempts: 1,
                     delay: 0.1,
-                    timeout: nil
+                    timeout: nil,
                 ),
-                cancellationToken: token
+                cancellationToken: token,
             ) {
                 try await Task.sleep(nanoseconds: 1_000_000_000) // 1 second
                 try Task.checkCancellation()
@@ -155,7 +155,7 @@ struct IntegrationTests {
                 supportsTools: false,
                 supportsStreaming: false,
                 contextLength: 8192,
-                maxOutputTokens: 2048
+                maxOutputTokens: 2048,
             )
 
             func generateText(request: ProviderRequest) async throws -> ProviderResponse {
@@ -168,7 +168,7 @@ struct IntegrationTests {
                     }(),
                     usage: Usage(inputTokens: 10, outputTokens: 20),
                     finishReason: .stop,
-                    toolCalls: nil
+                    toolCalls: nil,
                 )
             }
 
@@ -184,8 +184,8 @@ struct IntegrationTests {
             configuration: ProviderConfiguration(
                 maxTokens: 2048,
                 maxContextLength: 8192,
-                supportsSystemRole: false
-            )
+                supportsSystemRole: false,
+            ),
         )
 
         // Test that system messages are transformed
@@ -203,7 +203,7 @@ struct IntegrationTests {
 
         let request = ProviderRequest(
             messages: [.user("Test message")],
-            settings: .default
+            settings: .default,
         )
 
         // First call - cache miss
@@ -229,7 +229,7 @@ struct IntegrationTests {
                 builder
                     .string("query", description: "Search query", required: true)
                     .integer("limit", description: "Result limit")
-            }
+            },
         ) { args, context async throws -> AnyAgentToolValue in
             let query = try args.stringValue("query")
             let limit = args.optionalIntegerValue("limit") ?? 10
@@ -253,7 +253,7 @@ struct IntegrationTests {
                 .system("You are a search assistant"),
                 .user("Find information about Swift"),
             ],
-            sessionId: "test-session-123"
+            sessionId: "test-session-123",
         )
 
         let args = AgentToolArguments([

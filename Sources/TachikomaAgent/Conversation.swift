@@ -80,7 +80,7 @@ public final class Conversation: @unchecked Sendable {
                 id: conversationMessage.id,
                 role: ModelMessage.Role(rawValue: conversationMessage.role.rawValue) ?? .user,
                 content: [.text(conversationMessage.content)],
-                timestamp: conversationMessage.timestamp
+                timestamp: conversationMessage.timestamp,
             )
         }
 
@@ -90,7 +90,7 @@ public final class Conversation: @unchecked Sendable {
             messages: modelMessages,
             tools: [],
             settings: .default,
-            configuration: self.configuration
+            configuration: self.configuration,
         )
 
         // Add the response to the conversation
@@ -102,7 +102,7 @@ public final class Conversation: @unchecked Sendable {
     /// Continue the conversation with a model, streaming the response
     public func continueConversationStreaming(
         using model: LanguageModel? = nil,
-        tools: [AgentTool]? = nil
+        tools: [AgentTool]? = nil,
     ) async throws
     -> AsyncThrowingStream<String, Error> {
         // Convert conversation messages to model messages
@@ -111,7 +111,7 @@ public final class Conversation: @unchecked Sendable {
                 id: conversationMessage.id,
                 role: ModelMessage.Role(rawValue: conversationMessage.role.rawValue) ?? .user,
                 content: [.text(conversationMessage.content)],
-                timestamp: conversationMessage.timestamp
+                timestamp: conversationMessage.timestamp,
             )
         }
 
@@ -121,7 +121,7 @@ public final class Conversation: @unchecked Sendable {
             messages: modelMessages,
             tools: tools ?? [], // Use provided tools or empty array
             settings: .default,
-            configuration: self.configuration
+            configuration: self.configuration,
         )
 
         // Create a new stream to process the response and update the conversation
@@ -191,7 +191,7 @@ public struct ConversationMessage: Sendable, Codable, Equatable {
             id: self.id,
             role: modelRole,
             content: [.text(self.content)],
-            timestamp: self.timestamp
+            timestamp: self.timestamp,
         )
     }
 
@@ -219,7 +219,7 @@ public struct ConversationMessage: Sendable, Codable, Equatable {
             id: modelMessage.id,
             role: role,
             content: textContent,
-            timestamp: modelMessage.timestamp
+            timestamp: modelMessage.timestamp,
         )
     }
 }

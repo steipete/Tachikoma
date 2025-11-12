@@ -29,7 +29,7 @@ public struct ProviderOptions: Sendable, Codable {
         google: GoogleOptions? = nil,
         mistral: MistralOptions? = nil,
         groq: GroqOptions? = nil,
-        grok: GrokOptions? = nil
+        grok: GrokOptions? = nil,
     ) {
         self.openai = openai
         self.anthropic = anthropic
@@ -88,7 +88,7 @@ public struct OpenAIOptions: Sendable, Codable {
         presencePenalty: Double? = nil,
         n: Int? = nil,
         logprobs: Bool? = nil,
-        topLogprobs: Int? = nil
+        topLogprobs: Int? = nil,
     ) {
         self.parallelToolCalls = parallelToolCalls
         self.responseFormat = responseFormat
@@ -147,7 +147,7 @@ public struct AnthropicOptions: Sendable, Codable {
         cacheControl: CacheControl? = nil,
         maxTokensToSample: Int? = nil,
         stopSequences: [String]? = nil,
-        metadata: [String: String]? = nil
+        metadata: [String: String]? = nil,
     ) {
         self.thinking = thinking
         self.cacheControl = cacheControl
@@ -178,7 +178,7 @@ public struct AnthropicOptions: Sendable, Codable {
                 throw DecodingError.dataCorruptedError(
                     forKey: .type,
                     in: container,
-                    debugDescription: "Unknown thinking mode type: \(type)"
+                    debugDescription: "Unknown thinking mode type: \(type)",
                 )
             }
         }
@@ -221,7 +221,7 @@ public struct GoogleOptions: Sendable, Codable {
         thinkingConfig: ThinkingConfig? = nil,
         safetySettings: SafetySettings? = nil,
         candidateCount: Int? = nil,
-        stopSequences: [String]? = nil
+        stopSequences: [String]? = nil,
     ) {
         self.thinkingConfig = thinkingConfig
         self.safetySettings = safetySettings
@@ -258,7 +258,7 @@ public struct MistralOptions: Sendable, Codable {
 
     public init(
         safeMode: Bool? = nil,
-        randomSeed: Int? = nil
+        randomSeed: Int? = nil,
     ) {
         self.safeMode = safeMode
         self.randomSeed = randomSeed
@@ -295,7 +295,7 @@ public struct GrokOptions: Sendable, Codable {
 
     public init(
         funMode: Bool? = nil,
-        includeCurrentEvents: Bool? = nil
+        includeCurrentEvents: Bool? = nil,
     ) {
         self.funMode = funMode
         self.includeCurrentEvents = includeCurrentEvents

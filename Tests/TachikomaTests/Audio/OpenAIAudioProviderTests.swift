@@ -63,12 +63,15 @@ struct OpenAIAudioProviderTests {
         @Test("OpenAI transcription provider transcribe function")
         func openAITranscriptionProviderTranscribe() async throws {
             try await TestHelpers.withTestConfiguration(apiKeys: ["openai": "test-key"]) { config in
-                let provider = try TranscriptionProviderFactory.createProvider(for: .openai(.whisper1), configuration: config)
+                let provider = try TranscriptionProviderFactory.createProvider(
+                    for: .openai(.whisper1),
+                    configuration: config,
+                )
                 let audioData = TestHelpers.sampleAudioData(configuration: config)
                 let request = TranscriptionRequest(
                     audio: audioData,
                     language: "en",
-                    prompt: "This is a test audio file."
+                    prompt: "This is a test audio file.",
                 )
 
                 // With mock implementation, test the basic flow
@@ -82,12 +85,15 @@ struct OpenAIAudioProviderTests {
         func openAITranscriptionProviderTimestamps() async throws {
             try await TestHelpers.withMockProviderEnvironment {
                 try await TestHelpers.withTestConfiguration(apiKeys: ["openai": "test-key"]) { config in
-                    let provider = try TranscriptionProviderFactory.createProvider(for: .openai(.whisper1), configuration: config)
+                    let provider = try TranscriptionProviderFactory.createProvider(
+                        for: .openai(.whisper1),
+                        configuration: config,
+                    )
                     let audioData = TestHelpers.sampleAudioData(configuration: config)
                     let request = TranscriptionRequest(
                         audio: audioData,
                         timestampGranularities: [.word, .segment],
-                        responseFormat: .verbose
+                        responseFormat: .verbose,
                     )
 
                     let result = try await provider.transcribe(request: request)
@@ -101,7 +107,10 @@ struct OpenAIAudioProviderTests {
         @Test("OpenAI transcription provider with abort signal")
         func openAITranscriptionProviderAbortSignal() async throws {
             try await TestHelpers.withTestConfiguration(apiKeys: ["openai": "test-key"]) { config in
-                let provider = try TranscriptionProviderFactory.createProvider(for: .openai(.whisper1), configuration: config)
+                let provider = try TranscriptionProviderFactory.createProvider(
+                    for: .openai(.whisper1),
+                    configuration: config,
+                )
                 let audioData = TestHelpers.sampleAudioData(configuration: config)
                 let abortSignal = AbortSignal()
                 let request = TranscriptionRequest(audio: audioData, abortSignal: abortSignal)
@@ -207,7 +216,7 @@ struct OpenAIAudioProviderTests {
                     text: "Hello, this is a test message for speech synthesis.",
                     voice: .nova,
                     speed: 1.0,
-                    format: .mp3
+                    format: .mp3,
                 )
 
                 do {
@@ -231,7 +240,7 @@ struct OpenAIAudioProviderTests {
                     let request = SpeechRequest(
                         text: "Testing voice: \(voice.stringValue)",
                         voice: voice,
-                        format: .wav
+                        format: .wav,
                     )
 
                     do {
@@ -257,7 +266,7 @@ struct OpenAIAudioProviderTests {
                         text: "Testing speed: \(speed)",
                         voice: .alloy,
                         speed: speed,
-                        format: .mp3
+                        format: .mp3,
                     )
 
                     do {
@@ -278,7 +287,7 @@ struct OpenAIAudioProviderTests {
                 let request = SpeechRequest(
                     text: "This is a test message with custom voice instructions.",
                     voice: .nova,
-                    instructions: "Speak in a calm, professional tone with clear pronunciation."
+                    instructions: "Speak in a calm, professional tone with clear pronunciation.",
                 )
 
                 do {
@@ -299,7 +308,7 @@ struct OpenAIAudioProviderTests {
                 let request = SpeechRequest(
                     text: "This should be cancelled",
                     voice: .alloy,
-                    abortSignal: abortSignal
+                    abortSignal: abortSignal,
                 )
 
                 // Cancel immediately
@@ -350,7 +359,7 @@ struct OpenAIAudioProviderTests {
                     let request = SpeechRequest(
                         text: "Testing format: \(format.rawValue)",
                         voice: .alloy,
-                        format: format
+                        format: format,
                     )
 
                     let result = try await provider.generateSpeech(request: request)
@@ -405,7 +414,10 @@ struct OpenAIAudioProviderTests {
         @Test("OpenAI request timeout configuration")
         func openAIRequestTimeout() async throws {
             try await TestHelpers.withTestConfiguration(apiKeys: ["openai": "test-key"]) { config in
-                let provider = try TranscriptionProviderFactory.createProvider(for: .openai(.whisper1), configuration: config)
+                let provider = try TranscriptionProviderFactory.createProvider(
+                    for: .openai(.whisper1),
+                    configuration: config,
+                )
                 let audioData = TestHelpers.sampleAudioData(configuration: config)
 
                 // Test with timeout signal
@@ -451,7 +463,10 @@ struct OpenAIAudioProviderTests {
         @Test("OpenAI provider handles unsupported formats gracefully")
         func openAIProviderUnsupportedFormats() async throws {
             try await TestHelpers.withTestConfiguration(apiKeys: ["openai": "test-key"]) { config in
-                let provider = try TranscriptionProviderFactory.createProvider(for: .openai(.whisper1), configuration: config)
+                let provider = try TranscriptionProviderFactory.createProvider(
+                    for: .openai(.whisper1),
+                    configuration: config,
+                )
 
                 let audioData = TestHelpers.sampleAudioData(configuration: config, format: .wav)
                 let request = TranscriptionRequest(audio: audioData)
@@ -460,7 +475,8 @@ struct OpenAIAudioProviderTests {
                     let result = try await provider.transcribe(request: request)
                     #expect(!result.text.isEmpty)
                 } catch let error as TachikomaError {
-                    // Real API may reject our tiny stub audio; make sure we surface a descriptive error instead of crashing.
+                    // Real API may reject our tiny stub audio; make sure we surface a descriptive error instead of
+                    // crashing.
                     let description = error.localizedDescription.lowercased()
                     let mentionsAudio = description.contains("audio") || description.contains("decode")
                     #expect(mentionsAudio)
@@ -471,7 +487,10 @@ struct OpenAIAudioProviderTests {
         @Test("OpenAI provider handles rate limiting")
         func openAIProviderRateLimiting() async throws {
             try await TestHelpers.withTestConfiguration(apiKeys: ["openai": "test-key"]) { config in
-                let provider = try TranscriptionProviderFactory.createProvider(for: .openai(.whisper1), configuration: config)
+                let provider = try TranscriptionProviderFactory.createProvider(
+                    for: .openai(.whisper1),
+                    configuration: config,
+                )
                 let audioData = TestHelpers.sampleAudioData(configuration: config)
 
                 // Simulate multiple rapid requests

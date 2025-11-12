@@ -1,5 +1,4 @@
 import Darwin
-import Darwin
 import Foundation
 import Logging
 import MCP
@@ -209,7 +208,7 @@ public final class StdioTransport: MCPTransport {
 
     public func sendRequest<R: Decodable>(
         method: String,
-        params: some Encodable
+        params: some Encodable,
     ) async throws
     -> R {
         let id = await state.getNextId()
@@ -263,13 +262,13 @@ public final class StdioTransport: MCPTransport {
 
     public func sendNotification(
         method: String,
-        params: some Encodable
+        params: some Encodable,
     ) async throws {
         // Create JSON-RPC notification (no id)
         let notification = JSONRPCNotification(
             jsonrpc: "2.0",
             method: method,
-            params: params
+            params: params,
         )
 
         // Encode and send
@@ -352,8 +351,10 @@ public final class StdioTransport: MCPTransport {
 
                     guard !chunk.isEmpty else { continue }
 
-                    if let message = String(data: chunk, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines),
-                        !message.isEmpty
+                    if
+                        let message = String(data: chunk, encoding: .utf8)?
+                            .trimmingCharacters(in: .whitespacesAndNewlines),
+                            !message.isEmpty
                     {
                         self.logger.debug("[MCP stdio][stderr] \(message)")
                     }
@@ -546,7 +547,7 @@ private enum JSONRPCID: Decodable {
         }
         throw DecodingError.typeMismatch(
             JSONRPCID.self,
-            .init(codingPath: decoder.codingPath, debugDescription: "Unsupported id type")
+            .init(codingPath: decoder.codingPath, debugDescription: "Unsupported id type"),
         )
     }
 }

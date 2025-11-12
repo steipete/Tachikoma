@@ -27,7 +27,7 @@ public actor LMStudioProvider: ModelProvider, Sendable {
         baseURL: String = "http://localhost:1234/v1",
         modelId: String = "current",
         apiKey: String? = nil,
-        sessionConfiguration: URLSessionConfiguration = .default
+        sessionConfiguration: URLSessionConfiguration = .default,
     ) {
         self.actualBaseURL = baseURL
         self.modelId = modelId
@@ -36,7 +36,7 @@ public actor LMStudioProvider: ModelProvider, Sendable {
             supportsTools: true,
             supportsStreaming: true,
             contextLength: 16384,
-            maxOutputTokens: 4096
+            maxOutputTokens: 4096,
         )
 
         let config = sessionConfiguration
@@ -84,7 +84,7 @@ public actor LMStudioProvider: ModelProvider, Sendable {
         return HealthStatus(
             status: "ok",
             model: response.data.first?.id,
-            version: "1.0"
+            version: "1.0",
         )
     }
 
@@ -225,7 +225,7 @@ public actor LMStudioProvider: ModelProvider, Sendable {
         if let temperature = settings.temperature {
             body["temperature"] = self.mapTemperatureForReasoningEffort(
                 temperature,
-                effort: settings.reasoningEffort
+                effort: settings.reasoningEffort,
             )
         }
         if let topP = settings.topP {
@@ -337,7 +337,7 @@ public actor LMStudioProvider: ModelProvider, Sendable {
 
     private func mapFromOpenAIResponse(
         _ response: LMStudioResponse,
-        request: ProviderRequest
+        request: ProviderRequest,
     ) throws
     -> ProviderResponse {
         guard let choice = response.choices.first else {
@@ -358,7 +358,7 @@ public actor LMStudioProvider: ModelProvider, Sendable {
                 Usage(
                     inputTokens: usage.prompt_tokens,
                     outputTokens: usage.completion_tokens,
-                    cost: nil
+                    cost: nil,
                 )
             },
             finishReason: self.mapFinishReason(choice.finish_reason),
@@ -366,9 +366,9 @@ public actor LMStudioProvider: ModelProvider, Sendable {
                 try AgentToolCall(
                     id: toolCall.id,
                     name: toolCall.function.name,
-                    arguments: self.parseToolArguments(toolCall.function.arguments)
+                    arguments: self.parseToolArguments(toolCall.function.arguments),
                 )
-            }
+            },
         )
     }
 
@@ -423,7 +423,7 @@ private struct LMStudioRequest: Encodable {
     private func encodeValue(
         _ value: Any,
         forKey key: DynamicCodingKey,
-        container: inout KeyedEncodingContainer<DynamicCodingKey>
+        container: inout KeyedEncodingContainer<DynamicCodingKey>,
     ) throws {
         switch value {
         case let bool as Bool:
@@ -623,7 +623,7 @@ public enum LocalModelResponseParser {
                 result = regex.stringByReplacingMatches(
                     in: result,
                     range: NSRange(location: 0, length: result.count),
-                    withTemplate: ""
+                    withTemplate: "",
                 )
             }
         }

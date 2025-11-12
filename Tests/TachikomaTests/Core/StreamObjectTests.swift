@@ -49,7 +49,7 @@ struct StreamObjectTests {
         let partialDelta = ObjectStreamDelta<TestPerson>(
             type: .partial,
             object: TestPerson(name: "Charlie", age: 25, email: nil),
-            rawText: "{\"name\":\"Charlie\",\"age\":25}"
+            rawText: "{\"name\":\"Charlie\",\"age\":25}",
         )
         #expect(partialDelta.type == .partial)
         #expect(partialDelta.object?.name == "Charlie")
@@ -57,7 +57,7 @@ struct StreamObjectTests {
 
         let completeDelta = ObjectStreamDelta<TestPerson>(
             type: .complete,
-            object: TestPerson(name: "David", age: 30, email: "david@example.com")
+            object: TestPerson(name: "David", age: 30, email: "david@example.com"),
         )
         #expect(completeDelta.type == .complete)
         #expect(completeDelta.object?.email == "david@example.com")
@@ -67,7 +67,7 @@ struct StreamObjectTests {
 
         let errorDelta = ObjectStreamDelta<TestPerson>(
             type: .error,
-            error: TachikomaError.invalidInput("Test error")
+            error: TachikomaError.invalidInput("Test error"),
         )
         #expect(errorDelta.type == .error)
         #expect(errorDelta.error != nil)
@@ -81,7 +81,7 @@ struct StreamObjectTests {
                 continuation.yield(ObjectStreamDelta(type: .start))
                 continuation.yield(ObjectStreamDelta(
                     type: .partial,
-                    object: TestPerson(name: "Eve", age: 28, email: nil)
+                    object: TestPerson(name: "Eve", age: 28, email: nil),
                 ))
                 continuation.yield(ObjectStreamDelta(type: .done))
                 continuation.finish()
@@ -92,7 +92,7 @@ struct StreamObjectTests {
             objectStream: testStream,
             model: .openai(.gpt4o),
             settings: .default,
-            schema: TestPerson.self
+            schema: TestPerson.self,
         )
 
         #expect(result.model == .openai(.gpt4o))
@@ -106,11 +106,11 @@ struct StreamObjectTests {
                 continuation.yield(ObjectStreamDelta(type: .start))
                 continuation.yield(ObjectStreamDelta(
                     type: .partial,
-                    object: TestPerson(name: "Frank", age: 35, email: "frank@test.com")
+                    object: TestPerson(name: "Frank", age: 35, email: "frank@test.com"),
                 ))
                 continuation.yield(ObjectStreamDelta(
                     type: .complete,
-                    object: TestPerson(name: "Frank", age: 35, email: "frank@test.com")
+                    object: TestPerson(name: "Frank", age: 35, email: "frank@test.com"),
                 ))
                 continuation.yield(ObjectStreamDelta(type: .done))
                 continuation.finish()
@@ -121,7 +121,7 @@ struct StreamObjectTests {
             objectStream: testStream,
             model: .anthropic(.opus4),
             settings: .default,
-            schema: TestPerson.self
+            schema: TestPerson.self,
         )
 
         // Test AsyncSequence conformance
@@ -144,12 +144,12 @@ struct StreamObjectTests {
                 for i in 1...3 {
                     continuation.yield(ObjectStreamDelta(
                         type: .partial,
-                        object: TestPerson(name: "Person \(i)", age: 20 + i, email: nil)
+                        object: TestPerson(name: "Person \(i)", age: 20 + i, email: nil),
                     ))
                 }
                 continuation.yield(ObjectStreamDelta(
                     type: .complete,
-                    object: TestPerson(name: "Final", age: 30, email: "final@test.com")
+                    object: TestPerson(name: "Final", age: 30, email: "final@test.com"),
                 ))
                 continuation.yield(ObjectStreamDelta(type: .done))
                 continuation.finish()
@@ -160,7 +160,7 @@ struct StreamObjectTests {
             objectStream: testStream,
             model: .openai(.gpt4o),
             settings: .default,
-            schema: TestPerson.self
+            schema: TestPerson.self,
         )
 
         var partialObjects: [TestPerson] = []
@@ -181,11 +181,11 @@ struct StreamObjectTests {
                 continuation.yield(ObjectStreamDelta(type: .start))
                 continuation.yield(ObjectStreamDelta(
                     type: .partial,
-                    object: TestPerson(name: "Partial", age: 25, email: nil)
+                    object: TestPerson(name: "Partial", age: 25, email: nil),
                 ))
                 continuation.yield(ObjectStreamDelta(
                     type: .complete,
-                    object: TestPerson(name: "Complete", age: 40, email: "complete@test.com")
+                    object: TestPerson(name: "Complete", age: 40, email: "complete@test.com"),
                 ))
                 continuation.yield(ObjectStreamDelta(type: .done))
                 continuation.finish()
@@ -196,7 +196,7 @@ struct StreamObjectTests {
             objectStream: testStream,
             model: .openai(.gpt4o),
             settings: .default,
-            schema: TestPerson.self
+            schema: TestPerson.self,
         )
 
         let finalObject = try await result.finalObject()
@@ -212,7 +212,7 @@ struct StreamObjectTests {
                 continuation.yield(ObjectStreamDelta(type: .start))
                 continuation.yield(ObjectStreamDelta(
                     type: .partial,
-                    object: TestPerson(name: "Partial", age: 25, email: nil)
+                    object: TestPerson(name: "Partial", age: 25, email: nil),
                 ))
                 // No complete object
                 continuation.yield(ObjectStreamDelta(type: .done))
@@ -224,7 +224,7 @@ struct StreamObjectTests {
             objectStream: testStream,
             model: .openai(.gpt4o),
             settings: .default,
-            schema: TestPerson.self
+            schema: TestPerson.self,
         )
 
         await #expect(throws: TachikomaError.self) {
