@@ -326,7 +326,7 @@ private final class ThreadSafeAudioFile: @unchecked Sendable {
 private func installInputTapNonisolated(
     inputNode: AVAudioInputNode,
     format: AVAudioFormat,
-    audioFile: AVAudioFile,
+    audioFile: AVAudioFile
 ) {
     let threadSafeFile = ThreadSafeAudioFile(audioFile: audioFile)
 

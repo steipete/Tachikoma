@@ -33,7 +33,7 @@ public final class RealtimeAudioProcessor: @unchecked Sendable {
         guard
             let inputFormat = AVAudioFormat(
                 standardFormatWithSampleRate: 48000,
-                channels: 1,
+                channels: 1
             ) else
         {
             throw TachikomaError.invalidConfiguration("Failed to create input audio format")
@@ -46,7 +46,7 @@ public final class RealtimeAudioProcessor: @unchecked Sendable {
                 commonFormat: .pcmFormatInt16,
                 sampleRate: targetSampleRate,
                 channels: targetChannels,
-                interleaved: true,
+                interleaved: true
             ) else
         {
             throw TachikomaError.invalidConfiguration("Failed to create output audio format")
@@ -74,13 +74,13 @@ public final class RealtimeAudioProcessor: @unchecked Sendable {
 
         // Calculate output buffer size
         let outputFrameCapacity = AVAudioFrameCount(
-            Double(buffer.frameLength) * (self.outputFormat.sampleRate / self.inputFormat.sampleRate),
+            Double(buffer.frameLength) * (self.outputFormat.sampleRate / self.inputFormat.sampleRate)
         )
 
         guard
             let outputBuffer = AVAudioPCMBuffer(
                 pcmFormat: outputFormat,
-                frameCapacity: outputFrameCapacity,
+                frameCapacity: outputFrameCapacity
             ) else
         {
             throw TachikomaError.invalidConfiguration("Failed to create output buffer")
@@ -118,7 +118,7 @@ public final class RealtimeAudioProcessor: @unchecked Sendable {
         guard
             let buffer = AVAudioPCMBuffer(
                 pcmFormat: outputFormat,
-                frameCapacity: frameCount,
+                frameCapacity: frameCount
             ) else
         {
             throw TachikomaError.invalidConfiguration("Failed to create audio buffer")
@@ -131,7 +131,7 @@ public final class RealtimeAudioProcessor: @unchecked Sendable {
             if let audioBuffer = buffer.int16ChannelData?[0] {
                 bytes.copyBytes(to: UnsafeMutableBufferPointer(
                     start: audioBuffer,
-                    count: Int(frameCount),
+                    count: Int(frameCount)
                 ))
             }
         }
@@ -143,7 +143,7 @@ public final class RealtimeAudioProcessor: @unchecked Sendable {
     public func convert(
         data: Data,
         from sourceFormat: RealtimeAudioFormat,
-        to targetFormat: RealtimeAudioFormat,
+        to targetFormat: RealtimeAudioFormat
     ) throws
     -> Data {
         // Convert audio data between formats
@@ -215,7 +215,7 @@ public final class RealtimeAudioProcessor: @unchecked Sendable {
         let audioBuffer = buffer.audioBufferList.pointee.mBuffers
         return Data(
             bytes: audioBuffer.mData!,
-            count: Int(audioBuffer.mDataByteSize),
+            count: Int(audioBuffer.mDataByteSize)
         )
     }
 

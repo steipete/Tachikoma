@@ -27,7 +27,7 @@ public struct RealtimeAudioFormats {
             commonFormat: .pcmFormatInt16,
             sampleRate: sampleRate,
             channels: self.channelCount,
-            interleaved: true,
+            interleaved: true
         )!
     }
 
@@ -36,7 +36,7 @@ public struct RealtimeAudioFormats {
         // Create float format for device
         AVAudioFormat(
             standardFormatWithSampleRate: sampleRate,
-            channels: self.channelCount,
+            channels: self.channelCount
         )!
     }
 
@@ -47,7 +47,7 @@ public struct RealtimeAudioFormats {
             commonFormat: .pcmFormatInt16, // Will be converted
             sampleRate: self.apiSampleRate,
             channels: self.channelCount,
-            interleaved: true,
+            interleaved: true
         )!
     }
 
@@ -58,7 +58,7 @@ public struct RealtimeAudioFormats {
             commonFormat: .pcmFormatInt16, // Will be converted
             sampleRate: self.apiSampleRate,
             channels: self.channelCount,
-            interleaved: true,
+            interleaved: true
         )!
     }
 }
@@ -73,7 +73,7 @@ extension AVAudioPCMBuffer {
         let audioBuffer = audioBufferList.pointee.mBuffers
         let data = Data(
             bytes: audioBuffer.mData!,
-            count: Int(audioBuffer.mDataByteSize),
+            count: Int(audioBuffer.mDataByteSize)
         )
         return data.base64EncodedString()
     }
@@ -98,7 +98,7 @@ extension AVAudioPCMBuffer {
             {
                 bytes.copyBytes(to: UnsafeMutableBufferPointer(
                     start: audioBuffer,
-                    count: Int(frameCount),
+                    count: Int(frameCount)
                 ))
             } else if
                 format.commonFormat == .pcmFormatFloat32,
@@ -106,7 +106,7 @@ extension AVAudioPCMBuffer {
             {
                 bytes.copyBytes(to: UnsafeMutableBufferPointer(
                     start: audioBuffer,
-                    count: Int(frameCount),
+                    count: Int(frameCount)
                 ))
             }
         }

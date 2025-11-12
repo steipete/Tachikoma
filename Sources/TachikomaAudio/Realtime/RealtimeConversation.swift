@@ -49,7 +49,7 @@ public final class RealtimeConversation: ObservableObject {
             enableEchoCancellation: Bool = true,
             enableNoiseSupression: Bool = true,
             autoReconnect: Bool = true,
-            sessionPersistence: Bool = true,
+            sessionPersistence: Bool = true
         ) {
             self.enableVAD = enableVAD
             self.enableEchoCancellation = enableEchoCancellation
@@ -72,7 +72,7 @@ public final class RealtimeConversation: ObservableObject {
             role: Tachikoma.ModelMessage.Role,
             content: String,
             timestamp: Date = Date(),
-            audioData: Data? = nil,
+            audioData: Data? = nil
         ) {
             self.id = id
             self.role = role
@@ -153,12 +153,12 @@ public final class RealtimeConversation: ObservableObject {
             voice: .alloy,
             instructions: nil,
             tools: nil,
-            temperature: 0.8,
+            temperature: 0.8
         )
 
         self.session = RealtimeSession(
             apiKey: apiKey,
-            configuration: sessionConfig,
+            configuration: sessionConfig
         )
     }
 
@@ -169,7 +169,7 @@ public final class RealtimeConversation: ObservableObject {
         model: LanguageModel.OpenAI = .gpt4oRealtime,
         voice: RealtimeVoice = .alloy,
         instructions: String? = nil,
-        tools: [RealtimeTool]? = nil,
+        tools: [RealtimeTool]? = nil
     ) async throws {
         // Update session configuration
         var config = self.session.configuration
@@ -283,7 +283,7 @@ public final class RealtimeConversation: ObservableObject {
         let item = ConversationItem(
             type: "message",
             role: "user",
-            content: [ConversationContent(type: "text", text: text)],
+            content: [ConversationContent(type: "text", text: text)]
         )
 
         // Add to local items
@@ -318,7 +318,7 @@ public final class RealtimeConversation: ObservableObject {
         // Add to messages
         let message = ConversationMessage(
             role: Tachikoma.ModelMessage.Role.user,
-            content: text,
+            content: text
         )
         self.messages.append(message)
     }
@@ -421,7 +421,7 @@ public final class RealtimeConversation: ObservableObject {
             // Add assistant message
             let message = ConversationMessage(
                 role: Tachikoma.ModelMessage.Role.assistant,
-                content: event.text,
+                content: event.text
             )
             self.messages.append(message)
 
@@ -465,7 +465,7 @@ public final class RealtimeConversation: ObservableObject {
         // Execute the tool
         let result = await toolRegistry.execute(
             toolName: event.name,
-            arguments: event.arguments,
+            arguments: event.arguments
         )
 
         print("Function call: \(event.name) executed with result: \(result)")
@@ -479,7 +479,7 @@ public final class RealtimeConversation: ObservableObject {
             callId: event.callId,
             name: nil,
             arguments: nil,
-            output: result,
+            output: result
         )
 
         // Send result
@@ -498,7 +498,7 @@ public func startRealtimeConversation(
     voice: RealtimeVoice = .alloy,
     instructions: String? = nil,
     tools: [AgentTool]? = nil,
-    configuration: TachikomaConfiguration = TachikomaConfiguration(),
+    configuration: TachikomaConfiguration = TachikomaConfiguration()
 ) async throws
 -> RealtimeConversation {
     // Verify model supports realtime
@@ -521,7 +521,7 @@ public func startRealtimeConversation(
         RealtimeTool(
             name: tool.name,
             description: tool.description,
-            parameters: tool.parameters,
+            parameters: tool.parameters
         )
     }
 
@@ -530,7 +530,7 @@ public func startRealtimeConversation(
         model: model,
         voice: voice,
         instructions: instructions,
-        tools: realtimeTools,
+        tools: realtimeTools
     )
 
     return conversation

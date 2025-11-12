@@ -117,7 +117,7 @@ public actor WebSocketTransport: RealtimeTransport {
         self.receiveContinuation = nil
 
         self.connectionContinuation?.resume(throwing: TachikomaError.networkError(
-            NSError(domain: "WebSocket", code: -1, userInfo: [NSLocalizedDescriptionKey: "Connection closed"]),
+            NSError(domain: "WebSocket", code: -1, userInfo: [NSLocalizedDescriptionKey: "Connection closed"])
         ))
         self.connectionContinuation = nil
 
@@ -130,7 +130,7 @@ public actor WebSocketTransport: RealtimeTransport {
     public func send(_ data: Data) async throws {
         guard let task, _isConnected else {
             throw TachikomaError.networkError(
-                NSError(domain: "WebSocket", code: -1, userInfo: [NSLocalizedDescriptionKey: "Not connected"]),
+                NSError(domain: "WebSocket", code: -1, userInfo: [NSLocalizedDescriptionKey: "Not connected"])
             )
         }
 
@@ -197,7 +197,7 @@ public actor WebSocketTransport: RealtimeTransport {
     private func sendPing() async throws {
         guard let task else {
             throw TachikomaError.networkError(
-                NSError(domain: "WebSocket", code: -1, userInfo: [NSLocalizedDescriptionKey: "No active task"]),
+                NSError(domain: "WebSocket", code: -1, userInfo: [NSLocalizedDescriptionKey: "No active task"])
             )
         }
 
@@ -225,7 +225,7 @@ public actor WebSocketTransport: RealtimeTransport {
 
             let delay = min(
                 baseReconnectDelay * pow(2.0, Double(self.reconnectAttempt - 1)),
-                self.maxReconnectDelay,
+                self.maxReconnectDelay
             )
 
             do {
@@ -243,7 +243,7 @@ public actor WebSocketTransport: RealtimeTransport {
             self.receiveContinuation?.finish(throwing: TachikomaError.networkError(
                 NSError(domain: "WebSocket", code: -1, userInfo: [
                     NSLocalizedDescriptionKey: "Maximum reconnection attempts reached",
-                ]),
+                ])
             ))
         }
     }
@@ -255,7 +255,7 @@ public actor WebSocketTransport: RealtimeTransport {
 public struct WebSocketTransportFactory {
     /// Create a WebSocket transport with custom configuration
     public static func create(
-        session: URLSession = .shared,
+        session: URLSession = .shared
     )
     -> RealtimeTransport {
         // Create a WebSocket transport with custom configuration

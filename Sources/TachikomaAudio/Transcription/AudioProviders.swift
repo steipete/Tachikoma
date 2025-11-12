@@ -76,7 +76,7 @@ public struct TranscriptionCapabilities: Sendable {
         supportsWordTimestamps: Bool = false,
         maxFileSize: Int? = nil,
         maxDuration: TimeInterval? = nil,
-        supportedLanguages: [String]? = nil,
+        supportedLanguages: [String]? = nil
     ) {
         self.supportedFormats = supportedFormats
         self.supportsTimestamps = supportsTimestamps
@@ -110,7 +110,7 @@ public struct SpeechCapabilities: Sendable {
         supportsLanguageSelection: Bool = false,
         supportsEmotionalControl: Bool = false,
         maxTextLength: Int? = nil,
-        supportedLanguages: [String]? = nil,
+        supportedLanguages: [String]? = nil
     ) {
         self.supportedFormats = supportedFormats
         self.supportedVoices = supportedVoices
@@ -131,7 +131,7 @@ public struct TranscriptionProviderFactory {
     /// Create a transcription provider for the specified model
     public static func createProvider(
         for model: TranscriptionModel,
-        configuration: TachikomaConfiguration = TachikomaConfiguration(),
+        configuration: TachikomaConfiguration = TachikomaConfiguration()
     ) throws
     -> any TranscriptionProvider {
         // Check if API tests are disabled
@@ -164,7 +164,7 @@ public struct SpeechProviderFactory {
     /// Create a speech provider for the specified model
     public static func createProvider(
         for model: SpeechModel,
-        configuration: TachikomaConfiguration = TachikomaConfiguration(),
+        configuration: TachikomaConfiguration = TachikomaConfiguration()
     ) throws
     -> any SpeechProvider {
         // Check if API tests are disabled
@@ -262,7 +262,7 @@ public final class OpenAITranscriptionProvider: TranscriptionProvider {
             supportsSummarization: false,
             supportsWordTimestamps: model.supportsTimestamps,
             maxFileSize: 25 * 1024 * 1024, // 25MB
-            maxDuration: nil,
+            maxDuration: nil
         )
     }
 
@@ -293,7 +293,7 @@ public final class OpenAISpeechProvider: SpeechProvider {
             supportsSpeedControl: true,
             supportsLanguageSelection: false,
             supportsEmotionalControl: false,
-            maxTextLength: 4096,
+            maxTextLength: 4096
         )
     }
 
@@ -311,7 +311,7 @@ public final class GroqTranscriptionProvider: TranscriptionProvider {
         self.modelId = model.rawValue
         self.capabilities = TranscriptionCapabilities(
             supportsTimestamps: model.supportsTimestamps,
-            supportsLanguageDetection: model.supportsLanguageDetection,
+            supportsLanguageDetection: model.supportsLanguageDetection
         )
     }
 
@@ -338,7 +338,7 @@ public final class GroqTranscriptionProvider: TranscriptionProvider {
         formData
             .append(
                 "Content-Disposition: form-data; name=\"file\"; filename=\"audio.\(request.audio.format.rawValue)\"\r\n"
-                    .data(using: .utf8)!,
+                    .data(using: .utf8)!
             )
         formData.append("Content-Type: \(request.audio.format.mimeType)\r\n\r\n".data(using: .utf8)!)
         formData.append(request.audio.data)
@@ -413,9 +413,9 @@ public final class GroqTranscriptionProvider: TranscriptionProvider {
                     text: segment.text,
                     start: segment.start,
                     end: segment.end,
-                    confidence: nil,
+                    confidence: nil
                 )
-            },
+            }
         )
     }
 }
@@ -430,7 +430,7 @@ public final class DeepgramTranscriptionProvider: TranscriptionProvider {
         self.capabilities = TranscriptionCapabilities(
             supportsTimestamps: model.supportsTimestamps,
             supportsLanguageDetection: model.supportsLanguageDetection,
-            supportsSummarization: model.supportsSummarization,
+            supportsSummarization: model.supportsSummarization
         )
     }
 
@@ -532,7 +532,7 @@ public final class DeepgramTranscriptionProvider: TranscriptionProvider {
                 text: utterance.transcript,
                 start: utterance.start,
                 end: utterance.end,
-                confidence: utterance.confidence,
+                confidence: utterance.confidence
                 // Note: Speaker diarization info (utterance.speaker) is not included in TranscriptionSegment
             )
         }
@@ -541,7 +541,7 @@ public final class DeepgramTranscriptionProvider: TranscriptionProvider {
             text: bestAlternative.transcript,
             language: request.language,
             duration: nil,
-            segments: segments,
+            segments: segments
             // Note: Confidence and summary from Deepgram are not included in current TranscriptionResult model
         )
     }
@@ -558,7 +558,7 @@ public final class ElevenLabsTranscriptionProvider: TranscriptionProvider {
         self.modelId = model.rawValue
         self.capabilities = TranscriptionCapabilities(
             supportsTimestamps: model.supportsTimestamps,
-            supportsLanguageDetection: model.supportsLanguageDetection,
+            supportsLanguageDetection: model.supportsLanguageDetection
         )
     }
 
@@ -567,7 +567,7 @@ public final class ElevenLabsTranscriptionProvider: TranscriptionProvider {
         // This is a placeholder for future implementation
         throw TachikomaError
             .unsupportedOperation(
-                "ElevenLabs transcription is not available - ElevenLabs only supports speech generation",
+                "ElevenLabs transcription is not available - ElevenLabs only supports speech generation"
             )
     }
 }
@@ -581,7 +581,7 @@ public final class ElevenLabsSpeechProvider: SpeechProvider {
         self.modelId = model.rawValue
         self.capabilities = SpeechCapabilities(
             supportedFormats: model.supportedFormats,
-            supportsVoiceInstructions: model.supportsVoiceCloning,
+            supportsVoiceInstructions: model.supportsVoiceCloning
         )
     }
 
@@ -641,8 +641,8 @@ public final class ElevenLabsSpeechProvider: SpeechProvider {
                 stability: 0.5,
                 similarity_boost: 0.75,
                 style: nil,
-                use_speaker_boost: nil,
-            ),
+                use_speaker_boost: nil
+            )
         )
 
         urlRequest.httpBody = try JSONEncoder().encode(requestBody)
@@ -660,7 +660,7 @@ public final class ElevenLabsSpeechProvider: SpeechProvider {
         // The response is raw audio data
         return SpeechResult(
             audioData: AudioData(data: data, format: .mp3),
-            usage: nil,
+            usage: nil
         )
     }
 }
@@ -687,14 +687,14 @@ public final class MockTranscriptionProvider: TranscriptionProvider {
                 supportsTimestamps: openaiModel.supportsTimestamps,
                 supportsLanguageDetection: openaiModel.supportsLanguageDetection,
                 supportsWordTimestamps: openaiModel.supportsTimestamps,
-                maxFileSize: 25 * 1024 * 1024, // 25MB
+                maxFileSize: 25 * 1024 * 1024 // 25MB
             )
         default:
             self.capabilities = TranscriptionCapabilities(
                 supportedFormats: AudioFormat.allCases,
                 supportsTimestamps: true,
                 supportsLanguageDetection: true,
-                supportsWordTimestamps: true,
+                supportsWordTimestamps: true
             )
         }
     }
@@ -735,7 +735,7 @@ public final class MockTranscriptionProvider: TranscriptionProvider {
                         TranscriptionWord(word: "Mock", start: 0.0, end: 0.5),
                         TranscriptionWord(word: "transcription", start: 0.5, end: 1.5),
                         TranscriptionWord(word: "result", start: 1.5, end: mockDuration),
-                    ] : nil,
+                    ] : nil
                 ),
             ]
         }
@@ -745,7 +745,7 @@ public final class MockTranscriptionProvider: TranscriptionProvider {
             language: request.language ?? "en",
             duration: mockDuration,
             segments: segments,
-            usage: TranscriptionUsage(durationSeconds: mockDuration),
+            usage: TranscriptionUsage(durationSeconds: mockDuration)
         )
     }
 }
@@ -770,13 +770,13 @@ public final class MockSpeechProvider: SpeechProvider {
                 supportedVoices: openaiModel.supportedVoices,
                 supportsVoiceInstructions: openaiModel.supportsVoiceInstructions,
                 supportsSpeedControl: true,
-                maxTextLength: 4096,
+                maxTextLength: 4096
             )
         default:
             self.capabilities = SpeechCapabilities(
                 supportedFormats: [.mp3, .wav],
                 supportedVoices: [.alloy, .echo, .fable, .onyx, .nova, .shimmer],
-                supportsSpeedControl: true,
+                supportsSpeedControl: true
             )
         }
     }
@@ -821,7 +821,7 @@ public final class MockSpeechProvider: SpeechProvider {
 
         return SpeechResult(
             audioData: AudioData(data: mockAudioData, format: request.format),
-            usage: SpeechUsage(charactersProcessed: request.text.count),
+            usage: SpeechUsage(charactersProcessed: request.text.count)
         )
     }
 }

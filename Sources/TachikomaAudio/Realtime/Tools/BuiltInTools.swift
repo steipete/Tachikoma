@@ -32,17 +32,17 @@ public struct WeatherTool: RealtimeExecutableTool {
                     "location": AgentToolParameterProperty(
                         name: "location",
                         type: .string,
-                        description: "The city and state/country, e.g. 'San Francisco, CA' or 'London, UK'",
+                        description: "The city and state/country, e.g. 'San Francisco, CA' or 'London, UK'"
                     ),
                     "units": AgentToolParameterProperty(
                         name: "units",
                         type: .string,
                         description: "Temperature units: 'celsius' or 'fahrenheit' (default: celsius)",
-                        enumValues: ["celsius", "fahrenheit"],
+                        enumValues: ["celsius", "fahrenheit"]
                     ),
                 ],
-                required: ["location"],
-            ),
+                required: ["location"]
+            )
         )
     }
 
@@ -82,17 +82,17 @@ public struct TimeTool: RealtimeExecutableTool {
                     "timezone": AgentToolParameterProperty(
                         name: "timezone",
                         type: .string,
-                        description: "Timezone identifier (e.g., 'America/New_York', 'Europe/London'). Default is system timezone.",
+                        description: "Timezone identifier (e.g., 'America/New_York', 'Europe/London'). Default is system timezone."
                     ),
                     "format": AgentToolParameterProperty(
                         name: "format",
                         type: .string,
                         description: "Time format: '12hour' or '24hour' (default: 24hour)",
-                        enumValues: ["12hour", "24hour"],
+                        enumValues: ["12hour", "24hour"]
                     ),
                 ],
-                required: [],
-            ),
+                required: []
+            )
         )
     }
 
@@ -143,11 +143,11 @@ public struct CalculatorTool: RealtimeExecutableTool {
                     "expression": AgentToolParameterProperty(
                         name: "expression",
                         type: .string,
-                        description: "Mathematical expression to evaluate (e.g., '2 + 2', '10 * 5', 'sqrt(16)')",
+                        description: "Mathematical expression to evaluate (e.g., '2 + 2', '10 * 5', 'sqrt(16)')"
                     ),
                 ],
-                required: ["expression"],
-            ),
+                required: ["expression"]
+            )
         )
     }
 
@@ -193,16 +193,16 @@ public struct WebSearchTool: RealtimeExecutableTool {
                     "query": AgentToolParameterProperty(
                         name: "query",
                         type: .string,
-                        description: "Search query",
+                        description: "Search query"
                     ),
                     "maxResults": AgentToolParameterProperty(
                         name: "maxResults",
                         type: .integer,
-                        description: "Maximum number of results to return (default: 5)",
+                        description: "Maximum number of results to return (default: 5)"
                     ),
                 ],
-                required: ["query"],
-            ),
+                required: ["query"]
+            )
         )
     }
 
@@ -249,21 +249,21 @@ public struct TranslationTool: RealtimeExecutableTool {
                     "text": AgentToolParameterProperty(
                         name: "text",
                         type: .string,
-                        description: "Text to translate",
+                        description: "Text to translate"
                     ),
                     "sourceLanguage": AgentToolParameterProperty(
                         name: "sourceLanguage",
                         type: .string,
-                        description: "Source language code (e.g., 'en', 'es', 'fr'). Auto-detect if not specified.",
+                        description: "Source language code (e.g., 'en', 'es', 'fr'). Auto-detect if not specified."
                     ),
                     "targetLanguage": AgentToolParameterProperty(
                         name: "targetLanguage",
                         type: .string,
-                        description: "Target language code (e.g., 'en', 'es', 'fr')",
+                        description: "Target language code (e.g., 'en', 'es', 'fr')"
                     ),
                 ],
-                required: ["text", "targetLanguage"],
-            ),
+                required: ["text", "targetLanguage"]
+            )
         )
     }
 
@@ -329,13 +329,13 @@ public final class RealtimeToolRegistry: Sendable {
     /// Execute a tool
     public func execute(
         toolName: String,
-        arguments: String,
+        arguments: String
     ) async
     -> String {
         // Execute a tool
         await self.executor.executeSimple(
             toolName: toolName,
-            arguments: arguments,
+            arguments: arguments
         )
     }
 
@@ -347,7 +347,7 @@ public final class RealtimeToolRegistry: Sendable {
             RealtimeTool(
                 name: meta.name,
                 description: meta.description,
-                parameters: meta.parameters,
+                parameters: meta.parameters
             )
         }
     }
