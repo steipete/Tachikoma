@@ -26,7 +26,7 @@ struct MultiChannelResponseTests {
         let message = ModelMessage(
             role: .assistant,
             content: [.text("This is my reasoning")],
-            channel: .thinking,
+            channel: .thinking
         )
 
         #expect(message.channel == .thinking)
@@ -39,13 +39,13 @@ struct MultiChannelResponseTests {
         let metadata = MessageMetadata(
             conversationId: "conv-123",
             turnId: "turn-456",
-            customData: ["key": "value"],
+            customData: ["key": "value"]
         )
 
         let message = ModelMessage(
             role: .user,
             content: [.text("Hello")],
-            metadata: metadata,
+            metadata: metadata
         )
 
         #expect(message.metadata?.conversationId == "conv-123")
@@ -59,18 +59,18 @@ struct MultiChannelResponseTests {
         let reasoningDelta = TextStreamDelta(
             type: .reasoning,
             content: "Analyzing the problem...",
-            channel: .thinking,
+            channel: .thinking
         )
 
         let doneDelta = TextStreamDelta(
             type: .done,
-            channel: .final,
+            channel: .final
         )
 
         let textDelta = TextStreamDelta(
             type: .textDelta,
             content: "Reasoning about the problem",
-            channel: .thinking,
+            channel: .thinking
         )
 
         // Verify the event types and channels
@@ -89,19 +89,19 @@ struct MultiChannelResponseTests {
         let metadata1 = MessageMetadata(
             conversationId: "123",
             turnId: "456",
-            customData: ["key": "value"],
+            customData: ["key": "value"]
         )
 
         let metadata2 = MessageMetadata(
             conversationId: "123",
             turnId: "456",
-            customData: ["key": "value"],
+            customData: ["key": "value"]
         )
 
         let metadata3 = MessageMetadata(
             conversationId: "789",
             turnId: "456",
-            customData: ["key": "value"],
+            customData: ["key": "value"]
         )
 
         #expect(metadata1 == metadata2)
@@ -135,19 +135,19 @@ struct MultiChannelResponseTests {
         let thinkingMessage = ModelMessage(
             role: .assistant,
             content: [.text("Let me think about this...")],
-            channel: .thinking,
+            channel: .thinking
         )
 
         let analysisMessage = ModelMessage(
             role: .assistant,
             content: [.text("Analyzing the components...")],
-            channel: .analysis,
+            channel: .analysis
         )
 
         let finalMessage = ModelMessage(
             role: .assistant,
             content: [.text("The answer is 42")],
-            channel: .final,
+            channel: .final
         )
 
         #expect(thinkingMessage.channel == .thinking)
@@ -179,7 +179,7 @@ struct MultiChannelResponseTests {
         let original = MessageMetadata(
             conversationId: "conv-123",
             turnId: "turn-456",
-            customData: ["foo": "bar", "baz": "qux"],
+            customData: ["foo": "bar", "baz": "qux"]
         )
 
         let data = try encoder.encode(original)

@@ -22,8 +22,7 @@ struct AudioProviderFactoryTests {
 
         let provider = try TranscriptionProviderFactory.createProvider(
             for: .openai(.whisper1),
-            configuration: configuration,
-        )
+            configuration: configuration)
 
         #expect(provider is MockTranscriptionProvider)
     }
@@ -70,8 +69,7 @@ struct AudioProviderFactoryTests {
 
         let provider = try SpeechProviderFactory.createProvider(
             for: .openai(.tts1),
-            configuration: configuration,
-        )
+            configuration: configuration)
 
         #expect(provider is MockSpeechProvider)
     }
@@ -106,10 +104,7 @@ struct AudioProviderFactoryTests {
         }
 
         let expectedKey = getenv("OPENAI_API_KEY").map { String(cString: $0) }
-        let resolvedKey = AudioConfiguration.getAPIKey(
-            for: "openai",
-            configuration: TachikomaConfiguration(loadFromEnvironment: false),
-        )
+        let resolvedKey = AudioConfiguration.getAPIKey(for: "openai", configuration: TachikomaConfiguration(loadFromEnvironment: false))
         if let expectedKey {
             #expect(resolvedKey == expectedKey)
         } else {

@@ -34,7 +34,7 @@ struct AudioFunctionsTests {
                         using: .openai(.whisper1),
                         language: "en",
                         prompt: "This is a test audio file.",
-                        configuration: config,
+                        configuration: config
                     )
 
                     #expect(!result.text.isEmpty)
@@ -60,7 +60,7 @@ struct AudioFunctionsTests {
                         contentsOf: audioFile,
                         using: .openai(.whisper1),
                         language: "en",
-                        configuration: config,
+                        configuration: config
                     )
 
                     #expect(!text.isEmpty)
@@ -82,7 +82,7 @@ struct AudioFunctionsTests {
                         using: .openai(.whisper1),
                         timestampGranularities: [.word, .segment],
                         responseFormat: .verbose,
-                        configuration: config,
+                        configuration: config
                     )
 
                     #expect(!result.text.isEmpty)
@@ -106,7 +106,7 @@ struct AudioFunctionsTests {
                             audioData,
                             using: .openai(.whisper1),
                             abortSignal: abortSignal,
-                            configuration: config,
+                            configuration: config
                         )
                     }
                 }
@@ -150,7 +150,7 @@ struct AudioFunctionsTests {
                         voice: .nova,
                         speed: 1.2,
                         format: .wav,
-                        configuration: config,
+                        configuration: config
                     )
 
                     #expect(result.audioData.format == .wav)
@@ -172,7 +172,7 @@ struct AudioFunctionsTests {
                         using: .openai(.tts1),
                         voice: .alloy,
                         format: .wav,
-                        configuration: config,
+                        configuration: config
                     )
 
                     #expect(FileManager.default.fileExists(atPath: outputFile.path))
@@ -197,7 +197,7 @@ struct AudioFunctionsTests {
                             "This should be cancelled",
                             using: .openai(.tts1),
                             abortSignal: abortSignal,
-                            configuration: config,
+                            configuration: config
                         )
                     }
                 }
@@ -229,7 +229,7 @@ struct AudioFunctionsTests {
                         audioFiles,
                         using: .openai(.whisper1),
                         language: "en",
-                        configuration: config,
+                        configuration: config
                     )
 
                     #expect(results.count == 2)
@@ -252,7 +252,7 @@ struct AudioFunctionsTests {
                         texts,
                         using: .openai(.tts1),
                         voice: .alloy,
-                        configuration: config,
+                        configuration: config
                     )
 
                     #expect(results.count == 2)
@@ -373,7 +373,7 @@ struct AudioFunctionsTests {
                     let groqResult = try await transcribe(
                         audioData,
                         using: .groq(.whisperLargeV3Turbo),
-                        configuration: config,
+                        configuration: config
                     )
                     #expect(!groqResult.text.isEmpty)
                 }

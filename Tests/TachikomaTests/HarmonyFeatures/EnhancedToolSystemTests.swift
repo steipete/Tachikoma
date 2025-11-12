@@ -10,7 +10,7 @@ struct EnhancedToolSystemTests {
             name: "search",
             arguments: ["query": AnyAgentToolValue(string: "test")],
             namespace: "web",
-            recipient: "google-search",
+            recipient: "google-search"
         )
 
         #expect(toolCall.id == "call-123")
@@ -24,7 +24,7 @@ struct EnhancedToolSystemTests {
     func toolCallWithoutNamespaceRecipient() {
         let toolCall = AgentToolCall(
             name: "calculate",
-            arguments: ["expression": AnyAgentToolValue(string: "2+2")],
+            arguments: ["expression": AnyAgentToolValue(string: "2+2")]
         )
 
         #expect(toolCall.namespace == nil)
@@ -42,16 +42,16 @@ struct EnhancedToolSystemTests {
                     "path": AgentToolParameterProperty(
                         name: "path",
                         type: .string,
-                        description: "File path",
+                        description: "File path"
                     ),
                 ],
-                required: ["path"],
+                required: ["path"]
             ),
             namespace: "filesystem",
             recipient: "local-fs",
             execute: { _ in
                 AnyAgentToolValue(string: "file contents")
-            },
+            }
         )
 
         #expect(tool.name == "readFile")
@@ -66,7 +66,7 @@ struct EnhancedToolSystemTests {
             name: "echo",
             description: "Echo input",
             parameters: AgentToolParameters(properties: [:], required: []),
-            execute: { _ in AnyAgentToolValue(string: "echo") },
+            execute: { _ in AnyAgentToolValue(string: "echo") }
         )
 
         #expect(tool.namespace == nil)
@@ -82,28 +82,28 @@ struct EnhancedToolSystemTests {
                 description: "Read file",
                 parameters: AgentToolParameters(properties: [:], required: []),
                 namespace: "filesystem",
-                execute: { _ in AnyAgentToolValue(string: "") },
+                execute: { _ in AnyAgentToolValue(string: "") }
             ),
             AgentTool(
                 name: "writeFile",
                 description: "Write file",
                 parameters: AgentToolParameters(properties: [:], required: []),
                 namespace: "filesystem",
-                execute: { _ in AnyAgentToolValue(string: "") },
+                execute: { _ in AnyAgentToolValue(string: "") }
             ),
             AgentTool(
                 name: "query",
                 description: "Database query",
                 parameters: AgentToolParameters(properties: [:], required: []),
                 namespace: "database",
-                execute: { _ in AnyAgentToolValue(string: "") },
+                execute: { _ in AnyAgentToolValue(string: "") }
             ),
             AgentTool(
                 name: "search",
                 description: "Web search",
                 parameters: AgentToolParameters(properties: [:], required: []),
                 namespace: "web",
-                execute: { _ in AnyAgentToolValue(string: "") },
+                execute: { _ in AnyAgentToolValue(string: "") }
             ),
         ]
 
@@ -127,7 +127,7 @@ struct EnhancedToolSystemTests {
                 parameters: AgentToolParameters(properties: [:], required: []),
                 namespace: "database",
                 recipient: "postgres-primary",
-                execute: { _ in AnyAgentToolValue(string: "primary result") },
+                execute: { _ in AnyAgentToolValue(string: "primary result") }
             ),
             AgentTool(
                 name: "query",
@@ -135,7 +135,7 @@ struct EnhancedToolSystemTests {
                 parameters: AgentToolParameters(properties: [:], required: []),
                 namespace: "database",
                 recipient: "postgres-replica",
-                execute: { _ in AnyAgentToolValue(string: "replica result") },
+                execute: { _ in AnyAgentToolValue(string: "replica result") }
             ),
         ]
 
@@ -160,7 +160,7 @@ struct EnhancedToolSystemTests {
             name: "search",
             arguments: ["query": AnyAgentToolValue(string: "Swift")],
             namespace: "web",
-            recipient: "duckduckgo",
+            recipient: "duckduckgo"
         )
 
         let data = try encoder.encode(original)
@@ -180,7 +180,7 @@ struct EnhancedToolSystemTests {
 
         let original = AgentToolCall(
             name: "calculate",
-            arguments: ["expr": AnyAgentToolValue(double: 42.0)],
+            arguments: ["expr": AnyAgentToolValue(double: 42.0)]
         )
 
         let data = try encoder.encode(original)
@@ -209,7 +209,7 @@ struct EnhancedToolSystemTests {
                 // In real implementation, namespace could be passed via context
                 await capture.set("test-namespace")
                 return AnyAgentToolValue(string: "executed in namespace")
-            },
+            }
         )
 
         let toolArgs = AgentToolArguments([:])
@@ -226,7 +226,7 @@ struct EnhancedToolSystemTests {
             description: "Web search",
             parameters: AgentToolParameters(properties: [:], required: []),
             namespace: "web",
-            execute: { _ in AnyAgentToolValue(string: "web results") },
+            execute: { _ in AnyAgentToolValue(string: "web results") }
         )
 
         let dbSearch = AgentTool(
@@ -234,7 +234,7 @@ struct EnhancedToolSystemTests {
             description: "Database search",
             parameters: AgentToolParameters(properties: [:], required: []),
             namespace: "database",
-            execute: { _ in AnyAgentToolValue(string: "db results") },
+            execute: { _ in AnyAgentToolValue(string: "db results") }
         )
 
         let fileSearch = AgentTool(
@@ -242,7 +242,7 @@ struct EnhancedToolSystemTests {
             description: "File search",
             parameters: AgentToolParameters(properties: [:], required: []),
             namespace: "filesystem",
-            execute: { _ in AnyAgentToolValue(string: "file results") },
+            execute: { _ in AnyAgentToolValue(string: "file results") }
         )
 
         // All have same name but different namespaces

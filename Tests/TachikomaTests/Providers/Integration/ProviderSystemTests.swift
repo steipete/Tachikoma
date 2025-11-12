@@ -132,7 +132,7 @@ struct ProviderSystemTests {
         let request = ProviderRequest(
             messages: [ModelMessage(role: .user, content: [.text("Hello world")])],
             tools: nil,
-            settings: GenerationSettings(maxTokens: 100, temperature: 0.7),
+            settings: GenerationSettings(maxTokens: 100, temperature: 0.7)
         )
 
         #expect(request.messages.count == 1)
@@ -152,7 +152,7 @@ struct ProviderSystemTests {
                 .image(imageContent),
             ])],
             tools: nil,
-            settings: .default,
+            settings: .default
         )
 
         #expect(request.messages.count == 1)

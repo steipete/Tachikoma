@@ -24,7 +24,7 @@ struct ReasoningEffortTests {
         let settings = GenerationSettings(
             maxTokens: 1000,
             temperature: 0.7,
-            reasoningEffort: .high,
+            reasoningEffort: .high
         )
 
         #expect(settings.reasoningEffort == .high)
@@ -91,7 +91,7 @@ struct ReasoningEffortTests {
             maxTokens: 2000,
             temperature: 0.5,
             topP: 0.9,
-            reasoningEffort: .high,
+            reasoningEffort: .high
         )
 
         let data = try encoder.encode(original)
@@ -110,7 +110,7 @@ struct ReasoningEffortTests {
 
         let original = GenerationSettings(
             maxTokens: 1000,
-            temperature: 0.7,
+            temperature: 0.7
             // No reasoning effort
         )
 

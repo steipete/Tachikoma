@@ -14,12 +14,12 @@ struct OpenAIResponsesProviderTests {
         for model in gpt5Models {
             let provider = try ProviderFactory.createProvider(
                 for: .openai(model),
-                configuration: config,
+                configuration: config
             )
 
             #expect(
                 provider is OpenAIResponsesProvider,
-                "GPT-5 model \(model) should use OpenAIResponsesProvider",
+                "GPT-5 model \(model) should use OpenAIResponsesProvider"
             )
         }
     }
@@ -36,7 +36,7 @@ struct OpenAIResponsesProviderTests {
 
         let provider = try OpenAIResponsesProvider(
             model: .gpt5,
-            configuration: config,
+            configuration: config
         )
 
         // Create a simple request
@@ -45,7 +45,7 @@ struct OpenAIResponsesProviderTests {
                 ModelMessage(role: .user, content: [.text("Hello")]),
             ],
             tools: nil,
-            settings: GenerationSettings(),
+            settings: GenerationSettings()
         )
 
         // We can't directly test the internal request building without making it public
@@ -70,12 +70,12 @@ struct OpenAIResponsesProviderTests {
         for model in reasoningModels {
             let provider = try ProviderFactory.createProvider(
                 for: .openai(model),
-                configuration: config,
+                configuration: config
             )
 
             #expect(
                 provider is OpenAIResponsesProvider,
-                "Reasoning model \(model) should use OpenAIResponsesProvider",
+                "Reasoning model \(model) should use OpenAIResponsesProvider"
             )
         }
     }
@@ -90,12 +90,12 @@ struct OpenAIResponsesProviderTests {
         for model in legacyModels {
             let provider = try ProviderFactory.createProvider(
                 for: .openai(model),
-                configuration: config,
+                configuration: config
             )
 
             #expect(
                 provider is OpenAIProvider,
-                "Legacy model \(model) should use OpenAIProvider",
+                "Legacy model \(model) should use OpenAIProvider"
             )
         }
     }
@@ -135,7 +135,7 @@ struct OpenAIResponsesProviderTests {
             include: nil,
             reasoning: nil,
             truncation: nil,
-            stream: false,
+            stream: false
         )
 
         let encoder = JSONEncoder()
@@ -154,7 +154,7 @@ struct OpenAIResponsesProviderTests {
         let toolCall = OpenAIResponsesResponse.ResponsesToolCall(
             id: "call_1",
             type: "function",
-            function: .init(name: "see", arguments: "{\"mode\":\"screen\"}"),
+            function: .init(name: "see", arguments: "{\"mode\":\"screen\"}")
         )
 
         let output = OpenAIResponsesResponse.ResponsesOutput(
@@ -166,7 +166,7 @@ struct OpenAIResponsesProviderTests {
                 .init(type: "tool_call", text: nil, toolCall: toolCall),
             ],
             role: "assistant",
-            toolCall: nil,
+            toolCall: nil
         )
 
         let response = OpenAIResponsesResponse(
@@ -179,7 +179,7 @@ struct OpenAIResponsesProviderTests {
             output: [output],
             choices: nil,
             usage: nil,
-            metadata: nil,
+            metadata: nil
         )
 
         let providerResponse = try OpenAIResponsesProvider.convertToProviderResponse(response)
@@ -258,8 +258,8 @@ struct OpenAIResponsesProviderTests {
 
     private var sampleRequest: ProviderRequest {
         ProviderRequest(
-            messages: [ModelMessage(role: .user, content: [.text("ping")])],
-            settings: .init(maxTokens: 32),
+            messages: [ModelMessage(role: .user, content: [.text("ping")] )],
+            settings: .init(maxTokens: 32)
         )
     }
 
@@ -355,9 +355,8 @@ struct OpenAIResponsesProviderTests {
 
     private func withMockedSession<T>(
         handler: @Sendable @escaping (URLRequest) throws -> (HTTPURLResponse, Data),
-        operation: (URLSession) async throws -> T,
-    ) async rethrows
-    -> T {
+        operation: (URLSession) async throws -> T
+    ) async rethrows -> T {
         let previousHandler = ResponsesTestURLProtocol.handler
         ResponsesTestURLProtocol.handler = handler
         let configuration = URLSessionConfiguration.ephemeral
@@ -375,7 +374,7 @@ struct OpenAIResponsesProviderTests {
     private func openAIConfig() -> TachikomaConfiguration {
         TestHelpers.createTestConfiguration(
             apiKeys: ["openai": "test-key"],
-            enableMockOverride: false,
+            enableMockOverride: false
         )
     }
 }

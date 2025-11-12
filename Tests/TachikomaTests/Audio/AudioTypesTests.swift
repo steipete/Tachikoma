@@ -17,7 +17,7 @@ struct AudioTypesTests {
                 format: .wav,
                 sampleRate: 44100,
                 channels: 2,
-                duration: 5.0,
+                duration: 5.0
             )
 
             #expect(audioData.data == testData)
@@ -207,7 +207,7 @@ struct AudioTypesTests {
                 duration: 2.0,
                 segments: segments,
                 usage: usage,
-                warnings: ["Test warning"],
+                warnings: ["Test warning"]
             )
 
             #expect(result.text == "Hello world")
@@ -232,7 +232,7 @@ struct AudioTypesTests {
             let result = SpeechResult(
                 audioData: audioData,
                 usage: usage,
-                warnings: ["Speed too fast"],
+                warnings: ["Speed too fast"]
             )
 
             #expect(result.audioData.format == .mp3)
@@ -257,7 +257,7 @@ struct AudioTypesTests {
                 timestampGranularities: [.word, .segment],
                 responseFormat: .verbose,
                 abortSignal: abortSignal,
-                headers: ["Custom-Header": "value"],
+                headers: ["Custom-Header": "value"]
             )
 
             #expect(request.audio.format == .wav)
@@ -281,7 +281,7 @@ struct AudioTypesTests {
                 format: .flac,
                 instructions: "Speak clearly",
                 abortSignal: abortSignal,
-                headers: ["API-Version": "v1"],
+                headers: ["API-Version": "v1"]
             )
 
             #expect(request.text == "Hello world")

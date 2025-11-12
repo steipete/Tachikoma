@@ -26,7 +26,7 @@ struct ResponseCacheTests {
         let probeRequest = ProviderRequest(
             messages: [ModelMessage.user("ping")],
             tools: nil,
-            settings: .default,
+            settings: .default
         )
         let cached = await cache.get(for: probeRequest)
         #expect(cached == nil)
@@ -39,13 +39,13 @@ struct ResponseCacheTests {
         let request = ProviderRequest(
             messages: [ModelMessage.user("Hello")],
             tools: nil,
-            settings: .default,
+            settings: .default
         )
 
         let response = ProviderResponse(
             text: "Hi there!",
             usage: Usage(inputTokens: 5, outputTokens: 10),
-            finishReason: .stop,
+            finishReason: .stop
         )
 
         // Store response
@@ -67,7 +67,7 @@ struct ResponseCacheTests {
         let request = ProviderRequest(
             messages: [ModelMessage.user("Test")],
             tools: nil,
-            settings: .default,
+            settings: .default
         )
 
         // Should return nil for uncached request
@@ -83,7 +83,7 @@ struct ResponseCacheTests {
         let request = ProviderRequest(
             messages: [ModelMessage.user("Temporary")],
             tools: nil,
-            settings: .default,
+            settings: .default
         )
 
         let response = ProviderResponse(text: "Will expire", usage: nil, finishReason: .stop)
@@ -110,21 +110,21 @@ struct ResponseCacheTests {
         let request1 = ProviderRequest(
             messages: [ModelMessage.user("First")],
             tools: nil,
-            settings: .default,
+            settings: .default
         )
         let response1 = ProviderResponse(text: "Response 1", usage: nil, finishReason: .stop)
 
         let request2 = ProviderRequest(
             messages: [ModelMessage.user("Second")],
             tools: nil,
-            settings: .default,
+            settings: .default
         )
         let response2 = ProviderResponse(text: "Response 2", usage: nil, finishReason: .stop)
 
         let request3 = ProviderRequest(
             messages: [ModelMessage.user("Third")],
             tools: nil,
-            settings: .default,
+            settings: .default
         )
         let response3 = ProviderResponse(text: "Response 3", usage: nil, finishReason: .stop)
 
@@ -160,7 +160,7 @@ struct ResponseCacheTests {
             let request = ProviderRequest(
                 messages: [ModelMessage.user("Message \(i)")],
                 tools: nil,
-                settings: .default,
+                settings: .default
             )
             let response = ProviderResponse(text: "Response \(i)", usage: nil, finishReason: .stop)
             await cache.store(response, for: request)
@@ -197,7 +197,7 @@ struct ResponseCacheTests {
             let request = ProviderRequest(
                 messages: [ModelMessage.user("Test \(i)")],
                 tools: nil,
-                settings: .default,
+                settings: .default
             )
             let response = ProviderResponse(text: "Response \(i)", usage: nil, finishReason: .stop)
             await cache.store(response, for: request)
@@ -220,13 +220,13 @@ struct ResponseCacheTests {
         let request1 = ProviderRequest(
             messages: messages,
             tools: nil,
-            settings: GenerationSettings(temperature: 0.7),
+            settings: GenerationSettings(temperature: 0.7)
         )
 
         let request2 = ProviderRequest(
             messages: messages,
             tools: nil,
-            settings: GenerationSettings(temperature: 0.7),
+            settings: GenerationSettings(temperature: 0.7)
         )
 
         let key1 = CacheKey(from: request1)
@@ -242,19 +242,19 @@ struct ResponseCacheTests {
         let request1 = ProviderRequest(
             messages: [ModelMessage.user("Hello")],
             tools: nil,
-            settings: .default,
+            settings: .default
         )
 
         let request2 = ProviderRequest(
             messages: [ModelMessage.user("Hi")],
             tools: nil,
-            settings: .default,
+            settings: .default
         )
 
         let request3 = ProviderRequest(
             messages: [ModelMessage.user("Hello")],
             tools: nil,
-            settings: GenerationSettings(temperature: 0.5),
+            settings: GenerationSettings(temperature: 0.5)
         )
 
         let key1 = CacheKey(from: request1)
@@ -275,7 +275,7 @@ struct ResponseCacheTests {
             description: "First tool",
             parameters: AgentToolParameters(properties: [:], required: []),
             namespace: "test",
-            execute: { _ in AnyAgentToolValue(string: "") },
+            execute: { _ in AnyAgentToolValue(string: "") }
         )
 
         let tool2 = AgentTool(
@@ -283,25 +283,25 @@ struct ResponseCacheTests {
             description: "Second tool",
             parameters: AgentToolParameters(properties: [:], required: []),
             namespace: "test",
-            execute: { _ in AnyAgentToolValue(string: "") },
+            execute: { _ in AnyAgentToolValue(string: "") }
         )
 
         let request1 = ProviderRequest(
             messages: [ModelMessage.user("Test")],
             tools: [tool1],
-            settings: .default,
+            settings: .default
         )
 
         let request2 = ProviderRequest(
             messages: [ModelMessage.user("Test")],
             tools: [tool2],
-            settings: .default,
+            settings: .default
         )
 
         let request3 = ProviderRequest(
             messages: [ModelMessage.user("Test")],
             tools: nil,
-            settings: .default,
+            settings: .default
         )
 
         let key1 = CacheKey(from: request1)
@@ -321,7 +321,7 @@ struct ResponseCacheTests {
         // Create a mock provider
         let mockProvider = ResponseCacheMockProvider(
             model: .openai(.gpt4o),
-            response: ProviderResponse(text: "Cached response", usage: nil, finishReason: .stop),
+            response: ProviderResponse(text: "Cached response", usage: nil, finishReason: .stop)
         )
 
         let cachedProvider = await cache.wrapProvider(mockProvider)
@@ -343,7 +343,7 @@ struct ResponseCacheTests {
             response: ProviderResponse(text: "Response", usage: nil, finishReason: .stop),
             onGenerateText: { _ in
                 callCount.value += 1
-            },
+            }
         )
 
         let cachedProvider = await cache.wrapProvider(mockProvider)
@@ -351,7 +351,7 @@ struct ResponseCacheTests {
         let request = ProviderRequest(
             messages: [ModelMessage.user("Test")],
             tools: nil,
-            settings: .default,
+            settings: .default
         )
 
         // First call - should hit provider
@@ -375,7 +375,7 @@ struct ResponseCacheTests {
             response: ProviderResponse(text: "Test", usage: nil, finishReason: .stop),
             onStreamText: { _ in
                 callCount.value += 1
-            },
+            }
         )
 
         let cachedProvider = await cache.wrapProvider(mockProvider)
@@ -383,7 +383,7 @@ struct ResponseCacheTests {
         let request = ProviderRequest(
             messages: [ModelMessage.user("Test")],
             tools: nil,
-            settings: .default,
+            settings: .default
         )
 
         // Streaming should not use cache
@@ -412,7 +412,7 @@ private struct ResponseCacheMockProvider: ModelProvider {
         model: LanguageModel,
         response: ProviderResponse,
         onGenerateText: (@Sendable (ProviderRequest) -> Void)? = nil,
-        onStreamText: (@Sendable (ProviderRequest) -> Void)? = nil,
+        onStreamText: (@Sendable (ProviderRequest) -> Void)? = nil
     ) {
         self.model = model
         self.response = response
