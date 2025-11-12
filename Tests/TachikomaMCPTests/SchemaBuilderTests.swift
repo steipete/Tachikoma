@@ -11,7 +11,7 @@ struct SchemaBuilderTests {
             enum: ["Alice", "Bob"],
             default: "Alice",
             minLength: 2,
-            maxLength: 20,
+            maxLength: 20
         )
 
         guard case let .object(dict) = schema else {
@@ -36,7 +36,7 @@ struct SchemaBuilderTests {
     func booleanSchema() {
         let schema = SchemaBuilder.boolean(
             description: "Is active",
-            default: true,
+            default: true
         )
 
         guard case let .object(dict) = schema else {
@@ -55,7 +55,7 @@ struct SchemaBuilderTests {
             description: "Temperature",
             minimum: 0.0,
             maximum: 100.0,
-            default: 25.0,
+            default: 25.0
         )
 
         guard case let .object(dict) = schema else {
@@ -76,7 +76,7 @@ struct SchemaBuilderTests {
             description: "Count",
             minimum: 1,
             maximum: 100,
-            default: 10,
+            default: 10
         )
 
         guard case let .object(dict) = schema else {
@@ -99,7 +99,7 @@ struct SchemaBuilderTests {
             description: "List of tags",
             minItems: 1,
             maxItems: 10,
-            uniqueItems: true,
+            uniqueItems: true
         )
 
         guard case let .object(dict) = schema else {
@@ -124,7 +124,7 @@ struct SchemaBuilderTests {
             ],
             required: ["name"],
             description: "User object",
-            additionalProperties: false,
+            additionalProperties: false
         )
 
         guard case let .object(dict) = schema else {

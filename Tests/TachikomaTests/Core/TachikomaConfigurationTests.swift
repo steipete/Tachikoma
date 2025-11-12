@@ -26,7 +26,7 @@ struct TachikomaConfigurationTests {
                 apiKeys: [
                     "openai": "test-openai-key",
                     "anthropic": "test-anthropic-key",
-                ],
+                ]
             )
 
             #expect(config.getAPIKey(for: .openai) == "test-openai-key")
@@ -38,7 +38,7 @@ struct TachikomaConfigurationTests {
         func convenienceConstructorWithAPIKeysAndBaseURLs() async throws {
             let config = TachikomaConfiguration(
                 apiKeys: ["openai": "test-key"],
-                baseURLs: ["openai": "https://custom.openai.com"],
+                baseURLs: ["openai": "https://custom.openai.com"]
             )
 
             #expect(config.getAPIKey(for: .openai) == "test-key")
@@ -375,26 +375,26 @@ struct TachikomaConfigurationTests {
                     // Uses default (.current)
                     _ = try await generateText(
                         model: .openai(.gpt4o),
-                        messages: [.user("Test")],
+                        messages: [.user("Test")]
                     )
 
                     // Uses explicit
                     _ = try await generateText(
                         model: .openai(.gpt4o),
                         messages: [.user("Test")],
-                        configuration: explicitConfig,
+                        configuration: explicitConfig
                     )
 
                     // Stream functions
                     _ = try await streamText(
                         model: .openai(.gpt4o),
-                        messages: [.user("Test")],
+                        messages: [.user("Test")]
                     )
 
                     _ = try await streamText(
                         model: .openai(.gpt4o),
                         messages: [.user("Test")],
-                        configuration: explicitConfig,
+                        configuration: explicitConfig
                     )
 
                     // Convenience functions
@@ -594,7 +594,7 @@ private struct DummyProvider: ModelProvider {
         supportsTools: false,
         supportsStreaming: false,
         contextLength: 1,
-        maxOutputTokens: 1,
+        maxOutputTokens: 1
     )
 
     func generateText(request: ProviderRequest) async throws -> ProviderResponse {

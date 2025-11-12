@@ -16,14 +16,14 @@ struct StopConditionsIntegrationTests {
             stopConditions: AnyStopCondition([
                 StringStopCondition("END"),
                 StringStopCondition("STOP"),
-            ]),
+            ])
         )
 
         let request = ProviderRequest(
             messages: [.user("Test")],
             tools: nil,
             settings: settings,
-            outputFormat: nil,
+            outputFormat: nil
         )
 
         // Verify that stop sequences can be extracted from simple conditions
@@ -43,14 +43,14 @@ struct StopConditionsIntegrationTests {
         let mockProvider = MockTextProvider(responseText: "Count: 1 2 3 END 4 5 6")
 
         let settings = GenerationSettings(
-            stopConditions: StringStopCondition("END"),
+            stopConditions: StringStopCondition("END")
         )
 
         let request = ProviderRequest(
             messages: [.user("Count to 10")],
             tools: nil,
             settings: settings,
-            outputFormat: nil,
+            outputFormat: nil
         )
 
         let response = try await mockProvider.generateText(request: request)
@@ -296,7 +296,7 @@ private struct MockTextProvider: ModelProvider {
         return ProviderResponse(
             text: finalText,
             usage: nil,
-            finishReason: finishReason,
+            finishReason: finishReason
         )
     }
 
