@@ -29,7 +29,7 @@ public final class OpenAICompatibleProvider: ModelProvider {
             supportsTools: true,
             supportsStreaming: true,
             contextLength: 128_000,
-            maxOutputTokens: 4096,
+            maxOutputTokens: 4096
         )
     }
 
@@ -40,7 +40,7 @@ public final class OpenAICompatibleProvider: ModelProvider {
             modelId: self.modelId,
             baseURL: self.baseURL!,
             apiKey: self.apiKey ?? "",
-            providerName: "OpenAICompatible",
+            providerName: "OpenAICompatible"
         )
     }
 
@@ -51,7 +51,7 @@ public final class OpenAICompatibleProvider: ModelProvider {
             modelId: self.modelId,
             baseURL: self.baseURL!,
             apiKey: self.apiKey ?? "",
-            providerName: "OpenAICompatible",
+            providerName: "OpenAICompatible"
         )
     }
 }

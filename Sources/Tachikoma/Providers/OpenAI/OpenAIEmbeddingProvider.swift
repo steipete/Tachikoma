@@ -83,8 +83,8 @@ struct OpenAIEmbeddingProvider: EmbeddingProvider, ModelProvider {
             usage: usage,
             metadata: EmbeddingMetadata(
                 truncated: false,
-                normalizedL2: request.settings.normalizeEmbeddings,
-            ),
+                normalizedL2: request.settings.normalizeEmbeddings
+            )
         )
     }
 }

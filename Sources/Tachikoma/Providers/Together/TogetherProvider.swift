@@ -12,7 +12,7 @@ public final class TogetherProvider: ModelProvider {
     public init(
         modelId: String,
         configuration: TachikomaConfiguration,
-        session: URLSession = .shared,
+        session: URLSession = .shared
     ) throws {
         self.modelId = modelId
         self.baseURL = configuration.getBaseURL(for: .custom("together")) ?? "https://api.together.xyz/v1"
@@ -29,7 +29,7 @@ public final class TogetherProvider: ModelProvider {
             supportsTools: true,
             supportsStreaming: true,
             contextLength: 128_000,
-            maxOutputTokens: 4096,
+            maxOutputTokens: 4096
         )
     }
 
@@ -44,7 +44,7 @@ public final class TogetherProvider: ModelProvider {
             baseURL: baseURL,
             apiKey: apiKey,
             providerName: "Together",
-            session: self.session,
+            session: self.session
         )
     }
 
@@ -59,7 +59,7 @@ public final class TogetherProvider: ModelProvider {
             baseURL: baseURL,
             apiKey: apiKey,
             providerName: "Together",
-            session: self.session,
+            session: self.session
         )
     }
 }

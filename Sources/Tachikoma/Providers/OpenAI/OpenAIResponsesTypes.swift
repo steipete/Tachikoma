@@ -135,7 +135,7 @@ struct ResponseFormat: Codable {
                 throw DecodingError.dataCorruptedError(
                     forKey: .type,
                     in: container,
-                    debugDescription: "Unknown response format type: \(type)",
+                    debugDescription: "Unknown response format type: \(type)"
                 )
             }
         }
@@ -252,7 +252,7 @@ struct ResponsesTool: Codable {
             name: String,
             description: String? = nil,
             parameters: [String: Any]? = nil,
-            inputSchema: [String: Any]? = nil,
+            inputSchema: [String: Any]? = nil
         ) {
             self.name = name
             self.description = description

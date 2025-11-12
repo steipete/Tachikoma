@@ -215,7 +215,7 @@ enum AnthropicContent: Codable {
             throw DecodingError.dataCorruptedError(
                 forKey: .type,
                 in: container,
-                debugDescription: "Unknown content type: \(type)",
+                debugDescription: "Unknown content type: \(type)"
             )
         }
     }
@@ -291,7 +291,7 @@ struct AnthropicInputSchema: Codable {
 
     private func encodeAnyDictionary(
         _ dict: [String: Any],
-        to container: inout KeyedEncodingContainer<AnyCodingKey>,
+        to container: inout KeyedEncodingContainer<AnyCodingKey>
     ) throws {
         for (key, value) in dict {
             let codingKey = AnyCodingKey(stringValue: key)!
@@ -476,9 +476,8 @@ enum AnthropicResponseContent: Codable {
     }
 
     init(from decoder: Decoder) throws {
-        if
-            let singleValue = try? decoder.singleValueContainer(),
-            let text = try? singleValue.decode(String.self)
+        if let singleValue = try? decoder.singleValueContainer(),
+           let text = try? singleValue.decode(String.self)
         {
             self = .text(TextContent(text: text))
             return

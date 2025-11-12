@@ -8,7 +8,7 @@ public struct ProviderFactory {
     /// Create a provider for the specified language model
     public static func createProvider(
         for model: LanguageModel,
-        configuration: TachikomaConfiguration,
+        configuration: TachikomaConfiguration
     ) throws
     -> any ModelProvider {
         // Create a provider for the specified language model
@@ -53,7 +53,7 @@ public struct ProviderFactory {
             let baseURL = configuration.getBaseURL(for: "lmstudio") ?? "http://localhost:1234/v1"
             return LMStudioProvider(
                 baseURL: baseURL,
-                modelId: lmstudioModel.modelId,
+                modelId: lmstudioModel.modelId
             )
 
         case let .openRouter(modelId):
@@ -81,13 +81,13 @@ public struct ProviderFactory {
                         return try OpenAICompatibleProvider(
                             modelId: parsed.model,
                             baseURL: custom.baseURL,
-                            configuration: configuration,
+                            configuration: configuration
                         )
                     case .anthropic:
                         return try AnthropicCompatibleProvider(
                             modelId: parsed.model,
                             baseURL: custom.baseURL,
-                            configuration: configuration,
+                            configuration: configuration
                         )
                     }
                 }

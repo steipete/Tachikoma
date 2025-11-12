@@ -12,7 +12,7 @@ public final class ReplicateProvider: ModelProvider {
     public init(
         modelId: String,
         configuration: TachikomaConfiguration,
-        session: URLSession = .shared,
+        session: URLSession = .shared
     ) throws {
         self.modelId = modelId
         self.baseURL = configuration.getBaseURL(for: .custom("replicate")) ?? "https://api.replicate.com/v1"
@@ -29,7 +29,7 @@ public final class ReplicateProvider: ModelProvider {
             supportsTools: false, // Most Replicate models don't support tools
             supportsStreaming: true,
             contextLength: 32000,
-            maxOutputTokens: 4096,
+            maxOutputTokens: 4096
         )
     }
 
@@ -50,7 +50,7 @@ public final class ReplicateProvider: ModelProvider {
             apiKey: apiKey,
             providerName: "Replicate",
             additionalHeaders: headers,
-            session: self.session,
+            session: self.session
         )
     }
 
@@ -65,7 +65,7 @@ public final class ReplicateProvider: ModelProvider {
             baseURL: baseURL,
             apiKey: apiKey,
             providerName: "Replicate",
-            session: self.session,
+            session: self.session
         )
     }
 }

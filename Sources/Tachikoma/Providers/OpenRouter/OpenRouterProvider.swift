@@ -13,7 +13,7 @@ public final class OpenRouterProvider: ModelProvider {
     public init(
         modelId: String,
         configuration: TachikomaConfiguration,
-        session: URLSession = .shared,
+        session: URLSession = .shared
     ) throws {
         self.modelId = modelId
         self.baseURL = configuration.getBaseURL(for: .custom("openrouter")) ?? "https://openrouter.ai/api/v1"
@@ -30,12 +30,12 @@ public final class OpenRouterProvider: ModelProvider {
             supportsTools: true,
             supportsStreaming: true,
             contextLength: 128_000,
-            maxOutputTokens: 4096,
+            maxOutputTokens: 4096
         )
 
         self.defaultHeaders = [
             "HTTP-Referer": ProcessInfo.processInfo.environment["OPENROUTER_REFERER"] ?? "https://peekaboo.app",
-            "X-Title": ProcessInfo.processInfo.environment["OPENROUTER_TITLE"] ?? "Peekaboo",
+            "X-Title": ProcessInfo.processInfo.environment["OPENROUTER_TITLE"] ?? "Peekaboo"
         ]
     }
 
@@ -51,7 +51,7 @@ public final class OpenRouterProvider: ModelProvider {
             apiKey: apiKey,
             providerName: "OpenRouter",
             additionalHeaders: self.defaultHeaders,
-            session: self.session,
+            session: self.session
         )
     }
 
@@ -67,7 +67,7 @@ public final class OpenRouterProvider: ModelProvider {
             apiKey: apiKey,
             providerName: "OpenRouter",
             additionalHeaders: self.defaultHeaders,
-            session: self.session,
+            session: self.session
         )
     }
 }
