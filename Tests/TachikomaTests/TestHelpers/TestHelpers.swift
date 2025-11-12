@@ -7,9 +7,8 @@ enum TestHelpers {
     /// Create a test configuration with specific API keys
     static func createTestConfiguration(
         apiKeys: [String: String] = [:],
-        enableMockOverride: Bool = true,
-    )
-    -> TachikomaConfiguration {
+        enableMockOverride: Bool = true
+    ) -> TachikomaConfiguration {
         let config = TachikomaConfiguration(loadFromEnvironment: false)
         for (provider, key) in apiKeys {
             let resolved = self.resolve(provider: provider, provided: key)
@@ -47,7 +46,7 @@ enum TestHelpers {
     @discardableResult
     static func withTestConfiguration<T>(
         apiKeys: [String: String] = [:],
-        _ body: (TachikomaConfiguration) async throws -> T,
+        _ body: (TachikomaConfiguration) async throws -> T
     ) async rethrows
     -> T {
         let config = self.createTestConfiguration(apiKeys: apiKeys)
@@ -57,7 +56,7 @@ enum TestHelpers {
     /// Execute a test with standard test API keys
     @discardableResult
     static func withStandardTestConfiguration<T>(
-        _ body: (TachikomaConfiguration) async throws -> T,
+        _ body: (TachikomaConfiguration) async throws -> T
     ) async rethrows
     -> T {
         let config = self.createStandardTestConfiguration()
@@ -67,7 +66,7 @@ enum TestHelpers {
     /// Execute a test with no API keys (for testing missing key scenarios)
     @discardableResult
     static func withEmptyTestConfiguration<T>(
-        _ body: (TachikomaConfiguration) async throws -> T,
+        _ body: (TachikomaConfiguration) async throws -> T
     ) async rethrows
     -> T {
         let config = self.createEmptyTestConfiguration()
@@ -78,7 +77,7 @@ enum TestHelpers {
     @discardableResult
     static func withSelectiveTestConfiguration<T>(
         present: [String],
-        _ body: (TachikomaConfiguration) async throws -> T,
+        _ body: (TachikomaConfiguration) async throws -> T
     ) async rethrows
     -> T {
         let config = self.createSelectiveTestConfiguration(present: present)
@@ -88,9 +87,8 @@ enum TestHelpers {
     @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
     static func sampleAudioData(
         configuration: TachikomaConfiguration,
-        format: AudioFormat = .mp3,
-    )
-    -> AudioData {
+        format: AudioFormat = .mp3
+    ) -> AudioData {
         // Use deterministic stub audio data for unit tests to avoid network calls.
         let stub = Data([0x01, 0x02, 0x03, 0x04])
         return AudioData(data: stub, format: format)
@@ -98,9 +96,8 @@ enum TestHelpers {
 
     /// Execute a test while temporarily forcing mock provider mode
     static func withMockProviderEnvironment<T>(
-        _ body: () async throws -> T,
-    ) async rethrows
-    -> T {
+        _ body: () async throws -> T
+    ) async rethrows -> T {
         let previous = getenv("TACHIKOMA_TEST_MODE").flatMap { String(cString: $0) }
         setenv("TACHIKOMA_TEST_MODE", "mock", 1)
         defer {
@@ -115,12 +112,12 @@ enum TestHelpers {
 
     private static func makeStandardTestKeys() -> [String: String] {
         [
-            "openai": self.resolve(provider: "openai", provided: "test-key"),
-            "anthropic": self.resolve(provider: "anthropic", provided: "test-key"),
-            "grok": self.resolve(provider: "grok", provided: "test-key"),
-            "groq": self.resolve(provider: "groq", provided: "test-key"),
-            "mistral": self.resolve(provider: "mistral", provided: "test-key"),
-            "google": self.resolve(provider: "google", provided: "test-key"),
+            "openai": Self.resolve(provider: "openai", provided: "test-key"),
+            "anthropic": Self.resolve(provider: "anthropic", provided: "test-key"),
+            "grok": Self.resolve(provider: "grok", provided: "test-key"),
+            "groq": Self.resolve(provider: "groq", provided: "test-key"),
+            "mistral": Self.resolve(provider: "mistral", provided: "test-key"),
+            "google": Self.resolve(provider: "google", provided: "test-key"),
         ]
     }
 
@@ -147,19 +144,19 @@ enum TestHelpers {
     private static func environmentVariables(for provider: String) -> [String] {
         switch provider.lowercased() {
         case "openai":
-            ["OPENAI_API_KEY"]
+            return ["OPENAI_API_KEY"]
         case "anthropic":
-            ["ANTHROPIC_API_KEY"]
+            return ["ANTHROPIC_API_KEY"]
         case "grok":
-            ["XAI_API_KEY", "X_AI_API_KEY"]
+            return ["XAI_API_KEY", "X_AI_API_KEY"]
         case "groq":
-            ["GROQ_API_KEY"]
+            return ["GROQ_API_KEY"]
         case "mistral":
-            ["MISTRAL_API_KEY"]
+            return ["MISTRAL_API_KEY"]
         case "google":
-            ["GEMINI_API_KEY", "GOOGLE_API_KEY", "GOOGLE_APPLICATION_CREDENTIALS"]
+            return ["GEMINI_API_KEY", "GOOGLE_API_KEY", "GOOGLE_APPLICATION_CREDENTIALS"]
         default:
-            []
+            return []
         }
     }
 

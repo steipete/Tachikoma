@@ -22,7 +22,7 @@ public final class MockProvider: ModelProvider {
             supportsTools: true,
             supportsStreaming: true,
             contextLength: 128_000,
-            maxOutputTokens: 4096,
+            maxOutputTokens: 4096
         )
     }
 
@@ -44,7 +44,7 @@ public final class MockProvider: ModelProvider {
         let mockResponse = self.generateMockResponse(
             for: self.model,
             prompt: promptText,
-            hasTools: request.tools?.isEmpty == false,
+            hasTools: request.tools?.isEmpty == false
         )
 
         // Handle tool calls if requested
@@ -53,7 +53,7 @@ public final class MockProvider: ModelProvider {
             toolCalls = [AgentToolCall(
                 id: "mock_tool_call_123",
                 name: tools.first?.name ?? "mock_tool",
-                arguments: ["query": AnyAgentToolValue(string: "mock query")],
+                arguments: ["query": AnyAgentToolValue(string: "mock query")]
             )]
         }
 
@@ -61,7 +61,7 @@ public final class MockProvider: ModelProvider {
             text: mockResponse,
             usage: Usage(inputTokens: 50, outputTokens: 100, cost: Usage.Cost(input: 0.0005, output: 0.0005)),
             finishReason: toolCalls != nil ? .toolCalls : .stop,
-            toolCalls: toolCalls,
+            toolCalls: toolCalls
         )
     }
 

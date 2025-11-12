@@ -16,15 +16,15 @@ struct ToolSystemTests {
                 AgentToolParameterProperty(
                     name: "a",
                     type: .integer,
-                    description: "First number",
+                    description: "First number"
                 ),
                 AgentToolParameterProperty(
                     name: "b",
                     type: .integer,
-                    description: "Second number",
+                    description: "Second number"
                 ),
             ],
-            required: ["a", "b"],
+            required: ["a", "b"]
         ) { args in
             let a = try args.integerValue("a")
             let b = try args.integerValue("b")
@@ -47,10 +47,10 @@ struct ToolSystemTests {
                 AgentToolParameterProperty(
                     name: "expression",
                     type: .string,
-                    description: "Mathematical expression",
+                    description: "Mathematical expression"
                 ),
             ],
-            required: ["expression"],
+            required: ["expression"]
         ) { args in
             let expr = try args.stringValue("expression")
             // Simple evaluation for test
@@ -102,32 +102,32 @@ struct ToolSystemTests {
             AgentToolParameterProperty(
                 name: "string_param",
                 type: .string,
-                description: "A string parameter",
+                description: "A string parameter"
             ),
             AgentToolParameterProperty(
                 name: "number_param",
                 type: .number,
-                description: "A number parameter",
+                description: "A number parameter"
             ),
             AgentToolParameterProperty(
                 name: "integer_param",
                 type: .integer,
-                description: "An integer parameter",
+                description: "An integer parameter"
             ),
             AgentToolParameterProperty(
                 name: "boolean_param",
                 type: .boolean,
-                description: "A boolean parameter",
+                description: "A boolean parameter"
             ),
             AgentToolParameterProperty(
                 name: "array_param",
                 type: .array,
-                description: "An array parameter",
+                description: "An array parameter"
             ),
             AgentToolParameterProperty(
                 name: "object_param",
                 type: .object,
-                description: "An object parameter",
+                description: "An object parameter"
             ),
         ]
 

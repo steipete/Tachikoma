@@ -56,7 +56,7 @@ struct UsageTrackingTests {
             sessionId: sessionId,
             model: model,
             usage: usage,
-            operation: .textGeneration,
+            operation: .textGeneration
         )
 
         // Check that usage was recorded
@@ -90,14 +90,14 @@ struct UsageTrackingTests {
             sessionId: sessionId,
             model: model,
             usage: Usage(inputTokens: 100, outputTokens: 50),
-            operation: .textGeneration,
+            operation: .textGeneration
         )
 
         tracker.recordUsage(
             sessionId: sessionId,
             model: model,
             usage: Usage(inputTokens: 200, outputTokens: 100),
-            operation: .imageAnalysis,
+            operation: .imageAnalysis
         )
 
         let session = tracker.getSession(sessionId)
@@ -147,7 +147,7 @@ struct UsageTrackingTests {
             sessionId: session1,
             model: .openai(.gpt4oMini),
             usage: Usage(inputTokens: 100, outputTokens: 50),
-            operation: .textGeneration,
+            operation: .textGeneration
         )
         tracker.endSession(session1)
 
@@ -156,7 +156,7 @@ struct UsageTrackingTests {
             sessionId: session2,
             model: .anthropic(.haiku45),
             usage: Usage(inputTokens: 200, outputTokens: 100),
-            operation: .imageAnalysis,
+            operation: .imageAnalysis
         )
         tracker.endSession(session2)
 
@@ -193,7 +193,7 @@ struct UsageTrackingTests {
             sessionId: sessionId,
             model: .openai(.gpt4oMini),
             usage: Usage(inputTokens: 1000, outputTokens: 500),
-            operation: .textGeneration,
+            operation: .textGeneration
         )
         tracker.endSession(sessionId)
 
@@ -225,7 +225,7 @@ struct UsageTrackingTests {
             sessionId: sessionId,
             model: .openai(.gpt4oMini),
             usage: Usage(inputTokens: 100, outputTokens: 50),
-            operation: .textGeneration,
+            operation: .textGeneration
         )
         tracker.endSession(sessionId)
 

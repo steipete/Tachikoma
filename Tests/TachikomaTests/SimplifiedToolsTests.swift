@@ -33,7 +33,7 @@ struct SimplifiedToolsTests {
         let tool = SimplifiedToolBuilder.tool(
             "calculator",
             description: "Evaluate mathematical expressions",
-            inputSchema: CalculatorInput.self,
+            inputSchema: CalculatorInput.self
         ) { (_: CalculatorInput) async throws -> CalculatorOutput in
             // Mock calculation
             return CalculatorOutput(result: 42.0)
@@ -64,7 +64,7 @@ struct SimplifiedToolsTests {
         let tool = SimplifiedToolBuilder.toolWithContext(
             "search",
             description: "Search with context",
-            inputSchema: SearchInput.self,
+            inputSchema: SearchInput.self
         ) { (input: SearchInput, context: ToolExecutionContext) async throws -> SearchOutput in
             // Use context to get conversation history
             let messageCount = context.messages.count
@@ -76,7 +76,7 @@ struct SimplifiedToolsTests {
         // Test execution with context
         let context = ToolExecutionContext(
             messages: [.user("Previous message")],
-            sessionId: "test-session",
+            sessionId: "test-session"
         )
 
         let args = AgentToolArguments(["query": "test"])
@@ -100,7 +100,7 @@ struct SimplifiedToolsTests {
             parameters: [
                 "message": "The message to echo",
                 "uppercase": "Whether to uppercase the message",
-            ],
+            ]
         ) { args async throws -> Any in
             let message = args["message"] as? String ?? ""
             let uppercase = args["uppercase"] as? Bool ?? false
@@ -131,7 +131,7 @@ struct SimplifiedToolsTests {
                 builder
                     .string("location", description: "City name", required: true)
                     .string("units", description: "Temperature units", enum: ["celsius", "fahrenheit"])
-            },
+            }
         ) { args async throws -> AnyAgentToolValue in
             let location = try args.stringValue("location")
             let units = args.optionalStringValue("units") ?? "celsius"

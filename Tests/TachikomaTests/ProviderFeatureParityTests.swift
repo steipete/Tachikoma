@@ -16,7 +16,7 @@ struct ProviderFeatureParityTests {
                 text: "Mock response",
                 usage: Usage(inputTokens: 10, outputTokens: 20),
                 finishReason: .stop,
-                toolCalls: nil,
+                toolCalls: nil
             )
         }
 
@@ -67,13 +67,13 @@ struct ProviderFeatureParityTests {
                 supportsTools: true,
                 supportsStreaming: false,
                 contextLength: 128_000,
-                maxOutputTokens: 4096,
-            ),
+                maxOutputTokens: 4096
+            )
         )
 
         let adapter = ProviderAdapter(
             provider: provider,
-            configuration: ProviderConfiguration(),
+            configuration: ProviderConfiguration()
         )
 
         #expect(adapter.isFeatureSupported(ProviderFeature.visionInputs))
@@ -90,13 +90,13 @@ struct ProviderFeatureParityTests {
                 supportsTools: false,
                 supportsStreaming: false,
                 contextLength: 128_000,
-                maxOutputTokens: 4096,
-            ),
+                maxOutputTokens: 4096
+            )
         )
 
         let adapter = ProviderAdapter(
             provider: provider,
-            configuration: ProviderConfiguration(supportsSystemRole: false),
+            configuration: ProviderConfiguration(supportsSystemRole: false)
         )
 
         let messages = [
@@ -124,13 +124,13 @@ struct ProviderFeatureParityTests {
                 supportsTools: false,
                 supportsStreaming: false,
                 contextLength: 128_000,
-                maxOutputTokens: 4096,
-            ),
+                maxOutputTokens: 4096
+            )
         )
 
         let adapter = ProviderAdapter(
             provider: provider,
-            configuration: ProviderConfiguration(requiresAlternatingRoles: true),
+            configuration: ProviderConfiguration(requiresAlternatingRoles: true)
         )
 
         let messages = [
@@ -154,13 +154,13 @@ struct ProviderFeatureParityTests {
                 supportsTools: false,
                 supportsStreaming: false,
                 contextLength: 128_000,
-                maxOutputTokens: 4096,
-            ),
+                maxOutputTokens: 4096
+            )
         )
 
         let adapter = ProviderAdapter(
             provider: provider,
-            configuration: ProviderConfiguration(),
+            configuration: ProviderConfiguration()
         )
 
         let messages = [
@@ -170,9 +170,9 @@ struct ProviderFeatureParityTests {
                     .text("Look at this image"),
                     .image(ModelMessage.ContentPart.ImageContent(
                         data: "base64data",
-                        mimeType: "image/png",
+                        mimeType: "image/png"
                     )),
-                ],
+                ]
             ),
         ]
 
@@ -195,8 +195,8 @@ struct ProviderFeatureParityTests {
                 supportsTools: true,
                 supportsStreaming: false,
                 contextLength: 128_000,
-                maxOutputTokens: 4096,
-            ),
+                maxOutputTokens: 4096
+            )
         )
 
         let config = ProviderConfiguration(maxToolCalls: 2)
@@ -207,14 +207,14 @@ struct ProviderFeatureParityTests {
             AgentTool(
                 name: "tool\(i)",
                 description: "Tool \(i)",
-                parameters: AgentToolParameters(properties: [:], required: []),
+                parameters: AgentToolParameters(properties: [:], required: [])
             ) { _ in try AnyAgentToolValue(true) }
         }
 
         _ = ProviderRequest(
             messages: [.user("Test")],
             tools: tools,
-            settings: .default,
+            settings: .default
         )
 
         // This would normally validate and truncate tools
@@ -243,8 +243,8 @@ struct ProviderFeatureParityTests {
                 supportsTools: true,
                 supportsStreaming: true,
                 contextLength: 128_000,
-                maxOutputTokens: 4096,
-            ),
+                maxOutputTokens: 4096
+            )
         )
 
         let enhanced = provider.withFeatureParity()

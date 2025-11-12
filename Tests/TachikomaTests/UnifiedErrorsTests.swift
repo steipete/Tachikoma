@@ -9,7 +9,7 @@ struct UnifiedErrorsTests {
         let error = TachikomaUnifiedError(
             code: .authenticationFailed,
             message: "Invalid API key provided",
-            recovery: .checkAPIKey,
+            recovery: .checkAPIKey
         )
 
         #expect(error.code == .authenticationFailed)
@@ -64,7 +64,7 @@ struct UnifiedErrorsTests {
             modelId: "gpt-4",
             requestId: "req-123",
             retryAfter: 30,
-            metadata: ["tokens_used": "5000"],
+            metadata: ["tokens_used": "5000"]
         )
 
         #expect(details.statusCode == 429)
@@ -81,7 +81,7 @@ struct UnifiedErrorsTests {
                 .reduceRequestSize,
                 .retry(after: 5),
             ],
-            helpURL: "https://docs.example.com/errors",
+            helpURL: "https://docs.example.com/errors"
         )
 
         #expect(recovery.actions.count == 2)
@@ -123,7 +123,7 @@ struct UnifiedErrorsTests {
             requestId: "req-456",
             errorType: .serverError,
             message: "Server encountered an error",
-            retryAfter: nil,
+            retryAfter: nil
         )
 
         let tachikomaError = TachikomaError.apiCallError(apiError)
@@ -141,7 +141,7 @@ struct UnifiedErrorsTests {
             reason: "All attempts failed",
             lastError: TachikomaError.networkError(NSError(domain: "test", code: -1)),
             errors: [],
-            attempts: 3,
+            attempts: 3
         )
 
         let tachikomaError = TachikomaError.retryError(retryError)
@@ -157,7 +157,7 @@ struct UnifiedErrorsTests {
         let error = TachikomaUnifiedError(
             code: .invalidParameter,
             message: "Invalid parameter value",
-            recovery: nil,
+            recovery: nil
         )
 
         #expect(error.recovery == nil)
