@@ -172,8 +172,14 @@ public enum MCPToolAdapter {
 
     /// Convert a single AnyAgentToolValue to Any
     private static func convertArgument(_ argument: AnyAgentToolValue) -> Any {
-        // Convert a single AnyAgentToolValue to Any
-        try! argument.toJSON()
+        do {
+            return try argument.toJSON()
+        } catch {
+            return [
+                "serializationError": error.localizedDescription,
+                "fallback": String(describing: argument),
+            ]
+        }
     }
 
     /// Convert MCP ToolResponse to AnyAgentToolValue

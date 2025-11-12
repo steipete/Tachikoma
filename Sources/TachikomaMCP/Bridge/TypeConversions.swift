@@ -11,8 +11,11 @@ extension ToolArguments {
     public init(from arguments: AgentToolArguments) {
         var dict: [String: Any] = [:]
         for key in arguments.keys {
-            if let value = arguments[key] {
-                dict[key] = try! value.toJSON()
+            guard let value = arguments[key] else { continue }
+            if let json = try? value.toJSON() {
+                dict[key] = json
+            } else {
+                dict[key] = ["serializationFailure": String(describing: value)]
             }
         }
         self.init(raw: dict)
