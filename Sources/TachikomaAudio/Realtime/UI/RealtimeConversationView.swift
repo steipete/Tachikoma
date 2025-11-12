@@ -87,9 +87,9 @@ public struct RealtimeConversationView: View {
             }
 
             // Settings button
-            Button(action: { self.showingSettings = true }) {
-                Image(systemName: "gearshape")
-            }
+        Button(action: { self.showingSettings = true }, label: {
+            Image(systemName: "gearshape")
+        })
         }
         .padding()
         .background(Color.secondary.opacity(0.1))
@@ -118,16 +118,16 @@ public struct RealtimeConversationView: View {
                         self.sendTextMessage()
                     }
 
-                Button(action: self.sendTextMessage) {
+                Button(action: self.sendTextMessage, label: {
                     Image(systemName: "paperplane.fill")
-                }
+                })
                 .disabled(self.inputText.isEmpty || !self.viewModel.isReady)
             }
 
             // Voice controls
             HStack(spacing: 32) {
                 // Record button
-                Button(action: self.toggleRecording) {
+                Button(action: self.toggleRecording, label: {
                     ZStack {
                         Circle()
                             .fill(self.viewModel.isRecording ? Color.red : Color.blue)
@@ -137,22 +137,22 @@ public struct RealtimeConversationView: View {
                             .font(.title)
                             .foregroundColor(.white)
                     }
-                }
+                })
                 .scaleEffect(self.viewModel.isRecording ? 1.1 : 1.0)
                 .animation(.easeInOut(duration: 0.2), value: self.viewModel.isRecording)
 
                 // Interrupt button
-                Button(action: self.interrupt) {
+                Button(action: self.interrupt, label: {
                     Image(systemName: "stop.circle")
                         .font(.title)
-                }
+                })
                 .disabled(!self.viewModel.isPlaying)
 
                 // Clear button
-                Button(action: { self.viewModel.clearHistory() }) {
+                Button(action: { self.viewModel.clearHistory() }, label: {
                     Image(systemName: "trash")
                         .font(.title)
-                }
+                })
                 .disabled(self.viewModel.messages.isEmpty)
             }
         }
