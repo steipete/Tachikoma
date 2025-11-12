@@ -42,7 +42,7 @@ public final class MCPToolProvider: DynamicToolProvider {
             DynamicTool(
                 name: mcpTool.name,
                 description: mcpTool.description ?? "",
-                schema: self.convertSchemaToDynamic(mcpTool.inputSchema),
+                schema: self.convertSchemaToDynamic(mcpTool.inputSchema)
             )
         }
     }
@@ -50,7 +50,7 @@ public final class MCPToolProvider: DynamicToolProvider {
     /// Execute a tool by name
     public func executeTool(
         name: String,
-        arguments: AgentToolArguments,
+        arguments: AgentToolArguments
     ) async throws
     -> AnyAgentToolValue {
         // Convert arguments to MCP format
@@ -64,7 +64,7 @@ public final class MCPToolProvider: DynamicToolProvider {
         // Execute via MCP client
         let response = try await client.executeTool(
             name: name,
-            arguments: mcpArgs,
+            arguments: mcpArgs
         )
 
         // Convert response back to AnyAgentToolValue
@@ -121,7 +121,7 @@ public final class MCPToolProvider: DynamicToolProvider {
             return DynamicSchema(
                 type: .object,
                 properties: properties,
-                required: required,
+                required: required
             )
         }
 
@@ -152,7 +152,7 @@ public final class MCPToolProvider: DynamicToolProvider {
 
         return DynamicSchema.SchemaProperty(
             type: type,
-            description: description,
+            description: description
         )
     }
 
