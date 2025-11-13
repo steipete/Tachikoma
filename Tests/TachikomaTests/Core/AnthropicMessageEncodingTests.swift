@@ -20,4 +20,12 @@ import Testing
         ])
         #expect(AnthropicMessageEncoding.encodeToolResult(object) == "{\"count\":2,\"name\":\"Peekaboo\"}")
     }
+
+    @Test func encodesArraysAndNullValues() {
+        let array = AnyAgentToolValue(array: [AnyAgentToolValue(int: 1), AnyAgentToolValue(int: 2)])
+        #expect(AnthropicMessageEncoding.encodeToolResult(array) == "[1,2]")
+
+        let nullValue = AnyAgentToolValue(null: ())
+        #expect(AnthropicMessageEncoding.encodeToolResult(nullValue) == "null")
+    }
 }

@@ -677,10 +677,16 @@ enum AnthropicMessageEncoding {
             return "null"
         }
 
-        let encoder = JSONEncoder()
-        encoder.outputFormatting = [.withoutEscapingSlashes, .sortedKeys]
-        if let data = try? encoder.encode(value), let string = String(data: data, encoding: .utf8) {
-            return string
+        if let jsonObject = try? value.toJSON(), JSONSerialization.isValidJSONObject(jsonObject) {
+            if
+                let data = try? JSONSerialization.data(
+                    withJSONObject: jsonObject,
+                    options: [.withoutEscapingSlashes, .sortedKeys]
+                ),
+                let string = String(data: data, encoding: .utf8)
+            {
+                return string
+            }
         }
 
         return "Success"
@@ -800,7 +806,7 @@ public final class OllamaProvider: ModelProvider {
         let finishReason: FinishReason = ollamaResponse.done ? .stop : .other
 
         // Handle tool calls - Ollama might return them in different formats
-        var toolCalls: [AgentToolCall]? = nil
+        var toolCalls: [AgentToolCall]?
         if let messageCalls = ollamaResponse.message.toolCalls {
             toolCalls = messageCalls.compactMap { ollamaCall in
                 // Convert arguments dictionary to AnyAgentToolValue format
@@ -849,7 +855,7 @@ public final class OllamaProvider: ModelProvider {
                     id: "ollama_\(UUID().uuidString)",
                     name: functionName,
                     arguments: arguments,
-                )]
+                ),]
             }
         }
 

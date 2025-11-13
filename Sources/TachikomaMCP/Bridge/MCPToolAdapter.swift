@@ -12,8 +12,8 @@ public enum MCPToolAdapter {
         return AgentTool(
             name: mcpTool.name,
             description: mcpTool.description ?? "",
-            parameters: parameters,
-            execute: { arguments in
+            parameters: parameters
+        )            { arguments in
                 // Execute the tool via MCP client
                 let response = try await client.executeTool(
                     name: mcpTool.name,
@@ -22,8 +22,7 @@ public enum MCPToolAdapter {
 
                 // Convert response to AnyAgentToolValue
                 return self.convertResponse(response)
-            },
-        )
+            }
     }
 
     /// Convert MCP Value schema to AgentToolParameters

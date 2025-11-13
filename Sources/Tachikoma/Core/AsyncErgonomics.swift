@@ -4,7 +4,7 @@ import Foundation
 
 /// Token for coordinating cancellation across multiple async operations
 @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
-public actor CancellationToken: Sendable {
+public actor CancellationToken {
     private var isCancelled = false
     private var handlers: [UUID: @Sendable () -> Void] = [:]
 

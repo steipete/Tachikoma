@@ -563,10 +563,10 @@ private func fixPartialJSON(_ json: String) -> String {
     var fixed = json.trimmingCharacters(in: .whitespacesAndNewlines)
 
     // Count brackets and braces
-    let openBraces = fixed.count(where: { $0 == "{" })
-    let closeBraces = fixed.count(where: { $0 == "}" })
-    let openBrackets = fixed.count(where: { $0 == "[" })
-    let closeBrackets = fixed.count(where: { $0 == "]" })
+    let openBraces = fixed.count { $0 == "{" }
+    let closeBraces = fixed.count { $0 == "}" }
+    let openBrackets = fixed.count { $0 == "[" }
+    let closeBrackets = fixed.count { $0 == "]" }
 
     // Add missing closing characters
     if openBrackets > closeBrackets {

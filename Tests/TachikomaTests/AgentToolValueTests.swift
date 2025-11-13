@@ -34,9 +34,9 @@ struct AgentToolValueTests {
 
     @Test("Double conforms to AgentToolValue")
     func doubleConformance() throws {
-        let value = 3.14159
+        let value = 3.141_59
         let json = try value.toJSON()
-        #expect(json as? Double == 3.14159)
+        #expect(json as? Double == 3.141_59)
 
         let recovered = try Double.fromJSON(json)
         #expect(recovered == value)

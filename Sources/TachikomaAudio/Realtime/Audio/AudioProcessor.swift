@@ -23,7 +23,7 @@ public final class RealtimeAudioProcessor: @unchecked Sendable {
     private let lock = NSLock()
 
     // Audio processing settings
-    private let targetSampleRate: Double = 24000 // Realtime API expects 24kHz
+    private let targetSampleRate: Double = 24_000 // Realtime API expects 24kHz
     private let targetChannels: AVAudioChannelCount = 1 // Mono
 
     // MARK: - Initialization
@@ -32,7 +32,7 @@ public final class RealtimeAudioProcessor: @unchecked Sendable {
         // Set up input format (device default, usually 48kHz)
         guard
             let inputFormat = AVAudioFormat(
-                standardFormatWithSampleRate: 48000,
+                standardFormatWithSampleRate: 48_000,
                 channels: 1,
             ) else
         {
@@ -286,7 +286,7 @@ public final class RealtimeAudioProcessor: @unchecked Sendable {
     private func encodeUlaw(_ sample: Int16) -> UInt8 {
         // Simplified µ-law encoding
         let BIAS: Int16 = 0x84
-        let CLIP: Int16 = 32635
+        let CLIP: Int16 = 32_635
 
         var s = max(-CLIP, min(sample, CLIP))
         let sign: UInt8 = s < 0 ? 0x80 : 0x00
@@ -340,7 +340,7 @@ public final class RealtimeAudioProcessor: @unchecked Sendable {
             UInt8(0x40 | ((s >> 8) & 0x0F))
         } else if s < 8192 {
             UInt8(0x50 | ((s >> 9) & 0x0F))
-        } else if s < 16384 {
+        } else if s < 16_384 {
             UInt8(0x60 | ((s >> 10) & 0x0F))
         } else {
             UInt8(0x70 | ((s >> 11) & 0x0F))

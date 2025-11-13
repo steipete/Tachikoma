@@ -724,7 +724,7 @@ public final class MockTranscriptionProvider: TranscriptionProvider {
         let mockDuration = request.audio.duration ?? 2.0
 
         // Create segments if timestamps are requested
-        var segments: [TranscriptionSegment]? = nil
+        var segments: [TranscriptionSegment]?
         if request.timestampGranularities.contains(.segment) || request.responseFormat == .verbose {
             segments = [
                 TranscriptionSegment(

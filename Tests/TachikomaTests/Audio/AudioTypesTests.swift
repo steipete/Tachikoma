@@ -15,14 +15,14 @@ struct AudioTypesTests {
             let audioData = AudioData(
                 data: testData,
                 format: .wav,
-                sampleRate: 44100,
+                sampleRate: 44_100,
                 channels: 2,
                 duration: 5.0,
             )
 
             #expect(audioData.data == testData)
             #expect(audioData.format == .wav)
-            #expect(audioData.sampleRate == 44100)
+            #expect(audioData.sampleRate == 44_100)
             #expect(audioData.channels == 2)
             #expect(audioData.duration == 5.0)
             #expect(audioData.size == 4)

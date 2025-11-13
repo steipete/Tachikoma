@@ -213,7 +213,7 @@ struct OpenAICompatibleHelperTests {
                 "index": 0,
                 "message": ["role": "assistant", "content": text],
                 "finish_reason": "stop",
-            ]],
+            ],],
             "usage": [
                 "prompt_tokens": 12,
                 "completion_tokens": 3,
@@ -238,7 +238,7 @@ private final class OpenAIHelperURLProtocol: URLProtocol {
     typealias Handler = @Sendable (URLRequest) throws -> (HTTPURLResponse, Data)
 
     private static let handlerLock = NSLock()
-    private nonisolated(unsafe) static var _handler: Handler?
+    nonisolated(unsafe) private static var _handler: Handler?
 
     static var handler: Handler? {
         get { handlerLock.withLock { _handler } }

@@ -141,13 +141,12 @@ class SmartAssistant: ObservableObject {
             AgentTool(
                 name: "getCurrentTime",
                 description: "Get the current time",
-                parameters: AgentToolParameters(properties: [:], required: []),
-                execute: { _ in
+                parameters: AgentToolParameters(properties: [:], required: [])
+            )                { _ in
                     let formatter = DateFormatter()
                     formatter.timeStyle = .medium
                     return .string(formatter.string(from: Date()))
                 },
-            ),
             AgentTool(
                 name: "setReminder",
                 description: "Set a reminder",
@@ -165,14 +164,13 @@ class SmartAssistant: ObservableObject {
                         ),
                     ],
                     required: ["text", "time"],
-                ),
-                execute: { args in
+                )
+            )                { args in
                     let text = try args.stringValue("text")
                     let time = try args.stringValue("time")
                     // In real app, would schedule notification
                     return .string("Reminder set: '\(text)' at \(time)")
                 },
-            ),
         ]
     }
 
@@ -246,11 +244,10 @@ struct VoiceAssistantView: View {
                 // Conversation Interface
                 RealtimeConversationView(
                     apiKey: self.apiKey,
-                    configuration: .voiceConversation(),
-                    onError: { error in
+                    configuration: .voiceConversation()
+                )                    { error in
                         print("Error: \(error)")
-                    },
-                )
+                    }
 
                 // Custom Controls
                 HStack {
@@ -451,7 +448,6 @@ class RobustConversation {
             Task {
                 await self.monitorConnectionState()
             }
-
         } catch TachikomaError.authenticationFailed {
             print("Invalid API key")
             throw TachikomaError.authenticationFailed("Please check your API key")

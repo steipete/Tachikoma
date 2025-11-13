@@ -42,7 +42,7 @@ public actor WebSocketTransport: RealtimeTransport {
     private var receiveContinuation: AsyncThrowingStream<Data, Error>.Continuation?
 
     private var _isConnected: Bool = false
-    public nonisolated var isConnected: Bool {
+    nonisolated public var isConnected: Bool {
         // Note: This is a workaround for protocol conformance
         // In real usage, you should await the actor-isolated property
         false // Default to disconnected for non-isolated access
@@ -138,7 +138,7 @@ public actor WebSocketTransport: RealtimeTransport {
         try await task.send(message)
     }
 
-    public nonisolated func receive() -> AsyncThrowingStream<Data, Error> {
+    nonisolated public func receive() -> AsyncThrowingStream<Data, Error> {
         AsyncThrowingStream { continuation in
             Task {
                 await self.setReceiveContinuation(continuation)

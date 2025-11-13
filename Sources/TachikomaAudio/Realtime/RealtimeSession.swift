@@ -106,7 +106,6 @@ public final class RealtimeSession {
             if self.hasNonDefaultConfiguration() {
                 try await self.update(self.configuration)
             }
-
         } catch {
             self.state = .error
             throw error
@@ -340,7 +339,6 @@ public final class RealtimeSession {
                     }
                 }
             }
-
         } catch {
             print("RealtimeSession: Failed to decode event: \(error)")
         }

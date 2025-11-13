@@ -12,31 +12,43 @@ concurrency:
 
 jobs:
   test:
-    name: Test on ${{ matrix.os }} with Swift ${{ matrix.swift-version }}
+    name: Desktop Swift (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
-    
     strategy:
       matrix:
-        os: [macos-14, macos-15, macos-latest, ubuntu-22.04]  # Windows still needs work
-        swift-version: ['6.2']
-        
+        os: [macos-latest, ubuntu-22.04, windows-latest]
     steps:
     - name: Checkout
       uses: actions/checkout@v4
-      
-    - name: Setup Swift
-      uses: SwiftyLab/setup-swift@latest
-      with:
-        swift-version: ${{ matrix.swift-version }}
-      if: runner.os != 'Windows'
-        
-    - name: Setup Swift on Windows
-      uses: compnerd/gha-setup-swift@main
-      with:
-        swift-version: swift-${{ matrix.swift-version }}-release
-        swift-build: ${{ matrix.swift-version }}-RELEASE
+
+    - name: Select Xcode 16
+      if: runner.os == 'macOS'
+      run: sudo xcode-select -s /Applications/Xcode_16.0.app || sudo xcode-select -s /Applications/Xcode.app
+
+    - name: Install Swift via Swiftly (Linux)
+      if: runner.os == 'Linux'
+      run: |
+        set -euxo pipefail
+        curl -O https://download.swift.org/swiftly/linux/swiftly-1.1.0-$(uname -m).tar.gz
+        tar -zxf swiftly-1.1.0-$(uname -m).tar.gz
+        ./swiftly init --quiet-shell-followup
+        . "${SWIFTLY_HOME_DIR:-$HOME/.local/share/swiftly}/env.sh"
+        hash -r
+        swift --version
+
+    - name: Install Swift via WinGet (Windows)
       if: runner.os == 'Windows'
-        
+      shell: pwsh
+      run: |
+        $ErrorActionPreference = "Stop"
+        winget install --id Microsoft.VisualStudio.2022.Community --exact --accept-package-agreements --accept-source-agreements --override "--add Microsoft.VisualStudio.Component.Windows11SDK.22000 --add Microsoft.VisualStudio.Component.VC.Tools.x86.x64 --add Microsoft.VisualStudio.Component.VC.Tools.ARM64 --quiet --wait --norestart"
+        winget install --id Swift.Toolchain -e --accept-package-agreements --accept-source-agreements --silent
+        $swiftRoot = "$env:LOCALAPPDATA\Programs\Swift\bin"
+        if (Test-Path $swiftRoot) {
+          "$swiftRoot" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+        }
+        swift --version
+
     - name: Cache Swift Package Manager
       uses: actions/cache@v4
       with:
@@ -46,29 +58,25 @@ jobs:
         key: ${{ runner.os }}-spm-${{ hashFiles('Package.resolved') }}
         restore-keys: |
           ${{ runner.os }}-spm-
-          
+
     - name: Build
       run: swift build -c release --verbose
-      
+
     - name: Run Tests (Unit Tests Only)
       run: |
         if [[ "${{ runner.os }}" == "Linux" ]]; then
-          # On Linux, skip all AudioProvidersTests that contain fatalError issues
           swift test --filter TachikomaTests --skip "AudioProvidersTests"
         else
           swift test --filter TachikomaTests
         fi
       env:
-        # Control test behavior - disable API tests for fast CI
         TACHIKOMA_DISABLE_API_TESTS: "true"
         TACHIKOMA_TEST_MODE: "mock"
-        # No API keys provided for unit tests - they should run in mock mode only
-      continue-on-error: true # Allow test failures while working on API-dependent test issues
-        
+      continue-on-error: true
+
     - name: Run Package Tests (Full API Testing)
       run: swift test --verbose
       env:
-        # Enable full API testing with all providers (no mocking)
         OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
@@ -76,42 +84,95 @@ jobs:
         GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
         X_AI_API_KEY: ${{ secrets.X_AI_API_KEY }}
         XAI_API_KEY: ${{ secrets.X_AI_API_KEY }}
-      continue-on-error: true # Allow failures - full API testing with real keys may fail
+      continue-on-error: true
 
   build-examples:
     name: Build Examples on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
-    
     strategy:
       matrix:
-        os: [macos-latest, ubuntu-22.04]  # Windows still needs work
-    
+        os: [macos-latest, ubuntu-22.04, windows-latest]
     steps:
     - name: Checkout
       uses: actions/checkout@v4
-      
-    - name: Setup Swift
-      uses: SwiftyLab/setup-swift@latest
-      with:
-        swift-version: '6.2'
-      if: runner.os != 'Windows'
-        
-    - name: Setup Swift on Windows
-      uses: compnerd/gha-setup-swift@main
-      with:
-        swift-version: swift-6.2-release
-        swift-build: 6.2-RELEASE
+
+    - name: Select Xcode 16
+      if: runner.os == 'macOS'
+      run: sudo xcode-select -s /Applications/Xcode_16.0.app || sudo xcode-select -s /Applications/Xcode.app
+
+    - name: Install Swift via Swiftly (Linux)
+      if: runner.os == 'Linux'
+      run: |
+        set -euxo pipefail
+        curl -O https://download.swift.org/swiftly/linux/swiftly-1.1.0-$(uname -m).tar.gz
+        tar -zxf swiftly-1.1.0-$(uname -m).tar.gz
+        ./swiftly init --quiet-shell-followup
+        . "${SWIFTLY_HOME_DIR:-$HOME/.local/share/swiftly}/env.sh"
+        hash -r
+        swift --version
+
+    - name: Install Swift via WinGet (Windows)
       if: runner.os == 'Windows'
-        
+      shell: pwsh
+      run: |
+        $ErrorActionPreference = "Stop"
+        winget install --id Microsoft.VisualStudio.2022.Community --exact --accept-package-agreements --accept-source-agreements --override "--add Microsoft.VisualStudio.Component.Windows11SDK.22000 --add Microsoft.VisualStudio.Component.VC.Tools.x86.x64 --add Microsoft.VisualStudio.Component.VC.Tools.ARM64 --quiet --wait --norestart"
+        winget install --id Swift.Toolchain -e --accept-package-agreements --accept-source-agreements --silent
+        $swiftRoot = "$env:LOCALAPPDATA\Programs\Swift\bin"
+        if (Test-Path $swiftRoot) {
+          "$swiftRoot" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+        }
+        swift --version
+
     - name: Build Examples
       run: |
-        # Build standalone examples
         swift build --package-path . -c release
-        
-        # Compile example scripts to check syntax
         find . -name "*.swift" -path "./Examples/*" -exec swift -typecheck {} \;
         find . -name "*_demo.swift" -exec swift -typecheck {} \;
         find . -name "*_examples.swift" -exec swift -typecheck {} \;
+
+  apple-simulators:
+    name: Apple Platforms (${{ matrix.platform }})
+    runs-on: macos-latest
+    needs: test
+    strategy:
+      matrix:
+        platform:
+          - "iOS Simulator"
+          - "tvOS Simulator"
+          - "watchOS Simulator"
+          - "visionOS Simulator"
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+    - name: Select Xcode 16
+      run: sudo xcode-select -s /Applications/Xcode_16.0.app || sudo xcode-select -s /Applications/Xcode.app
+    - name: Build for ${{ matrix.platform }}
+      run: |
+        xcodebuild \
+          -scheme Tachikoma-Package \
+          -destination "generic/platform=${{ matrix.platform }}" \
+          BUILD_LIBRARY_FOR_DISTRIBUTION=YES \
+          build
+
+  android:
+    name: Android (aarch64)
+    runs-on: ubuntu-22.04
+    needs: test
+    container:
+      image: ghcr.io/swiftlang/swift:nightly-android-amd64
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+    - name: Build Android artifacts
+      env:
+        SWIFT_ANDROID_TRIPLE: aarch64-unknown-linux-android24
+      run: |
+        swift build \
+          --triple ${SWIFT_ANDROID_TRIPLE} \
+          --build-path .build-android \
+          --cxx-flags "-fPIC" \
+          --swift-sdk android
 
   lint:
     name: SwiftLint

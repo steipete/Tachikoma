@@ -229,7 +229,7 @@ public final class StdioTransport: MCPTransport {
 
         // Wait for response with timeout
         let responseData = try await withCheckedThrowingContinuation { continuation in
-            Task { @MainActor in
+            Task {
                 await self.state.addPendingRequest(id: id, continuation: continuation)
                 // Schedule timeout task
                 let timeoutTask = Task { [logger] in

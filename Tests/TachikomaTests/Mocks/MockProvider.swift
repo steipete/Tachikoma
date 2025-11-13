@@ -54,7 +54,7 @@ public final class MockProvider: ModelProvider {
                 id: "mock_tool_call_123",
                 name: tools.first?.name ?? "mock_tool",
                 arguments: ["query": AnyAgentToolValue(string: "mock query")],
-            )]
+            ),]
         }
 
         return ProviderResponse(

@@ -6,18 +6,18 @@ import MCP
 // Actor to manage mutable state for Sendable conformance
 private actor StdioTransportPTYState {
     var process: Process?
-    var masterHandle: FileHandle?
-    var slaveHandle: FileHandle?
+    var primaryHandle: FileHandle?
+    var secondaryHandle: FileHandle?
     var errorPipe: Pipe?
     var nextId: Int = 1
     var pendingRequests: [String: CheckedContinuation<Data, Swift.Error>] = [:]
     var timeoutTasks: [Int: Task<Void, Never>] = [:]
     var requestTimeoutNs: UInt64 = 30_000_000_000 // default 30s
 
-    func setProcess(_ process: Process?, master: FileHandle?, slave: FileHandle?, error: Pipe?) {
+    func setProcess(_ process: Process?, primary: FileHandle?, secondary: FileHandle?, error: Pipe?) {
         self.process = process
-        self.masterHandle = master
-        self.slaveHandle = slave
+        self.primaryHandle = primary
+        self.secondaryHandle = secondary
         self.errorPipe = error
     }
 
@@ -61,8 +61,8 @@ private actor StdioTransportPTYState {
         self.pendingRequests.removeAll()
     }
 
-    func getMasterHandle() -> FileHandle? {
-        self.masterHandle
+    func getPrimaryHandle() -> FileHandle? {
+        self.primaryHandle
     }
 }
 
@@ -78,22 +78,22 @@ public final class StdioTransportPTY: MCPTransport {
         self.logger.info("Starting PTY stdio transport with command: \(config.command)")
 
         // Create PTY pair
-        var masterFD: Int32 = 0
-        var slaveFD: Int32 = 0
+        var primaryFD: Int32 = 0
+        var secondaryFD: Int32 = 0
 
-        guard Darwin.openpty(&masterFD, &slaveFD, nil, nil, nil) != -1 else {
+        guard Darwin.openpty(&primaryFD, &secondaryFD, nil, nil, nil) != -1 else {
             throw MCPError.connectionFailed("Failed to create PTY")
         }
 
-        let masterHandle = FileHandle(fileDescriptor: masterFD, closeOnDealloc: true)
-        let slaveHandle = FileHandle(fileDescriptor: slaveFD, closeOnDealloc: true)
+        let primaryHandle = FileHandle(fileDescriptor: primaryFD, closeOnDealloc: true)
+        let secondaryHandle = FileHandle(fileDescriptor: secondaryFD, closeOnDealloc: true)
 
         let process = Process()
         let errorPipe = Pipe()
 
-        // Use slave side of PTY for process stdio
-        process.standardInput = slaveHandle
-        process.standardOutput = slaveHandle
+        // Use secondary side of PTY for process stdio
+        process.standardInput = secondaryHandle
+        process.standardOutput = secondaryHandle
         process.standardError = errorPipe
 
         // Parse command and arguments
@@ -156,10 +156,10 @@ public final class StdioTransportPTY: MCPTransport {
             throw MCPError.connectionFailed("Failed to start process: \(error)")
         }
 
-        await self.state.setProcess(process, master: masterHandle, slave: slaveHandle, error: errorPipe)
+        await self.state.setProcess(process, primary: primaryHandle, secondary: secondaryHandle, error: errorPipe)
         await self.state.setRequestTimeout(seconds: config.timeout)
 
-        // Start reading output from master side of PTY
+        // Start reading output from primary side of PTY
         self.startReadingOutput()
 
         // Drain and log stderr separately (non-blocking)
@@ -181,7 +181,7 @@ public final class StdioTransportPTY: MCPTransport {
         self.logger.info("Disconnecting PTY stdio transport")
         let process = await state.process
         process?.terminate()
-        await self.state.setProcess(nil, master: nil, slave: nil, error: nil)
+        await self.state.setProcess(nil, primary: nil, secondary: nil, error: nil)
         await self.state.cancelAllRequests()
     }
 
@@ -210,7 +210,7 @@ public final class StdioTransportPTY: MCPTransport {
 
         // Wait for response with timeout
         let responseData = try await withCheckedThrowingContinuation { continuation in
-            Task { @MainActor in
+            Task {
                 await self.state.addPendingRequest(id: id, continuation: continuation)
                 // Schedule timeout task
                 let timeoutTask = Task {
@@ -251,11 +251,11 @@ public final class StdioTransportPTY: MCPTransport {
     }
 
     private func send(_ data: Data) async throws {
-        guard let handle = await state.getMasterHandle() else {
+        guard let handle = await state.getPrimaryHandle() else {
             throw MCPError.notConnected
         }
 
-        // Write to master side of PTY
+        // Write to primary side of PTY
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Swift.Error>) in
             handle.write(data)
             handle.write("\n".data(using: .utf8)!)
@@ -265,7 +265,7 @@ public final class StdioTransportPTY: MCPTransport {
 
     private func startReadingOutput() {
         Task {
-            guard let handle = await state.getMasterHandle() else { return }
+            guard let handle = await state.getPrimaryHandle() else { return }
 
             var buffer = Data()
             while true {

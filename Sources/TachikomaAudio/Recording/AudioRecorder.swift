@@ -45,7 +45,7 @@ public final class AudioRecorder: ObservableObject, AudioRecorderProtocol {
     private var pauseStartTime: Date?
 
     // Audio format settings
-    private let sampleRate: Double = 44100
+    private let sampleRate: Double = 44_100
     private let channels: AVAudioChannelCount = 1
     private let bitDepth: Int = 16
 

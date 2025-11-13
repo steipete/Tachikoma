@@ -69,12 +69,11 @@ func demonstrateRetryHandler() async throws {
     let retryHandler = RetryHandler(
         policy: RetryPolicy(
             maxAttempts: 3,
-            baseDelay: 1.0,
-            shouldRetry: { error in
+            baseDelay: 1.0
+        )            { error in
                 print("Checking if should retry for: \(error)")
                 return true // Always retry for demo
             },
-        ),
     )
 
     do {
@@ -117,13 +116,12 @@ func demonstrateEnhancedTools() async throws {
             required: ["expression"],
         ),
         namespace: "math",
-        recipient: "calculator-service",
-        execute: { args in
+        recipient: "calculator-service"
+    )        { args in
             let expr = args["expression"]?.stringValue ?? "0"
             // Simple demo: just return 42
             return .double(42.0)
-        },
-    )
+        }
 
     let weatherTool = AgentTool(
         name: "getWeather",
@@ -139,12 +137,11 @@ func demonstrateEnhancedTools() async throws {
             required: ["location"],
         ),
         namespace: "weather",
-        recipient: "weather-api",
-        execute: { args in
+        recipient: "weather-api"
+    )        { args in
             let location = args["location"]?.stringValue ?? "Unknown"
             return .string("Sunny, 72°F in \(location)")
-        },
-    )
+        }
 
     let result = try await generateText(
         model: .openai(.gpt4o),
@@ -273,9 +270,8 @@ func demonstrateIntegratedFeatures() async throws {
             name: "analyze",
             description: "Analyze data",
             parameters: AgentToolParameters(properties: [], required: []),
-            namespace: "analytics",
-            execute: { _ in .string("Analysis complete") },
-        ),
+            namespace: "analytics"
+        )            { _ in .string("Analysis complete") },
     ]
 
     // Generate with all features
@@ -307,7 +303,6 @@ func demonstrateIntegratedFeatures() async throws {
                 print("[\(channelName.uppercased())] \(message.content.first?.textValue ?? "")")
             }
         }
-
     } catch {
         print("Error: \(error)")
     }
@@ -335,7 +330,6 @@ struct HarmonyFeaturesDemo {
             // try await demonstrateIntegratedFeatures()
 
             print("\n✅ Demo completed successfully!")
-
         } catch {
             print("\n❌ Demo failed: \(error)")
         }

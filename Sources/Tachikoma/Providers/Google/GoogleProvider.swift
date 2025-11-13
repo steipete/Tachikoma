@@ -218,7 +218,7 @@ private struct GoogleSSEParser {
     mutating func feed(line: String) throws {
         let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines)
         guard trimmed.hasPrefix("data:") else { return }
-        let payload = trimmed.dropFirst(5).drop(while: { $0 == " " })
+        let payload = trimmed.dropFirst(5).drop { $0 == " " }
         try self.process(payload: String(payload))
     }
 

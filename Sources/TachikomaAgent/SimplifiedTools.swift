@@ -49,8 +49,8 @@ public struct SimplifiedToolBuilder {
         return AgentTool(
             name: name,
             description: description,
-            parameters: parameters,
-            executeWithContext: { arguments, context in
+            parameters: parameters
+        )            { arguments, context in
                 // Convert arguments to Input type
                 let jsonData = try JSONSerialization.data(withJSONObject: arguments.toDictionary())
                 let input = try JSONDecoder().decode(Input.self, from: jsonData)
@@ -61,8 +61,7 @@ public struct SimplifiedToolBuilder {
                 let outputJson = try JSONSerialization.jsonObject(with: outputData)
 
                 return try AnyAgentToolValue.fromJSON(outputJson)
-            },
-        )
+            }
     }
 
     /// Create a simple tool without structured input

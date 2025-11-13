@@ -172,7 +172,7 @@ struct AgentCLI: AsyncParsableCommand {
 
         Popular MCP servers:
           • filesystem - File system operations
-          • github - GitHub API access  
+          • github - GitHub API access
           • postgres - PostgreSQL database
           • sqlite - SQLite database
           • puppeteer - Browser automation
@@ -251,15 +251,14 @@ struct AgentCLI: AsyncParsableCommand {
             parameters: AgentToolParameters(
                 properties: [:],
                 required: [],
-            ),
-            execute: { _ in
+            )
+        )            { _ in
                 let formatter = DateFormatter()
                 formatter.dateStyle = .full
                 formatter.timeStyle = .long
                 let now = formatter.string(from: Date())
                 return AnyAgentToolValue(string: now)
-            },
-        ))
+            })
 
         // Add basic calculator tool
         tools.append(AgentTool(
@@ -274,16 +273,15 @@ struct AgentCLI: AsyncParsableCommand {
                     ),
                 ],
                 required: ["expression"],
-            ),
-            execute: { args in
+            )
+        )            { args in
                 guard let expression = args["expression"]?.stringValue else {
                     return AnyAgentToolValue(string: "Error: No expression provided")
                 }
                 // Simple expression evaluation (in real app, use proper parser)
                 let result = "Result: \(expression) = [calculation would go here]"
                 return AnyAgentToolValue(string: result)
-            },
-        ))
+            })
 
         return tools
     }

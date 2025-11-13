@@ -15,7 +15,7 @@ public final class TachikomaConfiguration: @unchecked Sendable {
     /// configuration and credentials (e.g. \.tachikoma, \.peekaboo).
     /// Defaults to ".tachikoma". Host applications (like Peekaboo) should set this
     /// to their own folder name during startup.
-    public nonisolated(unsafe) static var profileDirectoryName: String = ".tachikoma"
+    nonisolated(unsafe) public static var profileDirectoryName: String = ".tachikoma"
 
     private let lock = NSLock()
     private var _apiKeys: [String: String] = [:]
@@ -27,7 +27,7 @@ public final class TachikomaConfiguration: @unchecked Sendable {
 
     /// Thread-safe storage for the default configuration
     private static let defaultLock = NSLock()
-    private nonisolated(unsafe) static var _default: TachikomaConfiguration?
+    nonisolated(unsafe) private static var _default: TachikomaConfiguration?
 
     /// Optional default configuration set by the application
     public static var `default`: TachikomaConfiguration? {

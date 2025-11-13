@@ -190,20 +190,20 @@ struct AICLI {
         EXAMPLES:
             # Use default model (GPT-5)
             ai-cli "What is the capital of France?"
-            
+
             # Use specific models
             ai-cli --model claude "Explain quantum computing"
-            ai-cli --model gpt-4o "Describe this image" 
+            ai-cli --model gpt-4o "Describe this image"
             ai-cli --model grok "Tell me a joke"
             ai-cli --model llama3.3 "Help me debug this code"
-            
+
             # OpenAI API selection
             ai-cli --model gpt-5 --api chat "Use Chat Completions API"
             ai-cli --model gpt-5 --api responses "Use Responses API"
-            
+
             # Streaming responses
             ai-cli --stream --model claude "Write a short story"
-            
+
             # Show thinking process (reasoning models)
             ai-cli --thinking --model gpt-5-thinking "Solve this logic puzzle"
             ai-cli --thinking --model gpt-5 "Complex reasoning task"
@@ -443,7 +443,7 @@ struct AICLI {
 
         // Use the global generate function with proper model selection
         let result: GenerateTextResult
-        var reasoningText: String? = nil
+        var reasoningText: String?
 
         // Check if we should show thinking for this model
         let actualApiMode: OpenAIAPIMode? = if case let .openai(openaiModel) = model {
@@ -631,9 +631,9 @@ struct AICLI {
         }
 
         // Extract reasoning and message
-        var reasoningText: String? = nil
+        var reasoningText: String?
         var messageText = ""
-        var usage: Usage? = nil
+        var usage: Usage?
 
         for output in outputs {
             let outputType = output["type"] as? String ?? ""
@@ -788,7 +788,7 @@ struct AICLI {
                 inputCostPer1k = 0.005
                 outputCostPer1k = 0.015
             case .gpt4oMini:
-                inputCostPer1k = 0.00015
+                inputCostPer1k = 0.000_15
                 outputCostPer1k = 0.0006
             default: return nil
             }

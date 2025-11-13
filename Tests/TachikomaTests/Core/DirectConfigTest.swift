@@ -28,7 +28,7 @@ struct DirectConfigTests {
         let config3 = TachikomaConfiguration(apiKeys: ["openai": "test"])
 
         // All should be valid instances
-        #expect(config1.configuredProviders.count >= 0)
+        #expect(config1.configuredProviders.isEmpty)
         #expect(config2.configuredProviders.isEmpty)
         #expect(config3.hasAPIKey(for: .openai))
     }

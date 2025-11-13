@@ -120,7 +120,6 @@ struct GPT5CLI {
                 print("  Output tokens: \(usage.outputTokens)")
                 print("  Total tokens: \(usage.totalTokens)")
             }
-
         } catch {
             print("\n❌ Error: \(error)")
             exit(1)

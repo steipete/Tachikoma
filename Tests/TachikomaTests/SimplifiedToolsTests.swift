@@ -36,7 +36,7 @@ struct SimplifiedToolsTests {
             inputSchema: CalculatorInput.self,
         ) { (_: CalculatorInput) async throws -> CalculatorOutput in
             // Mock calculation
-            return CalculatorOutput(result: 42.0)
+            CalculatorOutput(result: 42.0)
         }
 
         #expect(tool.name == "calculator")

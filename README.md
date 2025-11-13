@@ -5,7 +5,7 @@
 
 <p align="center">
   <a href="https://swift.org"><img src="https://img.shields.io/badge/Swift-6.0+-FA7343?style=for-the-badge&logo=swift&logoColor=white" alt="Swift 6.0+"></a>
-  <a href="https://github.com/steipete/Tachikoma"><img src="https://img.shields.io/badge/platforms-macOS%20%7C%20iOS%20%7C%20watchOS%20%7C%20tvOS%20%7C%20Linux%20%7C%20Windows-blue?style=for-the-badge" alt="Platforms"></a>
+  <a href="https://github.com/steipete/Tachikoma"><img src="https://img.shields.io/badge/platforms-macOS%20%7C%20iOS%20%7C%20tvOS%20%7C%20watchOS%20%7C%20visionOS%20%7C%20Linux%20%7C%20Windows%20%7C%20Android-blue?style=for-the-badge" alt="Platforms"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-green?style=for-the-badge" alt="MIT License"></a>
   <a href="https://github.com/steipete/Tachikoma/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/steipete/Tachikoma/ci.yml?branch=main&style=for-the-badge&label=tests" alt="CI Status"></a>
 </p>
@@ -13,6 +13,8 @@
 **A Modern Swift AI SDK that makes AI integration feel natural**
 
 Named after the spider-tank AI from Ghost in the Shell, **Tachikoma** provides an intelligent, adaptable interface for AI services with a completely modern Swift-native API.
+
+> CI runs across macOS, Linux, and Windows with Swiftly/WinGet-installed toolchains, plus xcodebuild jobs for iOS/tvOS/watchOS/visionOS destinations and `swift build --swift-sdk android` so Android artifacts stay healthy.
 </div>
 
 ## Quick Start
@@ -1631,6 +1633,7 @@ Built with ❤️ for the Swift AI community
 
 | Date       | Command                                                             | Scope             | Line Coverage |
 | ---------- | ------------------------------------------------------------------- | ----------------- | ------------- |
+| 2025-11-13 | `TACHIKOMA_DISABLE_API_TESTS=true TACHIKOMA_TEST_MODE=mock ./runner swift test --package-path Tachikoma --enable-code-coverage` | Tachikoma package | 41.61 %       |
 | 2025-11-12 | `./runner swift test --package-path Tachikoma --enable-code-coverage` | Tachikoma package | 41.69 %       |
 
 > Coverage derived from `xcrun llvm-cov report Tachikoma/.build/debug/TachikomaPackageTests.xctest/Contents/MacOS/TachikomaPackageTests -instr-profile Tachikoma/.build/debug/codecov/default.profdata`.

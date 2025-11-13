@@ -9,7 +9,7 @@ final class MockURLProtocol: URLProtocol {
     typealias Handler = @Sendable (URLRequest) throws -> (HTTPURLResponse, Data)
 
     private static let handlerLock = NSLock()
-    private nonisolated(unsafe) static var _handler: Handler?
+    nonisolated(unsafe) private static var _handler: Handler?
 
     static var handler: Handler? {
         get { handlerLock.withLock { _handler } }

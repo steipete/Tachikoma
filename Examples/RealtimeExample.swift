@@ -23,12 +23,11 @@ class RealtimeVoiceAssistant {
                     ),
                 ],
                 required: ["location"],
-            ),
-            execute: { args in
+            )
+        )            { args in
                 let location = args["location"]?.stringValue ?? "Unknown"
                 return .string("The weather in \(location) is sunny and 72°F")
-            },
-        )
+            }
 
         let calculatorTool = AgentTool(
             name: "calculate",
@@ -41,13 +40,12 @@ class RealtimeVoiceAssistant {
                     ),
                 ],
                 required: ["expression"],
-            ),
-            execute: { args in
+            )
+        )            { args in
                 let expression = args["expression"]?.stringValue ?? "0"
                 // In a real implementation, you'd evaluate the expression
                 return .double(42.0)
-            },
-        )
+            }
 
         // Start the conversation
         self.conversation = try await startRealtimeConversation(
@@ -215,14 +213,13 @@ class RealtimeDemo {
                     ),
                 ],
                 required: ["device", "action"],
-            ),
-            execute: { args in
+            )
+        )            { args in
                 let device = args["device"]?.stringValue ?? ""
                 let action = args["action"]?.stringValue ?? ""
                 print("🏠 Executing: \(action) on \(device)")
                 return .string("Done! \(device) is now \(action)")
-            },
-        )
+            }
 
         let conversation = try await startRealtimeConversation(
             model: .gpt4oRealtime,

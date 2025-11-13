@@ -96,7 +96,7 @@ public struct ProviderConfiguration: Sendable {
 
     public static let ollama = ProviderConfiguration(
         maxTokens: 2048,
-        maxContextLength: 32000,
+        maxContextLength: 32_000,
         maxToolCalls: 0, // No tool support by default
         supportsSystemRole: true,
     )

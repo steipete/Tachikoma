@@ -4,14 +4,14 @@ import FoundationNetworking
 #endif
 
 /// Provider for LMStudio local model server
-public actor LMStudioProvider: ModelProvider, Sendable {
+public actor LMStudioProvider: ModelProvider {
     // MARK: - Properties
 
     // Store the actual URL internally as non-optional
     private let actualBaseURL: String
 
     // Expose as optional for protocol conformance, but it's never actually nil
-    public nonisolated var baseURL: String? { self.actualBaseURL }
+    nonisolated public var baseURL: String? { self.actualBaseURL }
 
     public let apiKey: String?
     public let modelId: String
@@ -35,7 +35,7 @@ public actor LMStudioProvider: ModelProvider, Sendable {
         self.capabilities = ModelCapabilities(
             supportsTools: true,
             supportsStreaming: true,
-            contextLength: 16384,
+            contextLength: 16_384,
             maxOutputTokens: 4096,
         )
 

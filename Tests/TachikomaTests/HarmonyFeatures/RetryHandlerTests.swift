@@ -144,12 +144,10 @@ struct RetryHandlerTests {
         let handler = RetryHandler()
         let callCounter = CallCounter()
 
-        let result = try await handler.execute(
-            operation: {
+        let result = try await handler.execute            {
                 await callCounter.increment()
                 return "Success"
-            },
-        )
+            }
 
         #expect(result == "Success")
         #expect(await callCounter.count == 1) // Should succeed on first try
@@ -159,9 +157,9 @@ struct RetryHandlerTests {
     func retryHandlerExecuteWithRetries() async throws {
         let policy = RetryPolicy(
             maxAttempts: 3,
-            baseDelay: 0.01, // Short delay for testing
-            shouldRetry: { _ in true },
-        )
+            baseDelay: 0.01
+        ) // Short delay for testing
+            { _ in true }
         let handler = RetryHandler(policy: policy)
 
         let callCounter = CallCounter()
@@ -196,20 +194,17 @@ struct RetryHandlerTests {
     func retryHandlerExecuteExhaustsRetries() async throws {
         let policy = RetryPolicy(
             maxAttempts: 2,
-            baseDelay: 0.01,
-            shouldRetry: { _ in true },
-        )
+            baseDelay: 0.01
+        )            { _ in true }
         let handler = RetryHandler(policy: policy)
 
         let callCounter = CallCounter()
 
         await #expect(throws: TachikomaError.self) {
-            try await handler.execute(
-                operation: {
+            try await handler.execute                {
                     await callCounter.increment()
                     throw TachikomaError.rateLimited(retryAfter: nil)
-                },
-            )
+                }
         }
 
         #expect(await callCounter.count == 2) // Should try maxAttempts times
@@ -221,12 +216,10 @@ struct RetryHandlerTests {
         let callCounter = CallCounter()
 
         await #expect(throws: TachikomaError.self) {
-            try await handler.execute(
-                operation: {
+            try await handler.execute                {
                     await callCounter.increment()
                     throw TachikomaError.authenticationFailed("Invalid key")
-                },
-            )
+                }
         }
 
         #expect(await callCounter.count == 1) // Should not retry
@@ -237,16 +230,14 @@ struct RetryHandlerTests {
         let handler = RetryHandler()
         let callCounter = CallCounter()
 
-        let stream = try await handler.executeStream(
-            operation: {
+        let stream = try await handler.executeStream            {
                 await callCounter.increment()
                 return AsyncThrowingStream { continuation in
                     continuation.yield("Item 1")
                     continuation.yield("Item 2")
                     continuation.finish()
                 }
-            },
-        )
+            }
 
         var items: [String] = []
         for try await item in stream {

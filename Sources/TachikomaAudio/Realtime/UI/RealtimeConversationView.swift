@@ -118,16 +118,16 @@ public struct RealtimeConversationView: View {
                         self.sendTextMessage()
                     }
 
-                Button(action: self.sendTextMessage, label: {
+                Button(action: self.sendTextMessage) {
                     Image(systemName: "paperplane.fill")
-                })
+                }
                 .disabled(self.inputText.isEmpty || !self.viewModel.isReady)
             }
 
             // Voice controls
             HStack(spacing: 32) {
                 // Record button
-                Button(action: self.toggleRecording, label: {
+                Button(action: self.toggleRecording) {
                     ZStack {
                         Circle()
                             .fill(self.viewModel.isRecording ? Color.red : Color.blue)
@@ -137,15 +137,15 @@ public struct RealtimeConversationView: View {
                             .font(.title)
                             .foregroundColor(.white)
                     }
-                })
+                }
                 .scaleEffect(self.viewModel.isRecording ? 1.1 : 1.0)
                 .animation(.easeInOut(duration: 0.2), value: self.viewModel.isRecording)
 
                 // Interrupt button
-                Button(action: self.interrupt, label: {
+                Button(action: self.interrupt) {
                     Image(systemName: "stop.circle")
                         .font(.title)
-                })
+                }
                 .disabled(!self.viewModel.isPlaying)
 
                 // Clear button
