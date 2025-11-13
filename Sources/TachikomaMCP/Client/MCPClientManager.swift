@@ -3,6 +3,13 @@ import MCP
 import os.log
 import Tachikoma
 
+public struct ServerProbeResult: Sendable {
+    public let isConnected: Bool
+    public let toolCount: Int
+    public let responseTime: TimeInterval
+    public let error: String?
+}
+
 private enum AutoConnectPolicy {
     private static let overrideLock = OSAllocatedUnfairLock(initialState: Bool?.none)
     private static let forceEnable =
@@ -219,18 +226,17 @@ public final class TachikomaMCPClientManager {
     // MARK: Health checks
 
     /// Probe a specific server with a timeout. Attempts to connect if not connected.
-    /// Returns tuple: (connected, toolCount, responseTime, error)
-    public func probeServer(name: String, timeoutMs: Int = 5000) async -> (Bool, Int, TimeInterval, String?) {
+    public func probeServer(name: String, timeoutMs: Int = 5000) async -> ServerProbeResult {
         // Probe a specific server with a timeout. Attempts to connect if not connected.
         let start = Date()
         guard let client = connections[name], let cfg = effectiveConfigs[name], cfg.enabled else {
-            return (false, 0, 0, "Disabled or not configured")
+            return ServerProbeResult(isConnected: false, toolCount: 0, responseTime: 0, error: "Disabled or not configured")
         }
 
         // If already connected, return quickly
         if await client.isConnected {
             let tools = await client.tools
-            return (true, tools.count, Date().timeIntervalSince(start), nil)
+            return ServerProbeResult(isConnected: true, toolCount: tools.count, responseTime: Date().timeIntervalSince(start), error: nil)
         }
 
         // Try to connect with timeout using withTaskGroup for proper cancellation
@@ -270,22 +276,23 @@ public final class TachikomaMCPClientManager {
         if result.0 {
             // Connection succeeded
             let tools = await client.tools
-            return (true, tools.count, responseTime, nil)
+            return ServerProbeResult(isConnected: true, toolCount: tools.count, responseTime: responseTime, error: nil)
         } else {
             // Connection failed or timed out
             await client.disconnect()
-            return (false, 0, responseTime, result.1)
+            return ServerProbeResult(isConnected: false, toolCount: 0, responseTime: responseTime, error: result.1)
         }
     }
 
     /// Probe all servers in parallel
-    public func probeAllServers(timeoutMs: Int = 5000) async -> [String: (Bool, Int, TimeInterval, String?)] {
+    public func probeAllServers(timeoutMs: Int = 5000) async -> [String: ServerProbeResult] {
         // Probe all servers in parallel
-        var results: [String: (Bool, Int, TimeInterval, String?)] = [:]
-        await withTaskGroup(of: (String, (Bool, Int, TimeInterval, String?)).self) { group in
+        var results: [String: ServerProbeResult] = [:]
+        await withTaskGroup(of: (String, ServerProbeResult).self) { group in
             for name in self.listServerNames() {
                 group.addTask { [weak self] in
-                    let res = await self?.probeServer(name: name, timeoutMs: timeoutMs) ?? (false, 0, 0, "not found")
+                    let res = await self?.probeServer(name: name, timeoutMs: timeoutMs)
+                        ?? ServerProbeResult(isConnected: false, toolCount: 0, responseTime: 0, error: "not found")
                     return (name, res)
                 }
             }
