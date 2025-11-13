@@ -263,11 +263,6 @@ public struct ModelMessage: Sendable, Codable, Equatable {
     }
 }
 
-// MARK: - Agent Tool Value Protocol System
-
-/// Protocol for all tool inputs and outputs
-// Tool-related types have been moved to ToolTypes.swift
-
 // MARK: - Usage Statistics
 
 /// Token usage statistics for a generation

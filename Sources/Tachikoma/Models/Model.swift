@@ -1,5 +1,7 @@
 import Foundation
 
+// swiftlint:disable file_length
+
 // MARK: - Modern Language Model System
 
 /// Language model selection following AI SDK patterns
@@ -1203,3 +1205,5 @@ extension LanguageModel {
         return nil
     }
 }
+
+// swiftlint:enable file_length
