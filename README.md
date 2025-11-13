@@ -1633,7 +1633,7 @@ Built with ❤️ for the Swift AI community
 
 | Date       | Command                                                             | Scope             | Line Coverage |
 | ---------- | ------------------------------------------------------------------- | ----------------- | ------------- |
-| 2025-11-13 | `TACHIKOMA_DISABLE_API_TESTS=true TACHIKOMA_TEST_MODE=mock ./runner swift test --package-path Tachikoma --enable-code-coverage` | Tachikoma package | 42.13 %       |
+| 2025-11-13 | ``TACHIKOMA_DISABLE_API_TESTS=true TACHIKOMA_TEST_MODE=mock ./runner swift test --package-path Tachikoma --enable-code-coverage && scripts/core-coverage.sh`` | Core Tachikoma objects (models, configuration, providers) | 74.28 %       |
 | 2025-11-12 | `./runner swift test --package-path Tachikoma --enable-code-coverage` | Tachikoma package | 41.69 %       |
 
-> Coverage derived from `xcrun llvm-cov report Tachikoma/.build/debug/TachikomaPackageTests.xctest/Contents/MacOS/TachikomaPackageTests -instr-profile Tachikoma/.build/debug/codecov/default.profdata`.
+> Coverage derived from `scripts/core-coverage.sh`, which wraps `xcrun llvm-cov report -instr-profile .build/debug/codecov/default.profdata` with the `Model.swift.o`, `Configuration.swift.o`, `CustomProviders.swift.o`, `Provider*.swift.o`, `OpenAICompatibleHelper.swift.o`, `UsageTracking.swift.o`, `ResponseCache.swift.o`, `RetryHandler.swift.o`, and `Types.swift.o` objects to focus on the core Tachikoma runtime (UI/audio/MCP modules require interactive contexts and are tracked separately).
