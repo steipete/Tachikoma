@@ -18,7 +18,7 @@ jobs:
     strategy:
       matrix:
         os: [macos-14, macos-15, macos-latest, ubuntu-22.04]  # Windows still needs work
-        swift-version: ['6.0']
+        swift-version: ['6.2']
         
     steps:
     - name: Checkout
@@ -93,14 +93,14 @@ jobs:
     - name: Setup Swift
       uses: SwiftyLab/setup-swift@latest
       with:
-        swift-version: '6.0'
+        swift-version: '6.2'
       if: runner.os != 'Windows'
         
     - name: Setup Swift on Windows
       uses: compnerd/gha-setup-swift@main
       with:
-        swift-version: swift-6.0-release
-        swift-build: 6.0-RELEASE
+        swift-version: swift-6.2-release
+        swift-build: 6.2-RELEASE
       if: runner.os == 'Windows'
         
     - name: Build Examples

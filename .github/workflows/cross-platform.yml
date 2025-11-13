@@ -48,7 +48,7 @@ jobs:
   test-linux-ubuntu-22:
     runs-on: ubuntu-22.04
     name: Ubuntu 22.04 LTS
-    container: swift:6.0
+    container: swift:6.2
     steps:
       - uses: actions/checkout@v4
       
@@ -69,7 +69,7 @@ jobs:
   test-linux-ubuntu-24:
     runs-on: ubuntu-24.04
     name: Ubuntu 24.04 LTS
-    container: swift:6.0
+    container: swift:6.2
     steps:
       - uses: actions/checkout@v4
       
