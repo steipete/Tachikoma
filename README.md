@@ -1633,7 +1633,7 @@ Built with ❤️ for the Swift AI community
 
 | Date       | Command                                                             | Scope             | Line Coverage |
 | ---------- | ------------------------------------------------------------------- | ----------------- | ------------- |
-| 2025-11-13 | `TACHIKOMA_DISABLE_API_TESTS=true TACHIKOMA_TEST_MODE=mock ./runner swift test --package-path Tachikoma --enable-code-coverage` | Tachikoma package | 41.62 %       |
+| 2025-11-13 | `TACHIKOMA_DISABLE_API_TESTS=true TACHIKOMA_TEST_MODE=mock ./runner swift test --package-path Tachikoma --enable-code-coverage` | Tachikoma package | 42.13 %       |
 | 2025-11-12 | `./runner swift test --package-path Tachikoma --enable-code-coverage` | Tachikoma package | 41.69 %       |
 
 > Coverage derived from `xcrun llvm-cov report Tachikoma/.build/debug/TachikomaPackageTests.xctest/Contents/MacOS/TachikomaPackageTests -instr-profile Tachikoma/.build/debug/codecov/default.profdata`.
