@@ -33,8 +33,8 @@ jobs:
     - name: Setup Swift on Windows
       uses: compnerd/gha-setup-swift@main
       with:
-        branch: swift-${{ matrix.swift-version }}-release
-        tag: ${{ matrix.swift-version }}-RELEASE
+        swift-version: swift-${{ matrix.swift-version }}-release
+        swift-build: ${{ matrix.swift-version }}-RELEASE
       if: runner.os == 'Windows'
         
     - name: Cache Swift Package Manager
@@ -99,8 +99,8 @@ jobs:
     - name: Setup Swift on Windows
       uses: compnerd/gha-setup-swift@main
       with:
-        branch: swift-6.0-release
-        tag: 6.0-RELEASE
+        swift-version: swift-6.0-release
+        swift-build: 6.0-RELEASE
       if: runner.os == 'Windows'
         
     - name: Build Examples

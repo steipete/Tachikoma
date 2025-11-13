@@ -135,8 +135,8 @@ jobs:
     - name: Setup Swift
       uses: compnerd/gha-setup-swift@main
       with:
-        branch: swift-${{ matrix.swift-version }}-release
-        tag: ${{ matrix.swift-version }}-RELEASE
+        swift-version: swift-${{ matrix.swift-version }}-release
+        swift-build: ${{ matrix.swift-version }}-RELEASE
 
     - name: Cache Swift Package Manager
       uses: actions/cache@v4
