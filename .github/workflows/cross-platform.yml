@@ -97,8 +97,8 @@ jobs:
       - name: Setup Swift
         uses: compnerd/gha-setup-swift@main
         with:
-          swift-version: swift-6.0-release
-          swift-build: 6.0-RELEASE
+          swift-version: swift-6.2-release
+          swift-build: 6.2-RELEASE
       
       - name: Install dependencies
         run: |
