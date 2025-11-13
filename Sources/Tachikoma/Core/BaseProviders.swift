@@ -581,20 +581,9 @@ public final class AnthropicProvider: ModelProvider {
                     case let .toolResult(result):
                         // Convert tool result to Anthropic format
                         let resultContent: String = if result.isError {
-                            // Error result - get the error message
                             result.result.stringValue ?? "Error occurred"
                         } else {
-                            // Success result - convert to JSON string
-                            if
-                                let json = try? result.result.toJSON(),
-                                let jsonData = try? JSONSerialization.data(withJSONObject: json, options: []),
-                                let jsonString = String(data: jsonData, encoding: .utf8)
-                            {
-                                jsonString
-                            } else {
-                                // Fallback to string value if available
-                                result.result.stringValue ?? "Success"
-                            }
+                            AnthropicMessageEncoding.encodeToolResult(result.result)
                         }
 
                         // Tool results need to be sent as user messages with tool_result blocks
@@ -663,6 +652,38 @@ public final class AnthropicProvider: ModelProvider {
                 required: tool.parameters.required,
             ),
         )
+    }
+}
+
+enum AnthropicMessageEncoding {
+    static func encodeToolResult(_ value: AnyAgentToolValue) -> String {
+        if let string = value.stringValue {
+            return string
+        }
+
+        if let bool = value.boolValue {
+            return bool ? "true" : "false"
+        }
+
+        if let int = value.intValue {
+            return String(int)
+        }
+
+        if let double = value.doubleValue {
+            return String(double)
+        }
+
+        if value.isNull {
+            return "null"
+        }
+
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.withoutEscapingSlashes, .sortedKeys]
+        if let data = try? encoder.encode(value), let string = String(data: data, encoding: .utf8) {
+            return string
+        }
+
+        return "Success"
     }
 }
 
