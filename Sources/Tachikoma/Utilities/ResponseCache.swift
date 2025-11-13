@@ -387,7 +387,7 @@ public struct CacheConfiguration: Sendable {
     )
 
     public static let generous = CacheConfiguration(
-        maxEntries: 10_000,
+        maxEntries: 10000,
         defaultTTL: 7200, // 2 hours
         memoryLimit: 500 * 1024 * 1024, // 500MB
     )

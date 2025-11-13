@@ -77,11 +77,11 @@ struct ProviderOptionsTests {
         func mistralOptions() {
             let options = MistralOptions(
                 safeMode: true,
-                randomSeed: 12_345,
+                randomSeed: 12345,
             )
 
             #expect(options.safeMode == true)
-            #expect(options.randomSeed == 12_345)
+            #expect(options.randomSeed == 12345)
         }
 
         @Test("Create Groq options")

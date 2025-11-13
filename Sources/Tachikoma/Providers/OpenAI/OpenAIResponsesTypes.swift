@@ -4,9 +4,9 @@ import Foundation
 
 /// Request structure for OpenAI Responses API
 @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
-struct OpenAIResponsesRequest: Codable {
+struct OpenAIResponsesRequest: Encodable {
     let model: String
-    let input: [ResponsesMessage]
+    let input: [ResponsesInputItem]
     let temperature: Double?
     let topP: Double?
     let maxOutputTokens: Int?
@@ -232,6 +232,60 @@ struct ResponsesContentPart: Codable, Sendable {
     struct ImageURL: Codable, Sendable {
         let url: String
         let detail: String?
+    }
+}
+
+/// Heterogeneous input entries supported by the Responses API
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
+enum ResponsesInputItem: Encodable, Sendable {
+    case message(ResponsesMessage)
+    case functionCall(FunctionCall)
+    case functionCallOutput(FunctionCallOutput)
+
+    struct FunctionCall: Encodable, Sendable {
+        let type: String = "function_call"
+        let callId: String
+        let name: String
+        let arguments: String
+
+        enum CodingKeys: String, CodingKey {
+            case type
+            case callId = "call_id"
+            case name
+            case arguments
+        }
+    }
+
+    struct FunctionCallOutput: Encodable, Sendable {
+        let type: String = "function_call_output"
+        let callId: String
+        let output: String
+        let status: String?
+
+        init(callId: String, output: String, status: String? = nil) {
+            self.callId = callId
+            self.output = output
+            self.status = status
+        }
+
+        enum CodingKeys: String, CodingKey {
+            case type
+            case callId = "call_id"
+            case output
+            case status
+        }
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        switch self {
+        case let .message(message):
+            try container.encode(message)
+        case let .functionCall(functionCall):
+            try container.encode(functionCall)
+        case let .functionCallOutput(output):
+            try container.encode(output)
+        }
     }
 }
 

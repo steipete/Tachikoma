@@ -150,7 +150,7 @@ struct ProviderSystemTests {
             messages: [ModelMessage(role: .user, content: [
                 .text("Describe this image"),
                 .image(imageContent),
-            ]),],
+            ])],
             tools: nil,
             settings: .default,
         )

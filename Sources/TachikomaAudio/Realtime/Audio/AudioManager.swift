@@ -53,7 +53,7 @@ public final class RealtimeAudioManager: NSObject {
     // Audio format for API (24kHz PCM16)
     private let apiFormat = AVAudioFormat(
         commonFormat: .pcmFormatInt16,
-        sampleRate: 24_000,
+        sampleRate: 24000,
         channels: 1,
         interleaved: true,
     )!
@@ -328,7 +328,7 @@ extension RealtimeAudioManager {
 
             // Optimize for low latency
             try self.audioSession.setPreferredIOBufferDuration(0.005) // 5ms buffer
-            try self.audioSession.setPreferredSampleRate(48_000) // Device native rate
+            try self.audioSession.setPreferredSampleRate(48000) // Device native rate
         } catch {
             print("Failed to configure audio session for voice chat: \(error)")
         }

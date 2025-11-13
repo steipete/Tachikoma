@@ -274,15 +274,15 @@ struct ResponseCacheTests {
             name: "tool1",
             description: "First tool",
             parameters: AgentToolParameters(properties: [:], required: []),
-            namespace: "test"
-        )            { _ in AnyAgentToolValue(string: "") }
+            namespace: "test",
+        ) { _ in AnyAgentToolValue(string: "") }
 
         let tool2 = AgentTool(
             name: "tool2",
             description: "Second tool",
             parameters: AgentToolParameters(properties: [:], required: []),
-            namespace: "test"
-        )            { _ in AnyAgentToolValue(string: "") }
+            namespace: "test",
+        ) { _ in AnyAgentToolValue(string: "") }
 
         let request1 = ProviderRequest(
             messages: [ModelMessage.user("Test")],
@@ -338,10 +338,10 @@ struct ResponseCacheTests {
         let callCount = Box(value: 0)
         let mockProvider = ResponseCacheMockProvider(
             model: .openai(.gpt4o),
-            response: ProviderResponse(text: "Response", usage: nil, finishReason: .stop)
-        )            { _ in
-                callCount.value += 1
-            }
+            response: ProviderResponse(text: "Response", usage: nil, finishReason: .stop),
+        ) { _ in
+            callCount.value += 1
+        }
 
         let cachedProvider = await cache.wrapProvider(mockProvider)
 
@@ -369,10 +369,10 @@ struct ResponseCacheTests {
         let callCount = Box(value: 0)
         let mockProvider = ResponseCacheMockProvider(
             model: .openai(.gpt4o),
-            response: ProviderResponse(text: "Test", usage: nil, finishReason: .stop)
-        )            { _ in
-                callCount.value += 1
-            }
+            response: ProviderResponse(text: "Test", usage: nil, finishReason: .stop),
+        ) { _ in
+            callCount.value += 1
+        }
 
         let cachedProvider = await cache.wrapProvider(mockProvider)
 

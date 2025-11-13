@@ -141,12 +141,12 @@ class SmartAssistant: ObservableObject {
             AgentTool(
                 name: "getCurrentTime",
                 description: "Get the current time",
-                parameters: AgentToolParameters(properties: [:], required: [])
-            )                { _ in
-                    let formatter = DateFormatter()
-                    formatter.timeStyle = .medium
-                    return .string(formatter.string(from: Date()))
-                },
+                parameters: AgentToolParameters(properties: [:], required: []),
+            ) { _ in
+                let formatter = DateFormatter()
+                formatter.timeStyle = .medium
+                return .string(formatter.string(from: Date()))
+            },
             AgentTool(
                 name: "setReminder",
                 description: "Set a reminder",
@@ -164,13 +164,13 @@ class SmartAssistant: ObservableObject {
                         ),
                     ],
                     required: ["text", "time"],
-                )
-            )                { args in
-                    let text = try args.stringValue("text")
-                    let time = try args.stringValue("time")
-                    // In real app, would schedule notification
-                    return .string("Reminder set: '\(text)' at \(time)")
-                },
+                ),
+            ) { args in
+                let text = try args.stringValue("text")
+                let time = try args.stringValue("time")
+                // In real app, would schedule notification
+                return .string("Reminder set: '\(text)' at \(time)")
+            },
         ]
     }
 
@@ -244,10 +244,10 @@ struct VoiceAssistantView: View {
                 // Conversation Interface
                 RealtimeConversationView(
                     apiKey: self.apiKey,
-                    configuration: .voiceConversation()
-                )                    { error in
-                        print("Error: \(error)")
-                    }
+                    configuration: .voiceConversation(),
+                ) { error in
+                    print("Error: \(error)")
+                }
 
                 // Custom Controls
                 HStack {

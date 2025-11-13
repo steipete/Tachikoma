@@ -118,7 +118,7 @@ struct OpenAIResponsesProviderTests {
         let textConfig = TextConfig(verbosity: .medium)
         let request = OpenAIResponsesRequest(
             model: "gpt-5",
-            input: [ResponsesMessage(role: "user", content: .text("Test"))],
+            input: [.message(ResponsesMessage(role: "user", content: .text("Test")))],
             temperature: nil,
             topP: nil,
             maxOutputTokens: nil,
@@ -384,7 +384,7 @@ private final class ResponsesTestURLProtocol: URLProtocol {
     typealias Handler = @Sendable (URLRequest) throws -> (HTTPURLResponse, Data)
 
     private static let handlerLock = NSLock()
-    nonisolated(unsafe) private static var _handler: Handler?
+    private nonisolated(unsafe) static var _handler: Handler?
 
     static var handler: Handler? {
         get { handlerLock.withLock { _handler } }

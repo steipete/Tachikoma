@@ -28,7 +28,7 @@ public final class ReplicateProvider: ModelProvider {
             supportsVision: false,
             supportsTools: false, // Most Replicate models don't support tools
             supportsStreaming: true,
-            contextLength: 32_000,
+            contextLength: 32000,
             maxOutputTokens: 4096,
         )
     }

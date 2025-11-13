@@ -11,7 +11,7 @@ public actor LMStudioProvider: ModelProvider {
     private let actualBaseURL: String
 
     // Expose as optional for protocol conformance, but it's never actually nil
-    nonisolated public var baseURL: String? { self.actualBaseURL }
+    public nonisolated var baseURL: String? { self.actualBaseURL }
 
     public let apiKey: String?
     public let modelId: String
@@ -35,7 +35,7 @@ public actor LMStudioProvider: ModelProvider {
         self.capabilities = ModelCapabilities(
             supportsTools: true,
             supportsStreaming: true,
-            contextLength: 16_384,
+            contextLength: 16384,
             maxOutputTokens: 4096,
         )
 

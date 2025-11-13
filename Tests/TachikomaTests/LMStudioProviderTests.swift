@@ -147,8 +147,8 @@ struct LMStudioProviderTests {
                             ),
                         ],
                         required: ["expression"],
-                    )
-                )                    { _ in AnyAgentToolValue(string: "42") },
+                    ),
+                ) { _ in AnyAgentToolValue(string: "42") },
             ],
             settings: GenerationSettings(
                 maxTokens: 1000,

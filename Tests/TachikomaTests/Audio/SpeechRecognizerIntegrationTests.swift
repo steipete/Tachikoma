@@ -54,11 +54,11 @@ struct AudioSystemIntegrationTests {
         func audioDataTypesWork() throws {
             // Test that audio data types work as expected
             let testData = Data([0x01, 0x02, 0x03, 0x04])
-            let audioData = AudioData(data: testData, format: .wav, sampleRate: 44_100, channels: 2, duration: 5.0)
+            let audioData = AudioData(data: testData, format: .wav, sampleRate: 44100, channels: 2, duration: 5.0)
 
             #expect(audioData.data == testData)
             #expect(audioData.format == .wav)
-            #expect(audioData.sampleRate == 44_100)
+            #expect(audioData.sampleRate == 44100)
             #expect(audioData.channels == 2)
             #expect(audioData.duration == 5.0)
             #expect(audioData.size == 4)

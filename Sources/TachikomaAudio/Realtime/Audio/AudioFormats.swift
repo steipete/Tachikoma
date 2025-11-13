@@ -9,10 +9,10 @@ import Tachikoma
 @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public struct RealtimeAudioFormats {
     /// Default sample rate for Realtime API (24kHz)
-    public static let apiSampleRate: Double = 24_000
+    public static let apiSampleRate: Double = 24000
 
     /// Default device sample rate (48kHz)
-    public static let deviceSampleRate: Double = 48_000
+    public static let deviceSampleRate: Double = 48000
 
     /// Default number of channels (mono)
     public static let channelCount: AVAudioChannelCount = 1
@@ -213,7 +213,7 @@ public final class AudioStreamBuffer: @unchecked Sendable {
     private let chunkSize: Int
     private let maxBufferSize: Int
 
-    public init(chunkSize: Int = 4096, maxBufferSize: Int = 65_536) {
+    public init(chunkSize: Int = 4096, maxBufferSize: Int = 65536) {
         self.chunkSize = chunkSize
         self.maxBufferSize = maxBufferSize
     }

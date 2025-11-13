@@ -251,14 +251,14 @@ struct AgentCLI: AsyncParsableCommand {
             parameters: AgentToolParameters(
                 properties: [:],
                 required: [],
-            )
-        )            { _ in
-                let formatter = DateFormatter()
-                formatter.dateStyle = .full
-                formatter.timeStyle = .long
-                let now = formatter.string(from: Date())
-                return AnyAgentToolValue(string: now)
-            })
+            ),
+        ) { _ in
+            let formatter = DateFormatter()
+            formatter.dateStyle = .full
+            formatter.timeStyle = .long
+            let now = formatter.string(from: Date())
+            return AnyAgentToolValue(string: now)
+        })
 
         // Add basic calculator tool
         tools.append(AgentTool(
@@ -273,15 +273,15 @@ struct AgentCLI: AsyncParsableCommand {
                     ),
                 ],
                 required: ["expression"],
-            )
-        )            { args in
-                guard let expression = args["expression"]?.stringValue else {
-                    return AnyAgentToolValue(string: "Error: No expression provided")
-                }
-                // Simple expression evaluation (in real app, use proper parser)
-                let result = "Result: \(expression) = [calculation would go here]"
-                return AnyAgentToolValue(string: result)
-            })
+            ),
+        ) { args in
+            guard let expression = args["expression"]?.stringValue else {
+                return AnyAgentToolValue(string: "Error: No expression provided")
+            }
+            // Simple expression evaluation (in real app, use proper parser)
+            let result = "Result: \(expression) = [calculation would go here]"
+            return AnyAgentToolValue(string: result)
+        })
 
         return tools
     }

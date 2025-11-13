@@ -49,19 +49,19 @@ public struct SimplifiedToolBuilder {
         return AgentTool(
             name: name,
             description: description,
-            parameters: parameters
-        )            { arguments, context in
-                // Convert arguments to Input type
-                let jsonData = try JSONSerialization.data(withJSONObject: arguments.toDictionary())
-                let input = try JSONDecoder().decode(Input.self, from: jsonData)
+            parameters: parameters,
+        ) { arguments, context in
+            // Convert arguments to Input type
+            let jsonData = try JSONSerialization.data(withJSONObject: arguments.toDictionary())
+            let input = try JSONDecoder().decode(Input.self, from: jsonData)
 
-                // Execute with context and convert output
-                let output = try await execute(input, context)
-                let outputData = try JSONEncoder().encode(output)
-                let outputJson = try JSONSerialization.jsonObject(with: outputData)
+            // Execute with context and convert output
+            let output = try await execute(input, context)
+            let outputData = try JSONEncoder().encode(output)
+            let outputJson = try JSONSerialization.jsonObject(with: outputData)
 
-                return try AnyAgentToolValue.fromJSON(outputJson)
-            }
+            return try AnyAgentToolValue.fromJSON(outputJson)
+        }
     }
 
     /// Create a simple tool without structured input

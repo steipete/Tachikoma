@@ -253,7 +253,8 @@ public final class SSETransport: MCPTransport {
                         let jsonData = dataString.data(using: .utf8),
                         let obj = try? JSONSerialization.jsonObject(with: jsonData) as? [String: Any]
                     {
-                        if let u = obj["url"] as? String { endpointCandidate = u } else if let e = obj["endpoint"] as? String { endpointCandidate = e }
+                        if let u = obj["url"] as? String { endpointCandidate = u }
+                        else if let e = obj["endpoint"] as? String { endpointCandidate = e }
                     }
                 }
                 if let candidate = endpointCandidate, let url = URL(string: candidate, relativeTo: base) {

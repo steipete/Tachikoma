@@ -92,10 +92,10 @@ struct DynamicToolsTests {
         )
 
         let provider = MockDynamicToolProvider(
-            tools: [tool]
-        )            { name, _ in
-                AnyAgentToolValue(string: "Executed \(name)")
-            }
+            tools: [tool],
+        ) { name, _ in
+            AnyAgentToolValue(string: "Executed \(name)")
+        }
 
         // Register the provider
         await registry.register(provider, id: "test-provider")

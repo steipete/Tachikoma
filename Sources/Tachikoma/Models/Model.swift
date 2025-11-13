@@ -151,7 +151,7 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
             case .gpt41, .gpt41Mini: 1_000_000
             case .gpt4o, .gpt4oMini, .gpt4oRealtime: 128_000
             case .gpt4Turbo: 128_000
-            case .gpt35Turbo: 16_000
+            case .gpt35Turbo: 16000
             case .custom: 128_000 // Default assumption
             }
         }
@@ -271,10 +271,10 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
         public var contextLength: Int {
             switch self {
             case .large2, .large: 128_000
-            case .medium: 32_000
-            case .small: 32_000
+            case .medium: 32000
+            case .small: 32000
             case .nemo: 128_000
-            case .codestral: 32_000
+            case .codestral: 32000
             }
         }
     }
@@ -298,7 +298,7 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
             switch self {
             case .llama3170b, .llama318b: 128_000
             case .llama370b, .llama38b: 8000
-            case .mixtral8x7b: 32_000
+            case .mixtral8x7b: 32000
             case .gemma29b: 8000
             }
         }
@@ -532,24 +532,24 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
             switch self {
             case .gptOSS120B, .gptOSS20B: 128_000
             case .llama33, .llama32, .llama31: 128_000
-            case .llava, .bakllava: 32_000
+            case .llava, .bakllava: 32000
             case .llama32Vision11b: 128_000
             case .llama32Vision90b: 128_000
-            case .qwen25vl7b, .qwen25vl32b: 32_000
-            case .codellama: 32_000
+            case .qwen25vl7b, .qwen25vl32b: 32000
+            case .codellama: 32000
             case .mistralNemo: 128_000
-            case .qwen25: 32_000
+            case .qwen25: 32000
             case .deepseekR1: 128_000
             case .commandRPlus: 128_000
             case .llama2, .llama4: 128_000
-            case .mistral, .mixtral: 32_000
-            case .neuralChat, .gemma: 32_000
-            case .devstral: 16_000
-            case .deepseekR18b: 64_000
+            case .mistral, .mixtral: 32000
+            case .neuralChat, .gemma: 32000
+            case .devstral: 16000
+            case .deepseekR18b: 64000
             case .deepseekR1671b: 128_000
-            case .firefunction: 32_000
+            case .firefunction: 32000
             case .commandR: 128_000
-            case .custom: 32_000
+            case .custom: 32000
             }
         }
     }
@@ -621,12 +621,12 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
             switch self {
             case .gptOSS120B, .gptOSS20B: 128_000
             case .llama370B, .llama333B: 128_000
-            case .mixtral8x7B: 32_000
-            case .codeLlama34B: 16_000
-            case .mistral7B: 32_000
+            case .mixtral8x7B: 32000
+            case .codeLlama34B: 16000
+            case .mistral7B: 32000
             case .phi3Mini: 4096
-            case .current: 16_000 // Conservative default
-            case .custom: 16_000
+            case .current: 16000 // Conservative default
+            case .custom: 16000
             }
         }
     }

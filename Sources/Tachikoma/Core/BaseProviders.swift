@@ -681,7 +681,7 @@ enum AnthropicMessageEncoding {
             if
                 let data = try? JSONSerialization.data(
                     withJSONObject: jsonObject,
-                    options: [.withoutEscapingSlashes, .sortedKeys]
+                    options: [.withoutEscapingSlashes, .sortedKeys],
                 ),
                 let string = String(data: data, encoding: .utf8)
             {
@@ -855,7 +855,7 @@ public final class OllamaProvider: ModelProvider {
                     id: "ollama_\(UUID().uuidString)",
                     name: functionName,
                     arguments: arguments,
-                ),]
+                )]
             }
         }
 

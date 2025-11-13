@@ -44,7 +44,7 @@ public final class AudioStreamPipeline {
     public struct PipelineConfiguration {
         public var inputChunkSize: Int = 4096
         public var outputChunkSize: Int = 4096
-        public var maxBufferSize: Int = 65_536
+        public var maxBufferSize: Int = 65536
         public var voiceThreshold: Float = 0.01
         public var silenceDuration: TimeInterval = 0.5
         public var enableVAD: Bool = true

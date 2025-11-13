@@ -470,18 +470,58 @@ public final class OpenAIResponsesProvider: ModelProvider {
         return responsesRequest
     }
 
-    private func convertMessages(_ messages: [ModelMessage]) throws -> [ResponsesMessage] {
-        messages.map { message in
-            let parts = self.convertContentParts(for: message)
-            let normalizedParts = parts.isEmpty
-                ? [ResponsesContentPart(type: "input_text", text: "", imageUrl: nil)]
-                : parts
+    private func convertMessages(_ messages: [ModelMessage]) throws -> [ResponsesInputItem] {
+        var inputs: [ResponsesInputItem] = []
 
-            return ResponsesMessage(
-                role: message.role.rawValue,
-                content: .parts(normalizedParts),
-            )
+        for message in messages {
+            switch message.role {
+            case .system, .user:
+                if let entry = self.makeMessageEntry(role: message.role.rawValue, message: message) {
+                    inputs.append(.message(entry))
+                }
+            case .assistant:
+                if let entry = self.makeMessageEntry(role: message.role.rawValue, message: message) {
+                    inputs.append(.message(entry))
+                }
+
+                for part in message.content {
+                    guard case let .toolCall(call) = part else { continue }
+                    if let functionCall = self.makeFunctionCall(call) {
+                        inputs.append(.functionCall(functionCall))
+                    }
+                }
+            case .tool:
+                for part in message.content {
+                    switch part {
+                    case let .toolResult(result):
+                        if let output = self.makeFunctionCallOutput(result) {
+                            inputs.append(.functionCallOutput(output))
+                        }
+                    case let .text(text):
+                        guard !text.isEmpty else { continue }
+                        let entry = ResponsesMessage(
+                            role: "user",
+                            content: .parts([ResponsesContentPart(type: "input_text", text: text, imageUrl: nil)]),
+                        )
+                        inputs.append(.message(entry))
+                    default:
+                        continue
+                    }
+                }
+            }
         }
+
+        return inputs
+    }
+
+    private func makeMessageEntry(role: String, message: ModelMessage) -> ResponsesMessage? {
+        let parts = self.convertContentParts(for: message)
+        guard !parts.isEmpty else { return nil }
+
+        return ResponsesMessage(
+            role: role,
+            content: .parts(parts),
+        )
     }
 
     private func convertContentParts(for message: ModelMessage) -> [ResponsesContentPart] {
@@ -505,7 +545,6 @@ public final class OpenAIResponsesProvider: ModelProvider {
                         parts.append(ResponsesContentPart(type: "input_text", text: rendered, imageUrl: nil))
                     }
                 case .toolCall:
-                    // TODO: Add native tool call support when OpenAI exposes it in the Responses API.
                     continue
                 }
             }
@@ -528,6 +567,27 @@ public final class OpenAIResponsesProvider: ModelProvider {
         }
 
         return parts
+    }
+
+    private func makeFunctionCall(_ toolCall: AgentToolCall) -> ResponsesInputItem.FunctionCall? {
+        guard let argumentsJSON = self.encodeToolCallArguments(toolCall.arguments) else {
+            return nil
+        }
+
+        return ResponsesInputItem.FunctionCall(
+            callId: toolCall.id,
+            name: toolCall.name,
+            arguments: argumentsJSON)
+    }
+
+    private func makeFunctionCallOutput(_ result: AgentToolResult) -> ResponsesInputItem.FunctionCallOutput? {
+        let outputText = self.convertToolResultToString(result.result)
+        guard !outputText.isEmpty else { return nil }
+
+        return ResponsesInputItem.FunctionCallOutput(
+            callId: result.toolCallId,
+            output: outputText,
+            status: result.isError ? "failed" : nil)
     }
 
     private func convertToolResultToString(_ result: AnyAgentToolValue) -> String {
@@ -562,6 +622,25 @@ public final class OpenAIResponsesProvider: ModelProvider {
         } else {
             return "unknown"
         }
+    }
+
+    private func encodeToolCallArguments(_ arguments: [String: AnyAgentToolValue]) -> String? {
+        var jsonObject: [String: Any] = [:]
+        for (key, value) in arguments {
+            do {
+                jsonObject[key] = try value.toJSON()
+            } catch {
+                continue
+            }
+        }
+
+        guard JSONSerialization.isValidJSONObject(jsonObject),
+              let data = try? JSONSerialization.data(withJSONObject: jsonObject, options: [.sortedKeys]),
+              let jsonString = String(data: data, encoding: .utf8)
+        else {
+            return nil
+        }
+        return jsonString
     }
 
     private func convertTool(_ tool: AgentTool) throws -> ResponsesTool {
