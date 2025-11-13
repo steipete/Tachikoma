@@ -21,10 +21,10 @@ struct AgentExecutionResult {
 }
 
 /// Main agent that orchestrates conversations and tool calls
-final class Agent {
-    private let configuration: AgentConfiguration
-    private let eventDelegate: AgentEventDelegate?
-    private let tachikomaConfig: TachikomaConfiguration
+    final class Agent {
+        private let configuration: AgentConfiguration
+        private weak var eventDelegate: AgentEventDelegate?
+        private let tachikomaConfig: TachikomaConfiguration
 
     init(configuration: AgentConfiguration, eventDelegate: AgentEventDelegate? = nil) {
         self.configuration = configuration

@@ -280,7 +280,7 @@ extension TachikomaExamples {
 
         for (name, model) in models {
             do {
-                let provider = try await ProviderFactory.createProvider(for: model)
+                let provider = try ProviderFactory.createProvider(for: model)
                 print("  ✅ \(name): \(type(of: provider))")
             } catch {
                 if let tachikomaError = error as? TachikomaError {
