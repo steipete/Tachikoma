@@ -9,13 +9,15 @@ public actor LMStudioProvider: ModelProvider {
 
     // Store the actual URL internally as non-optional
     private let actualBaseURL: String
+    private let configuredApiKey: String?
+    private let configuredModelId: String
+    private let configuredCapabilities: ModelCapabilities
 
     // Expose as optional for protocol conformance, but it's never actually nil
     public nonisolated var baseURL: String? { self.actualBaseURL }
-
-    public let apiKey: String?
-    public let modelId: String
-    public let capabilities: ModelCapabilities
+    public nonisolated var apiKey: String? { self.configuredApiKey }
+    public nonisolated var modelId: String { self.configuredModelId }
+    public nonisolated var capabilities: ModelCapabilities { self.configuredCapabilities }
 
     private let session: URLSession
     private let encoder = JSONEncoder()
@@ -30,9 +32,9 @@ public actor LMStudioProvider: ModelProvider {
         sessionConfiguration: URLSessionConfiguration = .default,
     ) {
         self.actualBaseURL = baseURL
-        self.modelId = modelId
-        self.apiKey = apiKey
-        self.capabilities = ModelCapabilities(
+        self.configuredModelId = modelId
+        self.configuredApiKey = apiKey
+        self.configuredCapabilities = ModelCapabilities(
             supportsTools: true,
             supportsStreaming: true,
             contextLength: 16384,
@@ -58,7 +60,7 @@ public actor LMStudioProvider: ModelProvider {
 
         for url in commonURLs {
             let provider = LMStudioProvider(baseURL: url)
-            if let _ = try? await provider.healthCheck() {
+            if (try? await provider.healthCheck()) != nil {
                 return provider
             }
         }

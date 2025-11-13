@@ -13,10 +13,10 @@ struct LMStudioProviderTests {
         )
 
         // Access actor-isolated properties within the actor context
-        let baseURL = await provider.baseURL
-        let modelId = await provider.modelId
-        let apiKey = await provider.apiKey
-        let capabilities = await provider.capabilities
+        let baseURL = provider.baseURL
+        let modelId = provider.modelId
+        let apiKey = provider.apiKey
+        let capabilities = provider.capabilities
 
         #expect(baseURL == "http://localhost:1234/v1")
         #expect(modelId == "gpt-oss-120b")
@@ -57,9 +57,9 @@ struct LMStudioProviderTests {
 
         // Test LMStudio provider creation
         let model = LanguageModel.lmstudio(.gptOSS120B)
-        let provider = try await ProviderFactory.createProvider(for: model, configuration: config)
+        let provider = try ProviderFactory.createProvider(for: model, configuration: config)
 
-        let modelId = await provider.modelId
+        let modelId = provider.modelId
         #expect(modelId == "gpt-oss-120b")
 
         // Should work without API key (local model)
@@ -121,7 +121,7 @@ struct LMStudioProviderTests {
         } else {
             // In real mode, test would depend on whether LMStudio is running
             // We'll skip this for now
-            #expect(true)
+            #expect(Bool(true))
         }
     }
 

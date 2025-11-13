@@ -1,6 +1,20 @@
 import Foundation
 import Tachikoma
 
+public struct ToolParameter: Sendable {
+    public let name: String
+    public let type: DynamicSchema.SchemaType
+    public let description: String
+    public let required: Bool
+
+    public init(name: String, type: DynamicSchema.SchemaType, description: String, required: Bool) {
+        self.name = name
+        self.type = type
+        self.description = description
+        self.required = required
+    }
+}
+
 // MARK: - Dynamic Tool System Extensions
 
 // Core dynamic tool types (DynamicToolProvider, DynamicTool, DynamicSchema) are now in Core/ToolTypes.swift
@@ -132,7 +146,7 @@ public struct DynamicToolBuilder {
     public static func multiParameterTool(
         name: String,
         description: String,
-        parameters: [(name: String, type: DynamicSchema.SchemaType, description: String, required: Bool)],
+        parameters: [ToolParameter]
     )
     -> DynamicTool {
         // Create a tool with multiple parameters

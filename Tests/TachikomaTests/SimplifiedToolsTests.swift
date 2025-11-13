@@ -132,16 +132,17 @@ struct SimplifiedToolsTests {
                     .string("location", description: "City name", required: true)
                     .string("units", description: "Temperature units", enum: ["celsius", "fahrenheit"])
             },
-        ) { args async throws -> AnyAgentToolValue in
-            let location = try args.stringValue("location")
-            let units = args.optionalStringValue("units") ?? "celsius"
+            execute: { args async throws -> AnyAgentToolValue in
+                let location = try args.stringValue("location")
+                let units = args.optionalStringValue("units") ?? "celsius"
 
-            return try AnyAgentToolValue.fromJSON([
-                "location": location,
-                "temperature": 22,
-                "units": units,
-            ])
-        }
+                return try AnyAgentToolValue.fromJSON([
+                    "location": location,
+                    "temperature": 22,
+                    "units": units,
+                ])
+            }
+        )
 
         #expect(tool.name == "weather")
         #expect(tool.parameters.required.contains("location"))
