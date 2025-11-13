@@ -223,6 +223,56 @@ struct OpenAIResponsesProviderTests {
         }
     }
 
+    @Test("Function call history encodes into Responses input")
+    func openAIResponsesEncodesFunctionCalls() async throws {
+        let config = TachikomaConfiguration(loadFromEnvironment: false)
+        config.setAPIKey("live-openai", for: .openai)
+
+        let toolArguments = [
+            "location": AnyAgentToolValue(string: "San Francisco"),
+            "unit": AnyAgentToolValue(string: "fahrenheit"),
+        ]
+        let toolCall = AgentToolCall(id: "call_123", name: "get_weather", arguments: toolArguments)
+        let toolResult = AgentToolResult(
+            toolCallId: "call_123",
+            result: AnyAgentToolValue(object: [
+                "temperature": AnyAgentToolValue(int: 68),
+            ]),
+            isError: false,
+        )
+
+        let providerRequest = ProviderRequest(
+            messages: [
+                .user("What is the weather?"),
+                ModelMessage(role: .assistant, content: [.toolCall(toolCall)]),
+                ModelMessage(role: .tool, content: [.toolResult(toolResult)]),
+            ],
+            settings: .init(maxTokens: 32),
+        )
+
+        try await self.withMockedSession { request in
+            let body = try #require(Self.bodyData(from: request))
+            let json = try JSONSerialization.jsonObject(with: body) as? [String: Any]
+            let input = try #require(json?["input"] as? [[String: Any]])
+
+            let functionCallEntry = input.first { ($0["type"] as? String) == "function_call" }
+            #expect(functionCallEntry?["name"] as? String == "get_weather")
+            #expect(functionCallEntry?["call_id"] as? String == "call_123")
+
+            let outputEntry = input.first { ($0["type"] as? String) == "function_call_output" }
+            #expect(outputEntry?["call_id"] as? String == "call_123")
+            #expect((outputEntry?["output"] as? String)?.contains("temperature") == true)
+
+            let messageRoles = input.compactMap { $0["role"] as? String }
+            #expect(!messageRoles.contains("tool"))
+
+            return NetworkMocking.jsonResponse(for: request, data: Self.responsesPayload(text: "Done"))
+        } operation: { session in
+            let provider = try OpenAIResponsesProvider(model: .gpt5, configuration: config, session: session)
+            _ = try await provider.generateText(request: providerRequest)
+        }
+    }
+
     @Test("Responses provider streams accumulated deltas")
     func openAIResponsesStreaming() async throws {
         let config = TachikomaConfiguration(loadFromEnvironment: false)

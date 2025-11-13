@@ -395,7 +395,7 @@ public final class OpenAIResponsesProvider: ModelProvider {
     ) throws
     -> OpenAIResponsesRequest {
         // Convert messages to Responses API format
-        let messages = try convertMessages(request.messages)
+        let messages = try self.sanitizeInputs(self.convertMessages(request.messages))
 
         // Convert tools if present
         let tools = try request.tools?.compactMap { tool in
@@ -500,7 +500,7 @@ public final class OpenAIResponsesProvider: ModelProvider {
                     case let .text(text):
                         guard !text.isEmpty else { continue }
                         let entry = ResponsesMessage(
-                            role: "user",
+                            role: self.normalizedRole("user"),
                             content: .parts([ResponsesContentPart(type: "input_text", text: text, imageUrl: nil)]),
                         )
                         inputs.append(.message(entry))
@@ -514,14 +514,39 @@ public final class OpenAIResponsesProvider: ModelProvider {
         return inputs
     }
 
+    private func sanitizeInputs(_ inputs: [ResponsesInputItem]) -> [ResponsesInputItem] {
+        inputs.map { item in
+            switch item {
+            case let .message(message):
+                let normalized = self.normalizedRole(message.role)
+                if normalized == message.role {
+                    return item
+                }
+                let sanitized = ResponsesMessage(role: normalized, content: message.content)
+                return .message(sanitized)
+            default:
+                return item
+            }
+        }
+    }
+
     private func makeMessageEntry(role: String, message: ModelMessage) -> ResponsesMessage? {
         let parts = self.convertContentParts(for: message)
         guard !parts.isEmpty else { return nil }
 
         return ResponsesMessage(
-            role: role,
+            role: self.normalizedRole(role),
             content: .parts(parts),
         )
+    }
+
+    private func normalizedRole(_ role: String) -> String {
+        switch role {
+        case "assistant", "system", "developer", "user":
+            role
+        default:
+            "user"
+        }
     }
 
     private func convertContentParts(for message: ModelMessage) -> [ResponsesContentPart] {
@@ -577,7 +602,8 @@ public final class OpenAIResponsesProvider: ModelProvider {
         return ResponsesInputItem.FunctionCall(
             callId: toolCall.id,
             name: toolCall.name,
-            arguments: argumentsJSON)
+            arguments: argumentsJSON,
+        )
     }
 
     private func makeFunctionCallOutput(_ result: AgentToolResult) -> ResponsesInputItem.FunctionCallOutput? {
@@ -587,7 +613,8 @@ public final class OpenAIResponsesProvider: ModelProvider {
         return ResponsesInputItem.FunctionCallOutput(
             callId: result.toolCallId,
             output: outputText,
-            status: result.isError ? "failed" : nil)
+            status: result.isError ? "failed" : nil,
+        )
     }
 
     private func convertToolResultToString(_ result: AnyAgentToolValue) -> String {
@@ -634,10 +661,11 @@ public final class OpenAIResponsesProvider: ModelProvider {
             }
         }
 
-        guard JSONSerialization.isValidJSONObject(jsonObject),
-              let data = try? JSONSerialization.data(withJSONObject: jsonObject, options: [.sortedKeys]),
-              let jsonString = String(data: data, encoding: .utf8)
-        else {
+        guard
+            JSONSerialization.isValidJSONObject(jsonObject),
+            let data = try? JSONSerialization.data(withJSONObject: jsonObject, options: [.sortedKeys]),
+            let jsonString = String(data: data, encoding: .utf8) else
+        {
             return nil
         }
         return jsonString

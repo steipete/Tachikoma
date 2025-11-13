@@ -72,7 +72,7 @@ struct OpenAIEmbeddingProvider: EmbeddingProvider, ModelProvider {
         if
             let usageDict = json["usage"] as? [String: Any],
             let promptTokens = usageDict["prompt_tokens"] as? Int,
-            let _ = usageDict["total_tokens"] as? Int
+            usageDict["total_tokens"] != nil
         {
             usage = Usage(inputTokens: promptTokens, outputTokens: 0)
         }
