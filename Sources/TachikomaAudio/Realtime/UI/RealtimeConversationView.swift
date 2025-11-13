@@ -281,7 +281,8 @@ struct MessageBubble: View {
 @available(macOS 14.0, iOS 17.0, watchOS 10.0, tvOS 17.0, *)
 struct SettingsView: View {
     @ObservedObject var viewModel: RealtimeConversationViewModel
-    @Environment(\.dismiss) private var dismiss
+    @Environment(\.dismiss)
+    private var dismiss
 
     var body: some View {
         NavigationView {

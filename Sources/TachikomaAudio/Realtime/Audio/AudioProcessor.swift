@@ -292,7 +292,7 @@ public final class RealtimeAudioProcessor: @unchecked Sendable {
         let sign: UInt8 = s < 0 ? 0x80 : 0x00
         if s < 0 { s = -s }
 
-        s = s + BIAS
+        s += BIAS
 
         var exponent: UInt8 = 7
         var expMask: Int16 = 0x4000
