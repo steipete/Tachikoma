@@ -275,8 +275,10 @@ public final class StdioTransportPTY: MCPTransport {
 
                     buffer.append(chunk)
 
-                    // Process complete lines
-                    while let newlineRange = buffer.firstRange(of: Data("\n".utf8)) {
+                    // Process complete lines (treat both LF and CR as delimiters)
+                    while let newlineRange = buffer.firstRange(of: Data("\n".utf8)) ??
+                        buffer.firstRange(of: Data("\r".utf8))
+                    {
                         let lineData = buffer[..<newlineRange.lowerBound]
                         buffer.removeSubrange(..<newlineRange.upperBound)
 
@@ -293,15 +295,37 @@ public final class StdioTransportPTY: MCPTransport {
     }
 
     private func processLine(_ data: Data) async {
-        // Try to parse as JSON-RPC response
-        if
-            let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+        var payload = data
+        if let lastByte = payload.last, lastByte == 13 {
+            payload.removeLast()
+        }
+        guard
+            let json = try? JSONSerialization.jsonObject(with: payload) as? [String: Any],
             let idValue = json["id"]
-        {
-            let idString = String(describing: idValue)
-            if let continuation = await state.removePendingRequestByStringId(idString) {
-                continuation.resume(returning: data)
+        else {
+            return
+        }
+
+        if let id = idValue as? Int {
+            if let continuation = await state.removePendingRequest(id: id) {
+                await state.cancelTimeoutTask(id: id)
+                continuation.resume(returning: payload)
             }
+            return
+        }
+
+        if let idString = idValue as? String {
+            if let continuation = await state.removePendingRequestByStringId(idString) {
+                if let idInt = Int(idString) {
+                    await state.cancelTimeoutTask(id: idInt)
+                }
+                continuation.resume(returning: payload)
+            }
+            return
+        }
+
+        if idValue is NSNull {
+            return
         }
     }
 }

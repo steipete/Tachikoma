@@ -112,6 +112,8 @@ public final class MCPClient: Sendable {
         case "stdio":
             // Always use standard stdio transport now that we've fixed the reading issue
             transport = StdioTransport()
+        case "stdio-pty":
+            transport = StdioTransportPTY()
         case "sse":
             transport = SSETransport()
         case "http":

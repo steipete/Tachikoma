@@ -311,6 +311,85 @@ struct MCPClientTests {
         #expect(decoded.count == 42)
         #expect(decoded.active == true)
     }
+
+#if os(macOS)
+    @Test("MCPClient connects via PTY transport")
+    func clientConnectsOverPTY() async throws {
+        let tempDirectory = FileManager.default.temporaryDirectory
+        let scriptURL = tempDirectory.appendingPathComponent("mcp-pty-\(UUID().uuidString)")
+        let logURL = tempDirectory.appendingPathComponent("mcp-pty-log-\(UUID().uuidString)")
+        let script = #"""
+#!/usr/bin/env python3
+import json
+import sys
+
+LOG_PATH = r"%LOG_PATH%"
+log = open(LOG_PATH, "a", buffering=1)
+log.write("ready\n")
+
+def respond(obj):
+    payload = json.dumps(obj)
+    log.write("OUT:" + payload + "\n")
+    sys.stdout.write(payload + "\n")
+    sys.stdout.flush()
+
+while True:
+    line = sys.stdin.readline()
+    if not line:
+        break
+    line = line.strip("\r\n")
+    if not line:
+        continue
+    log.write("IN:" + line + "\n")
+    msg = json.loads(line)
+    method = msg.get("method")
+    mid = msg.get("id")
+    if method == "initialize":
+        respond({
+            "jsonrpc": "2.0",
+            "id": mid,
+            "result": {
+                "protocolVersion": "2025-03-26",
+                "serverInfo": {"name": "Test Browser", "version": "1.0"},
+                "capabilities": {
+                    "tools": {"listChanged": True},
+                    "resources": {"listChanged": True},
+                    "completions": {}
+                }
+            }
+        })
+    elif method == "tools/list":
+        respond({
+            "jsonrpc": "2.0",
+            "id": mid,
+            "result": {"tools": []}
+        })
+        break
+"""#
+            .replacingOccurrences(of: "%LOG_PATH%", with: logURL.path)
+        try script.write(to: scriptURL, atomically: true, encoding: .utf8)
+        try FileManager.default.setAttributes(
+            [.posixPermissions: NSNumber(value: Int16(0o755))],
+            ofItemAtPath: scriptURL.path
+        )
+
+        let config = MCPServerConfig(
+            transport: "stdio-pty",
+            command: scriptURL.path,
+            timeout: 5,
+            autoReconnect: false
+        )
+        let client = MCPClient(name: "browser-test", config: config)
+
+        try await client.connect()
+        let connected = await client.isConnected
+        #expect(connected)
+        await client.disconnect()
+
+        try? FileManager.default.removeItem(at: scriptURL)
+        try? FileManager.default.removeItem(at: logURL)
+    }
+#endif
 }
 
 // MARK: - Mock MCP Tool for Testing
