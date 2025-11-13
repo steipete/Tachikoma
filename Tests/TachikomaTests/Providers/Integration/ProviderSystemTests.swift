@@ -10,7 +10,7 @@ struct ProviderSystemTests {
     func providerFactoryOpenAI() async throws {
         try await TestHelpers.withTestConfiguration(apiKeys: ["openai": "test-key"]) { config in
             let model = Model.openai(.gpt4o)
-            let provider = try await ProviderFactory.createProvider(for: model, configuration: config)
+            let provider = try ProviderFactory.createProvider(for: model, configuration: config)
 
             #expect(provider.modelId == "gpt-4o")
             #expect(provider.capabilities.supportsVision == true)
@@ -23,7 +23,7 @@ struct ProviderSystemTests {
     func providerFactoryAnthropic() async throws {
         try await TestHelpers.withTestConfiguration(apiKeys: ["anthropic": "test-key"]) { config in
             let model = Model.anthropic(.opus4)
-            let provider = try await ProviderFactory.createProvider(for: model, configuration: config)
+            let provider = try ProviderFactory.createProvider(for: model, configuration: config)
 
             #expect(provider.modelId == "claude-opus-4-1-20250805")
             #expect(provider.capabilities.supportsVision == true)
@@ -36,7 +36,7 @@ struct ProviderSystemTests {
     func providerFactoryGrok() async throws {
         try await TestHelpers.withTestConfiguration(apiKeys: ["grok": "test-key"]) { config in
             let model = Model.grok(.grok4FastReasoning)
-            let provider = try await ProviderFactory.createProvider(for: model, configuration: config)
+            let provider = try ProviderFactory.createProvider(for: model, configuration: config)
 
             #expect(provider.modelId == "grok-4-fast-reasoning")
             #expect(provider.capabilities.supportsTools == true)
@@ -49,7 +49,7 @@ struct ProviderSystemTests {
         try await TestHelpers.withTestConfiguration(apiKeys: ["grok": "test-key"]) { config in
             for grokModel in Model.Grok.allCases {
                 let model = Model.grok(grokModel)
-                let provider = try await ProviderFactory.createProvider(for: model, configuration: config)
+                let provider = try ProviderFactory.createProvider(for: model, configuration: config)
                 #expect(provider.modelId == grokModel.modelId)
             }
         }
@@ -60,7 +60,7 @@ struct ProviderSystemTests {
         // No API key needed for Ollama
         let config = TachikomaConfiguration(loadFromEnvironment: false)
         let model = Model.ollama(.llama33)
-        let provider = try await ProviderFactory.createProvider(for: model, configuration: config)
+        let provider = try ProviderFactory.createProvider(for: model, configuration: config)
 
         #expect(provider.modelId == "llama3.3")
         #expect(provider.capabilities.supportsTools == true)
@@ -147,10 +147,12 @@ struct ProviderSystemTests {
     func generationRequestWithImages() {
         let imageContent = ModelMessage.ContentPart.ImageContent(data: "test-base64-data")
         let request = ProviderRequest(
-            messages: [ModelMessage(role: .user, content: [
-                .text("Describe this image"),
-                .image(imageContent),
-            ])],
+            messages: [
+                ModelMessage(role: .user, content: [
+                    .text("Describe this image"),
+                    .image(imageContent),
+                ]),
+            ],
             tools: nil,
             settings: .default,
         )

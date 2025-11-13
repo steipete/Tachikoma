@@ -115,7 +115,7 @@ struct OpenAICompatibleHelperTests {
 
     @Test("non-200 responses surface TachikomaError.apiError")
     func apiErrorsSurface() async throws {
-        try await self.withMockedSession { urlRequest in
+        await self.withMockedSession { urlRequest in
             let errorJSON = """
             {"error":{"message":"bad request","type":"invalid_request_error"}}
             """.data(using: .utf8)!
@@ -209,11 +209,13 @@ struct OpenAICompatibleHelperTests {
             "object": "chat.completion",
             "created": 1_700_000_000,
             "model": "compatible-model",
-            "choices": [[
-                "index": 0,
-                "message": ["role": "assistant", "content": text],
-                "finish_reason": "stop",
-            ]],
+            "choices": [
+                [
+                    "index": 0,
+                    "message": ["role": "assistant", "content": text],
+                    "finish_reason": "stop",
+                ],
+            ],
             "usage": [
                 "prompt_tokens": 12,
                 "completion_tokens": 3,

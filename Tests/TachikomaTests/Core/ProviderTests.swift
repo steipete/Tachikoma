@@ -44,7 +44,7 @@ struct ProviderTests {
             #expect(Provider.mistral.environmentVariable == "MISTRAL_API_KEY")
             #expect(Provider.google.environmentVariable == "GEMINI_API_KEY")
             #expect(Provider.ollama.environmentVariable == "OLLAMA_API_KEY")
-            #expect(Provider.custom("test").environmentVariable == "")
+            #expect(Provider.custom("test").environmentVariable.isEmpty)
         }
 
         @Test("Alternative environment variables")
@@ -132,12 +132,6 @@ struct ProviderTests {
     struct EnvironmentVariableTests {
         @Test("Load API key from primary environment variable")
         func loadFromPrimaryEnvironment() {
-            // Mock environment for testing
-            let originalEnv = ProcessInfo.processInfo.environment
-
-            // Test with mocked environment
-            let mockEnv = ["OPENAI_API_KEY": "test-openai-key"]
-
             // We can't easily mock ProcessInfo.processInfo.environment in tests,
             // so we'll test the logic indirectly through TachikomaConfiguration
         }

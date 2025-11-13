@@ -230,7 +230,7 @@ struct IntegrationTests {
                     .string("query", description: "Search query", required: true)
                     .integer("limit", description: "Result limit")
             },
-        ) { args, context async throws -> AnyAgentToolValue in
+            execute: { args, context async throws -> AnyAgentToolValue in
             let query = try args.stringValue("query")
             let limit = args.optionalIntegerValue("limit") ?? 10
             let contextLength = context.messages.count
@@ -245,7 +245,7 @@ struct IntegrationTests {
                 "results": results,
                 "sessionId": context.sessionId,
             ])
-        }
+        })
 
         // Execute with context
         let context = ToolExecutionContext(

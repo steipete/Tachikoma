@@ -40,7 +40,7 @@ struct ProviderIntegrationTests {
         let model = Model.openai(.gpt4oMini)
         let config = TachikomaConfiguration()
         do {
-            _ = try await ProviderFactory.createProvider(for: model, configuration: config)
+            _ = try ProviderFactory.createProvider(for: model, configuration: config)
 
             let response = try await generate(
                 TestConfig.shortMessage,
@@ -64,7 +64,7 @@ struct ProviderIntegrationTests {
         let config = TachikomaConfiguration()
 
         do {
-            let provider = try await ProviderFactory.createProvider(for: model, configuration: config)
+            let provider = try ProviderFactory.createProvider(for: model, configuration: config)
 
             let tool = AgentTool(
                 name: "get_weather",
@@ -109,7 +109,7 @@ struct ProviderIntegrationTests {
         let config = TachikomaConfiguration()
 
         do {
-            let provider = try await ProviderFactory.createProvider(for: model, configuration: config)
+            let provider = try ProviderFactory.createProvider(for: model, configuration: config)
 
             let request = ProviderRequest(
                 messages: [
@@ -170,7 +170,7 @@ struct ProviderIntegrationTests {
         let config = TachikomaConfiguration()
 
         do {
-            let provider = try await ProviderFactory.createProvider(for: model, configuration: config)
+            let provider = try ProviderFactory.createProvider(for: model, configuration: config)
 
             let tool = AgentTool(
                 name: "calculate",
@@ -293,7 +293,7 @@ struct ProviderIntegrationTests {
     func multiModalVision() async throws {
         let model = Model.openai(.gpt4o)
         let config = TachikomaConfiguration()
-        let provider = try await ProviderFactory.createProvider(for: model, configuration: config)
+        let provider = try ProviderFactory.createProvider(for: model, configuration: config)
 
         // Create a simple base64 encoded 1x1 red pixel PNG
         let redPixelPNG = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg=="
