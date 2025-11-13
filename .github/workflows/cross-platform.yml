@@ -15,7 +15,7 @@ jobs:
       - uses: actions/checkout@v4
       
       - name: Select Xcode
-        run: sudo xcode-select -s /Applications/Xcode.app
+        run: sudo xcode-select -s /Applications/Xcode_16.1.app || sudo xcode-select -s /Applications/Xcode_16.0.app || sudo xcode-select -s /Applications/Xcode.app
       
       - name: Build
         run: swift build
@@ -26,14 +26,14 @@ jobs:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
 
-  test-macos-latest:
-    runs-on: macos-latest
-    name: macOS Latest
+  test-macos-15:
+    runs-on: macos-15
+    name: macOS 15 (Sequoia)
     steps:
       - uses: actions/checkout@v4
       
       - name: Select Xcode
-        run: sudo xcode-select -s /Applications/Xcode.app
+        run: sudo xcode-select -s /Applications/Xcode_16.1.app || sudo xcode-select -s /Applications/Xcode_16.0.app || sudo xcode-select -s /Applications/Xcode.app
       
       - name: Build
         run: swift build
@@ -89,16 +89,16 @@ jobs:
 
   # Windows testing - latest only
   test-windows:
-    runs-on: windows-latest
-    name: Windows Latest
+    runs-on: windows-2025
+    name: Windows (2025 runner)
     steps:
       - uses: actions/checkout@v4
       
       - name: Setup Swift
-        uses: compnerd/gha-setup-swift@main
+        uses: compnerd/gha-setup-swift@v1
         with:
-          swift-version: swift-6.2-release
-          swift-build: 6.2-RELEASE
+          branch: swift-6.2-release
+          tag: 6.2-RELEASE
       
       - name: Install dependencies
         run: |
@@ -115,7 +115,7 @@ jobs:
 
   # Optional: Build release artifacts
   build-release:
-    needs: [test-macos-14, test-macos-latest, test-linux-ubuntu-22, test-linux-ubuntu-24, test-windows]
+    needs: [test-macos-14, test-macos-15, test-linux-ubuntu-22, test-linux-ubuntu-24, test-windows]
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
     steps:
@@ -127,7 +127,7 @@ jobs:
           echo "" >> release-info.txt
           echo "Tested Platforms:" >> release-info.txt
           echo "• macOS 14 (Sonoma) ✅" >> release-info.txt
-          echo "• macOS Latest ✅" >> release-info.txt
+          echo "• macOS 15 (Sequoia) ✅" >> release-info.txt
           echo "• Ubuntu 22.04 LTS ✅" >> release-info.txt
           echo "• Ubuntu 24.04 LTS ✅" >> release-info.txt
           echo "• Windows Latest ✅" >> release-info.txt

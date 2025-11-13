@@ -16,38 +16,27 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [macos-latest, ubuntu-22.04, windows-latest]
+        os: [macos-15, ubuntu-22.04, windows-2025]
     steps:
     - name: Checkout
       uses: actions/checkout@v4
 
     - name: Select Xcode 16
       if: runner.os == 'macOS'
-      run: sudo xcode-select -s /Applications/Xcode_16.0.app || sudo xcode-select -s /Applications/Xcode.app
+      run: sudo xcode-select -s /Applications/Xcode_16.1.app || sudo xcode-select -s /Applications/Xcode_16.0.app || sudo xcode-select -s /Applications/Xcode.app
 
-    - name: Install Swift via Swiftly (Linux)
-      if: runner.os == 'Linux'
-      run: |
-        set -euxo pipefail
-        curl -O https://download.swift.org/swiftly/linux/swiftly-1.1.0-$(uname -m).tar.gz
-        tar -zxf swiftly-1.1.0-$(uname -m).tar.gz
-        ./swiftly init --quiet-shell-followup
-        . "${SWIFTLY_HOME_DIR:-$HOME/.local/share/swiftly}/env.sh"
-        hash -r
-        swift --version
+    - name: Install Swift toolchain (macOS/Linux)
+      if: runner.os != 'Windows'
+      uses: SwiftyLab/setup-swift@v1
+      with:
+        swift-version: '6.2.1'
 
-    - name: Install Swift via WinGet (Windows)
+    - name: Install Swift toolchain (Windows)
       if: runner.os == 'Windows'
-      shell: pwsh
-      run: |
-        $ErrorActionPreference = "Stop"
-        winget install --id Microsoft.VisualStudio.2022.Community --exact --accept-package-agreements --accept-source-agreements --override "--add Microsoft.VisualStudio.Component.Windows11SDK.22000 --add Microsoft.VisualStudio.Component.VC.Tools.x86.x64 --add Microsoft.VisualStudio.Component.VC.Tools.ARM64 --quiet --wait --norestart"
-        winget install --id Swift.Toolchain -e --accept-package-agreements --accept-source-agreements --silent
-        $swiftRoot = "$env:LOCALAPPDATA\Programs\Swift\bin"
-        if (Test-Path $swiftRoot) {
-          "$swiftRoot" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-        }
-        swift --version
+      uses: compnerd/gha-setup-swift@v1
+      with:
+        branch: swift-6.2-release
+        tag: 6.2-RELEASE
 
     - name: Cache Swift Package Manager
       uses: actions/cache@v4
@@ -91,38 +80,27 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [macos-latest, ubuntu-22.04, windows-latest]
+        os: [macos-15, ubuntu-22.04, windows-2025]
     steps:
     - name: Checkout
       uses: actions/checkout@v4
 
     - name: Select Xcode 16
       if: runner.os == 'macOS'
-      run: sudo xcode-select -s /Applications/Xcode_16.0.app || sudo xcode-select -s /Applications/Xcode.app
+      run: sudo xcode-select -s /Applications/Xcode_16.1.app || sudo xcode-select -s /Applications/Xcode_16.0.app || sudo xcode-select -s /Applications/Xcode.app
 
-    - name: Install Swift via Swiftly (Linux)
-      if: runner.os == 'Linux'
-      run: |
-        set -euxo pipefail
-        curl -O https://download.swift.org/swiftly/linux/swiftly-1.1.0-$(uname -m).tar.gz
-        tar -zxf swiftly-1.1.0-$(uname -m).tar.gz
-        ./swiftly init --quiet-shell-followup
-        . "${SWIFTLY_HOME_DIR:-$HOME/.local/share/swiftly}/env.sh"
-        hash -r
-        swift --version
+    - name: Install Swift toolchain (macOS/Linux)
+      if: runner.os != 'Windows'
+      uses: SwiftyLab/setup-swift@v1
+      with:
+        swift-version: '6.2.1'
 
-    - name: Install Swift via WinGet (Windows)
+    - name: Install Swift toolchain (Windows)
       if: runner.os == 'Windows'
-      shell: pwsh
-      run: |
-        $ErrorActionPreference = "Stop"
-        winget install --id Microsoft.VisualStudio.2022.Community --exact --accept-package-agreements --accept-source-agreements --override "--add Microsoft.VisualStudio.Component.Windows11SDK.22000 --add Microsoft.VisualStudio.Component.VC.Tools.x86.x64 --add Microsoft.VisualStudio.Component.VC.Tools.ARM64 --quiet --wait --norestart"
-        winget install --id Swift.Toolchain -e --accept-package-agreements --accept-source-agreements --silent
-        $swiftRoot = "$env:LOCALAPPDATA\Programs\Swift\bin"
-        if (Test-Path $swiftRoot) {
-          "$swiftRoot" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-        }
-        swift --version
+      uses: compnerd/gha-setup-swift@v1
+      with:
+        branch: swift-6.2-release
+        tag: 6.2-RELEASE
 
     - name: Build Examples
       run: |
@@ -133,7 +111,7 @@ jobs:
 
   apple-simulators:
     name: Apple Platforms (${{ matrix.platform }})
-    runs-on: macos-latest
+    runs-on: macos-15
     needs: test
     strategy:
       matrix:
@@ -146,7 +124,7 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v4
     - name: Select Xcode 16
-      run: sudo xcode-select -s /Applications/Xcode_16.0.app || sudo xcode-select -s /Applications/Xcode.app
+      run: sudo xcode-select -s /Applications/Xcode_16.1.app || sudo xcode-select -s /Applications/Xcode_16.0.app || sudo xcode-select -s /Applications/Xcode.app
     - name: Build for ${{ matrix.platform }}
       run: |
         xcodebuild \
@@ -176,7 +154,7 @@ jobs:
 
   lint:
     name: SwiftLint
-    runs-on: macos-14
+    runs-on: macos-15
     # SwiftLint only runs on macOS
     
     steps:

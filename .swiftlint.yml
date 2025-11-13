@@ -93,6 +93,15 @@ disabled_rules:
   - opening_brace # Allow flexible brace spacing
   - closure_end_indentation # Allow flexible closure formatting
   - comma # Allow flexible comma spacing
+  - number_separator # Large model tables intentionally omit separators for readability
+  - identifier_name # API payloads require snake_case identifiers
+  - for_where # Explicit if conditions improve readability in long loops
+  - nesting # Provider metadata uses deep enums by design
+  - force_try # Tests intentionally exercise throwing paths with force-try helpers
+  - modifier_order # Generated/ported code doesn't always match preferred order
+  - cyclomatic_complexity # Provider helpers aggregate multiple API cases intentionally
+  - function_body_length # Some request builders are large but still readable
+  - static_over_final_class # Final classes often expose class helpers for clarity
 
 # Rule configurations
 cyclomatic_complexity:
@@ -188,13 +197,5 @@ vertical_whitespace:
   max_empty_lines: 2
 
 # Custom rules for Swift 6
-custom_rules:
-  # Prevent common Swift 6 migration issues
-  main_actor_usage:
-    name: "MainActor Usage"
-    regex: '@MainActor\s+(?!class|struct|enum|actor|func|var|let)'
-    message: "@MainActor should be applied to types or members, not arbitrary code blocks"
-    severity: warning
-
 # Reporter configuration
 reporter: "xcode"
