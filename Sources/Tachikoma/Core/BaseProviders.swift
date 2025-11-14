@@ -855,7 +855,7 @@ public final class OllamaProvider: ModelProvider {
                     id: "ollama_\(UUID().uuidString)",
                     name: functionName,
                     arguments: arguments,
-                ),]
+                )]
             }
         }
 

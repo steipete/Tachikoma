@@ -230,13 +230,23 @@ public final class TachikomaMCPClientManager {
         // Probe a specific server with a timeout. Attempts to connect if not connected.
         let start = Date()
         guard let client = connections[name], let cfg = effectiveConfigs[name], cfg.enabled else {
-            return ServerProbeResult(isConnected: false, toolCount: 0, responseTime: 0, error: "Disabled or not configured")
+            return ServerProbeResult(
+                isConnected: false,
+                toolCount: 0,
+                responseTime: 0,
+                error: "Disabled or not configured",
+            )
         }
 
         // If already connected, return quickly
         if await client.isConnected {
             let tools = await client.tools
-            return ServerProbeResult(isConnected: true, toolCount: tools.count, responseTime: Date().timeIntervalSince(start), error: nil)
+            return ServerProbeResult(
+                isConnected: true,
+                toolCount: tools.count,
+                responseTime: Date().timeIntervalSince(start),
+                error: nil,
+            )
         }
 
         // Try to connect with timeout using withTaskGroup for proper cancellation

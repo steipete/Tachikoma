@@ -141,7 +141,7 @@ struct SimplifiedToolsTests {
                     "temperature": 22,
                     "units": units,
                 ])
-            }
+            },
         )
 
         #expect(tool.name == "weather")

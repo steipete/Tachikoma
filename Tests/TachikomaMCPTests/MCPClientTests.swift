@@ -311,7 +311,6 @@ struct MCPClientTests {
         #expect(decoded.count == 42)
         #expect(decoded.active == true)
     }
-
 }
 
 // MARK: - Mock MCP Tool for Testing

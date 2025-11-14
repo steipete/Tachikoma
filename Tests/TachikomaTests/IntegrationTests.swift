@@ -231,21 +231,22 @@ struct IntegrationTests {
                     .integer("limit", description: "Result limit")
             },
             execute: { args, context async throws -> AnyAgentToolValue in
-            let query = try args.stringValue("query")
-            let limit = args.optionalIntegerValue("limit") ?? 10
-            let contextLength = context.messages.count
+                let query = try args.stringValue("query")
+                let limit = args.optionalIntegerValue("limit") ?? 10
+                let contextLength = context.messages.count
 
-            // Simulate search with context awareness
-            let results = (1...min(limit, 3)).map { i in
-                "Result \(i) for '\(query)' (context: \(contextLength) messages)"
-            }
+                // Simulate search with context awareness
+                let results = (1...min(limit, 3)).map { i in
+                    "Result \(i) for '\(query)' (context: \(contextLength) messages)"
+                }
 
-            return try AnyAgentToolValue.fromJSON([
-                "query": query,
-                "results": results,
-                "sessionId": context.sessionId,
-            ])
-        })
+                return try AnyAgentToolValue.fromJSON([
+                    "query": query,
+                    "results": results,
+                    "sessionId": context.sessionId,
+                ])
+            },
+        )
 
         // Execute with context
         let context = ToolExecutionContext(

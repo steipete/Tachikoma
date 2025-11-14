@@ -316,7 +316,8 @@ public final class StdioTransport: MCPTransport {
                     buffer.append(chunk)
 
                     parseLoop: while true {
-                        if let newlineRange = buffer.firstRange(of: Data("\n".utf8)) ??
+                        if
+                            let newlineRange = buffer.firstRange(of: Data("\n".utf8)) ??
                             buffer.firstRange(of: Data("\r".utf8))
                         {
                             var line = Data(buffer[..<newlineRange.lowerBound])
@@ -540,7 +541,7 @@ public final class StdioTransport: MCPTransport {
         let prefixLength = lowercased.distance(from: lowercased.startIndex, to: tokenRange.lowerBound)
         if prefixLength > 0 {
             buffer.removeSubrange(buffer.startIndex..<buffer.index(buffer.startIndex, offsetBy: prefixLength))
-            return extractFramedMessage(from: &buffer)
+            return self.extractFramedMessage(from: &buffer)
         }
 
         guard let separatorRange = text.range(of: "\r\n\r\n") ?? text.range(of: "\n\n") else {

@@ -146,7 +146,7 @@ public struct DynamicToolBuilder {
     public static func multiParameterTool(
         name: String,
         description: String,
-        parameters: [ToolParameter]
+        parameters: [ToolParameter],
     )
     -> DynamicTool {
         // Create a tool with multiple parameters

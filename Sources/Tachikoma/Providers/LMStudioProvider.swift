@@ -60,7 +60,7 @@ public actor LMStudioProvider: ModelProvider {
 
         for url in commonURLs {
             let provider = LMStudioProvider(baseURL: url)
-            if (try? await provider.healthCheck()) != nil {
+            if await (try? provider.healthCheck()) != nil {
                 return provider
             }
         }
