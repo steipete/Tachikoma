@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- Added OpenAI's GPT-5.1 family (flagship/mini/nano) throughout the model enums, selectors, provider factories, capability registry, pricing tables, docs, and test suites. GPT aliases (`gpt`, `gpt-5`, `gpt-4o`) now normalize to `.openai(.gpt51)` so downstream apps inherit the new default seamlessly.
 - Expanded xAI Grok support to the full November 2025 catalog (`grok-4-fast-*`, `grok-code-fast-1`, `grok-2-*`, `grok-vision-beta`, etc.), updated the CLI shortcuts so `grok` now maps to `grok-4-fast-reasoning`, and refreshed selectors, provider parsers, capability tables, and docs snippets to match the official API lineup.
 - Google/Gemini support now targets the Gemini 2.5 family exclusively (`gemini-2.5-pro`, `gemini-2.5-flash`, `gemini-2.5-flash-lite`), with updated model selectors, parsers, docs, and pricing tables; older 1.5/2.0 IDs are no longer recognized.
 - Removed deprecated OpenAI reasoning models (`o1`, `o1-mini`, `o3`, `o3-mini`) in favour of the GPT‑5 family plus `o4-mini`, updating enums, provider factories, capability tables, prompts, and documentation metadata accordingly.
