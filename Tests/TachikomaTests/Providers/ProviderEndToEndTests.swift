@@ -18,7 +18,7 @@ struct ProviderEndToEndTests {
             self.expectPath(
                 request,
                 endsWithAny: ["/responses", "/chat/completions"],
-                allowAudioTranscriptions: true
+                allowAudioTranscriptions: true,
             )
             return NetworkMocking.jsonResponse(
                 for: request,
@@ -388,8 +388,8 @@ struct ProviderEndToEndTests {
     private func expectPath(
         _ request: URLRequest,
         endsWithAny suffixes: [String],
-        allowAudioTranscriptions: Bool = false)
-    {
+        allowAudioTranscriptions: Bool = false,
+    ) {
         let path = request.url?.path ?? ""
         var allowed = suffixes
         if allowAudioTranscriptions {
@@ -402,8 +402,8 @@ struct ProviderEndToEndTests {
     private func expectPath(
         _ request: URLRequest,
         endsWith suffix: String,
-        allowAudioTranscriptions: Bool = false)
-    {
+        allowAudioTranscriptions: Bool = false,
+    ) {
         self.expectPath(request, endsWithAny: [suffix], allowAudioTranscriptions: allowAudioTranscriptions)
     }
 }

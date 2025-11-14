@@ -367,12 +367,14 @@ struct ResponseCacheTests {
         let cache = ResponseCache()
 
         let callCount = Box(value: 0)
+        // swiftlint:disable:next trailing_closure
         let mockProvider = ResponseCacheMockProvider(
             model: .openai(.gpt4o),
             response: ProviderResponse(text: "Test", usage: nil, finishReason: .stop),
             onStreamText: { _ in
                 callCount.value += 1
-            })
+            }
+        )
 
         let cachedProvider = await cache.wrapProvider(mockProvider)
 
