@@ -292,9 +292,85 @@ enum ResponsesInputItem: Encodable, Sendable {
 /// Tool definition for Responses API
 @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 struct ResponsesTool: Codable {
-    let name: String // Add name at root level for GPT-5 compatibility
+    let name: String // Required at root level for GPT-5 compatibility
     let type: String
+    let description: String?
+    let parameters: [String: Any]?
+    let inputSchema: [String: Any]?
+    let strict: Bool?
     let function: ToolFunction?
+
+    init(
+        name: String,
+        type: String,
+        description: String? = nil,
+        parameters: [String: Any]? = nil,
+        inputSchema: [String: Any]? = nil,
+        strict: Bool? = nil,
+        function: ToolFunction? = nil
+    ) {
+        self.name = name
+        self.type = type
+        self.description = description
+        self.parameters = parameters
+        self.inputSchema = inputSchema
+        self.strict = strict
+        self.function = function
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case name
+        case type
+        case description
+        case parameters
+        case inputSchema = "input_schema"
+        case strict
+        case function
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(self.name, forKey: .name)
+        try container.encode(self.type, forKey: .type)
+        try container.encodeIfPresent(self.description, forKey: .description)
+
+        if let params = parameters {
+            let paramsData = try JSONSerialization.data(withJSONObject: params)
+            let paramsJSON = try JSONSerialization.jsonObject(with: paramsData)
+            try container.encode(AnyEncodable(paramsJSON), forKey: .parameters)
+        }
+
+        if let schema = inputSchema {
+            let schemaData = try JSONSerialization.data(withJSONObject: schema)
+            let schemaJSON = try JSONSerialization.jsonObject(with: schemaData)
+            try container.encode(AnyEncodable(schemaJSON), forKey: .inputSchema)
+        }
+
+        try container.encodeIfPresent(self.strict, forKey: .strict)
+        try container.encodeIfPresent(self.function, forKey: .function)
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.name = try container.decode(String.self, forKey: .name)
+        self.type = try container.decode(String.self, forKey: .type)
+        self.description = try container.decodeIfPresent(String.self, forKey: .description)
+
+        if let anyParams = try container.decodeIfPresent(AnyDecodable.self, forKey: .parameters) {
+            self.parameters = anyParams.value as? [String: Any]
+        } else {
+            self.parameters = nil
+        }
+
+        if let schema = try container.decodeIfPresent(AnyDecodable.self, forKey: .inputSchema) {
+            self.inputSchema = schema.value as? [String: Any]
+        } else {
+            self.inputSchema = nil
+        }
+
+        self.strict = try container.decodeIfPresent(Bool.self, forKey: .strict)
+        self.function = try container.decodeIfPresent(ToolFunction.self, forKey: .function)
+    }
 
     struct ToolFunction: Codable {
         let name: String
@@ -306,7 +382,7 @@ struct ResponsesTool: Codable {
             name: String,
             description: String? = nil,
             parameters: [String: Any]? = nil,
-            inputSchema: [String: Any]? = nil,
+            inputSchema: [String: Any]? = nil
         ) {
             self.name = name
             self.description = description

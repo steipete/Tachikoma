@@ -688,26 +688,38 @@ public final class OpenAIResponsesProvider: ModelProvider {
             if let enumValues = prop.enumValues {
                 propDict["enum"] = enumValues
             }
+            if let items = prop.items {
+                var itemsDict: [String: Any] = ["type": items.type]
+                if let itemDescription = items.description {
+                    itemsDict["description"] = itemDescription
+                }
+                propDict["items"] = itemsDict
+            }
             properties[key] = propDict
         }
         parameters["properties"] = properties
 
-        // Add required fields
-        if !tool.parameters.required.isEmpty {
-            parameters["required"] = tool.parameters.required
-        }
+        // Add required fields (even if empty to satisfy Responses API validation)
+        parameters["required"] = tool.parameters.required
+
+        // Responses API requires additionalProperties=false for strict schemas
+        parameters["additionalProperties"] = false
 
         let function = ResponsesTool.ToolFunction(
             name: tool.name,
             description: tool.description,
             parameters: parameters,
-            inputSchema: parameters,
+            inputSchema: nil
         )
 
         return ResponsesTool(
-            name: tool.name, // Add name at root level for GPT-5
+            name: tool.name,
             type: "function",
-            function: function,
+            description: tool.description,
+            parameters: parameters,
+            inputSchema: nil,
+            strict: nil,
+            function: function
         )
     }
 
@@ -805,6 +817,12 @@ public final class OpenAIResponsesProvider: ModelProvider {
     }
 
     private static func convertToolCall(_ toolCall: OpenAIResponsesResponse.ResponsesToolCall) -> AgentToolCall? {
+        if ProcessInfo.processInfo.arguments.contains("--verbose") ||
+            ProcessInfo.processInfo.arguments.contains("-v")
+        {
+            print("DEBUG: Tool call \(toolCall.function.name) raw arguments: \(toolCall.function.arguments)")
+        }
+
         guard let argumentsJSON = toolCall.function.arguments.data(using: .utf8) else {
             return nil
         }
@@ -830,6 +848,12 @@ public final class OpenAIResponsesProvider: ModelProvider {
     }
 
     private static func makeToolCall(id: String, name: String, argumentsJSON: String) -> AgentToolCall? {
+        if ProcessInfo.processInfo.arguments.contains("--verbose") ||
+            ProcessInfo.processInfo.arguments.contains("-v")
+        {
+            print("DEBUG: Streaming tool call \(name) raw arguments: \(argumentsJSON)")
+        }
+
         guard
             let data = argumentsJSON.data(using: .utf8),
             let jsonObject = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else

@@ -225,6 +225,58 @@ struct OpenAIResponsesProviderTests {
         }
     }
 
+    @Test("Responses provider emits tool schemas with parameters")
+    func openAIResponsesIncludesToolSchemas() async throws {
+        let config = self.openAIConfig()
+        let tool = AgentTool(
+            name: "app",
+            description: "Control apps",
+            parameters: AgentToolParameters(
+                properties: [
+                    "action": AgentToolParameterProperty(
+                        name: "action",
+                        type: .string,
+                        description: "Action to perform"),
+                    "to": AgentToolParameterProperty(
+                        name: "to",
+                        type: .string,
+                        description: "Target application"),
+                    "apps": AgentToolParameterProperty(
+                        name: "apps",
+                        type: .array,
+                        description: "Batch targets",
+                        items: AgentToolParameterItems(type: "string")),
+                ],
+                required: ["action"]),
+            execute: { _ in AnyAgentToolValue(string: "ok") })
+
+        let providerRequest = ProviderRequest(
+            messages: [ModelMessage(role: .user, content: [.text("ping")])],
+            tools: [tool],
+            settings: .init(maxTokens: 32))
+
+        try await self.withMockedSession { request in
+            let body = try #require(Self.bodyData(from: request))
+            let json = try JSONSerialization.jsonObject(with: body) as? [String: Any]
+            let tools = try #require(json?["tools"] as? [[String: Any]])
+            let encodedTool = try #require(tools.first)
+            let parameters = try #require(encodedTool["parameters"] as? [String: Any])
+            let required = try #require(parameters["required"] as? [String])
+            #expect(required.contains("action"))
+            let props = try #require(parameters["properties"] as? [String: Any])
+            let actionProp = try #require(props["action"] as? [String: Any])
+            #expect(actionProp["type"] as? String == "string")
+            let appsProp = try #require(props["apps"] as? [String: Any])
+            let items = try #require(appsProp["items"] as? [String: Any])
+            #expect(items["type"] as? String == "string")
+
+            return NetworkMocking.jsonResponse(for: request, data: Self.responsesPayload(text: "pong"))
+        } operation: { session in
+            let provider = try OpenAIResponsesProvider(model: .gpt5, configuration: config, session: session)
+            _ = try await provider.generateText(request: providerRequest)
+        }
+    }
+
     @Test("Function call history encodes into Responses input")
     func openAIResponsesEncodesFunctionCalls() async throws {
         let config = TachikomaConfiguration(loadFromEnvironment: false)
