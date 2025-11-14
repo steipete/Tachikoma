@@ -2,6 +2,7 @@ import Darwin
 import Foundation
 import Logging
 import MCP
+import Tachikoma
 
 // Actor to manage mutable state for Sendable conformance
 private actor StdioTransportPTYState {

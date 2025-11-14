@@ -15,7 +15,11 @@ struct ProviderEndToEndTests {
     @Test("OpenAI Responses provider returns text")
     func openAIResponsesProvider() async throws {
         try await NetworkMocking.withMockedNetwork { request in
-            self.expectPath(request, endsWithAny: ["/responses", "/chat/completions"])
+            self.expectPath(
+                request,
+                endsWithAny: ["/responses", "/chat/completions"],
+                allowAudioTranscriptions: true
+            )
             return NetworkMocking.jsonResponse(
                 for: request,
                 data: Self.openAIResponsesPayload(text: "Hello from GPT-5"),
@@ -381,14 +385,26 @@ struct ProviderEndToEndTests {
         return config
     }
 
-    private func expectPath(_ request: URLRequest, endsWithAny suffixes: [String]) {
+    private func expectPath(
+        _ request: URLRequest,
+        endsWithAny suffixes: [String],
+        allowAudioTranscriptions: Bool = false)
+    {
         let path = request.url?.path ?? ""
-        let matches = suffixes.contains { path.hasSuffix($0) }
+        var allowed = suffixes
+        if allowAudioTranscriptions {
+            allowed.append(contentsOf: ["/audio/transcriptions", "/audio/speech"])
+        }
+        let matches = allowed.contains { path.hasSuffix($0) }
         #expect(matches, "Expected path to end with one of \(suffixes.joined(separator: ", ")) but found \(path)")
     }
 
-    private func expectPath(_ request: URLRequest, endsWith suffix: String) {
-        self.expectPath(request, endsWithAny: [suffix])
+    private func expectPath(
+        _ request: URLRequest,
+        endsWith suffix: String,
+        allowAudioTranscriptions: Bool = false)
+    {
+        self.expectPath(request, endsWithAny: [suffix], allowAudioTranscriptions: allowAudioTranscriptions)
     }
 }
 

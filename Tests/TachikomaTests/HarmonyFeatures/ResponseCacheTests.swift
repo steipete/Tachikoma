@@ -370,9 +370,9 @@ struct ResponseCacheTests {
         let mockProvider = ResponseCacheMockProvider(
             model: .openai(.gpt4o),
             response: ProviderResponse(text: "Test", usage: nil, finishReason: .stop),
-        ) { _ in
-            callCount.value += 1
-        }
+            onStreamText: { _ in
+                callCount.value += 1
+            })
 
         let cachedProvider = await cache.wrapProvider(mockProvider)
 

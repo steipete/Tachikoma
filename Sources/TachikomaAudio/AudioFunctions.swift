@@ -34,6 +34,10 @@ public func transcribe(
     configuration: TachikomaConfiguration = TachikomaConfiguration(),
 ) async throws
 -> TranscriptionResult {
+    guard !audio.data.isEmpty else {
+        throw TachikomaError.invalidInput("Audio data is empty")
+    }
+
     let provider = try TranscriptionProviderFactory.createProvider(for: model, configuration: configuration)
 
     let request = TranscriptionRequest(

@@ -101,13 +101,20 @@ enum TestHelpers {
         _ body: () async throws -> T,
     ) async rethrows
     -> T {
-        let previous = getenv("TACHIKOMA_TEST_MODE").flatMap { String(cString: $0) }
+        let previousMode = getenv("TACHIKOMA_TEST_MODE").flatMap { String(cString: $0) }
+        let previousDisable = getenv("TACHIKOMA_DISABLE_API_TESTS").flatMap { String(cString: $0) }
         setenv("TACHIKOMA_TEST_MODE", "mock", 1)
+        setenv("TACHIKOMA_DISABLE_API_TESTS", "true", 1)
         defer {
-            if let previous {
-                setenv("TACHIKOMA_TEST_MODE", previous, 1)
+            if let previousMode {
+                setenv("TACHIKOMA_TEST_MODE", previousMode, 1)
             } else {
                 unsetenv("TACHIKOMA_TEST_MODE")
+            }
+            if let previousDisable {
+                setenv("TACHIKOMA_DISABLE_API_TESTS", previousDisable, 1)
+            } else {
+                unsetenv("TACHIKOMA_DISABLE_API_TESTS")
             }
         }
         return try await body()

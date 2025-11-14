@@ -27,9 +27,10 @@ struct DirectConfigTests {
         let config2 = TachikomaConfiguration(loadFromEnvironment: false)
         let config3 = TachikomaConfiguration(apiKeys: ["openai": "test"])
 
-        // All should be valid instances
-        #expect(config1.configuredProviders.isEmpty)
+        // All should be valid instances; explicit config ignores environment
         #expect(config2.configuredProviders.isEmpty)
         #expect(config3.hasAPIKey(for: .openai))
+        #expect(!config3.configuredProviders.isEmpty)
+        _ = config1.summary // Access to ensure no crashes with environment-loaded values
     }
 }

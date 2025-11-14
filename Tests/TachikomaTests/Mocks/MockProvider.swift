@@ -50,11 +50,13 @@ public final class MockProvider: ModelProvider {
         // Handle tool calls if requested
         var toolCalls: [AgentToolCall]?
         if let tools = request.tools, !tools.isEmpty, mockResponse.contains("tool_call") {
-            toolCalls = [AgentToolCall(
-                id: "mock_tool_call_123",
-                name: tools.first?.name ?? "mock_tool",
-                arguments: ["query": AnyAgentToolValue(string: "mock query")],
-            )]
+            toolCalls = [
+                AgentToolCall(
+                    id: "mock_tool_call_123",
+                    name: tools.first?.name ?? "mock_tool",
+                    arguments: ["query": AnyAgentToolValue(string: "mock query")],
+                ),
+            ]
         }
 
         return ProviderResponse(

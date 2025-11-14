@@ -851,11 +851,13 @@ public final class OllamaProvider: ModelProvider {
                     }
                 }
 
-                toolCalls = [AgentToolCall(
-                    id: "ollama_\(UUID().uuidString)",
-                    name: functionName,
-                    arguments: arguments,
-                )]
+                toolCalls = [
+                    AgentToolCall(
+                        id: "ollama_\(UUID().uuidString)",
+                        name: functionName,
+                        arguments: arguments,
+                    ),
+                ]
             }
         }
 

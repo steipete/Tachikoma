@@ -2,6 +2,7 @@ import Darwin
 import Foundation
 import Logging
 import MCP
+import Tachikoma
 
 // Actor to manage mutable state for Sendable conformance
 private actor StdioTransportState {
@@ -440,8 +441,10 @@ public final class StdioTransport: MCPTransport {
         var headers: [String: String] = [:]
         for line in lines {
             if let sep = line.firstIndex(of: ":") {
-                let key = line[..<sep].lowercased().trimmingCharacters(in: .whitespaces)
-                let value = line[line.index(after: sep)...].trimmingCharacters(in: .whitespaces)
+                let key = line[..<sep].lowercased()
+                    .trimmingCharacters(in: CharacterSet.whitespaces)
+                let value = line[line.index(after: sep)...]
+                    .trimmingCharacters(in: CharacterSet.whitespaces)
                 headers[key] = value
             }
         }
