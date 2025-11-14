@@ -315,17 +315,38 @@ public final class StdioTransport: MCPTransport {
 
                     buffer.append(chunk)
 
-                    while let newlineRange = buffer.firstRange(of: Data("\n".utf8)) {
-                        let lineData = buffer[..<newlineRange.lowerBound]
-                        buffer.removeSubrange(..<newlineRange.upperBound)
+                    parseLoop: while true {
+                        if let newlineRange = buffer.firstRange(of: Data("\n".utf8)) ??
+                            buffer.firstRange(of: Data("\r".utf8))
+                        {
+                            var line = Data(buffer[..<newlineRange.lowerBound])
+                            buffer.removeSubrange(..<newlineRange.upperBound)
 
-                        guard !lineData.isEmpty else { continue }
+                            guard !line.isEmpty else { continue parseLoop }
 
-                        if let json = String(data: lineData, encoding: .utf8) {
-                            self.logger.debug("[MCP stdio] ← received: \(json)")
+                            if let lastByte = line.last, lastByte == 13 {
+                                line.removeLast()
+                            }
+
+                            guard !line.isEmpty else { continue parseLoop }
+
+                            if let json = String(data: line, encoding: .utf8) {
+                                self.logger.debug("[MCP stdio] ← received: \(json)")
+                            }
+
+                            await self.handleResponse(line)
+                            continue parseLoop
                         }
 
-                        await self.handleResponse(lineData)
+                        if let framed = Self.extractFramedMessage(from: &buffer) {
+                            if let json = String(data: framed, encoding: .utf8) {
+                                self.logger.debug("[MCP stdio] ← framed: \(json)")
+                            }
+                            await self.handleResponse(framed)
+                            continue parseLoop
+                        }
+
+                        break
                     }
                 } catch {
                     if Task.isCancelled {
@@ -505,6 +526,54 @@ public final class StdioTransport: MCPTransport {
             Thread.sleep(forTimeInterval: 0.05)
         }
         return !process.isRunning
+    }
+
+    private static func extractFramedMessage(from buffer: inout Data) -> Data? {
+        guard !buffer.isEmpty else { return nil }
+        guard let text = String(data: buffer, encoding: .utf8) else { return nil }
+
+        let lowercased = text.lowercased()
+        guard let tokenRange = lowercased.range(of: "content-length:") else {
+            return nil
+        }
+
+        let prefixLength = lowercased.distance(from: lowercased.startIndex, to: tokenRange.lowerBound)
+        if prefixLength > 0 {
+            buffer.removeSubrange(buffer.startIndex..<buffer.index(buffer.startIndex, offsetBy: prefixLength))
+            return extractFramedMessage(from: &buffer)
+        }
+
+        guard let separatorRange = text.range(of: "\r\n\r\n") ?? text.range(of: "\n\n") else {
+            return nil
+        }
+
+        let headerString = String(text[..<separatorRange.lowerBound])
+        let lines = headerString
+            .replacingOccurrences(of: "\r", with: "")
+            .split(separator: "\n")
+
+        var contentLength: Int?
+        for line in lines {
+            let parts = line.split(separator: ":", maxSplits: 1)
+            guard parts.count == 2 else { continue }
+            if parts[0].trimmingCharacters(in: .whitespacesAndNewlines).lowercased() == "content-length" {
+                contentLength = Int(parts[1].trimmingCharacters(in: .whitespacesAndNewlines))
+                break
+            }
+        }
+
+        guard let length = contentLength else { return nil }
+
+        let headerBytes = text[..<separatorRange.upperBound].data(using: .utf8)?.count ?? 0
+        let totalNeeded = headerBytes + length
+        guard buffer.count >= totalNeeded else { return nil }
+
+        let bodyStart = buffer.index(buffer.startIndex, offsetBy: headerBytes)
+        let bodyEnd = buffer.index(bodyStart, offsetBy: length)
+        let body = buffer[bodyStart..<bodyEnd]
+        buffer.removeSubrange(buffer.startIndex..<bodyEnd)
+
+        return Data(body)
     }
 }
 
