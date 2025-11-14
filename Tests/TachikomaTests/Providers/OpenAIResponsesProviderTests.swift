@@ -368,7 +368,7 @@ struct OpenAIResponsesProviderTests {
         var data = Data()
         for chunk in chunks {
             data.append("data: ".utf8Data())
-            data.append(chunk.utf8Data())
+            Data(data.append(chunk.utf8))
             data.append("\n\n".utf8Data())
         }
         data.append("data: [DONE]\n\n".utf8Data())

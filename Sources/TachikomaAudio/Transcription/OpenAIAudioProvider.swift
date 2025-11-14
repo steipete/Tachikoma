@@ -118,21 +118,21 @@ extension OpenAITranscriptionProvider {
         // Add model
         body.append("--\(boundary)\r\n".utf8Data())
         body.append("Content-Disposition: form-data; name=\"model\"\r\n\r\n".utf8Data())
-        body.append(modelId.utf8Data())
+        Data(body.append(modelId.utf8))
         body.append("\r\n".utf8Data())
 
         // Add optional parameters
         if let language = request.language {
             body.append("--\(boundary)\r\n".utf8Data())
             body.append("Content-Disposition: form-data; name=\"language\"\r\n\r\n".utf8Data())
-            body.append(language.utf8Data())
+            Data(body.append(language.utf8))
             body.append("\r\n".utf8Data())
         }
 
         if let prompt = request.prompt {
             body.append("--\(boundary)\r\n".utf8Data())
             body.append("Content-Disposition: form-data; name=\"prompt\"\r\n\r\n".utf8Data())
-            body.append(prompt.utf8Data())
+            Data(body.append(prompt.utf8))
             body.append("\r\n".utf8Data())
         }
 
@@ -140,7 +140,7 @@ extension OpenAITranscriptionProvider {
         let responseFormat = request.responseFormat.rawValue
         body.append("--\(boundary)\r\n".utf8Data())
         body.append("Content-Disposition: form-data; name=\"response_format\"\r\n\r\n".utf8Data())
-        body.append(responseFormat.utf8Data())
+        Data(body.append(responseFormat.utf8))
         body.append("\r\n".utf8Data())
 
         // Add timestamp granularities if supported and requested
@@ -152,7 +152,7 @@ extension OpenAITranscriptionProvider {
                         "Content-Disposition: form-data; name=\"timestamp_granularities[]\"\r\n\r\n"
                             .utf8Data(),
                     )
-                body.append(granularity.rawValue.utf8Data())
+                Data(body.append(granularity.rawValue.utf8))
                 body.append("\r\n".utf8Data())
             }
         }
