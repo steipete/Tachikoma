@@ -104,11 +104,11 @@ public struct ModelSelector {
             return .o4Mini
         // Shortcuts
         case "gpt":
-            return .gpt51Mini // Default to cost-optimised GPT-5.1
+            return .gpt51 // Default to flagship GPT-5.1
         case "gpt4", "gpt-4":
             return .gpt4o // Default to latest GPT-4 variant
         case "openai":
-            return .gpt51Mini // Default to GPT-5.1 Mini now
+            return .gpt51 // Default to GPT-5.1
         default:
             // Check if it's an OpenAI model ID
             if input.hasPrefix("gpt") || input.hasPrefix("o4") {
