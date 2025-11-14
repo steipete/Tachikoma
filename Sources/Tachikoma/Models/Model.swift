@@ -33,6 +33,11 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
         // Latest models (2025)
         case o4Mini
 
+        // GPT-5.1 Series (November 2025)
+        case gpt51 // Flagship GPT-5.1
+        case gpt51Mini // Cost-optimized GPT-5.1
+        case gpt51Nano // Ultra-low latency GPT-5.1
+
         // GPT-5 Series (August 2025)
         case gpt5 // Best for coding and agentic tasks
         case gpt5Pro // Higher reasoning budget
@@ -62,6 +67,9 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
         public static var allCases: [OpenAI] {
             [
                 .o4Mini,
+                .gpt51,
+                .gpt51Mini,
+                .gpt51Nano,
                 .gpt5,
                 .gpt5Pro,
                 .gpt5Mini,
@@ -84,6 +92,9 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
             switch self {
             case let .custom(id): id
             case .o4Mini: "o4-mini"
+            case .gpt51: "gpt-5.1"
+            case .gpt51Mini: "gpt-5.1-mini"
+            case .gpt51Nano: "gpt-5.1-nano"
             case .gpt5: "gpt-5"
             case .gpt5Pro: "gpt-5-pro"
             case .gpt5Mini: "gpt-5-mini"
@@ -104,8 +115,9 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
 
         public var supportsVision: Bool {
             switch self {
-            case .gpt5, .gpt5Pro, .gpt5Mini, .gpt5Nano, .gpt5Thinking, .gpt5ThinkingMini, .gpt5ThinkingNano,
-                 .gpt5ChatLatest: true // GPT-5 supports multimodal
+            case .gpt51, .gpt51Mini, .gpt51Nano,
+                 .gpt5, .gpt5Pro, .gpt5Mini, .gpt5Nano, .gpt5Thinking, .gpt5ThinkingMini, .gpt5ThinkingNano,
+                 .gpt5ChatLatest: true // GPT-5+ supports multimodal
             case .gpt4o, .gpt4oMini, .gpt4oRealtime: true
             default: false
             }
@@ -114,8 +126,9 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
         public var supportsTools: Bool {
             switch self {
             case .o4Mini: true
-            case .gpt5, .gpt5Pro, .gpt5Mini, .gpt5Nano, .gpt5Thinking, .gpt5ThinkingMini, .gpt5ThinkingNano,
-                 .gpt5ChatLatest: true // GPT-5 excels at tool calling
+            case .gpt51, .gpt51Mini, .gpt51Nano,
+                 .gpt5, .gpt5Pro, .gpt5Mini, .gpt5Nano, .gpt5Thinking, .gpt5ThinkingMini, .gpt5ThinkingNano,
+                 .gpt5ChatLatest: true // GPT-5+ excels at tool calling
             case .gpt41, .gpt41Mini, .gpt4o, .gpt4oMini, .gpt4oRealtime, .gpt4Turbo: true
             case .gpt35Turbo: true
             case .custom: true // Assume custom models support tools
@@ -124,8 +137,9 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
 
         public var supportsAudioInput: Bool {
             switch self {
-            case .gpt5, .gpt5Pro, .gpt5Mini, .gpt5Nano, .gpt5Thinking, .gpt5ThinkingMini, .gpt5ThinkingNano,
-                 .gpt5ChatLatest: true // GPT-5 is fully multimodal
+            case .gpt51, .gpt51Mini, .gpt51Nano,
+                 .gpt5, .gpt5Pro, .gpt5Mini, .gpt5Nano, .gpt5Thinking, .gpt5ThinkingMini, .gpt5ThinkingNano,
+                 .gpt5ChatLatest: true // GPT-5+ is fully multimodal
             case .gpt4o, .gpt4oMini, .gpt4oRealtime: true // GPT-4o models support native audio input
             default: false
             }
@@ -148,7 +162,8 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
         public var contextLength: Int {
             switch self {
             case .o4Mini: 128_000
-            case .gpt5, .gpt5Pro, .gpt5Mini, .gpt5Nano, .gpt5Thinking, .gpt5ThinkingMini, .gpt5ThinkingNano,
+            case .gpt51, .gpt51Mini, .gpt51Nano,
+                 .gpt5, .gpt5Pro, .gpt5Mini, .gpt5Nano, .gpt5Thinking, .gpt5ThinkingMini, .gpt5ThinkingNano,
                  .gpt5ChatLatest: 400_000 // 272k input + 128k output
             case .gpt41, .gpt41Mini: 1_000_000
             case .gpt4o, .gpt4oMini, .gpt4oRealtime: 128_000
@@ -1025,6 +1040,16 @@ extension LanguageModel {
             return .openai(.gpt5Thinking)
         }
 
+        if dotted.contains("gpt-5-1") || compact.contains("gpt51") {
+            if dotted.contains("nano") || compact.contains("nano") {
+                return .openai(.gpt51Nano)
+            }
+            if dotted.contains("mini") || compact.contains("mini") {
+                return .openai(.gpt51Mini)
+            }
+            return .openai(.gpt51)
+        }
+
         if dotted.contains("gpt-5-chat") || compact.contains("gpt5chat") {
             return .openai(.gpt5ChatLatest)
         }
@@ -1065,8 +1090,8 @@ extension LanguageModel {
             dashed == "o3" || compact == "o3" || dashed == "o3-pro" || dashed == "o3-mini" || compact == "o3mini" ||
             compact == "o3pro"
         {
-            // o3 family is deprecated; steer callers to GPT-5 Mini
-            return .openai(.gpt5Mini)
+            // o3 family is deprecated; steer callers to GPT-5.1 Mini
+            return .openai(.gpt51Mini)
         }
 
         if dashed == "o4-mini" || compact == "o4mini" {
@@ -1195,7 +1220,7 @@ extension LanguageModel {
         // MARK: Generic fallbacks
 
         if compact.contains("gpt") {
-            return .openai(.gpt5Mini)
+            return .openai(.gpt51Mini)
         }
 
         if compact.contains("o4") {

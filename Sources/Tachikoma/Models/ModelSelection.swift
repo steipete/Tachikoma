@@ -66,7 +66,15 @@ public struct ModelSelector {
 
     private static func parseOpenAIModel(_ input: String) -> Model.OpenAI? {
         switch input {
-        // GPT-5 models (latest)
+        // GPT-5.1 models (latest)
+        case "gpt-5.1", "gpt5.1", "gpt-5-1", "gpt5-1", "gpt51":
+            return .gpt51
+        case "gpt-5.1-mini", "gpt5.1-mini", "gpt51-mini", "gpt51mini", "gpt-5-1-mini", "gpt5-1-mini":
+            return .gpt51Mini
+        case "gpt-5.1-nano", "gpt5.1-nano", "gpt51-nano", "gpt51nano", "gpt-5-1-nano", "gpt5-1-nano":
+            return .gpt51Nano
+
+        // GPT-5 models
         case "gpt-5", "gpt5":
             return .gpt5
         case "gpt-5-pro", "gpt5-pro", "gpt5pro":
@@ -96,11 +104,11 @@ public struct ModelSelector {
             return .o4Mini
         // Shortcuts
         case "gpt":
-            return .gpt5Mini // Default to cost-optimised GPT-5
+            return .gpt51Mini // Default to cost-optimised GPT-5.1
         case "gpt4", "gpt-4":
             return .gpt4o // Default to latest GPT-4 variant
         case "openai":
-            return .gpt5Mini // Default to GPT-5 Mini now
+            return .gpt51Mini // Default to GPT-5.1 Mini now
         default:
             // Check if it's an OpenAI model ID
             if input.hasPrefix("gpt") || input.hasPrefix("o4") {
@@ -409,7 +417,7 @@ extension ModelSelector {
         case .vision:
             [.claude, .gpt4o, .google(.gemini25Flash)]
         case .reasoning:
-            [.openai(.gpt5Mini), .claude, .google(.gemini25Pro)]
+            [.openai(.gpt51Mini), .claude, .google(.gemini25Pro)]
         case .local:
             [.llama, .ollama(.mistralNemo), .ollama(.commandRPlus)]
         case .general:

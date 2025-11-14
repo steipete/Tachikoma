@@ -292,7 +292,7 @@ public enum ProviderParser {
         if hasAnthropic {
             .anthropic(.opus4)
         } else if hasOpenAI {
-            .openai(.gpt5Mini)
+            .openai(.gpt51Mini)
         } else if hasGrok {
             .grok(.grok4FastReasoning)
         } else {

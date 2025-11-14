@@ -50,7 +50,7 @@ struct AICLI {
             if let modelString = config.modelString {
                 model = try ModelSelector.parseModel(modelString)
             } else {
-                model = .openai(.gpt5) // Default to GPT-5
+                model = .openai(.gpt51) // Default to GPT-5.1
             }
         } catch {
             print("❌ Error parsing model: \(error)")

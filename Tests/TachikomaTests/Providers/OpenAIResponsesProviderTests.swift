@@ -4,12 +4,12 @@ import Testing
 
 @Suite("OpenAI Responses API Tests", .serialized)
 struct OpenAIResponsesProviderTests {
-    @Test("GPT-5 uses Responses API provider")
+    @Test("GPT-5+ uses Responses API provider")
     func gPT5UsesResponsesProvider() throws {
         // Test that GPT-5 models use the OpenAIResponsesProvider
         let config = self.openAIConfig()
 
-        let gpt5Models: [LanguageModel.OpenAI] = [.gpt5, .gpt5Mini, .gpt5Nano]
+        let gpt5Models: [LanguageModel.OpenAI] = [.gpt51, .gpt51Mini, .gpt51Nano, .gpt5, .gpt5Mini, .gpt5Nano]
 
         for model in gpt5Models {
             let provider = try ProviderFactory.createProvider(
@@ -24,9 +24,9 @@ struct OpenAIResponsesProviderTests {
         }
     }
 
-    @Test("GPT-5 text.verbosity parameter is set correctly")
-    func gPT5TextVerbosityParameter() throws {
-        // Test that the text.verbosity parameter is properly configured for GPT-5
+    @Test("GPT-5.1 text.verbosity parameter is set correctly")
+    func gPT51TextVerbosityParameter() throws {
+        // Test that the text.verbosity parameter is properly configured for GPT-5.1
         let config = self.openAIConfig()
 
         // Skip if no API key
@@ -35,7 +35,7 @@ struct OpenAIResponsesProviderTests {
         }
 
         let provider = try OpenAIResponsesProvider(
-            model: .gpt5,
+            model: .gpt51,
             configuration: config,
         )
 
@@ -50,7 +50,7 @@ struct OpenAIResponsesProviderTests {
 
         // We can't directly test the internal request building without making it public
         // But we can verify the provider is configured correctly
-        #expect(provider.modelId == "gpt-5")
+        #expect(provider.modelId == "gpt-5.1")
         #expect(provider.capabilities.supportsTools == true)
         #expect(provider.capabilities.supportsVision == true)
     }
@@ -62,6 +62,8 @@ struct OpenAIResponsesProviderTests {
 
         let reasoningModels: [LanguageModel.OpenAI] = [
             .o4Mini,
+            .gpt51,
+            .gpt51Mini,
             .gpt5,
             .gpt5Mini,
             .gpt5Thinking,

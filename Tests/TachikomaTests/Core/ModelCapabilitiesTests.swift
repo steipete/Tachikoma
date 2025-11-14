@@ -9,6 +9,9 @@ struct ModelCapabilitiesTests {
         @Test("GPT-5 models exclude temperature and topP")
         func gPT5ExcludesTemperature() {
             let models: [LanguageModel] = [
+                .openai(.gpt51),
+                .openai(.gpt51Mini),
+                .openai(.gpt51Nano),
                 .openai(.gpt5),
                 .openai(.gpt5Mini),
                 .openai(.gpt5Nano),
@@ -143,8 +146,8 @@ struct ModelCapabilitiesTests {
 
     @Suite("Settings Validation")
     struct SettingsValidationTests {
-        @Test("Validate settings for GPT-5")
-        func validateGPT5Settings() {
+        @Test("Validate settings for GPT-5.1")
+        func validateGPT51Settings() {
             let settings = GenerationSettings(
                 maxTokens: 1000,
                 temperature: 0.7,
@@ -159,7 +162,7 @@ struct ModelCapabilitiesTests {
                 ),
             )
 
-            let validated = settings.validated(for: .openai(.gpt5))
+            let validated = settings.validated(for: .openai(.gpt51))
 
             #expect(validated.maxTokens == 1000)
             #expect(validated.temperature == nil) // Excluded
@@ -302,7 +305,7 @@ struct ModelCapabilitiesTests {
         @Test("Concurrent capability access")
         func concurrentAccess() async {
             let models: [LanguageModel] = [
-                .openai(.gpt5),
+                .openai(.gpt51),
                 .openai(.gpt4o),
                 .anthropic(.opus4),
                 .google(.gemini25Flash),

@@ -49,7 +49,7 @@ let response = try await generateText(
 ### Type-Safe Model Selection
 Models use hierarchical enums with provider-specific sub-enums:
 ```swift
-.openai(.gpt4o, .gpt41, .gpt5Mini)
+.openai(.gpt4o, .gpt41, .gpt51Mini)
 .anthropic(.opus4, .sonnet4, .haiku45) // opus4 is now Opus 4.1
 .grok(.grok4, .grok2Vision)
 .ollama(.llama3)

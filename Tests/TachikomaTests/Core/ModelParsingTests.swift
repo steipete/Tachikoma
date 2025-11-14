@@ -9,6 +9,18 @@ struct ModelParsingTests {
         #expect(parsed == .openai(.gpt5Mini))
     }
 
+    @Test("parse GPT-5.1 base model")
+    func parseGPT51() {
+        let parsed = LanguageModel.parse(from: "gpt-5.1")
+        #expect(parsed == .openai(.gpt51))
+    }
+
+    @Test("parse GPT-5.1 nano alias")
+    func parseGPT51Nano() {
+        let parsed = LanguageModel.parse(from: "gpt51-nano")
+        #expect(parsed == .openai(.gpt51Nano))
+    }
+
     @Test("parse Claude Sonnet 4.5 snapshot id")
     func parseClaudeSonnetSnapshot() {
         let parsed = LanguageModel.parse(from: "claude-sonnet-4-5-20250929")

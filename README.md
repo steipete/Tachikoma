@@ -467,7 +467,7 @@ Compile-time safety with provider-specific enums and full autocomplete support:
 
 ```swift
 // Provider-specific models with compile-time checking
-.openai(.gpt4o, .gpt41, .gpt5Mini, .custom("ft:gpt-4o:org:abc"))
+.openai(.gpt4o, .gpt41, .gpt51Mini, .custom("ft:gpt-4o:org:abc"))
 .anthropic(.opus4, .sonnet4, .haiku45, .opus4Thinking)
 .grok(.grok4, .grok4FastReasoning, .grok2Vision)
 .ollama(.llama33, .llama32, .llava, .codellama)
@@ -546,7 +546,7 @@ Enhanced capabilities inspired by OpenAI Harmony patterns:
 ```swift
 // Multi-channel responses
 let result = try await generateText(
-    model: .openai(.gpt5Mini),
+    model: .openai(.gpt51Mini),
     messages: messages,
     settings: GenerationSettings(reasoningEffort: .high)
 )
@@ -619,23 +619,23 @@ struct ChatView: View {
 Configure provider-specific settings while keeping universal parameters separate:
 
 ```swift
-// GPT-5 with verbosity control (enables preamble messages)
+// GPT-5.1 with verbosity control (enables preamble messages)
 let result = try await generateText(
-    model: .openai(.gpt5),
+    model: .openai(.gpt51),
     messages: messages,
     settings: GenerationSettings(
         maxTokens: 1000,
         providerOptions: .init(
             openai: .init(
-                verbosity: .high  // Shows GPT-5's preamble messages
+                verbosity: .high  // Shows GPT-5.1's preamble messages
             )
         )
     )
 )
 
-// O3/O4 reasoning models with effort levels
+// GPT-5.1 reasoning models with effort levels
 let reasoning = try await generateText(
-    model: .openai(.gpt5Mini),
+    model: .openai(.gpt51Mini),
     messages: messages,
     settings: GenerationSettings(
         providerOptions: .init(
@@ -814,7 +814,7 @@ The `LanguageModel` enum provides compile-time safety and autocomplete for all s
 ```swift
 public enum LanguageModel: Sendable, CustomStringConvertible {
     // Major providers with sub-enums
-    case openai(OpenAI)      // .gpt4o, .gpt41, .gpt5Mini, .o4Mini
+    case openai(OpenAI)      // .gpt4o, .gpt41, .gpt51Mini, .o4Mini
     case anthropic(Anthropic) // .opus4, .sonnet4, .haiku45, .opus4Thinking
     case grok(Grok)          // .grok4, .grok4FastReasoning, .grok2Vision
     case ollama(Ollama)      // .llama33, .llama32, .llava, .codellama
@@ -1539,7 +1539,7 @@ Tests for model-specific parameter validation:
 @Test("GPT-5 excludes temperature")
 func testGPT5Capabilities() {
     let caps = ModelCapabilityRegistry.shared
-        .capabilities(for: .openai(.gpt5))
+        .capabilities(for: .openai(.gpt51))
     
     #expect(!caps.supportsTemperature)
     #expect(caps.supportsVerbosity)
@@ -1559,7 +1559,7 @@ func testSettingsValidation() {
         )
     )
     
-    let validated = settings.validated(for: .openai(.gpt5))
+    let validated = settings.validated(for: .openai(.gpt51))
     #expect(validated.temperature == nil)
     #expect(validated.providerOptions.openai?.verbosity == .high)
 }
