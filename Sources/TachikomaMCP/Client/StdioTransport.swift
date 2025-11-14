@@ -283,7 +283,7 @@ public final class StdioTransport: MCPTransport {
         // MCP TypeScript SDK uses simple newline-delimited JSON, NOT LSP-style framing
         // Just send the JSON followed by a newline
         try inputPipe.fileHandleForWriting.write(contentsOf: data)
-        try inputPipe.fileHandleForWriting.write(contentsOf: "\n".data(using: .utf8)!)
+        try inputPipe.fileHandleForWriting.write(contentsOf: "\n".utf8Data())
 
         // Log what we sent for debugging
         if let json = String(data: data, encoding: .utf8) {
@@ -396,8 +396,8 @@ public final class StdioTransport: MCPTransport {
     private func readFramedMessage(from fileHandle: FileHandle) async throws -> ([String: String], Data)? {
         var buffer = Data()
         let contentLengthTokenLower = "content-length:" // search case-insensitively
-        let crlfcrlf = "\r\n\r\n".data(using: .utf8)!
-        let lflf = "\n\n".data(using: .utf8)!
+        let crlfcrlf = "\r\n\r\n".utf8Data()
+        let lflf = "\n\n".utf8Data()
 
         // Read until we have at least a Content-Length header and the blank line after headers
         while true {

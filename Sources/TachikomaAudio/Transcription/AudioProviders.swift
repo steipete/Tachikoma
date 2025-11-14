@@ -334,46 +334,46 @@ public final class GroqTranscriptionProvider: TranscriptionProvider {
         var formData = Data()
 
         // Add audio file
-        formData.append("--\(boundary)\r\n".data(using: .utf8)!)
+        formData.append("--\(boundary)\r\n".utf8Data())
         formData
             .append(
                 "Content-Disposition: form-data; name=\"file\"; filename=\"audio.\(request.audio.format.rawValue)\"\r\n"
-                    .data(using: .utf8)!,
+                    .utf8Data(),
             )
-        formData.append("Content-Type: \(request.audio.format.mimeType)\r\n\r\n".data(using: .utf8)!)
+        formData.append("Content-Type: \(request.audio.format.mimeType)\r\n\r\n".utf8Data())
         formData.append(request.audio.data)
-        formData.append("\r\n".data(using: .utf8)!)
+        formData.append("\r\n".utf8Data())
 
         // Add model
-        formData.append("--\(boundary)\r\n".data(using: .utf8)!)
-        formData.append("Content-Disposition: form-data; name=\"model\"\r\n\r\n".data(using: .utf8)!)
-        formData.append("\(self.modelId)\r\n".data(using: .utf8)!)
+        formData.append("--\(boundary)\r\n".utf8Data())
+        formData.append("Content-Disposition: form-data; name=\"model\"\r\n\r\n".utf8Data())
+        formData.append("\(self.modelId)\r\n".utf8Data())
 
         // Add optional parameters
         if let language = request.language {
-            formData.append("--\(boundary)\r\n".data(using: .utf8)!)
-            formData.append("Content-Disposition: form-data; name=\"language\"\r\n\r\n".data(using: .utf8)!)
-            formData.append("\(language)\r\n".data(using: .utf8)!)
+            formData.append("--\(boundary)\r\n".utf8Data())
+            formData.append("Content-Disposition: form-data; name=\"language\"\r\n\r\n".utf8Data())
+            formData.append("\(language)\r\n".utf8Data())
         }
 
         if let prompt = request.prompt {
-            formData.append("--\(boundary)\r\n".data(using: .utf8)!)
-            formData.append("Content-Disposition: form-data; name=\"prompt\"\r\n\r\n".data(using: .utf8)!)
-            formData.append("\(prompt)\r\n".data(using: .utf8)!)
+            formData.append("--\(boundary)\r\n".utf8Data())
+            formData.append("Content-Disposition: form-data; name=\"prompt\"\r\n\r\n".utf8Data())
+            formData.append("\(prompt)\r\n".utf8Data())
         }
 
         if !request.timestampGranularities.isEmpty {
             for granularity in request.timestampGranularities {
-                formData.append("--\(boundary)\r\n".data(using: .utf8)!)
+                formData.append("--\(boundary)\r\n".utf8Data())
                 formData
                     .append("Content-Disposition: form-data; name=\"timestamp_granularities[]\"\r\n\r\n"
-                        .data(using: .utf8)!)
-                formData.append("\(granularity.rawValue)\r\n".data(using: .utf8)!)
+                        .utf8Data())
+                formData.append("\(granularity.rawValue)\r\n".utf8Data())
             }
         }
 
         // Close boundary
-        formData.append("--\(boundary)--\r\n".data(using: .utf8)!)
+        formData.append("--\(boundary)--\r\n".utf8Data())
 
         urlRequest.httpBody = formData
 

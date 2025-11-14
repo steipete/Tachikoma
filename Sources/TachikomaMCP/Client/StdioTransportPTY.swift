@@ -258,7 +258,7 @@ public final class StdioTransportPTY: MCPTransport {
         // Write to primary side of PTY
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Swift.Error>) in
             handle.write(data)
-            handle.write("\n".data(using: .utf8)!)
+            handle.write("\n".utf8Data())
             continuation.resume()
         }
     }

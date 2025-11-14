@@ -83,7 +83,7 @@ struct OpenAICompatibleHelperTests {
 
             data: [DONE]
 
-            """.data(using: .utf8)!
+            """.utf8Data()
             let response = HTTPURLResponse(
                 url: urlRequest.url!,
                 statusCode: 200,
@@ -118,7 +118,7 @@ struct OpenAICompatibleHelperTests {
         await self.withMockedSession { urlRequest in
             let errorJSON = """
             {"error":{"message":"bad request","type":"invalid_request_error"}}
-            """.data(using: .utf8)!
+            """.utf8Data()
             let response = HTTPURLResponse(
                 url: urlRequest.url!,
                 statusCode: 400,

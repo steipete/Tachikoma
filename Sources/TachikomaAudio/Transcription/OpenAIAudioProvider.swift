@@ -105,60 +105,60 @@ extension OpenAITranscriptionProvider {
         var body = Data()
 
         // Add file data
-        body.append("--\(boundary)\r\n".data(using: .utf8)!)
+        body.append("--\(boundary)\r\n".utf8Data())
         body
             .append(
                 "Content-Disposition: form-data; name=\"file\"; filename=\"audio.\(request.audio.format.rawValue)\"\r\n"
-                    .data(using: .utf8)!,
+                    .utf8Data(),
             )
-        body.append("Content-Type: \(request.audio.format.mimeType)\r\n\r\n".data(using: .utf8)!)
+        body.append("Content-Type: \(request.audio.format.mimeType)\r\n\r\n".utf8Data())
         body.append(request.audio.data)
-        body.append("\r\n".data(using: .utf8)!)
+        body.append("\r\n".utf8Data())
 
         // Add model
-        body.append("--\(boundary)\r\n".data(using: .utf8)!)
-        body.append("Content-Disposition: form-data; name=\"model\"\r\n\r\n".data(using: .utf8)!)
-        body.append(modelId.data(using: .utf8)!)
-        body.append("\r\n".data(using: .utf8)!)
+        body.append("--\(boundary)\r\n".utf8Data())
+        body.append("Content-Disposition: form-data; name=\"model\"\r\n\r\n".utf8Data())
+        body.append(modelId.utf8Data())
+        body.append("\r\n".utf8Data())
 
         // Add optional parameters
         if let language = request.language {
-            body.append("--\(boundary)\r\n".data(using: .utf8)!)
-            body.append("Content-Disposition: form-data; name=\"language\"\r\n\r\n".data(using: .utf8)!)
-            body.append(language.data(using: .utf8)!)
-            body.append("\r\n".data(using: .utf8)!)
+            body.append("--\(boundary)\r\n".utf8Data())
+            body.append("Content-Disposition: form-data; name=\"language\"\r\n\r\n".utf8Data())
+            body.append(language.utf8Data())
+            body.append("\r\n".utf8Data())
         }
 
         if let prompt = request.prompt {
-            body.append("--\(boundary)\r\n".data(using: .utf8)!)
-            body.append("Content-Disposition: form-data; name=\"prompt\"\r\n\r\n".data(using: .utf8)!)
-            body.append(prompt.data(using: .utf8)!)
-            body.append("\r\n".data(using: .utf8)!)
+            body.append("--\(boundary)\r\n".utf8Data())
+            body.append("Content-Disposition: form-data; name=\"prompt\"\r\n\r\n".utf8Data())
+            body.append(prompt.utf8Data())
+            body.append("\r\n".utf8Data())
         }
 
         // Add response format
         let responseFormat = request.responseFormat.rawValue
-        body.append("--\(boundary)\r\n".data(using: .utf8)!)
-        body.append("Content-Disposition: form-data; name=\"response_format\"\r\n\r\n".data(using: .utf8)!)
-        body.append(responseFormat.data(using: .utf8)!)
-        body.append("\r\n".data(using: .utf8)!)
+        body.append("--\(boundary)\r\n".utf8Data())
+        body.append("Content-Disposition: form-data; name=\"response_format\"\r\n\r\n".utf8Data())
+        body.append(responseFormat.utf8Data())
+        body.append("\r\n".utf8Data())
 
         // Add timestamp granularities if supported and requested
         if capabilities.supportsTimestamps, !request.timestampGranularities.isEmpty {
             for granularity in request.timestampGranularities {
-                body.append("--\(boundary)\r\n".data(using: .utf8)!)
+                body.append("--\(boundary)\r\n".utf8Data())
                 body
                     .append(
                         "Content-Disposition: form-data; name=\"timestamp_granularities[]\"\r\n\r\n"
-                            .data(using: .utf8)!,
+                            .utf8Data(),
                     )
-                body.append(granularity.rawValue.data(using: .utf8)!)
-                body.append("\r\n".data(using: .utf8)!)
+                body.append(granularity.rawValue.utf8Data())
+                body.append("\r\n".utf8Data())
             }
         }
 
         // Close boundary
-        body.append("--\(boundary)--\r\n".data(using: .utf8)!)
+        body.append("--\(boundary)--\r\n".utf8Data())
 
         urlRequest.httpBody = body
 

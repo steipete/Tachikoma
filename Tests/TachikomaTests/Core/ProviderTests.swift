@@ -171,11 +171,11 @@ struct ProviderTests {
         func providerDecoding() throws {
             let decoder = JSONDecoder()
 
-            let openaiData = "\"openai\"".data(using: .utf8)!
+            let openaiData = "\"openai\"".utf8Data()
             let openaiProvider = try decoder.decode(Provider.self, from: openaiData)
             #expect(openaiProvider == .openai)
 
-            let customData = "\"my-provider\"".data(using: .utf8)!
+            let customData = "\"my-provider\"".utf8Data()
             let customProvider = try decoder.decode(Provider.self, from: customData)
             if case let .custom(id) = customProvider {
                 #expect(id == "my-provider")

@@ -45,7 +45,7 @@ struct TypeErasureTests {
             "options": {"enabled": true, "threshold": 0.25},
             "missing": null
         }
-        """.data(using: .utf8)!
+        """.utf8Data()
 
         let decoded = try JSONDecoder().decode(AnyDecodable.self, from: jsonData)
         guard let root = decoded.value as? [String: Any] else {

@@ -367,11 +367,11 @@ struct OpenAIResponsesProviderTests {
     private static func responsesStreamPayload(chunks: [String]) -> Data {
         var data = Data()
         for chunk in chunks {
-            data.append("data: ".data(using: .utf8)!)
-            data.append(chunk.data(using: .utf8)!)
-            data.append("\n\n".data(using: .utf8)!)
+            data.append("data: ".utf8Data())
+            data.append(chunk.utf8Data())
+            data.append("\n\n".utf8Data())
         }
-        data.append("data: [DONE]\n\n".data(using: .utf8)!)
+        data.append("data: [DONE]\n\n".utf8Data())
         return data
     }
 

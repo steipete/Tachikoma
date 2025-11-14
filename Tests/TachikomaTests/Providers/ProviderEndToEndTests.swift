@@ -357,9 +357,9 @@ struct ProviderEndToEndTests {
         ]
         let data = try! JSONSerialization.data(withJSONObject: json)
         var body = Data()
-        body.append("data: ".data(using: .utf8)!)
+        body.append("data: ".utf8Data())
         body.append(data)
-        body.append("\n\n".data(using: .utf8)!)
+        body.append("\n\n".utf8Data())
         return body
     }
 

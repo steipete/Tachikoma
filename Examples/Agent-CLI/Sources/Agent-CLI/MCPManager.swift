@@ -161,7 +161,7 @@ final class MCPServer: @unchecked Sendable {
 
         // Send request
         inputPipe.fileHandleForWriting.write(requestData)
-        inputPipe.fileHandleForWriting.write("\n".data(using: .utf8)!)
+        inputPipe.fileHandleForWriting.write("\n".utf8Data())
 
         // Read response
         let responseData = outputPipe.fileHandleForReading.availableData
