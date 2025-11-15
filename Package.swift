@@ -5,13 +5,13 @@ import PackageDescription
 
 let package = Package(
     name: "Tachikoma",
-    swiftLanguageModes: [.v6],
     platforms: [
         .macOS(.v14),
         .iOS(.v16),
         .watchOS(.v9),
         .tvOS(.v16),
     ],
+    swiftLanguageModes: [.v6],
     products: [
         // Core Tachikoma library (lightweight, no MCP or Agent)
         .library(
