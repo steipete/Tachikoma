@@ -110,9 +110,24 @@ jobs:
         run: git clone --depth 1 https://github.com/steipete/Commander.git ../Commander
       
       - name: Setup Swift
-        uses: swift-actions/setup-swift@v2
+        uses: compnerd/gha-setup-swift@v0.3.0
         with:
-          swift-version: '6.2.1'
+          swift-version: swift-6.2-release
+          swift-build: 6.2-RELEASE
+      - name: Ensure Swift CLI available (Windows)
+        shell: pwsh
+        run: |
+          $swiftExe = Get-ChildItem -Path "C:\Users\runneradmin\AppData\Local\Programs\Swift" -Filter swift.exe -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
+          if (-not $swiftExe) {
+            $swiftExe = Get-ChildItem -Path "C:\Library\Developer" -Filter swift.exe -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
+          }
+          if (-not $swiftExe) {
+            throw "Swift executable not found after installation."
+          }
+          $dir = Split-Path $swiftExe.FullName
+          Add-Content -Path $env:GITHUB_PATH -Value $dir
+          Write-Host "Added $dir to PATH"
+          swift --version
       
       - name: Install dependencies
         run: |
