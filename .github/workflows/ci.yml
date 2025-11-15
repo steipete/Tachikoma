@@ -21,13 +21,6 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v4
 
-    - name: Fetch Commander dependency
-      shell: bash
-      run: git clone --depth 1 https://github.com/steipete/Commander.git ../Commander
-
-    - name: Fetch Commander dependency
-      shell: bash
-      run: git clone --depth 1 https://github.com/steipete/Commander.git ../Commander
 
     - name: Fetch Commander dependency
       shell: bash
@@ -139,6 +132,10 @@ jobs:
     steps:
     - name: Checkout
       uses: actions/checkout@v4
+
+    - name: Fetch Commander dependency
+      shell: bash
+      run: git clone --depth 1 https://github.com/steipete/Commander.git ../Commander
     - name: Select Xcode 16
       run: sudo xcode-select -s /Applications/Xcode_16.1.app || sudo xcode-select -s /Applications/Xcode_16.0.app || sudo xcode-select -s /Applications/Xcode.app
     - name: Build for ${{ matrix.platform }}
@@ -158,6 +155,10 @@ jobs:
     steps:
     - name: Checkout
       uses: actions/checkout@v4
+
+    - name: Fetch Commander dependency
+      shell: bash
+      run: git clone --depth 1 https://github.com/steipete/Commander.git ../Commander
     - name: Build Android artifacts
       env:
         SWIFT_ANDROID_TRIPLE: aarch64-unknown-linux-android24
