@@ -194,13 +194,12 @@ public enum MCPToolAdapter {
             return AnyAgentToolValue(string: "Error: \(errorMessage)")
         }
 
-        let contentValue: AnyAgentToolValue
-        if response.content.isEmpty {
-            contentValue = AnyAgentToolValue(null: ())
+        let contentValue: AnyAgentToolValue = if response.content.isEmpty {
+            AnyAgentToolValue(null: ())
         } else if response.content.count == 1 {
-            contentValue = self.convertContent(response.content[0])
+            self.convertContent(response.content[0])
         } else {
-            contentValue = AnyAgentToolValue(array: response.content.map { self.convertContent($0) })
+            AnyAgentToolValue(array: response.content.map { self.convertContent($0) })
         }
 
         guard let meta = response.meta else {

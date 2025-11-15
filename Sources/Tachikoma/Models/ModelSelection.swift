@@ -73,7 +73,6 @@ public struct ModelSelector {
             return .gpt51Mini
         case "gpt-5.1-nano", "gpt5.1-nano", "gpt51-nano", "gpt51nano", "gpt-5-1-nano", "gpt5-1-nano":
             return .gpt51Nano
-
         // GPT-5 models
         case "gpt-5", "gpt5":
             return .gpt5

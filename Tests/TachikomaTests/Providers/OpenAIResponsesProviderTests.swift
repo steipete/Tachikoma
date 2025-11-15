@@ -236,18 +236,22 @@ struct OpenAIResponsesProviderTests {
                     "action": AgentToolParameterProperty(
                         name: "action",
                         type: .string,
-                        description: "Action to perform"),
+                        description: "Action to perform",
+                    ),
                     "to": AgentToolParameterProperty(
                         name: "to",
                         type: .string,
-                        description: "Target application"),
+                        description: "Target application",
+                    ),
                     "apps": AgentToolParameterProperty(
                         name: "apps",
                         type: .array,
                         description: "Batch targets",
-                        items: AgentToolParameterItems(type: "string")),
+                        items: AgentToolParameterItems(type: "string"),
+                    ),
                 ],
-                required: ["action"])
+                required: ["action"],
+            ),
         ) { _ in
             AnyAgentToolValue(string: "ok")
         }
@@ -255,7 +259,8 @@ struct OpenAIResponsesProviderTests {
         let providerRequest = ProviderRequest(
             messages: [ModelMessage(role: .user, content: [.text("ping")])],
             tools: [tool],
-            settings: .init(maxTokens: 32))
+            settings: .init(maxTokens: 32),
+        )
 
         try await self.withMockedSession { request in
             let body = try #require(Self.bodyData(from: request))

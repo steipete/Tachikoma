@@ -307,7 +307,7 @@ struct ResponsesTool: Codable {
         parameters: [String: Any]? = nil,
         inputSchema: [String: Any]? = nil,
         strict: Bool? = nil,
-        function: ToolFunction? = nil
+        function: ToolFunction? = nil,
     ) {
         self.name = name
         self.type = type
@@ -382,7 +382,7 @@ struct ResponsesTool: Codable {
             name: String,
             description: String? = nil,
             parameters: [String: Any]? = nil,
-            inputSchema: [String: Any]? = nil
+            inputSchema: [String: Any]? = nil,
         ) {
             self.name = name
             self.description = description

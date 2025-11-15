@@ -338,7 +338,7 @@ struct ResponseCacheTests {
         let callCount = Box(value: 0)
         var mockProvider = ResponseCacheMockProvider(
             model: .openai(.gpt4o),
-            response: ProviderResponse(text: "Response", usage: nil, finishReason: .stop)
+            response: ProviderResponse(text: "Response", usage: nil, finishReason: .stop),
         )
         mockProvider.onGenerateText = { _ in
             callCount.value += 1
@@ -370,7 +370,7 @@ struct ResponseCacheTests {
         let callCount = Box(value: 0)
         var mockProvider = ResponseCacheMockProvider(
             model: .openai(.gpt4o),
-            response: ProviderResponse(text: "Test", usage: nil, finishReason: .stop)
+            response: ProviderResponse(text: "Test", usage: nil, finishReason: .stop),
         )
         mockProvider.onStreamText = { _ in
             callCount.value += 1
@@ -417,7 +417,6 @@ private struct ResponseCacheMockProvider: ModelProvider {
         self.onGenerateText = onGenerateText
         self.onStreamText = onStreamText
     }
-
 
     func generateText(request: ProviderRequest) async throws -> ProviderResponse {
         self.onGenerateText?(request)

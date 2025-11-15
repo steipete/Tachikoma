@@ -709,7 +709,7 @@ public final class OpenAIResponsesProvider: ModelProvider {
             name: tool.name,
             description: tool.description,
             parameters: parameters,
-            inputSchema: nil
+            inputSchema: nil,
         )
 
         return ResponsesTool(
@@ -719,7 +719,7 @@ public final class OpenAIResponsesProvider: ModelProvider {
             parameters: parameters,
             inputSchema: nil,
             strict: nil,
-            function: function
+            function: function,
         )
     }
 
@@ -817,7 +817,8 @@ public final class OpenAIResponsesProvider: ModelProvider {
     }
 
     private static func convertToolCall(_ toolCall: OpenAIResponsesResponse.ResponsesToolCall) -> AgentToolCall? {
-        if ProcessInfo.processInfo.arguments.contains("--verbose") ||
+        if
+            ProcessInfo.processInfo.arguments.contains("--verbose") ||
             ProcessInfo.processInfo.arguments.contains("-v")
         {
             print("DEBUG: Tool call \(toolCall.function.name) raw arguments: \(toolCall.function.arguments)")
@@ -848,7 +849,8 @@ public final class OpenAIResponsesProvider: ModelProvider {
     }
 
     private static func makeToolCall(id: String, name: String, argumentsJSON: String) -> AgentToolCall? {
-        if ProcessInfo.processInfo.arguments.contains("--verbose") ||
+        if
+            ProcessInfo.processInfo.arguments.contains("--verbose") ||
             ProcessInfo.processInfo.arguments.contains("-v")
         {
             print("DEBUG: Streaming tool call \(name) raw arguments: \(argumentsJSON)")
