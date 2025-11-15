@@ -21,23 +21,17 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v4
 
-    - name: Checkout Commander dependency
-      uses: actions/checkout@v4
-      with:
-        repository: steipete/Commander
-        path: ../Commander
+    - name: Fetch Commander dependency
+      shell: bash
+      run: git clone --depth 1 https://github.com/steipete/Commander.git ../Commander
 
-    - name: Checkout Commander dependency
-      uses: actions/checkout@v4
-      with:
-        repository: steipete/Commander
-        path: ../Commander
+    - name: Fetch Commander dependency
+      shell: bash
+      run: git clone --depth 1 https://github.com/steipete/Commander.git ../Commander
 
-    - name: Checkout Commander dependency
-      uses: actions/checkout@v4
-      with:
-        repository: steipete/Commander
-        path: ../Commander
+    - name: Fetch Commander dependency
+      shell: bash
+      run: git clone --depth 1 https://github.com/steipete/Commander.git ../Commander
 
     - name: Select Xcode 16
       if: runner.os == 'macOS'
@@ -103,11 +97,9 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v4
 
-    - name: Checkout Commander dependency
-      uses: actions/checkout@v4
-      with:
-        repository: steipete/Commander
-        path: ../Commander
+    - name: Fetch Commander dependency
+      shell: bash
+      run: git clone --depth 1 https://github.com/steipete/Commander.git ../Commander
 
     - name: Select Xcode 16
       if: runner.os == 'macOS'

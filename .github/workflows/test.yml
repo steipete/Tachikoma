@@ -37,11 +37,9 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v4
 
-    - name: Checkout Commander dependency
-      uses: actions/checkout@v4
-      with:
-        repository: steipete/Commander
-        path: ../Commander
+    - name: Fetch Commander dependency
+      shell: bash
+      run: git clone --depth 1 https://github.com/steipete/Commander.git ../Commander
 
     - name: Setup Xcode
       uses: maxim-lobanov/setup-xcode@v1
@@ -97,11 +95,9 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v4
 
-    - name: Checkout Commander dependency
-      uses: actions/checkout@v4
-      with:
-        repository: steipete/Commander
-        path: ../Commander
+    - name: Fetch Commander dependency
+      shell: bash
+      run: git clone --depth 1 https://github.com/steipete/Commander.git ../Commander
 
     - name: Setup Swift
       uses: SwiftyLab/setup-swift@latest
@@ -144,11 +140,9 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v4
 
-    - name: Checkout Commander dependency
-      uses: actions/checkout@v4
-      with:
-        repository: steipete/Commander
-        path: ../Commander
+    - name: Fetch Commander dependency
+      shell: bash
+      run: git clone --depth 1 https://github.com/steipete/Commander.git ../Commander
 
     - name: Setup Swift
       uses: compnerd/gha-setup-swift@v0.3.0
@@ -189,11 +183,9 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v4
 
-    - name: Checkout Commander dependency
-      uses: actions/checkout@v4
-      with:
-        repository: steipete/Commander
-        path: ../Commander
+    - name: Fetch Commander dependency
+      shell: bash
+      run: git clone --depth 1 https://github.com/steipete/Commander.git ../Commander
 
     - name: Setup Xcode
       uses: maxim-lobanov/setup-xcode@v1
@@ -215,11 +207,9 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v4
 
-    - name: Checkout Commander dependency
-      uses: actions/checkout@v4
-      with:
-        repository: steipete/Commander
-        path: ../Commander
+    - name: Fetch Commander dependency
+      shell: bash
+      run: git clone --depth 1 https://github.com/steipete/Commander.git ../Commander
 
     - name: Setup Xcode
       uses: maxim-lobanov/setup-xcode@v1
