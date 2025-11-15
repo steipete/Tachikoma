@@ -118,11 +118,15 @@ jobs:
 
     - name: Check Swift 6 Language Mode
       run: |
-        # Verify Swift 6 language mode is enabled
-        grep -r "swift-language-version.*6" Package.swift || {
-          echo "Warning: Swift 6 language mode not found in Package.swift"
+        # Verify Swift 6 language mode is enabled (either via swiftLanguageModes or swiftLanguageVersion)
+        if grep -E "swiftLanguageModes[^[]*\\.v6" Package.swift >/dev/null; then
+          echo "Swift 6 language mode detected via swiftLanguageModes"
+        elif grep -E "swift-language-version" Package.swift | grep -q "6"; then
+          echo "Swift 6 language version directive detected"
+        else
+          echo "::error::Swift 6 language mode not found in Package.swift"
           exit 1
-        }
+        fi
 
     - name: Build with Swift 6 Language Mode
       run: |
