@@ -46,7 +46,7 @@ final class StatusBarUI: @unchecked Sendable {
     // MARK: - Headers and Info
 
     func showHeader(_ text: String) {
-        guard !self.quiet else { return }
+        guard !quiet else { return }
 
         let separator = String(repeating: "─", count: 50)
         print("\n\(TerminalColor.cyan)\(TerminalColor.bold)\(text)\(TerminalColor.reset)")
@@ -54,17 +54,17 @@ final class StatusBarUI: @unchecked Sendable {
     }
 
     func showInfo(_ text: String) {
-        guard !self.quiet else { return }
+        guard !quiet else { return }
         print("\(TerminalColor.gray)ℹ️  \(text)\(TerminalColor.reset)")
     }
 
     func showSuccess(_ text: String) {
-        guard !self.quiet else { return }
+        guard !quiet else { return }
         print("\(TerminalColor.green)✅ \(text)\(TerminalColor.reset)")
     }
 
     func showWarning(_ text: String) {
-        guard !self.quiet else { return }
+        guard !quiet else { return }
         print("\(TerminalColor.yellow)⚠️  \(text)\(TerminalColor.reset)")
     }
 
@@ -75,50 +75,50 @@ final class StatusBarUI: @unchecked Sendable {
     // MARK: - Task Management
 
     func startTask(_ description: String) {
-        guard !self.quiet else { return }
+        guard !quiet else { return }
 
-        self.currentTask = description
+        currentTask = description
 
-        if self.outputFormat == .json {
+        if outputFormat == .json {
             print(#"{"event": "task_start", "description": "\#(description)"}"#)
         } else {
             // Start spinner animation
-            self.spinner = Spinner(pattern: .dots, text: description)
-            self.spinner?.start()
+            spinner = Spinner(pattern: .dots, text: description)
+            spinner?.start()
         }
 
-        self.updateTerminalTitle(description)
+        updateTerminalTitle(description)
     }
 
     func updateTask(_ status: String) {
-        guard !self.quiet else { return }
+        guard !quiet else { return }
 
-        if self.outputFormat == .json {
+        if outputFormat == .json {
             print(#"{"event": "task_update", "status": "\#(status)"}"#)
         } else if let spinner {
             spinner.text = status
         }
 
-        self.updateTerminalTitle(status)
+        updateTerminalTitle(status)
     }
 
     func completeTask() {
-        guard !self.quiet else { return }
+        guard !quiet else { return }
 
-        self.spinner?.stop()
-        self.spinner = nil
+        spinner?.stop()
+        spinner = nil
 
-        if self.outputFormat == .json {
+        if outputFormat == .json {
             print(#"{"event": "task_complete"}"#)
         }
 
-        self.updateTerminalTitle("Ready")
+        updateTerminalTitle("Ready")
     }
 
     // MARK: - Content Display
 
     func showResponse(_ text: String) {
-        if self.outputFormat == .json {
+        if outputFormat == .json {
             let escaped = text.replacingOccurrences(of: "\"", with: "\\\"")
             print(#"{"response": "\#(escaped)"}"#)
         } else {
@@ -160,9 +160,9 @@ final class StatusBarUI: @unchecked Sendable {
     }
 
     func showThinking(_ text: String) {
-        guard !self.quiet else { return }
+        guard !quiet else { return }
 
-        if self.verbose {
+        if verbose {
             print("\n\(TerminalColor.magenta)💭 Thinking: \(text)\(TerminalColor.reset)")
         } else {
             // Show subtle thinking indicator
@@ -174,11 +174,11 @@ final class StatusBarUI: @unchecked Sendable {
     // MARK: - Tool Display
 
     func showToolCall(name: String, arguments: String) {
-        guard !self.quiet else { return }
+        guard !quiet else { return }
 
-        if self.outputFormat == .json {
+        if outputFormat == .json {
             print(#"{"event": "tool_call", "name": "\#(name)", "arguments": \#(arguments)}"#)
-        } else if self.verbose {
+        } else if verbose {
             print("\n\(TerminalColor.blue)🔧 Calling tool: \(name)\(TerminalColor.reset)")
             if let formattedArgs = formatJSON(arguments) {
                 print("\(TerminalColor.gray)Arguments:\(TerminalColor.reset)")
@@ -191,13 +191,13 @@ final class StatusBarUI: @unchecked Sendable {
     }
 
     func showToolResult(name: String, result: String, duration: TimeInterval) {
-        guard !self.quiet else { return }
+        guard !quiet else { return }
 
-        let durationStr = self.formatDuration(duration)
+        let durationStr = formatDuration(duration)
 
-        if self.outputFormat == .json {
+        if outputFormat == .json {
             print(#"{"event": "tool_result", "name": "\#(name)", "duration": \#(duration)}"#)
-        } else if self.verbose {
+        } else if verbose {
             print("\(TerminalColor.green)✓ Completed in \(durationStr)\(TerminalColor.reset)")
             if let formattedResult = formatJSON(result) {
                 print("\(TerminalColor.gray)Result:\(TerminalColor.reset)")
@@ -211,7 +211,7 @@ final class StatusBarUI: @unchecked Sendable {
     }
 
     func showToolUsage(_ tools: [String]) {
-        guard !self.quiet, !tools.isEmpty else { return }
+        guard !quiet, !tools.isEmpty else { return }
 
         let toolList = tools.joined(separator: ", ")
         print("\n\(TerminalColor.gray)🔧 Tools used: \(toolList)\(TerminalColor.reset)")
@@ -220,9 +220,9 @@ final class StatusBarUI: @unchecked Sendable {
     // MARK: - Statistics
 
     func showStats(toolCalls: Int, tokens: Int, duration: TimeInterval) {
-        guard !self.quiet else { return }
+        guard !quiet else { return }
 
-        let durationStr = self.formatDuration(duration)
+        let durationStr = formatDuration(duration)
         let toolStr = toolCalls == 1 ? "1 tool" : "\(toolCalls) tools"
 
         print("\n\(TerminalColor.gray)───────────────────────────────────────\(TerminalColor.reset)")
@@ -300,8 +300,8 @@ final class Spinner {
     }
 
     func start() {
-        guard !self.isRunning else { return }
-        self.isRunning = true
+        guard !isRunning else { return }
+        isRunning = true
 
         // Hide cursor
         print("\u{001B}[?25l", terminator: "")
@@ -317,11 +317,11 @@ final class Spinner {
     }
 
     func stop() {
-        guard self.isRunning else { return }
-        self.isRunning = false
+        guard isRunning else { return }
+        isRunning = false
 
-        self.timer?.invalidate()
-        self.timer = nil
+        timer?.invalidate()
+        timer = nil
 
         // Clear line and show cursor
         print("\r\u{001B}[K", terminator: "")
@@ -330,12 +330,12 @@ final class Spinner {
     }
 
     private func render() {
-        let frames = self.pattern.frames
+        let frames = pattern.frames
         let frame = frames[frameIndex % frames.count]
-        self.frameIndex += 1
+        frameIndex += 1
 
         // Clear line and print new frame
-        print("\r\u{001B}[K\(TerminalColor.cyan)\(frame)\(TerminalColor.reset) \(self.text)", terminator: "")
+        print("\r\u{001B}[K\(TerminalColor.cyan)\(frame)\(TerminalColor.reset) \(text)", terminator: "")
         fflush(stdout)
     }
 }

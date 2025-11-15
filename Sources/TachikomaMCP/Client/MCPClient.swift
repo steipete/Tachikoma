@@ -67,11 +67,11 @@ private actor MCPClientState {
     }
 
     func getTransport() -> (any MCPTransport)? {
-        self.transport
+        transport
     }
 
     func setConnected(_ connected: Bool) {
-        self.isConnected = connected
+        isConnected = connected
     }
 
     func setTools(_ tools: [Tool]) {
@@ -90,8 +90,8 @@ public final class MCPClient: Sendable {
     public init(name: String, config: MCPServerConfig) {
         self.name = name
         self.config = config
-        self.logger = Logger(label: "tachikoma.mcp.client.\(name)")
-        self.client = Client(
+        logger = Logger(label: "tachikoma.mcp.client.\(name)")
+        client = Client(
             name: "tachikoma-mcp-client",
             version: "1.0.0",
         )
@@ -100,15 +100,15 @@ public final class MCPClient: Sendable {
     /// Connect to the MCP server
     public func connect() async throws {
         // Connect to the MCP server
-        guard self.config.enabled else {
+        guard config.enabled else {
             throw MCPError.serverDisabled
         }
 
-        self.logger.info("Connecting to MCP server '\(self.name)'")
+        logger.info("Connecting to MCP server '\(name)'")
 
         // Create appropriate transport based on config
         let transport: any MCPTransport
-        switch self.config.transport.lowercased() {
+        switch config.transport.lowercased() {
         case "stdio":
             // Always use standard stdio transport now that we've fixed the reading issue
             transport = StdioTransport()
@@ -119,13 +119,13 @@ public final class MCPClient: Sendable {
         case "http":
             transport = HTTPTransport()
         default:
-            throw MCPError.unsupportedTransport(self.config.transport)
+            throw MCPError.unsupportedTransport(config.transport)
         }
 
-        await self.state.setTransport(transport)
+        await state.setTransport(transport)
 
         // Connect transport
-        try await transport.connect(config: self.config)
+        try await transport.connect(config: config)
 
         // Initialize MCP handshake
         let initParams = InitializeParams(
@@ -156,44 +156,44 @@ public final class MCPClient: Sendable {
             }
         }
 
-        self.logger.debug("Initialized MCP connection: \(initResponse)")
+        logger.debug("Initialized MCP connection: \(initResponse)")
 
         // Send initialized notification (per spec name)
         // Some servers (like Context7) may not support this notification
         do {
             try await transport.sendNotification(method: "notifications/initialized", params: EmptyParams())
         } catch {
-            self.logger.debug("Server may not support notifications/initialized: \(error)")
+            logger.debug("Server may not support notifications/initialized: \(error)")
         }
 
         // Discover tools
-        await self.discoverTools()
+        await discoverTools()
 
-        await self.state.setConnected(true)
+        await state.setConnected(true)
     }
 
     /// Disconnect from the MCP server
     public func disconnect() async {
         // Disconnect from the MCP server
-        self.logger.info("Disconnecting from MCP server '\(self.name)'")
+        logger.info("Disconnecting from MCP server '\(name)'")
         if let transport = await state.getTransport() {
             await transport.disconnect()
         }
-        await self.state.setConnected(false)
-        await self.state.setTools([])
+        await state.setConnected(false)
+        await state.setTools([])
     }
 
     /// Check if the client is connected
     public var isConnected: Bool {
         get async {
-            await self.state.isConnected
+            await state.isConnected
         }
     }
 
     /// Get available tools
     public var tools: [Tool] {
         get async {
-            await self.state.tools
+            await state.tools
         }
     }
 
@@ -210,10 +210,10 @@ public final class MCPClient: Sendable {
                 params: EmptyParams(),
             )
 
-            await self.state.setTools(response.tools)
-            self.logger.info("Discovered \(response.tools.count) tools from '\(self.name)'")
+            await state.setTools(response.tools)
+            logger.info("Discovered \(response.tools.count) tools from '\(name)'")
         } catch {
-            self.logger.error("Failed to discover tools: \(error)")
+            logger.error("Failed to discover tools: \(error)")
         }
     }
 
@@ -224,7 +224,7 @@ public final class MCPClient: Sendable {
             throw MCPError.notConnected
         }
 
-        guard await self.isConnected else {
+        guard await isConnected else {
             throw MCPError.notConnected
         }
 

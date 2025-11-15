@@ -27,7 +27,8 @@ public func generateText(
     configuration: TachikomaConfiguration = .current,
     sessionId: String? = nil,
 ) async throws
--> GenerateTextResult {
+    -> GenerateTextResult
+{
     let resolvedConfiguration = TachikomaConfiguration.resolve(configuration)
     let provider = try resolvedConfiguration.makeProvider(for: model)
 
@@ -244,12 +245,13 @@ public func streamText(
     messages: [ModelMessage],
     tools: [AgentTool]? = nil,
     settings: GenerationSettings = .default,
-    maxSteps: Int = 1,
+    maxSteps _: Int = 1,
     timeout: TimeInterval? = nil,
     configuration: TachikomaConfiguration = .current,
     sessionId: String? = nil,
 ) async throws
--> StreamTextResult {
+    -> StreamTextResult
+{
     // Debug logging only when explicitly enabled via environment variable or verbose flag
     let resolvedConfiguration = TachikomaConfiguration.resolve(configuration)
     let debugEnabled = ProcessInfo.processInfo.environment["DEBUG_TACHIKOMA"] != nil ||
@@ -377,12 +379,13 @@ public func streamText(
 public func generateObject<T: Codable & Sendable>(
     model: LanguageModel,
     messages: [ModelMessage],
-    schema: T.Type,
+    schema _: T.Type,
     settings: GenerationSettings = .default,
     timeout: TimeInterval? = nil,
     configuration: TachikomaConfiguration = .current,
 ) async throws
--> GenerateObjectResult<T> {
+    -> GenerateObjectResult<T>
+{
     let resolvedConfiguration = TachikomaConfiguration.resolve(configuration)
     let provider = try resolvedConfiguration.makeProvider(for: model)
 
@@ -438,7 +441,8 @@ public func streamObject<T: Codable & Sendable>(
     settings: GenerationSettings = .default,
     configuration: TachikomaConfiguration = .current,
 ) async throws
--> StreamObjectResult<T> {
+    -> StreamObjectResult<T>
+{
     let resolvedConfiguration = TachikomaConfiguration.resolve(configuration)
     let provider = try resolvedConfiguration.makeProvider(for: model)
 
@@ -534,7 +538,7 @@ public func streamObject<T: Codable & Sendable>(
 }
 
 /// Attempt to parse a partial JSON object by fixing common issues
-private func attemptPartialParse<T: Codable>(_ type: T.Type, from json: String) -> T? {
+private func attemptPartialParse<T: Codable>(_: T.Type, from json: String) -> T? {
     // Try various strategies to parse partial JSON
     let strategies = [
         json, // Original
@@ -600,12 +604,13 @@ private func fixPartialJSON(_ json: String) -> String {
 @discardableResult
 public func generate(
     _ prompt: String,
-    using model: Model? = nil,
-    system: String? = nil,
-    tools: [AgentTool]? = nil,
-    timeout: TimeInterval? = nil,
+    using _: Model? = nil,
+    system _: String? = nil,
+    tools _: [AgentTool]? = nil,
+    timeout _: TimeInterval? = nil,
 ) async throws
--> String {
+    -> String
+{
     // For now, just return a mock response since we don't have provider implementations
     "Mock response for prompt: \(prompt)"
 }
@@ -622,7 +627,8 @@ public func generate(
     timeout: TimeInterval? = nil,
     configuration: TachikomaConfiguration = .current,
 ) async throws
--> String {
+    -> String
+{
     var messages: [ModelMessage] = []
 
     if let system {
@@ -655,7 +661,8 @@ public func analyze(
     using model: Model? = nil,
     configuration: TachikomaConfiguration = .current,
 ) async throws
--> String {
+    -> String
+{
     // Determine the model to use
     let selectedModel: LanguageModel = if let model {
         model
@@ -743,7 +750,8 @@ public func stream(
     temperature: Double? = nil,
     configuration: TachikomaConfiguration = .current,
 ) async throws
--> AsyncThrowingStream<TextStreamDelta, Error> {
+    -> AsyncThrowingStream<TextStreamDelta, Error>
+{
     var messages: [ModelMessage] = []
 
     if let system {
@@ -799,12 +807,12 @@ extension StreamObjectResult: AsyncSequence {
         var iterator: AsyncThrowingStream<ObjectStreamDelta<T>, Error>.AsyncIterator
 
         public mutating func next() async throws -> ObjectStreamDelta<T>? {
-            try await self.iterator.next()
+            try await iterator.next()
         }
     }
 
     public func makeAsyncIterator() -> AsyncIterator {
-        AsyncIterator(iterator: self.objectStream.makeAsyncIterator())
+        AsyncIterator(iterator: objectStream.makeAsyncIterator())
     }
 }
 

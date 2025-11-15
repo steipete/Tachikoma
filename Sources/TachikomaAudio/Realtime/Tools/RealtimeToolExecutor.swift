@@ -77,7 +77,7 @@ public actor RealtimeToolExecutor {
     public func register(_ tool: some RealtimeExecutableTool) {
         // Register a tool for execution
         let metadata = tool.metadata
-        self.tools[metadata.name] = RealtimeToolWrapper(
+        tools[metadata.name] = RealtimeToolWrapper(
             tool: tool,
             metadata: metadata,
         )
@@ -87,26 +87,26 @@ public actor RealtimeToolExecutor {
     public func registerTools(_ tools: [some RealtimeExecutableTool]) {
         // Register multiple tools
         for tool in tools {
-            self.register(tool)
+            register(tool)
         }
     }
 
     /// Unregister a tool
     public func unregister(toolName: String) {
         // Unregister a tool
-        self.tools.removeValue(forKey: toolName)
+        tools.removeValue(forKey: toolName)
     }
 
     /// Get all registered tools
     public func availableTools() -> [ToolMetadata] {
         // Get all registered tools
-        self.tools.values.map(\.metadata)
+        tools.values.map(\.metadata)
     }
 
     /// Get tool metadata
     public func getToolMetadata(name: String) -> ToolMetadata? {
         // Get tool metadata
-        self.tools[name]?.metadata
+        tools[name]?.metadata
     }
 
     // MARK: - Tool Execution
@@ -117,7 +117,8 @@ public actor RealtimeToolExecutor {
         arguments: String,
         timeout: TimeInterval = 30,
     ) async
-    -> ToolExecution {
+        -> ToolExecution
+    {
         // Execute a tool by name with arguments
         let startTime = Date()
         let executionId = UUID().uuidString
@@ -132,14 +133,14 @@ public actor RealtimeToolExecutor {
                 timestamp: startTime,
                 duration: Date().timeIntervalSince(startTime),
             )
-            self.addToHistory(execution)
+            addToHistory(execution)
             return execution
         }
 
         // Parse arguments
         let parsedArgs: RealtimeToolArguments
         do {
-            parsedArgs = try self.parseArguments(arguments, for: wrapper.metadata.parameters)
+            parsedArgs = try parseArguments(arguments, for: wrapper.metadata.parameters)
         } catch {
             let execution = ToolExecution(
                 id: executionId,
@@ -149,7 +150,7 @@ public actor RealtimeToolExecutor {
                 timestamp: startTime,
                 duration: Date().timeIntervalSince(startTime),
             )
-            self.addToHistory(execution)
+            addToHistory(execution)
             return execution
         }
 
@@ -183,7 +184,7 @@ public actor RealtimeToolExecutor {
                 timestamp: startTime,
                 duration: Date().timeIntervalSince(startTime),
             )
-            self.addToHistory(execution)
+            addToHistory(execution)
             return execution
         }
 
@@ -196,7 +197,7 @@ public actor RealtimeToolExecutor {
             timestamp: startTime,
             duration: Date().timeIntervalSince(startTime),
         )
-        self.addToHistory(execution)
+        addToHistory(execution)
         return execution
     }
 
@@ -206,7 +207,8 @@ public actor RealtimeToolExecutor {
         arguments: String,
         timeout: TimeInterval = 30,
     ) async
-    -> String {
+        -> String
+    {
         // Execute a tool and return just the result string
         let execution = await execute(
             toolName: toolName,
@@ -230,23 +232,23 @@ public actor RealtimeToolExecutor {
     public func getHistory(limit: Int? = nil) -> [ToolExecution] {
         // Get execution history
         if let limit {
-            return Array(self.executionHistory.suffix(limit))
+            return Array(executionHistory.suffix(limit))
         }
-        return self.executionHistory
+        return executionHistory
     }
 
     /// Clear execution history
     public func clearHistory() {
         // Clear execution history
-        self.executionHistory.removeAll()
+        executionHistory.removeAll()
     }
 
     private func addToHistory(_ execution: ToolExecution) {
-        self.executionHistory.append(execution)
+        executionHistory.append(execution)
 
         // Trim history if needed
-        if self.executionHistory.count > self.maxHistorySize {
-            self.executionHistory.removeFirst(self.executionHistory.count - self.maxHistorySize)
+        if executionHistory.count > maxHistorySize {
+            executionHistory.removeFirst(executionHistory.count - maxHistorySize)
         }
     }
 
@@ -256,7 +258,8 @@ public actor RealtimeToolExecutor {
         _ jsonString: String,
         for parameters: AgentToolParameters,
     ) throws
-    -> RealtimeToolArguments {
+        -> RealtimeToolArguments
+    {
         guard let data = jsonString.data(using: .utf8) else {
             throw TachikomaError.invalidInput("Invalid JSON string")
         }

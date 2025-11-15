@@ -11,7 +11,7 @@ struct ProviderFeatureParityTests {
         let apiKey: String? = nil
         let capabilities: ModelCapabilities
 
-        func generateText(request: ProviderRequest) async throws -> ProviderResponse {
+        func generateText(request _: ProviderRequest) async throws -> ProviderResponse {
             ProviderResponse(
                 text: "Mock response",
                 usage: Usage(inputTokens: 10, outputTokens: 20),
@@ -20,7 +20,7 @@ struct ProviderFeatureParityTests {
             )
         }
 
-        func streamText(request: ProviderRequest) async throws -> AsyncThrowingStream<TextStreamDelta, Error> {
+        func streamText(request _: ProviderRequest) async throws -> AsyncThrowingStream<TextStreamDelta, Error> {
             AsyncThrowingStream { continuation in
                 continuation.finish()
             }

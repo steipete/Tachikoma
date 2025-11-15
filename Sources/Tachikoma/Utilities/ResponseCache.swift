@@ -1,9 +1,9 @@
 import Foundation
 #if canImport(CryptoKit)
-import CryptoKit
+    import CryptoKit
 #endif
 #if os(iOS) || os(tvOS) || os(watchOS)
-import UIKit
+    import UIKit
 #endif
 
 // MARK: - Cache Key
@@ -44,7 +44,7 @@ struct CacheKey: Hashable {
         hasher.combine(request.settings.temperature)
         hasher.combine(request.settings.maxTokens)
         hasher.combine(request.settings.topP)
-        self.hash = String(hasher.finalize())
+        hash = String(hasher.finalize())
     }
 }
 
@@ -79,29 +79,30 @@ public actor ResponseCache {
         for request: ProviderRequest,
         ttlOverride: TimeInterval? = nil,
     )
-    -> ProviderResponse? {
+        -> ProviderResponse?
+    {
         // Get cached response with TTL validation
         let key = CacheKey(from: request)
 
         guard let entry = cache[key] else {
-            self.statistics.recordMiss()
+            statistics.recordMiss()
             return nil
         }
 
         // Check TTL
-        let ttl = ttlOverride ?? entry.ttl ?? self.configuration.defaultTTL
+        let ttl = ttlOverride ?? entry.ttl ?? configuration.defaultTTL
         if entry.isExpired(ttl: ttl) {
-            self.cache.removeValue(forKey: key)
-            self.accessOrder.removeAll { $0 == key }
-            self.statistics.recordEviction(reason: .expired)
+            cache.removeValue(forKey: key)
+            accessOrder.removeAll { $0 == key }
+            statistics.recordEviction(reason: .expired)
             return nil
         }
 
         // Update access time and order for LRU
         entry.recordAccess()
-        self.updateAccessOrder(for: key)
+        updateAccessOrder(for: key)
 
-        self.statistics.recordHit()
+        statistics.recordHit()
         return entry.response
     }
 
@@ -116,13 +117,13 @@ public actor ResponseCache {
         let key = CacheKey(from: request)
 
         // Check memory limit
-        if self.shouldEvictForMemory() {
-            self.evictByStrategy()
+        if shouldEvictForMemory() {
+            evictByStrategy()
         }
 
         // Check count limit
-        if self.cache.count >= self.configuration.maxEntries, self.cache[key] == nil {
-            self.evictByStrategy()
+        if cache.count >= configuration.maxEntries, cache[key] == nil {
+            evictByStrategy()
         }
 
         let entry = CacheEntry(
@@ -131,9 +132,9 @@ public actor ResponseCache {
             priority: priority,
         )
 
-        self.cache[key] = entry
-        self.updateAccessOrder(for: key)
-        self.statistics.recordStore()
+        cache[key] = entry
+        updateAccessOrder(for: key)
+        statistics.recordStore()
     }
 
     /// Invalidate entries matching predicate
@@ -141,19 +142,19 @@ public actor ResponseCache {
         matching predicate: @escaping (CacheKey, CacheEntry) -> Bool,
     ) {
         // Invalidate entries matching predicate
-        let toRemove = self.cache.filter { predicate($0.key, $0.value) }
+        let toRemove = cache.filter { predicate($0.key, $0.value) }
 
         for (key, _) in toRemove {
-            self.cache.removeValue(forKey: key)
-            self.accessOrder.removeAll { $0 == key }
-            self.statistics.recordEviction(reason: .invalidated)
+            cache.removeValue(forKey: key)
+            accessOrder.removeAll { $0 == key }
+            statistics.recordEviction(reason: .invalidated)
         }
     }
 
     /// Invalidate entries by model
     public func invalidateModel(_ modelId: String) {
         // Invalidate entries by model
-        self.invalidate { key, _ in
+        invalidate { key, _ in
             key.model == modelId
         }
     }
@@ -162,7 +163,7 @@ public actor ResponseCache {
     public func invalidateOlderThan(_ age: TimeInterval) {
         // Invalidate entries older than specified age
         let cutoff = Date().addingTimeInterval(-age)
-        self.invalidate { _, entry in
+        invalidate { _, entry in
             entry.createdAt < cutoff
         }
     }
@@ -170,18 +171,18 @@ public actor ResponseCache {
     /// Clear all cache entries
     public func clear() {
         // Clear all cache entries
-        let count = self.cache.count
-        self.cache.removeAll()
-        self.accessOrder.removeAll()
-        self.statistics.recordBulkEviction(count: count, reason: .cleared)
+        let count = cache.count
+        cache.removeAll()
+        accessOrder.removeAll()
+        statistics.recordBulkEviction(count: count, reason: .cleared)
     }
 
     /// Get cache statistics
     public func getStatistics() -> EnhancedCacheStatistics {
         // Get cache statistics
-        self.statistics.snapshot(
-            currentEntries: self.cache.count,
-            maxEntries: self.configuration.maxEntries,
+        statistics.snapshot(
+            currentEntries: cache.count,
+            maxEntries: configuration.maxEntries,
         )
     }
 
@@ -192,7 +193,7 @@ public actor ResponseCache {
     ) {
         // Prewarm cache with common requests
         for (request, response) in requests {
-            self.store(response, for: request, ttl: ttl, priority: .high)
+            store(response, for: request, ttl: ttl, priority: .high)
         }
     }
 
@@ -200,18 +201,18 @@ public actor ResponseCache {
 
     private func setupMemoryPressureHandling() {
         #if os(iOS) || os(tvOS) || os(watchOS)
-        self.memoryPressureObserver = NotificationCenter.default.addObserver(
-            forName: UIApplication.didReceiveMemoryWarningNotification,
-            object: nil,
-            queue: .main,
-        ) { [weak self] _ in
-            Task {
-                await self?.handleMemoryPressure()
+            memoryPressureObserver = NotificationCenter.default.addObserver(
+                forName: UIApplication.didReceiveMemoryWarningNotification,
+                object: nil,
+                queue: .main,
+            ) { [weak self] _ in
+                Task {
+                    await self?.handleMemoryPressure()
+                }
             }
-        }
         #elseif os(macOS)
-        // macOS doesn't have UIApplication memory warnings
-        // Could use ProcessInfo.processInfo.thermalState monitoring instead
+            // macOS doesn't have UIApplication memory warnings
+            // Could use ProcessInfo.processInfo.thermalState monitoring instead
         #endif
     }
 
@@ -229,108 +230,108 @@ public actor ResponseCache {
         var evictedCount = 0
 
         // Remove expired entries
-        let expiredKeys = self.cache.compactMap { key, entry -> CacheKey? in
+        let expiredKeys = cache.compactMap { key, entry -> CacheKey? in
             let ttl = entry.ttl ?? self.configuration.defaultTTL
             return entry.isExpired(ttl: ttl) ? key : nil
         }
 
         for key in expiredKeys {
-            self.cache.removeValue(forKey: key)
-            self.accessOrder.removeAll { $0 == key }
+            cache.removeValue(forKey: key)
+            accessOrder.removeAll { $0 == key }
             evictedCount += 1
         }
 
         if evictedCount > 0 {
-            self.statistics.recordBulkEviction(count: evictedCount, reason: .expired)
+            statistics.recordBulkEviction(count: evictedCount, reason: .expired)
         }
     }
 
     private func handleMemoryPressure() async {
-        switch self.configuration.memoryPressureStrategy {
+        switch configuration.memoryPressureStrategy {
         case .clearAll:
-            self.clear()
+            clear()
         case .clearHalf:
-            self.evictPercentage(50)
+            evictPercentage(50)
         case .clearLowPriority:
-            self.evictLowPriority()
+            evictLowPriority()
         case .adaptive:
             // Remove 30% of least recently used
-            self.evictPercentage(30)
+            evictPercentage(30)
         }
     }
 
     private func shouldEvictForMemory() -> Bool {
-        guard self.configuration.memoryLimit > 0 else { return false }
+        guard configuration.memoryLimit > 0 else { return false }
 
         // Estimate memory usage (simplified)
-        let estimatedSize = self.cache.values.reduce(0) { total, entry in
+        let estimatedSize = cache.values.reduce(0) { total, entry in
             total + entry.estimatedMemorySize()
         }
 
-        return estimatedSize > self.configuration.memoryLimit
+        return estimatedSize > configuration.memoryLimit
     }
 
     private func evictByStrategy() {
-        switch self.configuration.evictionStrategy {
+        switch configuration.evictionStrategy {
         case .lru:
-            self.evictLRU()
+            evictLRU()
         case .lfu:
-            self.evictLFU()
+            evictLFU()
         case .fifo:
-            self.evictFIFO()
+            evictFIFO()
         case .priority:
-            self.evictLowestPriority()
+            evictLowestPriority()
         }
     }
 
     private func evictLRU() {
         guard let firstKey = accessOrder.first else { return }
-        self.cache.removeValue(forKey: firstKey)
-        self.accessOrder.removeFirst()
-        self.statistics.recordEviction(reason: .capacityReached)
+        cache.removeValue(forKey: firstKey)
+        accessOrder.removeFirst()
+        statistics.recordEviction(reason: .capacityReached)
     }
 
     private func evictLFU() {
         // Evict least frequently used
-        let leastUsed = self.cache.min { $0.value.accessCount < $1.value.accessCount }
+        let leastUsed = cache.min { $0.value.accessCount < $1.value.accessCount }
         if let key = leastUsed?.key {
-            self.cache.removeValue(forKey: key)
-            self.accessOrder.removeAll { $0 == key }
-            self.statistics.recordEviction(reason: .capacityReached)
+            cache.removeValue(forKey: key)
+            accessOrder.removeAll { $0 == key }
+            statistics.recordEviction(reason: .capacityReached)
         }
     }
 
     private func evictFIFO() {
         // Evict oldest entry
-        let oldest = self.cache.min { $0.value.createdAt < $1.value.createdAt }
+        let oldest = cache.min { $0.value.createdAt < $1.value.createdAt }
         if let key = oldest?.key {
-            self.cache.removeValue(forKey: key)
-            self.accessOrder.removeAll { $0 == key }
-            self.statistics.recordEviction(reason: .capacityReached)
+            cache.removeValue(forKey: key)
+            accessOrder.removeAll { $0 == key }
+            statistics.recordEviction(reason: .capacityReached)
         }
     }
 
     private func evictLowestPriority() {
         // Find lowest priority entries
-        let sorted = self.cache.sorted { $0.value.priority.rawValue < $1.value.priority.rawValue }
+        let sorted = cache.sorted { $0.value.priority.rawValue < $1.value.priority.rawValue }
         if let first = sorted.first {
-            self.cache.removeValue(forKey: first.key)
-            self.accessOrder.removeAll { $0 == first.key }
-            self.statistics.recordEviction(reason: .capacityReached)
+            cache.removeValue(forKey: first.key)
+            accessOrder.removeAll { $0 == first.key }
+            statistics.recordEviction(reason: .capacityReached)
         }
     }
 
     private func evictLowPriority() {
-        let lowPriorityKeys = self.cache.compactMap { key, entry -> CacheKey? in
+        let lowPriorityKeys = cache.compactMap { key, entry -> CacheKey? in
             entry.priority == .low ? key : nil
         }
 
         for key in lowPriorityKeys {
-            self.cache.removeValue(forKey: key)
-            self.accessOrder.removeAll { $0 == key }
+            cache.removeValue(forKey: key)
+            accessOrder.removeAll { $0 == key }
         }
 
-        self.statistics.recordBulkEviction(count: lowPriorityKeys.count, reason: .memoryPressure)
+        statistics.recordBulkEviction(count: lowPriorityKeys.count, reason: .memoryPressure)
     }
 
     private func evictPercentage(_ percentage: Int) {
@@ -338,19 +339,19 @@ public actor ResponseCache {
 
         // Remove least recently used
         for _ in 0..<toRemove {
-            guard !self.accessOrder.isEmpty else { break }
-            let key = self.accessOrder.removeFirst()
-            self.cache.removeValue(forKey: key)
+            guard !accessOrder.isEmpty else { break }
+            let key = accessOrder.removeFirst()
+            cache.removeValue(forKey: key)
         }
 
-        self.statistics.recordBulkEviction(count: toRemove, reason: .memoryPressure)
+        statistics.recordBulkEviction(count: toRemove, reason: .memoryPressure)
     }
 
     private func updateAccessOrder(for key: CacheKey) {
         if let index = accessOrder.firstIndex(of: key) {
-            self.accessOrder.remove(at: index)
+            accessOrder.remove(at: index)
         }
-        self.accessOrder.append(key)
+        accessOrder.append(key)
     }
 }
 
@@ -439,25 +440,25 @@ final class CacheEntry: @unchecked Sendable {
         priority: CachePriority = .normal,
     ) {
         self.response = response
-        self.createdAt = Date()
+        createdAt = Date()
         self.ttl = ttl
         self.priority = priority
-        self.lastAccessedAt = Date()
-        self.accessCount = 0
+        lastAccessedAt = Date()
+        accessCount = 0
     }
 
     func recordAccess() {
-        self.lastAccessedAt = Date()
-        self.accessCount += 1
+        lastAccessedAt = Date()
+        accessCount += 1
     }
 
     func isExpired(ttl: TimeInterval) -> Bool {
-        Date().timeIntervalSince(self.createdAt) > ttl
+        Date().timeIntervalSince(createdAt) > ttl
     }
 
     func estimatedMemorySize() -> Int {
         // Rough estimation based on response content
-        let textSize = self.response.text.utf8.count
+        let textSize = response.text.utf8.count
         let toolCallsSize = (response.toolCalls?.count ?? 0) * 100 // Estimate 100 bytes per tool call
         let usageSize = 50 // Fixed overhead for usage data
 
@@ -476,37 +477,37 @@ final class CacheStatisticsTracker: @unchecked Sendable {
     private let startTime = Date()
 
     func recordHit() {
-        self.hits += 1
+        hits += 1
     }
 
     func recordMiss() {
-        self.misses += 1
+        misses += 1
     }
 
     func recordStore() {
-        self.stores += 1
+        stores += 1
     }
 
     func recordEviction(reason: EvictionReason) {
-        self.evictions[reason, default: 0] += 1
+        evictions[reason, default: 0] += 1
     }
 
     func recordBulkEviction(count: Int, reason: EvictionReason) {
-        self.evictions[reason, default: 0] += count
+        evictions[reason, default: 0] += count
     }
 
     func snapshot(currentEntries: Int, maxEntries: Int) -> EnhancedCacheStatistics {
-        let hitRate = self.hits + self.misses > 0 ? Double(self.hits) / Double(self.hits + self.misses) : 0
+        let hitRate = hits + misses > 0 ? Double(hits) / Double(hits + misses) : 0
 
         return EnhancedCacheStatistics(
             currentEntries: currentEntries,
             maxEntries: maxEntries,
-            hits: self.hits,
-            misses: self.misses,
+            hits: hits,
+            misses: misses,
             hitRate: hitRate,
-            stores: self.stores,
-            evictions: self.evictions,
-            uptime: Date().timeIntervalSince(self.startTime),
+            stores: stores,
+            evictions: evictions,
+            uptime: Date().timeIntervalSince(startTime),
         )
     }
 }
@@ -549,14 +550,14 @@ public struct CacheAwareProvider<Base: ModelProvider>: ModelProvider {
     let provider: Base
     let cache: ResponseCache
 
-    public var modelId: String { self.provider.modelId }
-    public var baseURL: String? { self.provider.baseURL }
-    public var apiKey: String? { self.provider.apiKey }
-    public var capabilities: ModelCapabilities { self.provider.capabilities }
+    public var modelId: String { provider.modelId }
+    public var baseURL: String? { provider.baseURL }
+    public var apiKey: String? { provider.apiKey }
+    public var capabilities: ModelCapabilities { provider.capabilities }
 
     public func generateText(request: ProviderRequest) async throws -> ProviderResponse {
         // Check cache with smart TTL based on request type
-        let ttl = self.determineTTL(for: request)
+        let ttl = determineTTL(for: request)
 
         if let cached = await cache.get(for: request, ttlOverride: ttl) {
             return cached
@@ -564,15 +565,15 @@ public struct CacheAwareProvider<Base: ModelProvider>: ModelProvider {
 
         // Generate and cache with appropriate priority
         let response = try await provider.generateText(request: request)
-        let priority = self.determinePriority(for: request)
+        let priority = determinePriority(for: request)
 
-        await self.cache.store(response, for: request, ttl: ttl, priority: priority)
+        await cache.store(response, for: request, ttl: ttl, priority: priority)
         return response
     }
 
     public func streamText(request: ProviderRequest) async throws -> AsyncThrowingStream<TextStreamDelta, Error> {
         // Streaming bypasses cache but could cache the final result
-        try await self.provider.streamText(request: request)
+        try await provider.streamText(request: request)
     }
 
     private func determineTTL(for request: ProviderRequest) -> TimeInterval {

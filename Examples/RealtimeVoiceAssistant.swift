@@ -22,7 +22,7 @@ class RealtimeVoiceAssistant {
 
         // Simple configuration for voice conversation
         let config = TachikomaConfiguration()
-        config.setAPIKey(self.apiKey, for: .openai)
+        config.setAPIKey(apiKey, for: .openai)
 
         // Create basic conversation
         let conversation = try RealtimeConversation(configuration: config)
@@ -116,18 +116,18 @@ class RealtimeVoiceAssistant {
         )
 
         // Create advanced conversation
-        self.conversation = try RealtimeConversation(
-            apiKey: self.apiKey,
+        conversation = try RealtimeConversation(
+            apiKey: apiKey,
             configuration: config,
             settings: settings,
         )
 
         // Start conversation
-        try await self.conversation!.start()
+        try await conversation!.start()
         print("✅ Connected with Server VAD enabled")
 
         // Monitor conversation state
-        self.observeConversationState()
+        observeConversationState()
 
         // Server VAD will automatically detect speech start/stop
         print("🎤 Server VAD is listening for speech...")
@@ -136,7 +136,7 @@ class RealtimeVoiceAssistant {
         // Run for 30 seconds
         try await Task.sleep(nanoseconds: 30_000_000_000)
 
-        await self.conversation!.end()
+        await conversation!.end()
         print("👋 Advanced conversation ended")
     }
 
@@ -206,14 +206,14 @@ class RealtimeVoiceAssistant {
             ],
         )
 
-        self.conversation = try RealtimeConversation(
-            apiKey: self.apiKey,
+        conversation = try RealtimeConversation(
+            apiKey: apiKey,
             configuration: config,
             settings: .production,
         )
 
         // Register tool executors
-        await self.conversation!.registerTools([
+        await conversation!.registerTools([
             createTool(
                 name: "get_weather",
                 parameters: [
@@ -271,7 +271,7 @@ class RealtimeVoiceAssistant {
             },
         ])
 
-        try await self.conversation!.start()
+        try await conversation!.start()
         print("✅ Connected with function calling enabled")
 
         print("\n📢 Try these voice commands:")
@@ -300,7 +300,7 @@ class RealtimeVoiceAssistant {
         // Run for 30 seconds
         try await Task.sleep(nanoseconds: 30_000_000_000)
 
-        await self.conversation!.end()
+        await conversation!.end()
         print("👋 Function calling conversation ended")
     }
 
@@ -310,13 +310,13 @@ class RealtimeVoiceAssistant {
         print("\n🔄 Starting Dynamic Modality Switching Example...")
 
         let config = SessionConfiguration.voiceConversation()
-        self.conversation = try RealtimeConversation(
-            apiKey: self.apiKey,
+        conversation = try RealtimeConversation(
+            apiKey: apiKey,
             configuration: config,
             settings: .production,
         )
 
-        try await self.conversation!.start()
+        try await conversation!.start()
         print("✅ Connected with all modalities")
 
         // Start with both text and audio
@@ -325,23 +325,23 @@ class RealtimeVoiceAssistant {
 
         // Switch to text-only
         print("📝 Switching to text-only mode...")
-        try await self.conversation!.updateModalities(.text)
+        try await conversation!.updateModalities(.text)
 
         // Send text message
-        try await self.conversation!.sendText("Hello! Can you explain what modalities are?")
+        try await conversation!.sendText("Hello! Can you explain what modalities are?")
         try await Task.sleep(nanoseconds: 5_000_000_000)
 
         // Switch to audio-only
         print("🎤 Switching to audio-only mode...")
-        try await self.conversation!.updateModalities(.audio)
+        try await conversation!.updateModalities(.audio)
         try await Task.sleep(nanoseconds: 5_000_000_000)
 
         // Switch back to both
         print("🎙️📝 Switching back to text + audio mode...")
-        try await self.conversation!.updateModalities(.all)
+        try await conversation!.updateModalities(.all)
         try await Task.sleep(nanoseconds: 5_000_000_000)
 
-        await self.conversation!.end()
+        await conversation!.end()
         print("👋 Modality switching example ended")
     }
 
@@ -351,24 +351,24 @@ class RealtimeVoiceAssistant {
         print("\n📚 Starting Conversation Management Example...")
 
         let config = SessionConfiguration.voiceConversation()
-        self.conversation = try RealtimeConversation(
-            apiKey: self.apiKey,
+        conversation = try RealtimeConversation(
+            apiKey: apiKey,
             configuration: config,
             settings: .production,
         )
 
-        try await self.conversation!.start()
+        try await conversation!.start()
 
         // Send initial messages
-        try await self.conversation!.sendText("Remember this number: 42")
+        try await conversation!.sendText("Remember this number: 42")
         try await Task.sleep(nanoseconds: 2_000_000_000)
 
-        try await self.conversation!.sendText("Also remember this word: Tachikoma")
+        try await conversation!.sendText("Also remember this word: Tachikoma")
         try await Task.sleep(nanoseconds: 2_000_000_000)
 
         // Check conversation history
-        print("📜 Conversation items: \(self.conversation!.items.count)")
-        for item in self.conversation!.items {
+        print("📜 Conversation items: \(conversation!.items.count)")
+        for item in conversation!.items {
             if let content = item.content?.first {
                 switch content.type {
                 case "text":
@@ -380,18 +380,18 @@ class RealtimeVoiceAssistant {
         }
 
         // Test memory
-        try await self.conversation!.sendText("What number and word did I ask you to remember?")
+        try await conversation!.sendText("What number and word did I ask you to remember?")
         try await Task.sleep(nanoseconds: 5_000_000_000)
 
         // Clear conversation
         print("🗑️ Clearing conversation history...")
-        try await self.conversation!.clearConversation()
+        try await conversation!.clearConversation()
 
         // Test memory after clear
-        try await self.conversation!.sendText("What number and word did I mention earlier?")
+        try await conversation!.sendText("What number and word did I mention earlier?")
         try await Task.sleep(nanoseconds: 5_000_000_000)
 
-        await self.conversation!.end()
+        await conversation!.end()
         print("👋 Conversation management example ended")
     }
 
@@ -411,8 +411,8 @@ class RealtimeVoiceAssistant {
             maxAudioBufferSize: 2 * 1024 * 1024, // 2MB buffer
         )
 
-        self.conversation = try RealtimeConversation(
-            apiKey: self.apiKey,
+        conversation = try RealtimeConversation(
+            apiKey: apiKey,
             configuration: config,
             settings: settings,
         )
@@ -434,11 +434,11 @@ class RealtimeVoiceAssistant {
             }
         }
 
-        try await self.conversation!.start()
+        try await conversation!.start()
         print("✅ Connected with auto-reconnect enabled")
 
         // Simulate conversation
-        try await self.conversation!.sendText("Testing connection stability")
+        try await conversation!.sendText("Testing connection stability")
 
         // Note: In a real scenario, you could test disconnection by:
         // - Disabling network
@@ -451,7 +451,7 @@ class RealtimeVoiceAssistant {
         // Run for 10 seconds
         try await Task.sleep(nanoseconds: 10_000_000_000)
 
-        await self.conversation!.end()
+        await conversation!.end()
         print("👋 Error handling example ended")
     }
 
@@ -540,13 +540,13 @@ func runRealtimeExamples() async throws {
 
 // Entry point for standalone execution
 #if os(macOS) || os(iOS)
-if #available(macOS 14.0, iOS 17.0, *) {
-    Task {
-        do {
-            try await runRealtimeExamples()
-        } catch {
-            print("❌ Error: \(error)")
+    if #available(macOS 14.0, iOS 17.0, *) {
+        Task {
+            do {
+                try await runRealtimeExamples()
+            } catch {
+                print("❌ Error: \(error)")
+            }
         }
     }
-}
 #endif

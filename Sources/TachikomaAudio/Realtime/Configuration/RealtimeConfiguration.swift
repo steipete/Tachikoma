@@ -245,7 +245,8 @@ public struct SessionConfiguration: Sendable, Codable {
         model: String = "gpt-4o-realtime-preview",
         voice: RealtimeVoice = .alloy,
     )
-    -> SessionConfiguration {
+        -> SessionConfiguration
+    {
         // Create a default configuration for voice conversations
         SessionConfiguration(
             model: model,
@@ -259,7 +260,8 @@ public struct SessionConfiguration: Sendable, Codable {
     public static func textOnly(
         model: String = "gpt-4o-realtime-preview",
     )
-    -> SessionConfiguration {
+        -> SessionConfiguration
+    {
         // Create a configuration for text-only interactions
         SessionConfiguration(
             model: model,
@@ -275,7 +277,8 @@ public struct SessionConfiguration: Sendable, Codable {
         voice: RealtimeVoice = .alloy,
         tools: [RealtimeTool],
     )
-    -> SessionConfiguration {
+        -> SessionConfiguration
+    {
         // Create a configuration with tools
         SessionConfiguration(
             model: model,

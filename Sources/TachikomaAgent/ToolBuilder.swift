@@ -55,7 +55,8 @@ public func tool(
     parameters: [String: ParameterDefinition] = [:],
     execute: @escaping @Sendable (AgentToolArguments) async throws -> AnyAgentToolValue,
 )
--> AgentTool {
+    -> AgentTool
+{
     // Convert parameter definitions to AgentToolParameterProperty
     var properties: [String: AgentToolParameterProperty] = [:]
     var required: [String] = []
@@ -118,9 +119,9 @@ public struct ParameterDefinition {
     func toProperty(name: String) -> AgentToolParameterProperty {
         AgentToolParameterProperty(
             name: name,
-            type: self.type,
-            description: self.description,
-            enumValues: self.enumValues,
+            type: type,
+            description: description,
+            enumValues: enumValues,
         )
     }
 }
@@ -133,7 +134,8 @@ public func createTool(
     required: [String] = [],
     execute: @escaping @Sendable (AgentToolArguments) async throws -> AnyAgentToolValue,
 )
--> AgentTool {
+    -> AgentTool
+{
     // Convert array of properties to dictionary keyed by name
     var properties: [String: AgentToolParameterProperty] = [:]
     for param in parameters {
@@ -160,7 +162,7 @@ private struct ConcreteAgentTool<I: AgentToolValue, O: AgentToolValue>: AgentToo
     let executeFunc: @Sendable (I, ToolExecutionContext) async throws -> O
 
     func execute(_ input: I, context: ToolExecutionContext) async throws -> O {
-        try await self.executeFunc(input, context)
+        try await executeFunc(input, context)
     }
 }
 
@@ -169,11 +171,12 @@ private struct ConcreteAgentTool<I: AgentToolValue, O: AgentToolValue>: AgentToo
 public func agentTool<I: AgentToolValue, O: AgentToolValue>(
     _ name: String,
     description: String,
-    input: I.Type,
-    output: O.Type,
+    input _: I.Type,
+    output _: O.Type,
     execute: @escaping @Sendable (I, ToolExecutionContext) async throws -> O,
 )
--> AnyAgentTool {
+    -> AnyAgentTool
+{
     // Generate schema based on input type
     let schema = AgentToolSchema(properties: [:], required: [])
 
@@ -195,7 +198,8 @@ public func stringTool(
     parameterDescription: String,
     execute: @escaping @Sendable (String) async throws -> String,
 )
--> AgentTool {
+    -> AgentTool
+{
     // Creates a tool with string parameter
     createTool(
         name: name,
@@ -223,7 +227,8 @@ public func numberTool(
     parameterDescription: String,
     execute: @escaping @Sendable (Double) async throws -> Double,
 )
--> AgentTool {
+    -> AgentTool
+{
     // Creates a tool with number parameter
     createTool(
         name: name,
@@ -251,7 +256,8 @@ public func booleanTool(
     parameterDescription: String,
     execute: @escaping @Sendable (Bool) async throws -> Bool,
 )
--> AgentTool {
+    -> AgentTool
+{
     // Creates a tool with boolean parameter
     createTool(
         name: name,
@@ -277,7 +283,8 @@ public func noParamTool(
     description: String,
     execute: @escaping @Sendable () async throws -> String,
 )
--> AgentTool {
+    -> AgentTool
+{
     // Creates a tool with no parameters
     createTool(
         name: name,
@@ -298,7 +305,8 @@ public func multiStringTool(
     required: [String] = [],
     execute: @escaping @Sendable ([String: String]) async throws -> String,
 )
--> AgentTool {
+    -> AgentTool
+{
     // Creates a tool with multiple string parameters
     let toolParams = parameters.map { name, desc in
         AgentToolParameterProperty(name: name, type: .string, description: desc)

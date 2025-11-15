@@ -28,27 +28,27 @@ public struct AudioData: Sendable {
 
     /// Create AudioData from a file URL
     public init(contentsOf url: URL) throws {
-        self.data = try Data(contentsOf: url)
+        data = try Data(contentsOf: url)
 
         // Infer format from file extension
         let pathExtension = url.pathExtension.lowercased()
-        self.format = AudioFormat(rawValue: pathExtension) ?? .wav
+        format = AudioFormat(rawValue: pathExtension) ?? .wav
 
         // TODO: Extract metadata from audio file headers
-        self.sampleRate = nil
-        self.channels = nil
-        self.duration = nil
+        sampleRate = nil
+        channels = nil
+        duration = nil
     }
 
     /// Size in bytes
     public var size: Int {
-        self.data.count
+        data.count
     }
 
     /// Write audio data to a file URL
     public func write(to url: URL) throws {
         // Write audio data to a file URL
-        try self.data.write(to: url)
+        try data.write(to: url)
     }
 }
 
@@ -192,7 +192,7 @@ public struct TranscriptionSegment: Sendable {
 
     /// Duration of this segment
     public var duration: TimeInterval {
-        self.end - self.start
+        end - start
     }
 }
 
@@ -341,15 +341,15 @@ public final class AbortSignal: @unchecked Sendable {
     private let lock = NSLock()
 
     public var cancelled: Bool {
-        self.lock.lock()
+        lock.lock()
         defer { lock.unlock() }
-        return self._cancelled
+        return _cancelled
     }
 
     public func cancel() {
-        self.lock.lock()
+        lock.lock()
         defer { lock.unlock() }
-        self._cancelled = true
+        _cancelled = true
     }
 
     /// Initialize a new abort signal
@@ -373,7 +373,7 @@ public final class AbortSignal: @unchecked Sendable {
     /// Check if the signal is cancelled and throw if so
     public func throwIfCancelled() throws {
         // Check if the signal is cancelled and throw if so
-        if self.cancelled {
+        if cancelled {
             throw TachikomaError.operationCancelled
         }
     }

@@ -20,10 +20,10 @@ class BasicVoiceAssistant: ObservableObject {
         let config = TachikomaConfiguration()
             .withAPIKey("your-api-key", for: .openai)
 
-        self.conversation = try RealtimeConversation(configuration: config)
+        conversation = try RealtimeConversation(configuration: config)
 
         // Start conversation with voice
-        try await self.conversation?.start(
+        try await conversation?.start(
             model: .gpt4oRealtime,
             voice: .nova,
             instructions: "You are a helpful voice assistant. Keep responses concise.",
@@ -51,15 +51,15 @@ class BasicVoiceAssistant: ObservableObject {
     }
 
     func startListening() async throws {
-        try await self.conversation?.startListening()
+        try await conversation?.startListening()
     }
 
     func stopListening() async throws {
-        try await self.conversation?.stopListening()
+        try await conversation?.stopListening()
     }
 
     func stop() async {
-        await self.conversation?.end()
+        await conversation?.end()
     }
 }
 
@@ -78,7 +78,7 @@ class SmartAssistant: ObservableObject {
         // Configure with tools
         var config = SessionConfiguration.withTools(
             voice: .alloy,
-            tools: self.createTools(),
+            tools: createTools(),
         )
 
         // Enable server VAD for automatic turn detection
@@ -88,23 +88,23 @@ class SmartAssistant: ObservableObject {
         // Production settings with auto-reconnect
         let settings = ConversationSettings.production
 
-        self.conversation = try RealtimeConversation(
+        conversation = try RealtimeConversation(
             apiKey: apiKey,
             configuration: config,
             settings: settings,
         )
 
         // Register built-in tools
-        await self.conversation?.registerBuiltInTools()
+        await conversation?.registerBuiltInTools()
 
         // Register custom tools
-        await self.conversation?.registerTools(self.createCustomTools())
+        await conversation?.registerTools(createCustomTools())
 
         // Start the conversation
-        try await self.conversation?.start()
+        try await conversation?.start()
 
         // Monitor state
-        self.setupStateMonitoring()
+        setupStateMonitoring()
     }
 
     private func createTools() -> [RealtimeTool] {
@@ -199,19 +199,19 @@ class SmartAssistant: ObservableObject {
     private var cancellables = Set<AnyCancellable>()
 
     func sendMessage(_ text: String) async throws {
-        try await self.conversation?.sendText(text)
+        try await conversation?.sendText(text)
     }
 
     func switchToTextOnly() async throws {
-        try await self.conversation?.updateModalities(.text)
+        try await conversation?.updateModalities(.text)
     }
 
     func switchToVoiceOnly() async throws {
-        try await self.conversation?.updateModalities(.audio)
+        try await conversation?.updateModalities(.audio)
     }
 
     func cleanup() async {
-        await self.conversation?.end()
+        await conversation?.end()
     }
 }
 
@@ -225,25 +225,25 @@ struct VoiceAssistantView: View {
 
     var body: some View {
         VStack(spacing: 20) {
-            if !self.isConfigured {
+            if !isConfigured {
                 // API Key Configuration
                 VStack {
                     Text("OpenAI API Key")
                         .font(.headline)
-                    SecureField("sk-...", text: self.$apiKey)
+                    SecureField("sk-...", text: $apiKey)
                         .textFieldStyle(RoundedBorderTextFieldStyle())
                     Button("Start Assistant") {
                         Task {
-                            await self.configureAssistant()
+                            await configureAssistant()
                         }
                     }
-                    .disabled(self.apiKey.isEmpty)
+                    .disabled(apiKey.isEmpty)
                 }
                 .padding()
             } else {
                 // Conversation Interface
                 RealtimeConversationView(
-                    apiKey: self.apiKey,
+                    apiKey: apiKey,
                     configuration: .voiceConversation(),
                 ) { error in
                     print("Error: \(error)")
@@ -253,26 +253,26 @@ struct VoiceAssistantView: View {
                 HStack {
                     Button("Text Only") {
                         Task {
-                            try await self.viewModel.updateModalities(.text)
+                            try await viewModel.updateModalities(.text)
                         }
                     }
 
                     Button("Voice Only") {
                         Task {
-                            try await self.viewModel.updateModalities(.audio)
+                            try await viewModel.updateModalities(.audio)
                         }
                     }
 
                     Button("Both") {
                         Task {
-                            try await self.viewModel.updateModalities(.all)
+                            try await viewModel.updateModalities(.all)
                         }
                     }
                 }
 
                 // Transcript Display
                 ScrollView {
-                    Text(self.viewModel.transcript)
+                    Text(viewModel.transcript)
                         .padding()
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
@@ -285,11 +285,11 @@ struct VoiceAssistantView: View {
 
     private func configureAssistant() async {
         do {
-            try await self.viewModel.initialize(
-                apiKey: self.apiKey,
+            try await viewModel.initialize(
+                apiKey: apiKey,
                 configuration: .voiceConversation(),
             )
-            self.isConfigured = true
+            isConfigured = true
         } catch {
             print("Configuration failed: \(error)")
         }
@@ -325,21 +325,21 @@ class AudioStreamingExample {
             localVADThreshold: 0.3,
         )
 
-        self.conversation = try RealtimeConversation(
+        conversation = try RealtimeConversation(
             apiKey: apiKey,
             configuration: config,
             settings: settings,
         )
 
         // Setup audio pipeline
-        self.audioManager = try RealtimeAudioManager()
-        self.audioProcessor = try RealtimeAudioProcessor()
+        audioManager = try RealtimeAudioManager()
+        audioProcessor = try RealtimeAudioProcessor()
 
         // Start conversation
-        try await self.conversation?.start()
+        try await conversation?.start()
 
         // Start audio capture
-        await self.audioManager?.startCapture()
+        await audioManager?.startCapture()
 
         // Process audio stream
         Task {
@@ -357,8 +357,8 @@ class AudioStreamingExample {
     }
 
     func stopStreaming() async {
-        await self.audioManager?.stopCapture()
-        await self.conversation?.end()
+        await audioManager?.stopCapture()
+        await conversation?.end()
     }
 }
 
@@ -383,36 +383,36 @@ class MultiTurnConversation {
             maxResponseOutputTokens: 500,
         )
 
-        self.conversation = try RealtimeConversation(
+        conversation = try RealtimeConversation(
             apiKey: apiKey,
             configuration: config,
         )
 
-        try await self.conversation?.start()
+        try await conversation?.start()
 
         // First turn
-        try await self.conversation?.sendText("I want to learn about quantum computing")
-        await self.waitForResponse()
+        try await conversation?.sendText("I want to learn about quantum computing")
+        await waitForResponse()
 
         // Second turn - follows up on previous
-        try await self.conversation?.sendText("What are qubits exactly?")
-        await self.waitForResponse()
+        try await conversation?.sendText("What are qubits exactly?")
+        await waitForResponse()
 
         // Third turn - asks for clarification
-        try await self.conversation?.sendText("Can you give me a simple analogy?")
-        await self.waitForResponse()
+        try await conversation?.sendText("Can you give me a simple analogy?")
+        await waitForResponse()
 
         // Truncate conversation at a specific point if needed
         if let items = conversation?.items, items.count > 10 {
-            try await self.conversation?.truncateAt(itemId: items[5].id)
+            try await conversation?.truncateAt(itemId: items[5].id)
         }
 
-        await self.conversation?.end()
+        await conversation?.end()
     }
 
     private func waitForResponse() async {
         // Wait for processing to complete
-        while self.conversation?.state == .processing {
+        while conversation?.state == .processing {
             try? await Task.sleep(nanoseconds: 100_000_000) // 0.1 seconds
         }
     }
@@ -436,13 +436,13 @@ class RobustConversation {
         )
 
         do {
-            self.conversation = try RealtimeConversation(
+            conversation = try RealtimeConversation(
                 apiKey: apiKey,
                 configuration: config,
                 settings: settings,
             )
 
-            try await self.conversation?.start()
+            try await conversation?.start()
 
             // Monitor connection state
             Task {
@@ -473,18 +473,18 @@ class RobustConversation {
                 // Could trigger UI updates, notifications, etc.
             } else {
                 print("Connected successfully")
-                self.retryCount = 0 // Reset retry count on successful connection
+                retryCount = 0 // Reset retry count on successful connection
             }
         }
     }
 
     func sendWithRetry(_ message: String) async throws {
         do {
-            try await self.conversation?.sendText(message)
+            try await conversation?.sendText(message)
         } catch {
             print("Send failed, retrying...")
             try await Task.sleep(nanoseconds: 1_000_000_000)
-            try await self.conversation?.sendText(message)
+            try await conversation?.sendText(message)
         }
     }
 }
@@ -492,92 +492,92 @@ class RobustConversation {
 // MARK: - Usage in UIKit
 
 #if os(iOS)
-import UIKit
+    import UIKit
 
-@available(iOS 17.0, *)
-class VoiceAssistantViewController: UIViewController {
-    private var conversation: RealtimeConversation?
-    private var transcriptLabel: UILabel!
-    private var recordButton: UIButton!
+    @available(iOS 17.0, *)
+    class VoiceAssistantViewController: UIViewController {
+        private var conversation: RealtimeConversation?
+        private var transcriptLabel: UILabel!
+        private var recordButton: UIButton!
 
-    override func viewDidLoad() {
-        super.viewDidLoad()
-        self.setupUI()
-        self.setupConversation()
-    }
+        override func viewDidLoad() {
+            super.viewDidLoad()
+            setupUI()
+            setupConversation()
+        }
 
-    private func setupUI() {
-        // Transcript label
-        self.transcriptLabel = UILabel()
-        self.transcriptLabel.numberOfLines = 0
-        self.transcriptLabel.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(self.transcriptLabel)
+        private func setupUI() {
+            // Transcript label
+            transcriptLabel = UILabel()
+            transcriptLabel.numberOfLines = 0
+            transcriptLabel.translatesAutoresizingMaskIntoConstraints = false
+            view.addSubview(transcriptLabel)
 
-        // Record button
-        self.recordButton = UIButton(type: .system)
-        self.recordButton.setTitle("Hold to Talk", for: .normal)
-        self.recordButton.translatesAutoresizingMaskIntoConstraints = false
-        self.recordButton.addTarget(self, action: #selector(self.recordButtonPressed), for: .touchDown)
-        self.recordButton.addTarget(
-            self,
-            action: #selector(self.recordButtonReleased),
-            for: [.touchUpInside, .touchUpOutside],
-        )
-        view.addSubview(self.recordButton)
+            // Record button
+            recordButton = UIButton(type: .system)
+            recordButton.setTitle("Hold to Talk", for: .normal)
+            recordButton.translatesAutoresizingMaskIntoConstraints = false
+            recordButton.addTarget(self, action: #selector(recordButtonPressed), for: .touchDown)
+            recordButton.addTarget(
+                self,
+                action: #selector(recordButtonReleased),
+                for: [.touchUpInside, .touchUpOutside],
+            )
+            view.addSubview(recordButton)
 
-        // Layout
-        NSLayoutConstraint.activate([
-            self.transcriptLabel.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 20),
-            self.transcriptLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
-            self.transcriptLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
+            // Layout
+            NSLayoutConstraint.activate([
+                transcriptLabel.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 20),
+                transcriptLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
+                transcriptLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
 
-            self.recordButton.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -20),
-            self.recordButton.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-            self.recordButton.widthAnchor.constraint(equalToConstant: 200),
-            self.recordButton.heightAnchor.constraint(equalToConstant: 50),
-        ])
-    }
+                recordButton.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -20),
+                recordButton.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+                recordButton.widthAnchor.constraint(equalToConstant: 200),
+                recordButton.heightAnchor.constraint(equalToConstant: 50),
+            ])
+        }
 
-    private func setupConversation() {
-        Task {
-            do {
-                let config = TachikomaConfiguration()
-                    .withAPIKey("your-api-key", for: .openai)
+        private func setupConversation() {
+            Task {
+                do {
+                    let config = TachikomaConfiguration()
+                        .withAPIKey("your-api-key", for: .openai)
 
-                self.conversation = try RealtimeConversation(configuration: config)
+                    self.conversation = try RealtimeConversation(configuration: config)
 
-                try await self.conversation?.start(
-                    model: .gpt4oRealtime,
-                    voice: .shimmer,
-                )
+                    try await self.conversation?.start(
+                        model: .gpt4oRealtime,
+                        voice: .shimmer,
+                    )
 
-                // Listen for updates
-                Task {
-                    guard let conversation else { return }
-                    for await transcript in conversation.transcriptUpdates {
-                        await MainActor.run {
-                            self.transcriptLabel.text = transcript
+                    // Listen for updates
+                    Task {
+                        guard let conversation else { return }
+                        for await transcript in conversation.transcriptUpdates {
+                            await MainActor.run {
+                                self.transcriptLabel.text = transcript
+                            }
                         }
                     }
+                } catch {
+                    print("Setup failed: \(error)")
                 }
-            } catch {
-                print("Setup failed: \(error)")
+            }
+        }
+
+        @objc
+        private func recordButtonPressed() {
+            Task {
+                try await self.conversation?.startListening()
+            }
+        }
+
+        @objc
+        private func recordButtonReleased() {
+            Task {
+                try await self.conversation?.stopListening()
             }
         }
     }
-
-    @objc
-    private func recordButtonPressed() {
-        Task {
-            try await self.conversation?.startListening()
-        }
-    }
-
-    @objc
-    private func recordButtonReleased() {
-        Task {
-            try await self.conversation?.stopListening()
-        }
-    }
-}
 #endif

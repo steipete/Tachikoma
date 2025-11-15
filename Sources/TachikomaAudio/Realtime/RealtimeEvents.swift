@@ -145,8 +145,8 @@ public struct RealtimeSessionConfig: Codable, Sendable {
 
     /// Convert from SessionConfiguration
     public init(from config: SessionConfiguration) {
-        self.id = nil
-        self.model = config.model
+        id = nil
+        model = config.model
         // Convert modalities from OptionSet to string array
         var modalityStrings: [String] = []
         if let modalities = config.modalities {
@@ -157,9 +157,9 @@ public struct RealtimeSessionConfig: Codable, Sendable {
                 modalityStrings.append("audio")
             }
         }
-        self.modalities = modalityStrings.isEmpty ? ["text", "audio"] : modalityStrings
-        self.instructions = config.instructions
-        self.voice = config.voice
+        modalities = modalityStrings.isEmpty ? ["text", "audio"] : modalityStrings
+        instructions = config.instructions
+        voice = config.voice
     }
 
     public var inputAudioFormat: RealtimeAudioFormat?
@@ -195,9 +195,9 @@ public struct RealtimeSessionConfig: Codable, Sendable {
         self.instructions = instructions
         self.tools = tools
         self.temperature = temperature
-        self.modalities = ["text", "audio"]
-        self.inputAudioFormat = .pcm16
-        self.outputAudioFormat = .pcm16
+        modalities = ["text", "audio"]
+        inputAudioFormat = .pcm16
+        outputAudioFormat = .pcm16
     }
 }
 
@@ -309,10 +309,10 @@ public struct ConversationItem: Codable, Sendable {
         self.type = type
         self.role = role
         self.content = content
-        self.callId = nil
-        self.name = nil
-        self.arguments = nil
-        self.output = nil
+        callId = nil
+        name = nil
+        arguments = nil
+        output = nil
     }
 }
 
@@ -362,11 +362,11 @@ public struct ResponseCreateEvent: Codable, Sendable {
         self.modalities = modalities
         self.instructions = instructions
         self.voice = voice
-        self.outputAudioFormat = .pcm16
-        self.tools = nil
-        self.toolChoice = nil
+        outputAudioFormat = .pcm16
+        tools = nil
+        toolChoice = nil
         self.temperature = temperature
-        self.maxOutputTokens = nil
+        maxOutputTokens = nil
     }
 }
 
@@ -784,7 +784,7 @@ public struct RealtimeTool: Codable, Sendable {
     }
 
     public init(name: String, description: String, parameters: AgentToolParameters) {
-        self.type = "function"
+        type = "function"
         self.name = name
         self.description = description
         self.parameters = parameters
@@ -792,17 +792,17 @@ public struct RealtimeTool: Codable, Sendable {
 
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        self.type = try container.decode(String.self, forKey: .type)
-        self.name = try container.decode(String.self, forKey: .name)
-        self.description = try container.decode(String.self, forKey: .description)
-        self.parameters = try container.decode(AgentToolParameters.self, forKey: .parameters)
+        type = try container.decode(String.self, forKey: .type)
+        name = try container.decode(String.self, forKey: .name)
+        description = try container.decode(String.self, forKey: .description)
+        parameters = try container.decode(AgentToolParameters.self, forKey: .parameters)
     }
 
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
-        try container.encode(self.type, forKey: .type)
-        try container.encode(self.name, forKey: .name)
-        try container.encode(self.description, forKey: .description)
-        try container.encode(self.parameters, forKey: .parameters)
+        try container.encode(type, forKey: .type)
+        try container.encode(name, forKey: .name)
+        try container.encode(description, forKey: .description)
+        try container.encode(parameters, forKey: .parameters)
     }
 }

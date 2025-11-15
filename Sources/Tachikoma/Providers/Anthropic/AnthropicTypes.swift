@@ -143,24 +143,24 @@ enum AnthropicContent: Codable {
 
         init(from decoder: Decoder) throws {
             let container = try decoder.container(keyedBy: CodingKeys.self)
-            self.type = try container.decode(String.self, forKey: .type)
-            self.id = try container.decode(String.self, forKey: .id)
-            self.name = try container.decode(String.self, forKey: .name)
+            type = try container.decode(String.self, forKey: .type)
+            id = try container.decode(String.self, forKey: .id)
+            name = try container.decode(String.self, forKey: .name)
 
             // Use custom decoder for Any
             let inputDecoder = try container.superDecoder(forKey: .input)
-            self.input = try Self.decodeAnyDict(from: inputDecoder)
+            input = try Self.decodeAnyDict(from: inputDecoder)
         }
 
         func encode(to encoder: Encoder) throws {
             var container = encoder.container(keyedBy: CodingKeys.self)
-            try container.encode(self.type, forKey: .type)
-            try container.encode(self.id, forKey: .id)
-            try container.encode(self.name, forKey: .name)
+            try container.encode(type, forKey: .type)
+            try container.encode(id, forKey: .id)
+            try container.encode(name, forKey: .name)
 
             // Use custom encoder for Any
             let inputEncoder = container.superEncoder(forKey: .input)
-            try Self.encodeAnyDict(self.input, to: inputEncoder)
+            try Self.encodeAnyDict(input, to: inputEncoder)
         }
 
         // Helper methods for encoding/decoding [String: Any]
@@ -266,27 +266,27 @@ struct AnthropicInputSchema: Codable {
 
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        self.type = try container.decode(String.self, forKey: .type)
-        self.required = try container.decode([String].self, forKey: .required)
+        type = try container.decode(String.self, forKey: .type)
+        required = try container.decode([String].self, forKey: .required)
 
         if
             let data = try? container.decode(Data.self, forKey: .properties),
             let dict = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
         {
-            self.properties = dict
+            properties = dict
         } else {
-            self.properties = [:]
+            properties = [:]
         }
     }
 
     func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
-        try container.encode(self.type, forKey: .type)
-        try container.encode(self.required, forKey: .required)
+        try container.encode(type, forKey: .type)
+        try container.encode(required, forKey: .required)
 
         // Encode properties directly as JSON object, not as base64 data
         var propertiesContainer = container.nestedContainer(keyedBy: AnyCodingKey.self, forKey: .properties)
-        try self.encodeAnyDictionary(self.properties, to: &propertiesContainer)
+        try encodeAnyDictionary(properties, to: &propertiesContainer)
     }
 
     private func encodeAnyDictionary(
@@ -309,12 +309,12 @@ struct AnthropicInputSchema: Codable {
                 // Encode arrays properly as actual arrays, not JSON strings
                 var arrayContainer = container.nestedUnkeyedContainer(forKey: codingKey)
                 for element in arrayValue {
-                    try self.encodeAnyElement(element, to: &arrayContainer)
+                    try encodeAnyElement(element, to: &arrayContainer)
                 }
             case let dictValue as [String: Any]:
                 // Encode nested objects properly as nested containers
                 var nestedContainer = container.nestedContainer(keyedBy: AnyCodingKey.self, forKey: codingKey)
-                try self.encodeAnyDictionary(dictValue, to: &nestedContainer)
+                try encodeAnyDictionary(dictValue, to: &nestedContainer)
             default:
                 // Fallback: convert to string
                 try container.encode(String(describing: value), forKey: codingKey)
@@ -336,12 +336,12 @@ struct AnthropicInputSchema: Codable {
             // Nested arrays
             var nestedContainer = container.nestedUnkeyedContainer()
             for element in arrayValue {
-                try self.encodeAnyElement(element, to: &nestedContainer)
+                try encodeAnyElement(element, to: &nestedContainer)
             }
         case let dictValue as [String: Any]:
             // Dictionary within array
             var nestedContainer = container.nestedContainer(keyedBy: AnyCodingKey.self)
-            try self.encodeAnyDictionary(dictValue, to: &nestedContainer)
+            try encodeAnyDictionary(dictValue, to: &nestedContainer)
         default:
             // Fallback: convert to string
             try container.encode(String(describing: value))
@@ -367,14 +367,14 @@ struct AnthropicMessageResponse: Codable {
 
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        self.id = try container.decode(String.self, forKey: .id)
-        self.type = try container.decodeIfPresent(String.self, forKey: .type) ?? "message"
-        self.role = try container.decodeIfPresent(String.self, forKey: .role) ?? "assistant"
-        self.content = try container.decode([AnthropicResponseContent].self, forKey: .content)
-        self.model = try container.decode(String.self, forKey: .model)
-        self.stopReason = try container.decodeIfPresent(String.self, forKey: .stopReason)
-        self.stopSequence = try container.decodeIfPresent(String.self, forKey: .stopSequence)
-        self.usage = try container.decode(AnthropicUsage.self, forKey: .usage)
+        id = try container.decode(String.self, forKey: .id)
+        type = try container.decodeIfPresent(String.self, forKey: .type) ?? "message"
+        role = try container.decodeIfPresent(String.self, forKey: .role) ?? "assistant"
+        content = try container.decode([AnthropicResponseContent].self, forKey: .content)
+        model = try container.decode(String.self, forKey: .model)
+        stopReason = try container.decodeIfPresent(String.self, forKey: .stopReason)
+        stopSequence = try container.decodeIfPresent(String.self, forKey: .stopSequence)
+        usage = try container.decode(AnthropicUsage.self, forKey: .usage)
     }
 }
 
@@ -393,9 +393,9 @@ enum AnthropicResponseContent: Codable {
 
         init(from decoder: Decoder) throws {
             let container = try decoder.container(keyedBy: CodingKeys.self)
-            self.text = try container.decodeIfPresent(String.self, forKey: .text) ??
+            text = try container.decodeIfPresent(String.self, forKey: .text) ??
                 container.decodeIfPresent(String.self, forKey: .thinking) ?? ""
-            self.type = try container.decodeIfPresent(String.self, forKey: .type) ?? "text"
+            type = try container.decodeIfPresent(String.self, forKey: .type) ?? "text"
         }
 
         enum CodingKeys: String, CodingKey {
@@ -406,8 +406,8 @@ enum AnthropicResponseContent: Codable {
 
         func encode(to encoder: Encoder) throws {
             var container = encoder.container(keyedBy: CodingKeys.self)
-            try container.encode(self.type, forKey: .type)
-            try container.encode(self.text, forKey: .text)
+            try container.encode(type, forKey: .type)
+            try container.encode(text, forKey: .text)
         }
     }
 
@@ -423,9 +423,9 @@ enum AnthropicResponseContent: Codable {
 
         init(from decoder: Decoder) throws {
             let container = try decoder.container(keyedBy: CodingKeys.self)
-            self.type = try container.decode(String.self, forKey: .type)
-            self.id = try container.decode(String.self, forKey: .id)
-            self.name = try container.decode(String.self, forKey: .name)
+            type = try container.decode(String.self, forKey: .type)
+            id = try container.decode(String.self, forKey: .id)
+            name = try container.decode(String.self, forKey: .name)
 
             // Decode input as generic value
             // Try to decode directly as a JSON object first (standard Anthropic API format)
@@ -447,30 +447,30 @@ enum AnthropicResponseContent: Codable {
                         }
                         // Add more types as needed
                     }
-                    self.input = inputDict
+                    input = inputDict
                 } catch {
                     // Fallback to the old Data-based approach
                     if
                         let data = try? container.decode(Data.self, forKey: .input),
                         let obj = try? JSONSerialization.jsonObject(with: data)
                     {
-                        self.input = obj
+                        input = obj
                     } else {
-                        self.input = [:]
+                        input = [:]
                     }
                 }
             } else {
-                self.input = [:]
+                input = [:]
             }
         }
 
         func encode(to encoder: Encoder) throws {
             var container = encoder.container(keyedBy: CodingKeys.self)
-            try container.encode(self.type, forKey: .type)
-            try container.encode(self.id, forKey: .id)
-            try container.encode(self.name, forKey: .name)
+            try container.encode(type, forKey: .type)
+            try container.encode(id, forKey: .id)
+            try container.encode(name, forKey: .name)
 
-            let data = try JSONSerialization.data(withJSONObject: self.input)
+            let data = try JSONSerialization.data(withJSONObject: input)
             try container.encode(data, forKey: .input)
         }
     }
@@ -563,10 +563,10 @@ struct AnthropicStreamContentBlock: Codable {
 
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        self.type = try container.decode(String.self, forKey: .type)
-        self.id = try? container.decode(String.self, forKey: .id)
-        self.name = try? container.decode(String.self, forKey: .name)
-        self.text = try? container.decode(String.self, forKey: .text)
+        type = try container.decode(String.self, forKey: .type)
+        id = try? container.decode(String.self, forKey: .id)
+        name = try? container.decode(String.self, forKey: .name)
+        text = try? container.decode(String.self, forKey: .text)
 
         // Decode input as generic JSON if present
         if container.contains(.input) {
@@ -575,21 +575,21 @@ struct AnthropicStreamContentBlock: Codable {
                 let data = try? container.decode(Data.self, forKey: .input),
                 let obj = try? JSONSerialization.jsonObject(with: data)
             {
-                self.input = obj
+                input = obj
             } else {
-                self.input = nil
+                input = nil
             }
         } else {
-            self.input = nil
+            input = nil
         }
     }
 
     func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
-        try container.encode(self.type, forKey: .type)
-        try container.encodeIfPresent(self.id, forKey: .id)
-        try container.encodeIfPresent(self.name, forKey: .name)
-        try container.encodeIfPresent(self.text, forKey: .text)
+        try container.encode(type, forKey: .type)
+        try container.encodeIfPresent(id, forKey: .id)
+        try container.encodeIfPresent(name, forKey: .name)
+        try container.encodeIfPresent(text, forKey: .text)
         if let input {
             let data = try JSONSerialization.data(withJSONObject: input)
             try container.encode(data, forKey: .input)

@@ -13,38 +13,38 @@ private actor SSEState {
     var timeoutTasks: [Int: Task<Void, Never>] = [:]
     var requestTimeoutNs: UInt64 = 30_000_000_000 // default 30s
 
-    func setTransport(_ t: HTTPClientTransport?) { self.transport = t }
-    func getTransport() -> HTTPClientTransport? { self.transport }
-    func setBaseURL(_ url: URL?) { self.baseURL = url }
-    func setHeaders(_ h: [String: String]) { self.headers = h }
-    func setEndpoint(_ url: URL?) { self.endpointURL = url }
-    func getEndpoint() -> URL? { self.endpointURL }
-    func getBaseURL() -> URL? { self.baseURL }
+    func setTransport(_ t: HTTPClientTransport?) { transport = t }
+    func getTransport() -> HTTPClientTransport? { transport }
+    func setBaseURL(_ url: URL?) { baseURL = url }
+    func setHeaders(_ h: [String: String]) { headers = h }
+    func setEndpoint(_ url: URL?) { endpointURL = url }
+    func getEndpoint() -> URL? { endpointURL }
+    func getBaseURL() -> URL? { baseURL }
 
     func getNextId() -> Int { defer { nextId += 1 }
-        return self.nextId
+        return nextId
     }
 
-    func addPending(_ id: Int, _ cont: CheckedContinuation<Data, Swift.Error>) { self.pendingRequests[id] = cont }
-    func removePending(_ id: Int) -> CheckedContinuation<Data, Swift.Error>? { self.pendingRequests
+    func addPending(_ id: Int, _ cont: CheckedContinuation<Data, Swift.Error>) { pendingRequests[id] = cont }
+    func removePending(_ id: Int) -> CheckedContinuation<Data, Swift.Error>? { pendingRequests
         .removeValue(forKey: id)
     }
 
     func setTimeout(_ seconds: TimeInterval) {
-        self.requestTimeoutNs = UInt64((seconds > 0 ? seconds : 30) * 1_000_000_000)
+        requestTimeoutNs = UInt64((seconds > 0 ? seconds : 30) * 1_000_000_000)
     }
 
-    func addTimeoutTask(_ id: Int, _ task: Task<Void, Never>) { self.timeoutTasks[id] = task }
-    func cancelTimeout(_ id: Int) { self.timeoutTasks.removeValue(forKey: id)?.cancel() }
+    func addTimeoutTask(_ id: Int, _ task: Task<Void, Never>) { timeoutTasks[id] = task }
+    func cancelTimeout(_ id: Int) { timeoutTasks.removeValue(forKey: id)?.cancel() }
     func cancelAll(_ error: Swift.Error) {
-        for (_, c) in self.pendingRequests {
+        for (_, c) in pendingRequests {
             c.resume(throwing: error)
         }
-        self.pendingRequests.removeAll()
-        for (_, t) in self.timeoutTasks {
+        pendingRequests.removeAll()
+        for (_, t) in timeoutTasks {
             t.cancel()
         }
-        self.timeoutTasks.removeAll()
+        timeoutTasks.removeAll()
     }
 }
 
@@ -78,34 +78,35 @@ public final class SSETransport: MCPTransport {
             sseInitializationTimeout: min(max(config.timeout, 1), 60),
         )
         try await transport.connect()
-        await self.state.setTransport(transport)
-        await self.state.setBaseURL(url)
-        await self.state.setHeaders(config.headers ?? [:])
+        await state.setTransport(transport)
+        await state.setBaseURL(url)
+        await state.setHeaders(config.headers ?? [:])
         // Set the base URL as the default endpoint (can be overridden by 'endpoint' event)
-        await self.state.setEndpoint(url)
-        await self.state.setTimeout(config.timeout)
+        await state.setEndpoint(url)
+        await state.setTimeout(config.timeout)
         let verifyEndpoint = await state.getEndpoint()
-        self.logger.info("SSE transport connected: \(url), endpoint set to: \(verifyEndpoint?.absoluteString ?? "nil")")
-        self.startReading()
+        logger.info("SSE transport connected: \(url), endpoint set to: \(verifyEndpoint?.absoluteString ?? "nil")")
+        startReading()
     }
 
     public func disconnect() async {
-        self.logger.info("Disconnecting SSE transport")
+        logger.info("Disconnecting SSE transport")
         if let t = await state.getTransport() { await t.disconnect() }
-        await self.state.cancelAll(MCPError.notConnected)
-        await self.state.setTransport(nil)
+        await state.cancelAll(MCPError.notConnected)
+        await state.setTransport(nil)
     }
 
     // Expose underlying swift-sdk HTTP transport for advanced usage
     public func underlyingSDKTransport() async -> HTTPClientTransport? {
-        await self.state.getTransport()
+        await state.getTransport()
     }
 
     public func sendRequest<R: Decodable>(
         method: String,
         params: some Encodable,
     ) async throws
-    -> R {
+        -> R
+    {
         let id = await state.getNextId()
         // Build JSON-RPC request
         var dict: [String: Any] = [:]
@@ -120,13 +121,13 @@ public final class SSETransport: MCPTransport {
         // Ensure endpoint is available - either from 'endpoint' event or base URL
         guard let endpoint = await state.getEndpoint() else {
             let baseURL = await state.getBaseURL()
-            self.logger
+            logger
                 .error(
                     "SSE endpoint not established before send; method=\(method), baseURL=\(baseURL?.absoluteString ?? "nil")",
                 )
             throw MCPError.connectionFailed("SSE endpoint not established")
         }
-        self.logger.debug("Using endpoint: \(endpoint.absoluteString) for method=\(method)")
+        logger.debug("Using endpoint: \(endpoint.absoluteString) for method=\(method)")
 
         // Register pending BEFORE POSTing
         let responseData = try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<
@@ -203,7 +204,7 @@ public final class SSETransport: MCPTransport {
         for (k, v) in headers {
             request.setValue(v, forHTTPHeaderField: k)
         }
-        _ = try? await self.urlSession.data(for: request)
+        _ = try? await urlSession.data(for: request)
     }
 
     private func startReading() {
@@ -242,7 +243,7 @@ public final class SSETransport: MCPTransport {
             }
         }
         let dataString = dataLines.joined(separator: "\n")
-        self.logger.trace("[SSE] event=\(eventType) data=\(dataString)")
+        logger.trace("[SSE] event=\(eventType) data=\(dataString)")
         switch eventType {
         case "endpoint":
             // Allow either a plain string URL or a JSON object: { "url": "/rpc" } or { "endpoint": "/rpc" }
@@ -262,16 +263,16 @@ public final class SSETransport: MCPTransport {
                 }
                 if let candidate = endpointCandidate, let url = URL(string: candidate, relativeTo: base) {
                     if url.host == base.host, url.scheme == base.scheme {
-                        await self.state.setEndpoint(url.absoluteURL)
-                        self.logger.info("[SSE] Endpoint established: \(url.absoluteString)")
+                        await state.setEndpoint(url.absoluteURL)
+                        logger.info("[SSE] Endpoint established: \(url.absoluteString)")
                     } else {
-                        self.logger.error("[SSE] Endpoint origin mismatch: \(url.absoluteString)")
+                        logger.error("[SSE] Endpoint origin mismatch: \(url.absoluteString)")
                     }
                 }
             }
         case "message":
             if let jsonData = dataString.data(using: .utf8) {
-                await self.handleIncoming(jsonData)
+                await handleIncoming(jsonData)
             }
         default:
             // Ignore other events
@@ -283,19 +284,19 @@ public final class SSETransport: MCPTransport {
         // Try to parse as JSON object with id
         guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
             if let text = String(data: data, encoding: .utf8) {
-                self.logger.trace("[SSE] Received non-JSON event: \(text)")
+                logger.trace("[SSE] Received non-JSON event: \(text)")
             }
             return
         }
         // id may be int or string; we track by int ids we generate
         if let id = json["id"] as? Int {
             if let pending = await state.removePending(id) {
-                await self.state.cancelTimeout(id)
+                await state.cancelTimeout(id)
                 pending.resume(returning: data)
             }
         } else if let idString = json["id"] as? String, let id = Int(idString) {
             if let pending = await state.removePending(id) {
-                await self.state.cancelTimeout(id)
+                await state.cancelTimeout(id)
                 pending.resume(returning: data)
             }
         }

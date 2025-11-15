@@ -38,29 +38,29 @@ public final class CustomProviderRegistry: @unchecked Sendable {
             }
             out[id] = CustomProviderInfo(id: id, kind: kind, baseURL: baseURL, headers: headers, models: models)
         }
-        self.providers = out
+        providers = out
     }
 
     public func list() -> [String: CustomProviderInfo] {
-        self.providers
+        providers
     }
 
     public func get(_ id: String) -> CustomProviderInfo? {
-        self.providers[id]
+        providers[id]
     }
 
     // MARK: - Helpers
 
     private static func profileDirectoryPath() -> String {
         #if os(Windows)
-        let home = ProcessInfo.processInfo.environment["USERPROFILE"] ?? ""
+            let home = ProcessInfo.processInfo.environment["USERPROFILE"] ?? ""
         #else
-        let home = ProcessInfo.processInfo.environment["HOME"] ?? ""
+            let home = ProcessInfo.processInfo.environment["HOME"] ?? ""
         #endif
         return "\(home)/\(TachikomaConfiguration.profileDirectoryName)"
     }
 
-    private static func profileConfigPath() -> String { "\(self.profileDirectoryPath())/config.json" }
+    private static func profileConfigPath() -> String { "\(profileDirectoryPath())/config.json" }
 
     private static func stripJSONComments(from json: String) -> String {
         var result = ""
@@ -140,12 +140,12 @@ public final class CustomProviderRegistry: @unchecked Sendable {
     }
 
     private static func loadRawConfigJSON() -> [String: Any]? {
-        let path = self.profileConfigPath()
+        let path = profileConfigPath()
         guard FileManager.default.fileExists(atPath: path) else { return nil }
         do {
             let raw = try String(contentsOfFile: path)
-            let cleaned = self.stripJSONComments(from: raw)
-            let expanded = self.expandEnvironmentVariables(in: cleaned)
+            let cleaned = stripJSONComments(from: raw)
+            let expanded = expandEnvironmentVariables(in: cleaned)
             if let data = expanded.data(using: .utf8) {
                 return try JSONSerialization.jsonObject(with: data) as? [String: Any]
             }

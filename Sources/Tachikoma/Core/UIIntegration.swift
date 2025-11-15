@@ -87,7 +87,7 @@ extension [UIMessage] {
     /// Convert UI messages to model messages for API calls
     public func toModelMessages() -> [ModelMessage] {
         // Convert UI messages to model messages for API calls
-        self.map { uiMessage in
+        map { uiMessage in
             var contentParts: [ModelMessage.ContentPart] = [.text(uiMessage.content)]
 
             // Add attachments as content parts
@@ -132,7 +132,7 @@ extension [ModelMessage] {
     /// Convert model messages to UI messages for display
     public func toUIMessages() -> [UIMessage] {
         // Convert model messages to UI messages for display
-        self.map { modelMessage in
+        map { modelMessage in
             var content = ""
             var attachments: [UIAttachment] = []
             var toolCalls: [AgentToolCall] = []
@@ -240,7 +240,7 @@ extension StreamTextResult {
     public func collectText() async throws -> String {
         // Collect all text from stream into a single string
         var result = ""
-        for try await delta in self.stream {
+        for try await delta in stream {
             if delta.type == .textDelta, let content = delta.content {
                 result += content
             }
@@ -274,7 +274,7 @@ public struct UIStreamResponse: Sendable {
         var toolCalls: [AgentToolCall] = []
         var currentToolCall: (id: String, name: String, arguments: String)?
 
-        for await chunk in self.stream {
+        for await chunk in stream {
             switch chunk {
             case let .text(text):
                 content += text
@@ -310,8 +310,8 @@ public struct UIStreamResponse: Sendable {
         }
 
         return UIMessage(
-            id: self.messageId,
-            role: self.role,
+            id: messageId,
+            role: role,
             content: content,
             toolCalls: toolCalls.isEmpty ? nil : toolCalls,
         )

@@ -93,9 +93,9 @@ public struct RetryPolicy: Sendable {
     /// Calculate delay for a given attempt (0-indexed)
     func delay(for attempt: Int) -> TimeInterval {
         // Exponential backoff with jitter
-        let exponentialDelay = self.baseDelay * pow(self.exponentialBase, Double(attempt))
+        let exponentialDelay = baseDelay * pow(exponentialBase, Double(attempt))
         let clampedDelay = min(exponentialDelay, maxDelay)
-        let jitter = Double.random(in: self.jitterRange)
+        let jitter = Double.random(in: jitterRange)
         return clampedDelay * jitter
     }
 }
@@ -114,28 +114,29 @@ public actor RetryHandler {
         operation: @Sendable () async throws -> T,
         onRetry: (@Sendable (Int, TimeInterval, Error) async -> Void)? = nil,
     ) async throws
-    -> T {
+        -> T
+    {
         // Execute an async operation with automatic retry
         var lastError: Error?
 
-        for attempt in 0..<self.policy.maxAttempts {
+        for attempt in 0..<policy.maxAttempts {
             do {
                 return try await operation()
             } catch {
                 lastError = error
 
                 // Check if we should retry
-                guard self.policy.shouldRetry(error) else {
+                guard policy.shouldRetry(error) else {
                     throw error
                 }
 
                 // Check if we have more attempts
-                guard attempt < self.policy.maxAttempts - 1 else {
+                guard attempt < policy.maxAttempts - 1 else {
                     throw error
                 }
 
                 // Calculate delay
-                var delay = self.policy.delay(for: attempt)
+                var delay = policy.delay(for: attempt)
 
                 // Check for rate limit with specific retry-after
                 if
@@ -162,12 +163,13 @@ public actor RetryHandler {
         operation: @escaping @Sendable () async throws -> AsyncThrowingStream<T, Error>,
         onRetry: (@Sendable (Int, TimeInterval, Error) async -> Void)? = nil,
     ) async throws
-    -> AsyncThrowingStream<T, Error> {
+        -> AsyncThrowingStream<T, Error>
+    {
         // For streaming, we only retry the initial connection, not mid-stream errors
         // This avoids complex state management and potential data duplication
         var lastError: Error?
 
-        for attempt in 0..<self.policy.maxAttempts {
+        for attempt in 0..<policy.maxAttempts {
             do {
                 // Try to create the stream
                 return try await operation()
@@ -175,17 +177,17 @@ public actor RetryHandler {
                 lastError = error
 
                 // Check if we should retry
-                guard self.policy.shouldRetry(error) else {
+                guard policy.shouldRetry(error) else {
                     throw error
                 }
 
                 // Check if we have more attempts
-                guard attempt < self.policy.maxAttempts - 1 else {
+                guard attempt < policy.maxAttempts - 1 else {
                     throw error
                 }
 
                 // Calculate delay
-                var delay = self.policy.delay(for: attempt)
+                var delay = policy.delay(for: attempt)
 
                 if
                     case let TachikomaError.rateLimited(retryAfter) = error,

@@ -12,39 +12,39 @@ public actor CancellationToken {
 
     /// Check if cancelled
     public var cancelled: Bool {
-        get async { self.isCancelled }
+        get async { isCancelled }
     }
 
     /// Cancel all operations
     public func cancel() {
         // Cancel all operations
-        guard !self.isCancelled else { return }
-        self.isCancelled = true
+        guard !isCancelled else { return }
+        isCancelled = true
 
         // Call all handlers
-        for handler in self.handlers.values {
+        for handler in handlers.values {
             handler()
         }
-        self.handlers.removeAll()
+        handlers.removeAll()
     }
 
     /// Register a cancellation handler
     @discardableResult
     public func onCancel(_ handler: @escaping @Sendable () -> Void) -> UUID {
         // Register a cancellation handler
-        if self.isCancelled {
+        if isCancelled {
             handler()
             return UUID()
         } else {
             let token = UUID()
-            self.handlers[token] = handler
+            handlers[token] = handler
             return token
         }
     }
 
     /// Remove a previously registered cancellation handler
     public func removeHandler(_ token: UUID) {
-        self.handlers.removeValue(forKey: token)
+        handlers.removeValue(forKey: token)
     }
 }
 
@@ -66,7 +66,8 @@ public func withTimeout<T: Sendable>(
     _ timeout: TimeInterval,
     operation: @escaping @Sendable () async throws -> T,
 ) async throws
--> T {
+    -> T
+{
     try await withThrowingTaskGroup(of: T.self) { group in
         group.addTask {
             try await operation()
@@ -89,7 +90,7 @@ public struct TimeoutError: Error, LocalizedError, Sendable {
     public let timeout: TimeInterval
 
     public var errorDescription: String? {
-        "Operation timed out after \(self.timeout) seconds"
+        "Operation timed out after \(timeout) seconds"
     }
 }
 
@@ -140,7 +141,8 @@ public func retryWithCancellation<T: Sendable>(
     cancellationToken: CancellationToken? = nil,
     operation: @escaping @Sendable () async throws -> T,
 ) async throws
--> T {
+    -> T
+{
     var lastError: Error?
     var currentDelay = configuration.delay
 
@@ -216,10 +218,11 @@ extension AsyncThrowingStream where Failure == Error {
 @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public func withAutoCancellationTaskGroup<T: Sendable, Result>(
     of type: T.Type,
-    returning returnType: Result.Type = Result.self,
+    returning _: Result.Type = Result.self,
     body: (inout ThrowingTaskGroup<T, Error>) async throws -> Result,
 ) async throws
--> Result {
+    -> Result
+{
     try await withThrowingTaskGroup(of: type) { group in
         defer { group.cancelAll() }
         return try await body(&group)

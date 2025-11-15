@@ -34,15 +34,15 @@ final class MCPManager {
 
         // Register tools with the registry
         let provider = MCPToolProvider(server: server, tools: tools)
-        await self.registry.register(provider, id: name)
+        await registry.register(provider, id: name)
 
-        self.servers.append(server)
+        servers.append(server)
     }
 
     /// Get all available tools from all servers
     func getTools() async -> [AgentTool] {
         do {
-            return try await self.registry.getAllAgentTools()
+            return try await registry.getAllAgentTools()
         } catch {
             print("Warning: Failed to get MCP tools: \(error)")
             return []
@@ -51,10 +51,10 @@ final class MCPManager {
 
     /// Shutdown all servers
     func shutdown() async {
-        for server in self.servers {
+        for server in servers {
             await server.stop()
         }
-        self.servers.removeAll()
+        servers.removeAll()
     }
 }
 
@@ -78,7 +78,7 @@ final class MCPServer: @unchecked Sendable {
     func start() async throws {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/env")
-        process.arguments = [self.executable] + self.arguments
+        process.arguments = [executable] + arguments
 
         // Setup pipes for communication
         let inputPipe = Pipe()
@@ -100,10 +100,10 @@ final class MCPServer: @unchecked Sendable {
     }
 
     func stop() async {
-        self.process?.terminate()
-        self.process = nil
-        self.inputPipe = nil
-        self.outputPipe = nil
+        process?.terminate()
+        process = nil
+        inputPipe = nil
+        outputPipe = nil
     }
 
     func discoverTools() async throws -> [DynamicTool] {
@@ -218,7 +218,7 @@ final class MCPToolProvider: DynamicToolProvider {
     }
 
     func discoverTools() async throws -> [DynamicTool] {
-        self.tools
+        tools
     }
 
     func executeTool(name: String, arguments: AgentToolArguments) async throws -> AnyAgentToolValue {
@@ -226,7 +226,7 @@ final class MCPToolProvider: DynamicToolProvider {
         var args: [String: Any] = [:]
         for key in arguments.keys {
             if let value = arguments[key] {
-                args[key] = self.convertToAny(value)
+                args[key] = convertToAny(value)
             }
         }
 
@@ -234,7 +234,7 @@ final class MCPToolProvider: DynamicToolProvider {
         let result = try await server.executeTool(name: name, arguments: args)
 
         // Convert result back to AnyAgentToolValue
-        return self.convertToAgentValue(result)
+        return convertToAgentValue(result)
     }
 
     private func convertToAny(_ value: AnyAgentToolValue) -> Any {
@@ -251,7 +251,7 @@ final class MCPToolProvider: DynamicToolProvider {
         } else if let object = value.objectValue {
             var dict: [String: Any] = [:]
             for (key, val) in object {
-                dict[key] = self.convertToAny(val)
+                dict[key] = convertToAny(val)
             }
             return dict
         } else {
@@ -274,7 +274,7 @@ final class MCPToolProvider: DynamicToolProvider {
         } else if let dict = value as? [String: Any] {
             var converted: [String: AnyAgentToolValue] = [:]
             for (key, val) in dict {
-                converted[key] = self.convertToAgentValue(val)
+                converted[key] = convertToAgentValue(val)
             }
             return AnyAgentToolValue(object: converted)
         } else {
@@ -296,7 +296,7 @@ struct MCPRequest: Encodable {
 
     func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
-        try container.encode(self.method, forKey: .method)
+        try container.encode(method, forKey: .method)
         if let params {
             let data = try JSONSerialization.data(withJSONObject: params)
             try container.encode(data, forKey: .params)

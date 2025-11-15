@@ -10,7 +10,8 @@ public func createTool(
     required: [String] = [],
     execute: @escaping @Sendable (AgentToolArguments) async throws -> AnyAgentToolValue,
 )
--> AgentTool {
+    -> AgentTool
+{
     // Convert array of properties to dictionary keyed by name
     var properties: [String: AgentToolParameterProperty] = [:]
     for param in parameters {
@@ -180,10 +181,11 @@ public enum ParameterSchema {
     public static func string(
         name: String,
         description: String,
-        required: Bool = false,
+        required _: Bool = false,
         enumValues: [String]? = nil,
     )
-    -> AgentToolParameterProperty {
+        -> AgentToolParameterProperty
+    {
         AgentToolParameterProperty(
             name: name,
             type: .string,
@@ -195,9 +197,10 @@ public enum ParameterSchema {
     public static func number(
         name: String,
         description: String,
-        required: Bool = false,
+        required _: Bool = false,
     )
-    -> AgentToolParameterProperty {
+        -> AgentToolParameterProperty
+    {
         AgentToolParameterProperty(
             name: name,
             type: .number,
@@ -208,9 +211,10 @@ public enum ParameterSchema {
     public static func integer(
         name: String,
         description: String,
-        required: Bool = false,
+        required _: Bool = false,
     )
-    -> AgentToolParameterProperty {
+        -> AgentToolParameterProperty
+    {
         AgentToolParameterProperty(
             name: name,
             type: .integer,
@@ -221,9 +225,10 @@ public enum ParameterSchema {
     public static func boolean(
         name: String,
         description: String,
-        required: Bool = false,
+        required _: Bool = false,
     )
-    -> AgentToolParameterProperty {
+        -> AgentToolParameterProperty
+    {
         AgentToolParameterProperty(
             name: name,
             type: .boolean,
@@ -234,9 +239,10 @@ public enum ParameterSchema {
     public static func array(
         name: String,
         description: String,
-        required: Bool = false,
+        required _: Bool = false,
     )
-    -> AgentToolParameterProperty {
+        -> AgentToolParameterProperty
+    {
         AgentToolParameterProperty(
             name: name,
             type: .array,
@@ -248,7 +254,8 @@ public enum ParameterSchema {
         name: String,
         description: String,
     )
-    -> AgentToolParameterProperty {
+        -> AgentToolParameterProperty
+    {
         AgentToolParameterProperty(
             name: name,
             type: .object,

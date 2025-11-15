@@ -57,25 +57,26 @@ struct OllamaToolCall: Codable {
 
         init(from decoder: Decoder) throws {
             let container = try decoder.container(keyedBy: CodingKeys.self)
-            self.name = try container.decode(String.self, forKey: .name)
+            name = try container.decode(String.self, forKey: .name)
 
             // Try to decode arguments as direct JSON object using a nested container (GPT-OSS format)
             if let nestedContainer = try? container.nestedContainer(keyedBy: AnyCodingKey.self, forKey: .arguments) {
-                self.arguments = try Self.decodeAnyDictionary(from: nestedContainer)
+                arguments = try Self.decodeAnyDictionary(from: nestedContainer)
             }
             // Fallback: decode arguments as Data then parse (legacy format)
             else if
                 let data = try? container.decode(Data.self, forKey: .arguments),
                 let dict = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
             {
-                self.arguments = dict
+                arguments = dict
             } else {
-                self.arguments = [:]
+                arguments = [:]
             }
         }
 
         private static func decodeAnyDictionary(from container: KeyedDecodingContainer<AnyCodingKey>) throws
-        -> [String: Any] {
+            -> [String: Any]
+        {
             var result: [String: Any] = [:]
             for key in container.allKeys {
                 if let stringValue = try? container.decode(String.self, forKey: key) {
@@ -93,9 +94,9 @@ struct OllamaToolCall: Codable {
 
         func encode(to encoder: Encoder) throws {
             var container = encoder.container(keyedBy: CodingKeys.self)
-            try container.encode(self.name, forKey: .name)
+            try container.encode(name, forKey: .name)
 
-            let data = try JSONSerialization.data(withJSONObject: self.arguments)
+            let data = try JSONSerialization.data(withJSONObject: arguments)
             try container.encode(data, forKey: .arguments)
         }
     }
@@ -122,28 +123,28 @@ struct OllamaTool: Codable {
 
         init(from decoder: Decoder) throws {
             let container = try decoder.container(keyedBy: CodingKeys.self)
-            self.name = try container.decode(String.self, forKey: .name)
-            self.description = try container.decode(String.self, forKey: .description)
+            name = try container.decode(String.self, forKey: .name)
+            description = try container.decode(String.self, forKey: .description)
 
             // Decode parameters as generic dictionary
             if
                 let data = try? container.decode(Data.self, forKey: .parameters),
                 let dict = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
             {
-                self.parameters = dict
+                parameters = dict
             } else {
-                self.parameters = [:]
+                parameters = [:]
             }
         }
 
         func encode(to encoder: Encoder) throws {
             var container = encoder.container(keyedBy: CodingKeys.self)
-            try container.encode(self.name, forKey: .name)
-            try container.encode(self.description, forKey: .description)
+            try container.encode(name, forKey: .name)
+            try container.encode(description, forKey: .description)
 
             // Encode parameters directly as JSON object, not as base64 data
             var parametersContainer = container.nestedContainer(keyedBy: AnyCodingKey.self, forKey: .parameters)
-            try self.encodeAnyDictionary(self.parameters, to: &parametersContainer)
+            try encodeAnyDictionary(parameters, to: &parametersContainer)
         }
 
         private func encodeAnyDictionary(
@@ -166,7 +167,7 @@ struct OllamaTool: Codable {
                 case let dictValue as [String: Any]:
                     // Encode nested objects properly as nested containers
                     var nestedContainer = container.nestedContainer(keyedBy: AnyCodingKey.self, forKey: codingKey)
-                    try self.encodeAnyDictionary(dictValue, to: &nestedContainer)
+                    try encodeAnyDictionary(dictValue, to: &nestedContainer)
                 default:
                     // Fallback: convert to string
                     try container.encode(String(describing: value), forKey: codingKey)

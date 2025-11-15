@@ -13,11 +13,11 @@ public final class MockProvider: ModelProvider {
 
     public init(model: LanguageModel) {
         self.model = model
-        self.modelId = model.modelId
-        self.baseURL = "https://mock.api.example.com"
-        self.apiKey = "mock-api-key"
+        modelId = model.modelId
+        baseURL = "https://mock.api.example.com"
+        apiKey = "mock-api-key"
 
-        self.capabilities = ModelCapabilities(
+        capabilities = ModelCapabilities(
             supportsVision: true,
             supportsTools: true,
             supportsStreaming: true,
@@ -41,8 +41,8 @@ public final class MockProvider: ModelProvider {
         }.joined(separator: " ")
 
         // Generate mock response based on provider type
-        let mockResponse = self.generateMockResponse(
-            for: self.model,
+        let mockResponse = generateMockResponse(
+            for: model,
             prompt: promptText,
             hasTools: request.tools?.isEmpty == false,
         )

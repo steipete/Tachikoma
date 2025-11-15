@@ -187,7 +187,7 @@ struct EnhancedToolSystemTests {
     func toolExecutionWithNamespaceContext() async throws {
         actor NamespaceCapture {
             var namespace: String?
-            func set(_ value: String) { self.namespace = value }
+            func set(_ value: String) { namespace = value }
         }
 
         let capture = NamespaceCapture()

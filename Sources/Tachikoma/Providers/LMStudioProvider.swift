@@ -1,6 +1,6 @@
 import Foundation
 #if canImport(FoundationNetworking)
-import FoundationNetworking
+    import FoundationNetworking
 #endif
 
 /// Provider for LMStudio local model server
@@ -14,10 +14,10 @@ public actor LMStudioProvider: ModelProvider {
     private let configuredCapabilities: ModelCapabilities
 
     // Expose as optional for protocol conformance, but it's never actually nil
-    public nonisolated var baseURL: String? { self.actualBaseURL }
-    public nonisolated var apiKey: String? { self.configuredApiKey }
-    public nonisolated var modelId: String { self.configuredModelId }
-    public nonisolated var capabilities: ModelCapabilities { self.configuredCapabilities }
+    public nonisolated var baseURL: String? { actualBaseURL }
+    public nonisolated var apiKey: String? { configuredApiKey }
+    public nonisolated var modelId: String { configuredModelId }
+    public nonisolated var capabilities: ModelCapabilities { configuredCapabilities }
 
     private let session: URLSession
     private let encoder = JSONEncoder()
@@ -31,10 +31,10 @@ public actor LMStudioProvider: ModelProvider {
         apiKey: String? = nil,
         sessionConfiguration: URLSessionConfiguration = .default,
     ) {
-        self.actualBaseURL = baseURL
-        self.configuredModelId = modelId
-        self.configuredApiKey = apiKey
-        self.configuredCapabilities = ModelCapabilities(
+        actualBaseURL = baseURL
+        configuredModelId = modelId
+        configuredApiKey = apiKey
+        configuredCapabilities = ModelCapabilities(
             supportsTools: true,
             supportsStreaming: true,
             contextLength: 16384,
@@ -44,7 +44,7 @@ public actor LMStudioProvider: ModelProvider {
         let config = sessionConfiguration
         config.timeoutIntervalForRequest = 300 // 5 minutes for local models
         config.timeoutIntervalForResource = 600 // 10 minutes total
-        self.session = URLSession(configuration: config)
+        session = URLSession(configuration: config)
     }
 
     // MARK: - Auto Detection
@@ -121,12 +121,12 @@ public actor LMStudioProvider: ModelProvider {
         if let apiKey {
             urlRequest.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
         }
-        urlRequest.httpBody = try self.encoder.encode(openAIRequest)
+        urlRequest.httpBody = try encoder.encode(openAIRequest)
 
         let (data, _) = try await session.data(for: urlRequest)
         let openAIResponse = try decoder.decode(LMStudioResponse.self, from: data)
 
-        return try self.mapFromOpenAIResponse(openAIResponse, request: request)
+        return try mapFromOpenAIResponse(openAIResponse, request: request)
     }
 
     // MARK: - Streaming
@@ -140,53 +140,53 @@ public actor LMStudioProvider: ModelProvider {
         if let apiKey {
             urlRequest.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
         }
-        urlRequest.httpBody = try self.encoder.encode(openAIRequest)
+        urlRequest.httpBody = try encoder.encode(openAIRequest)
 
         return AsyncThrowingStream { continuation in
             Task {
                 do {
                     #if canImport(FoundationNetworking)
-                    // Linux: URLSession.bytes is not available, use dataTask
-                    continuation
-                        .finish(throwing: TachikomaError.unsupportedOperation("Streaming not supported on Linux"))
+                        // Linux: URLSession.bytes is not available, use dataTask
+                        continuation
+                            .finish(throwing: TachikomaError.unsupportedOperation("Streaming not supported on Linux"))
                     #else
-                    let (bytes, _) = try await session.bytes(for: urlRequest)
+                        let (bytes, _) = try await session.bytes(for: urlRequest)
 
-                    for try await line in bytes.lines {
-                        guard line.hasPrefix("data: ") else { continue }
+                        for try await line in bytes.lines {
+                            guard line.hasPrefix("data: ") else { continue }
 
-                        let jsonString = String(line.dropFirst(6))
-                        guard jsonString != "[DONE]" else {
-                            continuation.finish()
-                            return
-                        }
-
-                        if
-                            let data = jsonString.data(using: .utf8),
-                            let chunk = try? self.decoder.decode(LMStudioStreamChunk.self, from: data),
-                            let delta = chunk.choices.first?.delta
-                        {
-                            // Parse multi-channel responses
-                            if let content = delta.content {
-                                let channels = LocalModelResponseParser.parseChanneledResponse(content)
-
-                                for (channel, text) in channels {
-                                    continuation.yield(TextStreamDelta.text(text, channel: channel))
-                                }
+                            let jsonString = String(line.dropFirst(6))
+                            guard jsonString != "[DONE]" else {
+                                continuation.finish()
+                                return
                             }
 
-                            // Handle tool calls - emit as text for now
-                            if let toolCalls = delta.tool_calls {
-                                for toolCall in toolCalls {
-                                    if let name = toolCall.function?.name {
-                                        continuation.yield(TextStreamDelta.text("[Calling tool: \(name)]"))
+                            if
+                                let data = jsonString.data(using: .utf8),
+                                let chunk = try? self.decoder.decode(LMStudioStreamChunk.self, from: data),
+                                let delta = chunk.choices.first?.delta
+                            {
+                                // Parse multi-channel responses
+                                if let content = delta.content {
+                                    let channels = LocalModelResponseParser.parseChanneledResponse(content)
+
+                                    for (channel, text) in channels {
+                                        continuation.yield(TextStreamDelta.text(text, channel: channel))
+                                    }
+                                }
+
+                                // Handle tool calls - emit as text for now
+                                if let toolCalls = delta.tool_calls {
+                                    for toolCall in toolCalls {
+                                        if let name = toolCall.function?.name {
+                                            continuation.yield(TextStreamDelta.text("[Calling tool: \(name)]"))
+                                        }
                                     }
                                 }
                             }
                         }
-                    }
 
-                    continuation.finish()
+                        continuation.finish()
                     #endif
                 } catch {
                     continuation.finish(throwing: error)
@@ -201,7 +201,7 @@ public actor LMStudioProvider: ModelProvider {
         var messages: [[String: Any]] = []
 
         for message in request.messages {
-            let serializedContent = self.serializeContentParts(message.content)
+            let serializedContent = serializeContentParts(message.content)
 
             let msg: [String: Any] = [
                 "role": message.role.rawValue,
@@ -225,7 +225,7 @@ public actor LMStudioProvider: ModelProvider {
             body["max_tokens"] = maxTokens
         }
         if let temperature = settings.temperature {
-            body["temperature"] = self.mapTemperatureForReasoningEffort(
+            body["temperature"] = mapTemperatureForReasoningEffort(
                 temperature,
                 effort: settings.reasoningEffort,
             )
@@ -239,7 +239,7 @@ public actor LMStudioProvider: ModelProvider {
 
         // Map reasoning effort to LMStudio parameters
         if let effort = settings.reasoningEffort {
-            let params = self.mapReasoningEffortToParams(effort)
+            let params = mapReasoningEffortToParams(effort)
             body.merge(params) { _, new in new }
         }
 
@@ -339,9 +339,10 @@ public actor LMStudioProvider: ModelProvider {
 
     private func mapFromOpenAIResponse(
         _ response: LMStudioResponse,
-        request: ProviderRequest,
+        request _: ProviderRequest,
     ) throws
-    -> ProviderResponse {
+        -> ProviderResponse
+    {
         guard let choice = response.choices.first else {
             throw TachikomaError.apiError("No choices in response")
         }
@@ -363,7 +364,7 @@ public actor LMStudioProvider: ModelProvider {
                     cost: nil,
                 )
             },
-            finishReason: self.mapFinishReason(choice.finish_reason),
+            finishReason: mapFinishReason(choice.finish_reason),
             toolCalls: choice.message.tool_calls?.map { toolCall in
                 try AgentToolCall(
                     id: toolCall.id,
@@ -409,7 +410,7 @@ private struct LMStudioRequest: Encodable {
 
     func encode(to encoder: Encoder) throws {
         // Convert dictionary to JSON data and then to a temporary encodable structure
-        let data = try JSONSerialization.data(withJSONObject: self.body, options: [])
+        let data = try JSONSerialization.data(withJSONObject: body, options: [])
         let json = try JSONSerialization.jsonObject(with: data, options: [])
 
         // Create a container and encode each key-value pair
@@ -439,7 +440,7 @@ private struct LMStudioRequest: Encodable {
         case let array as [Any]:
             var nestedContainer = container.nestedUnkeyedContainer(forKey: key)
             for item in array {
-                try self.encodeArrayValue(item, container: &nestedContainer)
+                try encodeArrayValue(item, container: &nestedContainer)
             }
         case let dict as [String: Any]:
             var nestedContainer = container.nestedContainer(keyedBy: DynamicCodingKey.self, forKey: key)
@@ -468,7 +469,7 @@ private struct LMStudioRequest: Encodable {
         case let array as [Any]:
             var nestedContainer = container.nestedUnkeyedContainer()
             for item in array {
-                try self.encodeArrayValue(item, container: &nestedContainer)
+                try encodeArrayValue(item, container: &nestedContainer)
             }
         case let dict as [String: Any]:
             var nestedContainer = container.nestedContainer(keyedBy: DynamicCodingKey.self)
@@ -579,7 +580,7 @@ public enum LocalModelResponseParser {
             channels[.final] = final
         } else {
             // If no explicit final tag, clean the text of all tags
-            let cleaned = self.removeAllTags(text)
+            let cleaned = removeAllTags(text)
             if !cleaned.isEmpty {
                 channels[.final] = cleaned
             }

@@ -353,11 +353,11 @@ private struct TestModelProvider: ModelProvider {
         maxOutputTokens: 4096,
     )
 
-    func generateText(request: ProviderRequest) async throws -> ProviderResponse {
+    func generateText(request _: ProviderRequest) async throws -> ProviderResponse {
         throw TachikomaError.unsupportedOperation("Test provider")
     }
 
-    func streamText(request: ProviderRequest) async throws -> AsyncThrowingStream<TextStreamDelta, Error> {
+    func streamText(request _: ProviderRequest) async throws -> AsyncThrowingStream<TextStreamDelta, Error> {
         throw TachikomaError.unsupportedOperation("Test provider")
     }
 }

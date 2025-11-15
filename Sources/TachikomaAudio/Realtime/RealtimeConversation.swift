@@ -1,7 +1,7 @@
 import Foundation
 import Tachikoma
 #if canImport(Combine)
-import Combine
+    import Combine
 #endif
 
 // MARK: - Conversation State
@@ -116,7 +116,7 @@ public final class RealtimeConversation: ObservableObject {
 
     /// Whether the conversation is ready
     public var isReady: Bool {
-        self.connectionStatus == .connected
+        connectionStatus == .connected
     }
 
     /// Duration of the current session
@@ -156,7 +156,7 @@ public final class RealtimeConversation: ObservableObject {
             temperature: 0.8,
         )
 
-        self.session = RealtimeSession(
+        session = RealtimeSession(
             apiKey: apiKey,
             configuration: sessionConfig,
         )
@@ -172,54 +172,54 @@ public final class RealtimeConversation: ObservableObject {
         tools: [RealtimeTool]? = nil,
     ) async throws {
         // Update session configuration
-        var config = self.session.configuration
+        var config = session.configuration
         config.model = model.modelId
         config.voice = voice
         config.instructions = instructions
         config.tools = tools
 
         // Update connection status
-        self.connectionStatus = .connecting
+        connectionStatus = .connecting
 
         // Connect to the API
-        try await self.session.connect()
-        self.connectionStatus = .connected
+        try await session.connect()
+        connectionStatus = .connected
 
         // Update configuration if needed
         if instructions != nil || tools != nil {
-            try await self.session.update(config)
+            try await session.update(config)
         }
 
         // Start processing events
-        self.startEventProcessing()
+        startEventProcessing()
 
         // Update state
-        self.state = .idle
-        self.stateContinuation?.yield(.idle)
+        state = .idle
+        stateContinuation?.yield(.idle)
     }
 
     /// End the conversation
     public func end() async {
         // Stop recording if active
-        if self.isRecording {
-            await self.stopListening()
+        if isRecording {
+            await stopListening()
         }
 
         // Cancel event processing
-        self.eventProcessingTask?.cancel()
+        eventProcessingTask?.cancel()
 
         // Disconnect session
-        await self.session.disconnect()
+        await session.disconnect()
 
         // Update state
-        self.state = .idle
-        self.stateContinuation?.yield(.idle)
-        self.connectionStatus = .disconnected
+        state = .idle
+        stateContinuation?.yield(.idle)
+        connectionStatus = .disconnected
 
         // Complete all streams
-        self.transcriptContinuation?.finish()
-        self.audioLevelContinuation?.finish()
-        self.stateContinuation?.finish()
+        transcriptContinuation?.finish()
+        audioLevelContinuation?.finish()
+        stateContinuation?.finish()
     }
 
     // MARK: - Audio Control
@@ -227,11 +227,11 @@ public final class RealtimeConversation: ObservableObject {
     /// Start listening for user input
     public func startListening() async throws {
         // Start listening for user input
-        guard !self.isRecording else { return }
+        guard !isRecording else { return }
 
-        self.isRecording = true
-        self.state = .listening
-        self.stateContinuation?.yield(.listening)
+        isRecording = true
+        state = .listening
+        stateContinuation?.yield(.listening)
 
         // Note: In a real implementation, we'd start audio capture here
         // For now, this is a placeholder
@@ -240,38 +240,38 @@ public final class RealtimeConversation: ObservableObject {
     /// Stop listening for user input
     public func stopListening() async {
         // Stop listening for user input
-        guard self.isRecording else { return }
+        guard isRecording else { return }
 
-        self.isRecording = false
+        isRecording = false
 
         // Commit any buffered audio
-        if !self.audioBuffer.isEmpty {
-            try? await self.session.commitAudio()
-            self.audioBuffer = Data()
+        if !audioBuffer.isEmpty {
+            try? await session.commitAudio()
+            audioBuffer = Data()
         }
 
-        self.state = .processing
-        self.stateContinuation?.yield(.processing)
+        state = .processing
+        stateContinuation?.yield(.processing)
     }
 
     /// Send audio data
     public func sendAudio(_ data: Data) async throws {
         // Send audio data
-        guard self.isRecording else { return }
+        guard isRecording else { return }
 
         // Add to buffer
-        self.audioBuffer.append(data)
+        audioBuffer.append(data)
 
         // Send in chunks
-        while self.audioBuffer.count >= self.audioChunkSize {
-            let chunk = self.audioBuffer.prefix(self.audioChunkSize)
-            try await self.session.appendAudio(Data(chunk))
-            self.audioBuffer.removeFirst(self.audioChunkSize)
+        while audioBuffer.count >= audioChunkSize {
+            let chunk = audioBuffer.prefix(audioChunkSize)
+            try await session.appendAudio(Data(chunk))
+            audioBuffer.removeFirst(audioChunkSize)
 
             // Simulate audio level for UI feedback
             let level = Float.random(in: 0.1...0.8)
-            self.audioLevelContinuation?.yield(level)
-            self.audioLevel = level
+            audioLevelContinuation?.yield(level)
+            audioLevel = level
         }
     }
 
@@ -287,63 +287,63 @@ public final class RealtimeConversation: ObservableObject {
         )
 
         // Add to local items
-        self.items.append(item)
+        items.append(item)
 
         // Send to API
-        try await self.session.createItem(item)
+        try await session.createItem(item)
 
         // Trigger response
-        try await self.session.createResponse()
+        try await session.createResponse()
 
         // Update state
-        self.state = .processing
-        self.stateContinuation?.yield(.processing)
+        state = .processing
+        stateContinuation?.yield(.processing)
     }
 
     /// Interrupt the current response
     public func interrupt() async throws {
         // Interrupt the current response
-        try await self.session.cancelResponse()
+        try await session.cancelResponse()
 
-        self.state = .idle
-        self.stateContinuation?.yield(.idle)
-        self.isPlaying = false
+        state = .idle
+        stateContinuation?.yield(.idle)
+        isPlaying = false
     }
 
     /// Send a message (alias for sendText)
     public func sendMessage(_ text: String) async throws {
         // Send a message (alias for sendText)
-        try await self.sendText(text)
+        try await sendText(text)
 
         // Add to messages
         let message = ConversationMessage(
             role: Tachikoma.ModelMessage.Role.user,
             content: text,
         )
-        self.messages.append(message)
+        messages.append(message)
     }
 
     /// Toggle recording
     public func toggleRecording() async throws {
         // Toggle recording
-        if self.isRecording {
-            await self.stopListening()
+        if isRecording {
+            await stopListening()
         } else {
-            try await self.startListening()
+            try await startListening()
         }
     }
 
     /// Clear conversation history
     public func clearHistory() {
         // Clear conversation history
-        self.messages.removeAll()
-        self.items.removeAll()
+        messages.removeAll()
+        items.removeAll()
     }
 
     /// Export conversation as text
     public func exportAsText() -> String {
         // Export conversation as text
-        self.messages.map { message in
+        messages.map { message in
             "\(message.role): \(message.content)"
         }.joined(separator: "\n")
     }
@@ -360,7 +360,7 @@ public final class RealtimeConversation: ObservableObject {
     /// Register built-in tools
     public func registerBuiltInTools() async {
         // Register built-in tools
-        await self.toolRegistry.registerBuiltInTools()
+        await toolRegistry.registerBuiltInTools()
     }
 
     // MARK: - Event Streams
@@ -389,7 +389,7 @@ public final class RealtimeConversation: ObservableObject {
     // MARK: - Private Methods
 
     private func startEventProcessing() {
-        self.eventProcessingTask = Task {
+        eventProcessingTask = Task {
             let eventStream = self.session.eventStream()
 
             do {
@@ -408,52 +408,52 @@ public final class RealtimeConversation: ObservableObject {
         switch event {
         case let .conversationItemCreated(event):
             // Add item to conversation
-            self.items.append(event.item)
+            items.append(event.item)
 
         case let .responseTextDelta(event):
             // Stream text updates
-            self.transcriptContinuation?.yield(event.delta)
+            transcriptContinuation?.yield(event.delta)
 
         case let .responseTextDone(event):
             // Final text received
-            self.transcriptContinuation?.yield(event.text)
+            transcriptContinuation?.yield(event.text)
 
             // Add assistant message
             let message = ConversationMessage(
                 role: Tachikoma.ModelMessage.Role.assistant,
                 content: event.text,
             )
-            self.messages.append(message)
+            messages.append(message)
 
         case .responseAudioDelta:
             // Handle audio streaming (would play audio here)
-            self.state = .speaking
-            self.stateContinuation?.yield(.speaking)
+            state = .speaking
+            stateContinuation?.yield(.speaking)
 
         case .responseAudioDone:
             // Audio playback complete
-            self.state = .idle
-            self.stateContinuation?.yield(.idle)
-            self.isPlaying = false
+            state = .idle
+            stateContinuation?.yield(.idle)
+            isPlaying = false
 
         case .inputAudioBufferSpeechStarted:
             // User started speaking
-            self.state = .listening
-            self.stateContinuation?.yield(.listening)
+            state = .listening
+            stateContinuation?.yield(.listening)
 
         case .inputAudioBufferSpeechStopped:
             // User stopped speaking
-            self.state = .processing
-            self.stateContinuation?.yield(.processing)
+            state = .processing
+            stateContinuation?.yield(.processing)
 
         case let .responseFunctionCallArgumentsDone(event):
             // Handle function call
-            await self.handleFunctionCall(event)
+            await handleFunctionCall(event)
 
         case let .error(event):
             print("RealtimeConversation: API error: \(event.error.message)")
-            self.state = .error
-            self.stateContinuation?.yield(.error)
+            state = .error
+            stateContinuation?.yield(.error)
 
         default:
             // Handle other events as needed
@@ -483,10 +483,10 @@ public final class RealtimeConversation: ObservableObject {
         )
 
         // Send result
-        try? await self.session.createItem(resultItem)
+        try? await session.createItem(resultItem)
 
         // Continue conversation
-        try? await self.session.createResponse()
+        try? await session.createResponse()
     }
 }
 
@@ -500,7 +500,8 @@ public func startRealtimeConversation(
     tools: [AgentTool]? = nil,
     configuration: TachikomaConfiguration = TachikomaConfiguration(),
 ) async throws
--> RealtimeConversation {
+    -> RealtimeConversation
+{
     // Verify model supports realtime
     guard model.supportsRealtime else {
         throw TachikomaError.unsupportedOperation("Model \(model.modelId) doesn't support Realtime API")

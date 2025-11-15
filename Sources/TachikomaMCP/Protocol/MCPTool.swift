@@ -28,7 +28,7 @@ public struct ToolArguments: Sendable {
     }
 
     public init(value: Value) {
-        self.raw = value
+        raw = value
     }
 
     /// Expose arguments as a plain dictionary for bridging to non-Sendable APIs
@@ -51,7 +51,7 @@ public struct ToolArguments: Sendable {
     /// Decode arguments into a specific type
     public func decode<T: Decodable>(_ type: T.Type) throws -> T {
         // Decode arguments into a specific type
-        let data = try JSONEncoder().encode(self.raw)
+        let data = try JSONEncoder().encode(raw)
         return try JSONDecoder().decode(type, from: data)
     }
 
@@ -157,7 +157,7 @@ public struct ToolArguments: Sendable {
 
     /// Get the raw Value
     public var rawValue: Value {
-        self.raw
+        raw
     }
 }
 

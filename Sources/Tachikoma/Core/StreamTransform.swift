@@ -24,7 +24,7 @@ public struct FilterTransform<T: Sendable>: StreamTransform {
     }
 
     public func transform(_ input: T) async throws -> T? {
-        await self.predicate(input) ? input : nil
+        await predicate(input) ? input : nil
     }
 }
 
@@ -38,7 +38,7 @@ public struct MapTransform<Input: Sendable, Output: Sendable>: StreamTransform {
     }
 
     public func transform(_ input: Input) async throws -> Output? {
-        try await self.mapper(input)
+        try await mapper(input)
     }
 }
 
@@ -59,15 +59,15 @@ public actor BufferTransform<T: Sendable>: StreamTransform {
     }
 
     public func transform(_ input: T) async throws -> [T]? {
-        self.buffer.append(input)
+        buffer.append(input)
 
-        let shouldFlush = self.buffer.count >= self.bufferSize ||
-            (self.flushInterval != nil && Date().timeIntervalSince(self.lastFlush) >= self.flushInterval!)
+        let shouldFlush = buffer.count >= bufferSize ||
+            (flushInterval != nil && Date().timeIntervalSince(lastFlush) >= flushInterval!)
 
         if shouldFlush {
-            let result = self.buffer
-            self.buffer = []
-            self.lastFlush = Date()
+            let result = buffer
+            buffer = []
+            lastFlush = Date()
             return result
         }
 
@@ -75,10 +75,10 @@ public actor BufferTransform<T: Sendable>: StreamTransform {
     }
 
     public func flush() async -> [T]? {
-        guard !self.buffer.isEmpty else { return nil }
-        let result = self.buffer
-        self.buffer = []
-        self.lastFlush = Date()
+        guard !buffer.isEmpty else { return nil }
+        let result = buffer
+        buffer = []
+        lastFlush = Date()
         return result
     }
 }
@@ -121,7 +121,7 @@ public struct TapTransform<T: Sendable>: StreamTransform {
     }
 
     public func transform(_ input: T) async throws -> T? {
-        await self.action(input)
+        await action(input)
         return input
     }
 }
@@ -159,27 +159,30 @@ extension AsyncThrowingStream where Element: Sendable {
     public func filter(
         _ predicate: @escaping @Sendable (Element) async -> Bool,
     )
-    -> AsyncThrowingStream<Element, Error> {
+        -> AsyncThrowingStream<Element, Error>
+    {
         // Filter stream elements
-        self.transform(FilterTransform(predicate: predicate))
+        transform(FilterTransform(predicate: predicate))
     }
 
     /// Map stream elements
     public func map<Output: Sendable>(
         _ mapper: @escaping @Sendable (Element) async throws -> Output,
     )
-    -> AsyncThrowingStream<Output, Error> {
+        -> AsyncThrowingStream<Output, Error>
+    {
         // Map stream elements
-        self.transform(MapTransform(mapper: mapper))
+        transform(MapTransform(mapper: mapper))
     }
 
     /// Add side effects to stream
     public func tap(
         _ action: @escaping @Sendable (Element) async -> Void,
     )
-    -> AsyncThrowingStream<Element, Error> {
+        -> AsyncThrowingStream<Element, Error>
+    {
         // Add side effects to stream
-        self.transform(TapTransform(action: action))
+        transform(TapTransform(action: action))
     }
 
     /// Buffer and batch stream elements
@@ -187,7 +190,8 @@ extension AsyncThrowingStream where Element: Sendable {
         size: Int,
         flushInterval: TimeInterval? = nil,
     )
-    -> AsyncThrowingStream<[Element], Error> {
+        -> AsyncThrowingStream<[Element], Error>
+    {
         // Buffer and batch stream elements
         let bufferTransform = BufferTransform<Element>(
             bufferSize: size,
@@ -218,9 +222,10 @@ extension AsyncThrowingStream where Element: Sendable {
     public func throttle(
         interval: TimeInterval,
     )
-    -> AsyncThrowingStream<Element, Error> {
+        -> AsyncThrowingStream<Element, Error>
+    {
         // Throttle stream elements
-        self.transform(ThrottleTransform(interval: interval))
+        transform(ThrottleTransform(interval: interval))
     }
 }
 
@@ -232,7 +237,8 @@ extension StreamTextResult {
     public func filter(
         _ predicate: @escaping @Sendable (TextStreamDelta) async -> Bool,
     )
-    -> StreamTextResult {
+        -> StreamTextResult
+    {
         // Filter text deltas
         StreamTextResult(
             stream: stream.filter(predicate),
@@ -245,7 +251,8 @@ extension StreamTextResult {
     public func map<Output: Sendable>(
         _ mapper: @escaping @Sendable (TextStreamDelta) async throws -> Output,
     )
-    -> AsyncThrowingStream<Output, Error> {
+        -> AsyncThrowingStream<Output, Error>
+    {
         // Map text deltas
         stream.map(mapper)
     }
@@ -254,7 +261,8 @@ extension StreamTextResult {
     public func tap(
         _ action: @escaping @Sendable (TextStreamDelta) async -> Void,
     )
-    -> StreamTextResult {
+        -> StreamTextResult
+    {
         // Add side effects to text stream
         StreamTextResult(
             stream: stream.tap(action),
@@ -299,7 +307,8 @@ extension StreamObjectResult {
     public func filter(
         _ predicate: @escaping @Sendable (ObjectStreamDelta<T>) async -> Bool,
     )
-    -> StreamObjectResult<T> {
+        -> StreamObjectResult<T>
+    {
         // Filter object deltas
         StreamObjectResult(
             objectStream: objectStream.filter(predicate),
@@ -313,7 +322,8 @@ extension StreamObjectResult {
     public func map<Output: Sendable>(
         _ mapper: @escaping @Sendable (ObjectStreamDelta<T>) async throws -> Output,
     )
-    -> AsyncThrowingStream<Output, Error> {
+        -> AsyncThrowingStream<Output, Error>
+    {
         // Map object deltas
         objectStream.map(mapper)
     }
@@ -322,7 +332,8 @@ extension StreamObjectResult {
     public func tap(
         _ action: @escaping @Sendable (ObjectStreamDelta<T>) async -> Void,
     )
-    -> StreamObjectResult<T> {
+        -> StreamObjectResult<T>
+    {
         // Add side effects to object stream
         StreamObjectResult(
             objectStream: objectStream.tap(action),
@@ -370,7 +381,7 @@ public struct TransformChain<Input: Sendable, Output: Sendable>: StreamTransform
     public func transform(_ input: Input) async throws -> Output? {
         var current: Any = input
 
-        for transform in self.transforms {
+        for transform in transforms {
             guard let transformInput = current as? Input else {
                 return nil
             }
@@ -400,7 +411,8 @@ public struct TransformBuilder {
         _ t1: T1,
         _ t2: T2,
     )
-    -> some StreamTransform where T1.Output == T2.Input {
+        -> some StreamTransform where T1.Output == T2.Input
+    {
         CombinedTransform(first: t1, second: t2)
     }
 }
@@ -408,7 +420,8 @@ public struct TransformBuilder {
 /// A combination of two transforms
 @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public struct CombinedTransform<T1: StreamTransform, T2: StreamTransform>: StreamTransform
-where T1.Output == T2.Input {
+    where T1.Output == T2.Input
+{
     public typealias Input = T1.Input
     public typealias Output = T2.Output
 
@@ -424,6 +437,6 @@ where T1.Output == T2.Input {
         guard let intermediate = try await first.transform(input) else {
             return nil
         }
-        return try await self.second.transform(intermediate)
+        return try await second.transform(intermediate)
     }
 }

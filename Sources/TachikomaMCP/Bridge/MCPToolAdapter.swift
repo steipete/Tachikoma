@@ -7,7 +7,7 @@ public enum MCPToolAdapter {
     /// Convert an MCP Tool to Tachikoma's AgentTool
     public static func toAgentTool(from mcpTool: Tool, client: MCPClient) -> AgentTool {
         // Convert MCP schema to Tachikoma's AgentToolParameters
-        let parameters = self.convertSchema(mcpTool.inputSchema)
+        let parameters = convertSchema(mcpTool.inputSchema)
 
         return AgentTool(
             name: mcpTool.name,
@@ -17,11 +17,11 @@ public enum MCPToolAdapter {
             // Execute the tool via MCP client
             let response = try await client.executeTool(
                 name: mcpTool.name,
-                arguments: self.convertArguments(arguments),
+                arguments: convertArguments(arguments),
             )
 
             // Convert response to AnyAgentToolValue
-            return self.convertResponse(response)
+            return convertResponse(response)
         }
     }
 
@@ -46,7 +46,7 @@ public enum MCPToolAdapter {
                 case let .object(propsDict) = propsValue
             {
                 for (key, propValue) in propsDict {
-                    properties[key] = self.convertParameter(key, propValue)
+                    properties[key] = convertParameter(key, propValue)
                 }
             }
 
@@ -162,7 +162,7 @@ public enum MCPToolAdapter {
 
         for key in arguments.keys {
             if let value = arguments[key] {
-                result[key] = self.convertArgument(value)
+                result[key] = convertArgument(value)
             }
         }
 
@@ -197,9 +197,9 @@ public enum MCPToolAdapter {
         let contentValue: AnyAgentToolValue = if response.content.isEmpty {
             AnyAgentToolValue(null: ())
         } else if response.content.count == 1 {
-            self.convertContent(response.content[0])
+            convertContent(response.content[0])
         } else {
-            AnyAgentToolValue(array: response.content.map { self.convertContent($0) })
+            AnyAgentToolValue(array: response.content.map { convertContent($0) })
         }
 
         guard let meta = response.meta else {
@@ -208,7 +208,7 @@ public enum MCPToolAdapter {
 
         var payload: [String: AnyAgentToolValue] = [
             "result": contentValue,
-            "meta": self.convertMetaValue(meta),
+            "meta": convertMetaValue(meta),
         ]
 
         if let text = contentValue.stringValue {
@@ -229,11 +229,11 @@ public enum MCPToolAdapter {
         case let .bool(flag):
             return AnyAgentToolValue(bool: flag)
         case let .array(values):
-            return AnyAgentToolValue(array: values.map { self.convertMetaValue($0) })
+            return AnyAgentToolValue(array: values.map { convertMetaValue($0) })
         case let .object(dict):
             var converted: [String: AnyAgentToolValue] = [:]
             for (key, entry) in dict {
-                converted[key] = self.convertMetaValue(entry)
+                converted[key] = convertMetaValue(entry)
             }
             return AnyAgentToolValue(object: converted)
         case .null:

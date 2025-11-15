@@ -16,16 +16,16 @@ public final class OpenRouterProvider: ModelProvider {
         session: URLSession = .shared,
     ) throws {
         self.modelId = modelId
-        self.baseURL = configuration.getBaseURL(for: .custom("openrouter")) ?? "https://openrouter.ai/api/v1"
+        baseURL = configuration.getBaseURL(for: .custom("openrouter")) ?? "https://openrouter.ai/api/v1"
         self.session = session
 
         if let key = configuration.getAPIKey(for: .custom("openrouter")) {
-            self.apiKey = key
+            apiKey = key
         } else {
             throw TachikomaError.authenticationFailed("OPENROUTER_API_KEY not found")
         }
 
-        self.capabilities = ModelCapabilities(
+        capabilities = ModelCapabilities(
             supportsVision: true,
             supportsTools: true,
             supportsStreaming: true,
@@ -33,7 +33,7 @@ public final class OpenRouterProvider: ModelProvider {
             maxOutputTokens: 4096,
         )
 
-        self.defaultHeaders = [
+        defaultHeaders = [
             "HTTP-Referer": ProcessInfo.processInfo.environment["OPENROUTER_REFERER"] ?? "https://peekaboo.app",
             "X-Title": ProcessInfo.processInfo.environment["OPENROUTER_TITLE"] ?? "Peekaboo",
         ]
@@ -46,12 +46,12 @@ public final class OpenRouterProvider: ModelProvider {
 
         return try await OpenAICompatibleHelper.generateText(
             request: request,
-            modelId: self.modelId,
+            modelId: modelId,
             baseURL: baseURL,
             apiKey: apiKey,
             providerName: "OpenRouter",
-            additionalHeaders: self.defaultHeaders,
-            session: self.session,
+            additionalHeaders: defaultHeaders,
+            session: session,
         )
     }
 
@@ -62,12 +62,12 @@ public final class OpenRouterProvider: ModelProvider {
 
         return try await OpenAICompatibleHelper.streamText(
             request: request,
-            modelId: self.modelId,
+            modelId: modelId,
             baseURL: baseURL,
             apiKey: apiKey,
             providerName: "OpenRouter",
-            additionalHeaders: self.defaultHeaders,
-            session: self.session,
+            additionalHeaders: defaultHeaders,
+            session: session,
         )
     }
 }

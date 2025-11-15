@@ -51,7 +51,7 @@ public let defaultModel: Model = .default
 
 /// Set the default model for all operations (placeholder - would use actor in real implementation)
 @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
-public func setDefaultModel(_ model: Model) {
+public func setDefaultModel(_: Model) {
     // In real implementation, would use actor or other thread-safe mechanism
     // For now, this is just a placeholder function
 }

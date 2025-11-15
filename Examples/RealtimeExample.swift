@@ -48,7 +48,7 @@ class RealtimeVoiceAssistant {
         }
 
         // Start the conversation
-        self.conversation = try await startRealtimeConversation(
+        conversation = try await startRealtimeConversation(
             model: .gpt4oRealtime,
             voice: .nova,
             instructions: """
@@ -62,10 +62,10 @@ class RealtimeVoiceAssistant {
         print("🎤 You can now start speaking...")
 
         // Set up event handlers
-        await self.setupEventHandlers()
+        await setupEventHandlers()
 
         // Simulate some interactions (in a real app, this would come from audio input)
-        try await self.simulateConversation()
+        try await simulateConversation()
     }
 
     private func setupEventHandlers() async {
@@ -242,100 +242,100 @@ class RealtimeDemo {
 // MARK: - SwiftUI Integration Example
 
 #if canImport(SwiftUI)
-import SwiftUI
+    import SwiftUI
 
-@available(macOS 14.0, iOS 17.0, *)
-struct RealtimeVoiceView: View {
-    @State private var isListening = false
-    @State private var transcript = ""
-    @State private var audioLevel: Float = 0
-    @State private var conversation: RealtimeConversation?
+    @available(macOS 14.0, iOS 17.0, *)
+    struct RealtimeVoiceView: View {
+        @State private var isListening = false
+        @State private var transcript = ""
+        @State private var audioLevel: Float = 0
+        @State private var conversation: RealtimeConversation?
 
-    var body: some View {
-        VStack(spacing: 20) {
-            // Audio level indicator
-            HStack {
-                ForEach(0..<10) { i in
-                    Rectangle()
-                        .fill(Color.blue.opacity(Double(i) / 10 <= Double(self.audioLevel) ? 1 : 0.3))
-                        .frame(width: 10, height: 30)
+        var body: some View {
+            VStack(spacing: 20) {
+                // Audio level indicator
+                HStack {
+                    ForEach(0..<10) { i in
+                        Rectangle()
+                            .fill(Color.blue.opacity(Double(i) / 10 <= Double(audioLevel) ? 1 : 0.3))
+                            .frame(width: 10, height: 30)
+                    }
+                }
+                .frame(height: 50)
+
+                // Transcript display
+                ScrollView {
+                    Text(transcript)
+                        .padding()
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .frame(maxHeight: 200)
+                .border(Color.gray, width: 1)
+
+                // Control buttons
+                HStack(spacing: 20) {
+                    Button(action: toggleListening) {
+                        Image(systemName: isListening ? "mic.fill" : "mic.slash.fill")
+                            .font(.system(size: 30))
+                            .foregroundColor(isListening ? .red : .gray)
+                    }
+                    .buttonStyle(.plain)
+
+                    Button("Send Text") {
+                        Task {
+                            try? await conversation?.sendText("Hello, how are you?")
+                        }
+                    }
+
+                    Button("End") {
+                        Task {
+                            await conversation?.end()
+                            conversation = nil
+                        }
+                    }
                 }
             }
-            .frame(height: 50)
-
-            // Transcript display
-            ScrollView {
-                Text(self.transcript)
-                    .padding()
-                    .frame(maxWidth: .infinity, alignment: .leading)
+            .padding()
+            .task {
+                await setupConversation()
             }
-            .frame(maxHeight: 200)
-            .border(Color.gray, width: 1)
+        }
 
-            // Control buttons
-            HStack(spacing: 20) {
-                Button(action: self.toggleListening) {
-                    Image(systemName: self.isListening ? "mic.fill" : "mic.slash.fill")
-                        .font(.system(size: 30))
-                        .foregroundColor(self.isListening ? .red : .gray)
+        private func toggleListening() {
+            Task {
+                if isListening {
+                    await conversation?.stopListening()
+                } else {
+                    try? await conversation?.startListening()
                 }
-                .buttonStyle(.plain)
+                isListening.toggle()
+            }
+        }
 
-                Button("Send Text") {
+        private func setupConversation() async {
+            do {
+                conversation = try await startRealtimeConversation(
+                    model: .gpt4oRealtime,
+                    voice: .nova,
+                )
+
+                // Listen for updates
+                if let conversation {
                     Task {
-                        try? await self.conversation?.sendText("Hello, how are you?")
+                        for await text in conversation.transcriptUpdates {
+                            transcript += text + " "
+                        }
                     }
-                }
 
-                Button("End") {
                     Task {
-                        await self.conversation?.end()
-                        self.conversation = nil
+                        for await level in conversation.audioLevelUpdates {
+                            audioLevel = level
+                        }
                     }
                 }
+            } catch {
+                print("Failed to start conversation: \(error)")
             }
         }
-        .padding()
-        .task {
-            await self.setupConversation()
-        }
     }
-
-    private func toggleListening() {
-        Task {
-            if self.isListening {
-                await self.conversation?.stopListening()
-            } else {
-                try? await self.conversation?.startListening()
-            }
-            self.isListening.toggle()
-        }
-    }
-
-    private func setupConversation() async {
-        do {
-            conversation = try await startRealtimeConversation(
-                model: .gpt4oRealtime,
-                voice: .nova,
-            )
-
-            // Listen for updates
-            if let conversation {
-                Task {
-                    for await text in conversation.transcriptUpdates {
-                        self.transcript += text + " "
-                    }
-                }
-
-                Task {
-                    for await level in conversation.audioLevelUpdates {
-                        self.audioLevel = level
-                    }
-                }
-            }
-        } catch {
-            print("Failed to start conversation: \(error)")
-        }
-    }
-}
 #endif

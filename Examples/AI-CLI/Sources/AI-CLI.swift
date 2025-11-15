@@ -23,17 +23,17 @@ struct AICLI {
 
         // Handle special commands
         if config.showVersion {
-            self.showVersion()
+            showVersion()
             return
         }
 
         if config.showHelp {
-            self.showHelp()
+            showHelp()
             return
         }
 
         if config.showConfig {
-            self.showConfiguration(config: config)
+            showConfiguration(config: config)
             return
         }
 
@@ -60,10 +60,10 @@ struct AICLI {
 
         // Check API key for the provider
         do {
-            try self.validateAPIKey(for: model)
+            try validateAPIKey(for: model)
         } catch {
             print("❌ \(error)")
-            self.showAPIKeyInstructions(for: model)
+            showAPIKeyInstructions(for: model)
             exit(1)
         }
 
@@ -73,21 +73,21 @@ struct AICLI {
         }
 
         // Display configuration
-        self.showRequestConfig(model: model, config: config, query: query)
+        showRequestConfig(model: model, config: config, query: query)
 
         // Execute the request
         do {
             if config.stream {
-                try await self.executeStreamingRequest(model: model, config: config, query: query)
+                try await executeStreamingRequest(model: model, config: config, query: query)
             } else {
-                try await self.executeRequest(model: model, config: config, query: query)
+                try await executeRequest(model: model, config: config, query: query)
             }
         } catch {
             print("\n❌ Error: \(error)")
 
             // Provide helpful context for common errors
             if let error = error as? TachikomaError {
-                self.showErrorHelp(for: error, model: model)
+                showErrorHelp(for: error, model: model)
             }
             exit(1)
         }
@@ -299,12 +299,12 @@ struct AICLI {
 
         // API Key status
         print("\n🔐 API Keys:")
-        self.checkAPIKeyStatus(provider: "OpenAI", envVars: ["OPENAI_API_KEY"])
-        self.checkAPIKeyStatus(provider: "Anthropic", envVars: ["ANTHROPIC_API_KEY"])
-        self.checkAPIKeyStatus(provider: "Google", envVars: ["GEMINI_API_KEY", "GOOGLE_API_KEY"])
-        self.checkAPIKeyStatus(provider: "Mistral", envVars: ["MISTRAL_API_KEY"])
-        self.checkAPIKeyStatus(provider: "Groq", envVars: ["GROQ_API_KEY"])
-        self.checkAPIKeyStatus(provider: "Grok", envVars: ["X_AI_API_KEY", "XAI_API_KEY"])
+        checkAPIKeyStatus(provider: "OpenAI", envVars: ["OPENAI_API_KEY"])
+        checkAPIKeyStatus(provider: "Anthropic", envVars: ["ANTHROPIC_API_KEY"])
+        checkAPIKeyStatus(provider: "Google", envVars: ["GEMINI_API_KEY", "GOOGLE_API_KEY"])
+        checkAPIKeyStatus(provider: "Mistral", envVars: ["MISTRAL_API_KEY"])
+        checkAPIKeyStatus(provider: "Groq", envVars: ["GROQ_API_KEY"])
+        checkAPIKeyStatus(provider: "Grok", envVars: ["X_AI_API_KEY", "XAI_API_KEY"])
 
         // Ollama status
         print("   • Ollama: Local (no API key required)")
@@ -318,13 +318,13 @@ struct AICLI {
         let prov = Provider.from(identifier: provider.lowercased())
 
         if let key = config.getAPIKey(for: prov), !key.isEmpty {
-            let masked = self.maskAPIKey(key)
+            let masked = maskAPIKey(key)
             print("   • \(provider): \(masked) (configured)")
         } else if
             let key = envVars.compactMap({ ProcessInfo.processInfo.environment[$0] })
                 .first(where: { !$0.isEmpty })
         {
-            let masked = self.maskAPIKey(key)
+            let masked = maskAPIKey(key)
             print("   • \(provider): \(masked) (environment)")
         } else {
             print("   • \(provider): Not set")
@@ -334,7 +334,7 @@ struct AICLI {
     // MARK: - API Key Validation
 
     static func validateAPIKey(for model: LanguageModel) throws {
-        let provider = self.getProvider(for: model)
+        let provider = getProvider(for: model)
         let config = TachikomaConfiguration.current
 
         // Check if API key is available (from config or environment)
@@ -422,7 +422,7 @@ struct AICLI {
     // MARK: - Request Execution
 
     static func showRequestConfig(model: LanguageModel, config: CLIConfig, query: String) {
-        let maskedKey = self.getCurrentAPIKey(for: model).map(self.maskAPIKey) ?? "Not required"
+        let maskedKey = getCurrentAPIKey(for: model).map(maskAPIKey) ?? "Not required"
         print("🔐 API Key: \(maskedKey)")
         print("🤖 Model: \(model.modelId)")
         print("🏢 Provider: \(model.providerName)")
@@ -452,7 +452,7 @@ struct AICLI {
             nil
         }
 
-        let supportsThinking = self.isReasoningModel(model) && actualApiMode != .chat
+        let supportsThinking = isReasoningModel(model) && actualApiMode != .chat
         if config.showThinking, !supportsThinking {
             print("⚠️  Note: --thinking only works with O3, O4, and GPT-5 models via Responses API")
         }
@@ -585,7 +585,8 @@ struct AICLI {
         model: LanguageModel.OpenAI,
         query: String,
     ) async throws
-    -> (response: ProviderResponse, reasoning: String?) {
+        -> (response: ProviderResponse, reasoning: String?)
+    {
         let config = TachikomaConfiguration.current
         guard let apiKey = config.getAPIKey(for: .openai) else {
             throw TachikomaError.authenticationFailed("OpenAI API key not found")
@@ -707,7 +708,7 @@ struct AICLI {
         return (providerResponse, reasoningText)
     }
 
-    static func executeStreamingRequest(model: LanguageModel, config: CLIConfig, query: String) async throws {
+    static func executeStreamingRequest(model: LanguageModel, config _: CLIConfig, query: String) async throws {
         print("🚀 Streaming response...")
         print("\n💬 Response:")
 
@@ -762,7 +763,7 @@ struct AICLI {
     // MARK: - Utility Functions
 
     static func getCurrentAPIKey(for model: LanguageModel) -> String? {
-        let provider = self.getProvider(for: model)
+        let provider = getProvider(for: model)
         return TachikomaConfiguration.current.getAPIKey(for: provider)
     }
 
@@ -820,7 +821,7 @@ struct AICLI {
         switch error {
         case .authenticationFailed:
             print("Authentication failed. Check your API key:")
-            self.showAPIKeyInstructions(for: model)
+            showAPIKeyInstructions(for: model)
         case .rateLimited:
             print("Rate limit exceeded. Try:")
             print("• Wait a moment and retry")

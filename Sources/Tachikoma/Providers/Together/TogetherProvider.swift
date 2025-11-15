@@ -15,16 +15,16 @@ public final class TogetherProvider: ModelProvider {
         session: URLSession = .shared,
     ) throws {
         self.modelId = modelId
-        self.baseURL = configuration.getBaseURL(for: .custom("together")) ?? "https://api.together.xyz/v1"
+        baseURL = configuration.getBaseURL(for: .custom("together")) ?? "https://api.together.xyz/v1"
         self.session = session
 
         if let key = configuration.getAPIKey(for: .custom("together")) {
-            self.apiKey = key
+            apiKey = key
         } else {
             throw TachikomaError.authenticationFailed("TOGETHER_API_KEY not found")
         }
 
-        self.capabilities = ModelCapabilities(
+        capabilities = ModelCapabilities(
             supportsVision: true,
             supportsTools: true,
             supportsStreaming: true,
@@ -40,11 +40,11 @@ public final class TogetherProvider: ModelProvider {
 
         return try await OpenAICompatibleHelper.generateText(
             request: request,
-            modelId: self.modelId,
+            modelId: modelId,
             baseURL: baseURL,
             apiKey: apiKey,
             providerName: "Together",
-            session: self.session,
+            session: session,
         )
     }
 
@@ -55,11 +55,11 @@ public final class TogetherProvider: ModelProvider {
 
         return try await OpenAICompatibleHelper.streamText(
             request: request,
-            modelId: self.modelId,
+            modelId: modelId,
             baseURL: baseURL,
             apiKey: apiKey,
             providerName: "Together",
-            session: self.session,
+            session: session,
         )
     }
 }

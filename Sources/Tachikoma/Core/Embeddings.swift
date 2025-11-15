@@ -10,7 +10,8 @@ public func generateEmbedding(
     settings: EmbeddingSettings = .default,
     configuration: TachikomaConfiguration = TachikomaConfiguration(),
 ) async throws
--> EmbeddingResult {
+    -> EmbeddingResult
+{
     let provider = try EmbeddingProviderFactory.createProvider(for: model, configuration: configuration)
 
     let request = EmbeddingRequest(
@@ -47,7 +48,8 @@ public func generateEmbeddingsBatch(
     concurrency: Int = 5,
     configuration: TachikomaConfiguration = TachikomaConfiguration(),
 ) async throws
--> [EmbeddingResult] {
+    -> [EmbeddingResult]
+{
     let provider = try EmbeddingProviderFactory.createProvider(for: model, configuration: configuration)
 
     // Use TaskGroup for controlled concurrency
@@ -186,12 +188,12 @@ public struct EmbeddingResult: Sendable {
 
     /// Get first embedding (convenience for single text input)
     public var embedding: [Double]? {
-        self.embeddings.first
+        embeddings.first
     }
 
     /// Number of dimensions in embeddings
     public var dimensions: Int? {
-        self.embeddings.first?.count
+        embeddings.first?.count
     }
 }
 
@@ -232,7 +234,8 @@ struct EmbeddingProviderFactory {
         for model: EmbeddingModel,
         configuration: TachikomaConfiguration,
     ) throws
-    -> EmbeddingProvider {
+        -> EmbeddingProvider
+    {
         switch model {
         case let .openai(openAIModel):
             return OpenAIEmbeddingProvider(
@@ -268,8 +271,8 @@ private actor EmbeddingAsyncSemaphore {
     }
 
     func wait() async {
-        if self.value > 0 {
-            self.value -= 1
+        if value > 0 {
+            value -= 1
         } else {
             await withCheckedContinuation { continuation in
                 self.waiters.append(continuation)
@@ -279,10 +282,10 @@ private actor EmbeddingAsyncSemaphore {
 
     func signal() {
         if let waiter = waiters.first {
-            self.waiters.removeFirst()
+            waiters.removeFirst()
             waiter.resume()
         } else {
-            self.value += 1
+            value += 1
         }
     }
 }

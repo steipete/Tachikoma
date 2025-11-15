@@ -8,11 +8,11 @@ struct RetryHandlerTests {
         private(set) var count = 0
 
         func increment() {
-            self.count += 1
+            count += 1
         }
 
         func get() -> Int {
-            self.count
+            count
         }
     }
 

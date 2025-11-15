@@ -14,17 +14,17 @@ public final class OpenAICompatibleProvider: ModelProvider {
 
         // Try to get API key from configuration, otherwise try common environment variable patterns
         if let key = configuration.getAPIKey(for: .custom("openai_compatible")) {
-            self.apiKey = key
+            apiKey = key
         } else if
             let key = ProcessInfo.processInfo.environment["OPENAI_COMPATIBLE_API_KEY"] ??
             ProcessInfo.processInfo.environment["API_KEY"]
         {
-            self.apiKey = key
+            apiKey = key
         } else {
-            self.apiKey = nil // Some compatible APIs don't require keys
+            apiKey = nil // Some compatible APIs don't require keys
         }
 
-        self.capabilities = ModelCapabilities(
+        capabilities = ModelCapabilities(
             supportsVision: false,
             supportsTools: true,
             supportsStreaming: true,
@@ -37,9 +37,9 @@ public final class OpenAICompatibleProvider: ModelProvider {
         // Use OpenAI-compatible implementation
         try await OpenAICompatibleHelper.generateText(
             request: request,
-            modelId: self.modelId,
-            baseURL: self.baseURL!,
-            apiKey: self.apiKey ?? "",
+            modelId: modelId,
+            baseURL: baseURL!,
+            apiKey: apiKey ?? "",
             providerName: "OpenAICompatible",
         )
     }
@@ -48,9 +48,9 @@ public final class OpenAICompatibleProvider: ModelProvider {
         // Use OpenAI-compatible streaming implementation
         try await OpenAICompatibleHelper.streamText(
             request: request,
-            modelId: self.modelId,
-            baseURL: self.baseURL!,
-            apiKey: self.apiKey ?? "",
+            modelId: modelId,
+            baseURL: baseURL!,
+            apiKey: apiKey ?? "",
             providerName: "OpenAICompatible",
         )
     }

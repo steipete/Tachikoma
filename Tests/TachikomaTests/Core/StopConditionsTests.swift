@@ -309,14 +309,14 @@ private struct StopConditionTestMockProvider: ModelProvider {
     var apiKey: String? { nil }
     var capabilities: ModelCapabilities { ModelCapabilities() }
 
-    func generateText(request: ProviderRequest) async throws -> ProviderResponse {
-        ProviderResponse(text: self.responseText)
+    func generateText(request _: ProviderRequest) async throws -> ProviderResponse {
+        ProviderResponse(text: responseText)
     }
 
-    func streamText(request: ProviderRequest) async throws -> AsyncThrowingStream<TextStreamDelta, Error> {
+    func streamText(request _: ProviderRequest) async throws -> AsyncThrowingStream<TextStreamDelta, Error> {
         AsyncThrowingStream { continuation in
             Task {
-                continuation.yield(TextStreamDelta(type: .textDelta, content: self.responseText))
+                continuation.yield(TextStreamDelta(type: .textDelta, content: responseText))
                 continuation.yield(TextStreamDelta(type: .done))
                 continuation.finish()
             }

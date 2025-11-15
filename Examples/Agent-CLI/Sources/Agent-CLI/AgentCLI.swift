@@ -65,26 +65,26 @@ struct AgentCLI: AsyncParsableCommand {
     func run() async throws {
         // Initialize configuration
         let config = TachikomaConfiguration.current
-        if self.verbose {
+        if verbose {
             config.verbose = true
         }
 
         // Handle special commands
-        if self.showConfig {
-            await self.showConfiguration()
+        if showConfig {
+            await showConfiguration()
             return
         }
 
-        if self.listServers {
-            await self.listMCPServers()
+        if listServers {
+            await listMCPServers()
             return
         }
 
         // Parse and validate model
-        let languageModel = try ModelSelector.parseModel(self.model)
+        let languageModel = try ModelSelector.parseModel(model)
 
         // Validate API key
-        try self.validateAPIKey(for: languageModel)
+        try validateAPIKey(for: languageModel)
 
         // Initialize UI system
         let ui = StatusBarUI(outputFormat: format, verbose: verbose, quiet: quiet)
@@ -103,24 +103,24 @@ struct AgentCLI: AsyncParsableCommand {
         )
 
         // Run in interactive or single-query mode
-        if self.interactive || self.query == nil {
-            try await self.runInteractiveMode(
+        if interactive || query == nil {
+            try await runInteractiveMode(
                 agent: agent,
                 messages: &messages,
                 ui: ui,
             )
         } else {
-            try await self.runSingleQuery(
+            try await runSingleQuery(
                 agent: agent,
                 messages: &messages,
-                query: self.query!,
+                query: query!,
                 ui: ui,
             )
         }
 
         // Save conversation if requested
         if let savePath = save {
-            try await self.saveMessages(messages, to: savePath)
+            try await saveMessages(messages, to: savePath)
             ui.showInfo("Conversation saved to \(savePath)")
         }
     }
@@ -137,7 +137,7 @@ struct AgentCLI: AsyncParsableCommand {
         print("\n🔑 API Keys:")
         for provider in Provider.allStandard {
             if let key = config.getAPIKey(for: provider) {
-                let masked = self.maskAPIKey(key)
+                let masked = maskAPIKey(key)
                 print("  • \(provider.displayName): \(masked)")
             } else {
                 print("  • \(provider.displayName): Not configured")
@@ -145,7 +145,7 @@ struct AgentCLI: AsyncParsableCommand {
         }
 
         // Show model info
-        print("\n🤖 Default Model: \(self.model)")
+        print("\n🤖 Default Model: \(model)")
         if let parsed = try? ModelSelector.parseModel(model) {
             print("  • Provider: \(parsed.providerName)")
             print("  • Capabilities:")
@@ -154,7 +154,7 @@ struct AgentCLI: AsyncParsableCommand {
             print("    - Streaming: \(parsed.supportsStreaming ? "✓" : "✗")")
         }
 
-        print("\n📦 MCP Servers: \(self.mcpServer.isEmpty ? "None configured" : "\(self.mcpServer.count) configured")")
+        print("\n📦 MCP Servers: \(mcpServer.isEmpty ? "None configured" : "\(mcpServer.count) configured")")
     }
 
     private func listMCPServers() async {
@@ -189,7 +189,8 @@ struct AgentCLI: AsyncParsableCommand {
         mcpManager: MCPManager?,
         ui: StatusBarUI,
     ) async throws
-    -> Agent {
+        -> Agent
+    {
         // Get available tools
         var tools: [AgentTool] = []
 
@@ -200,7 +201,7 @@ struct AgentCLI: AsyncParsableCommand {
         }
 
         // Add built-in tools
-        tools.append(contentsOf: self.createBuiltInTools())
+        tools.append(contentsOf: createBuiltInTools())
 
         // Create agent configuration
         let agentConfig = AgentConfiguration(
@@ -290,7 +291,7 @@ struct AgentCLI: AsyncParsableCommand {
 
     private func loadOrCreateMessages() async throws -> [ModelMessage] {
         if let loadPath = load {
-            try await self.loadMessages(from: loadPath)
+            try await loadMessages(from: loadPath)
         } else {
             []
         }
@@ -318,7 +319,7 @@ struct AgentCLI: AsyncParsableCommand {
         ui: StatusBarUI,
     ) async throws {
         ui.showHeader("🤖 Agent CLI - Single Query Mode")
-        ui.showInfo("Model: \(self.model)")
+        ui.showInfo("Model: \(model)")
 
         // Add user message
         messages.append(.user(query))
@@ -337,7 +338,7 @@ struct AgentCLI: AsyncParsableCommand {
         ui.completeTask()
 
         // Show final response
-        if self.format == .markdown {
+        if format == .markdown {
             ui.showMarkdown(result.content)
         } else {
             ui.showResponse(result.content)
@@ -359,7 +360,7 @@ struct AgentCLI: AsyncParsableCommand {
         ui: StatusBarUI,
     ) async throws {
         ui.showHeader("🤖 Agent CLI - Interactive Mode")
-        ui.showInfo("Model: \(self.model)")
+        ui.showInfo("Model: \(model)")
         ui.showInfo("Type 'exit' to quit, 'clear' to reset conversation")
 
         while true {
@@ -384,7 +385,7 @@ struct AgentCLI: AsyncParsableCommand {
             }
 
             if input.lowercased() == "history" {
-                self.showConversationHistory(messages, ui: ui)
+                showConversationHistory(messages, ui: ui)
                 continue
             }
 
@@ -400,7 +401,7 @@ struct AgentCLI: AsyncParsableCommand {
 
             let result = try await agent.execute(
                 messages: messages,
-                maxTurns: self.maxTurns,
+                maxTurns: maxTurns,
             )
 
             // Add assistant response
@@ -410,7 +411,7 @@ struct AgentCLI: AsyncParsableCommand {
 
             // Show response
             print() // New line for clarity
-            if self.format == .markdown {
+            if format == .markdown {
                 ui.showMarkdown(result.content)
             } else {
                 ui.showResponse(result.content)
@@ -462,13 +463,13 @@ struct AgentCLI: AsyncParsableCommand {
     // MARK: - MCP Integration
 
     private func initializeMCP(ui: StatusBarUI) async throws -> MCPManager? {
-        guard !self.mcpServer.isEmpty else { return nil }
+        guard !mcpServer.isEmpty else { return nil }
 
         ui.showInfo("Initializing MCP servers...")
 
         let manager = MCPManager()
 
-        for serverSpec in self.mcpServer {
+        for serverSpec in mcpServer {
             // Parse server specification
             let parts = serverSpec.split(separator: " -- ", maxSplits: 1)
             guard parts.count == 2 else {

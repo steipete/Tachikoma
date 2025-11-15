@@ -133,7 +133,8 @@ public struct TranscriptionProviderFactory {
         for model: TranscriptionModel,
         configuration: TachikomaConfiguration = TachikomaConfiguration(),
     ) throws
-    -> any TranscriptionProvider {
+        -> any TranscriptionProvider
+    {
         // Check if API tests are disabled
         if AudioProviderEnvironment.mockModeEnabled() {
             // Even in mock mode, validate API keys if explicitly testing missing key scenarios
@@ -166,7 +167,8 @@ public struct SpeechProviderFactory {
         for model: SpeechModel,
         configuration: TachikomaConfiguration = TachikomaConfiguration(),
     ) throws
-    -> any SpeechProvider {
+        -> any SpeechProvider
+    {
         // Check if API tests are disabled
         if AudioProviderEnvironment.mockModeEnabled() {
             // Even in mock mode, validate API keys if explicitly testing missing key scenarios
@@ -203,7 +205,7 @@ public struct AudioConfiguration {
         }
 
         // Then check environment variables with common patterns
-        let envKeys = self.environmentKeys(for: provider)
+        let envKeys = environmentKeys(for: provider)
         for key in envKeys {
             if let value = AudioProviderEnvironment.environmentValue(for: key) {
                 return value
@@ -247,14 +249,14 @@ public final class OpenAITranscriptionProvider: TranscriptionProvider {
 
     public init(model: TranscriptionModel.OpenAI, configuration: TachikomaConfiguration) throws {
         self.model = model
-        self.modelId = model.rawValue
+        modelId = model.rawValue
 
         guard let key = AudioConfiguration.getAPIKey(for: "openai", configuration: configuration) else {
             throw TachikomaError.authenticationFailed("OPENAI_API_KEY not found")
         }
-        self.apiKey = key
+        apiKey = key
 
-        self.capabilities = TranscriptionCapabilities(
+        capabilities = TranscriptionCapabilities(
             supportedFormats: [.mp3, .wav, .flac, .m4a, .opus, .pcm],
             supportsTimestamps: model.supportsTimestamps,
             supportsLanguageDetection: model.supportsLanguageDetection,
@@ -279,14 +281,14 @@ public final class OpenAISpeechProvider: SpeechProvider {
 
     public init(model: SpeechModel.OpenAI, configuration: TachikomaConfiguration) throws {
         self.model = model
-        self.modelId = model.rawValue
+        modelId = model.rawValue
 
         guard let key = AudioConfiguration.getAPIKey(for: "openai", configuration: configuration) else {
             throw TachikomaError.authenticationFailed("OPENAI_API_KEY not found")
         }
-        self.apiKey = key
+        apiKey = key
 
-        self.capabilities = SpeechCapabilities(
+        capabilities = SpeechCapabilities(
             supportedFormats: model.supportedFormats,
             supportedVoices: model.supportedVoices,
             supportsVoiceInstructions: model.supportsVoiceInstructions,
@@ -307,9 +309,9 @@ public final class GroqTranscriptionProvider: TranscriptionProvider {
     public let modelId: String
     public let capabilities: TranscriptionCapabilities
 
-    public init(model: TranscriptionModel.Groq, configuration: TachikomaConfiguration) throws {
-        self.modelId = model.rawValue
-        self.capabilities = TranscriptionCapabilities(
+    public init(model: TranscriptionModel.Groq, configuration _: TachikomaConfiguration) throws {
+        modelId = model.rawValue
+        capabilities = TranscriptionCapabilities(
             supportsTimestamps: model.supportsTimestamps,
             supportsLanguageDetection: model.supportsLanguageDetection,
         )
@@ -347,7 +349,7 @@ public final class GroqTranscriptionProvider: TranscriptionProvider {
         // Add model
         formData.append("--\(boundary)\r\n".utf8Data())
         formData.append("Content-Disposition: form-data; name=\"model\"\r\n\r\n".utf8Data())
-        formData.append("\(self.modelId)\r\n".utf8Data())
+        formData.append("\(modelId)\r\n".utf8Data())
 
         // Add optional parameters
         if let language = request.language {
@@ -425,9 +427,9 @@ public final class DeepgramTranscriptionProvider: TranscriptionProvider {
     public let modelId: String
     public let capabilities: TranscriptionCapabilities
 
-    public init(model: TranscriptionModel.Deepgram, configuration: TachikomaConfiguration) throws {
-        self.modelId = model.rawValue
-        self.capabilities = TranscriptionCapabilities(
+    public init(model: TranscriptionModel.Deepgram, configuration _: TachikomaConfiguration) throws {
+        modelId = model.rawValue
+        capabilities = TranscriptionCapabilities(
             supportsTimestamps: model.supportsTimestamps,
             supportsLanguageDetection: model.supportsLanguageDetection,
             supportsSummarization: model.supportsSummarization,
@@ -441,7 +443,7 @@ public final class DeepgramTranscriptionProvider: TranscriptionProvider {
 
         var urlComponents = URLComponents(string: "https://api.deepgram.com/v1/listen")!
         urlComponents.queryItems = [
-            URLQueryItem(name: "model", value: self.modelId),
+            URLQueryItem(name: "model", value: modelId),
             URLQueryItem(name: "punctuate", value: "true"),
             URLQueryItem(name: "utterances", value: "true"),
             URLQueryItem(name: "smart_format", value: "true"),
@@ -554,15 +556,15 @@ public final class ElevenLabsTranscriptionProvider: TranscriptionProvider {
     public let modelId: String
     public let capabilities: TranscriptionCapabilities
 
-    public init(model: TranscriptionModel.ElevenLabs, configuration: TachikomaConfiguration) throws {
-        self.modelId = model.rawValue
-        self.capabilities = TranscriptionCapabilities(
+    public init(model: TranscriptionModel.ElevenLabs, configuration _: TachikomaConfiguration) throws {
+        modelId = model.rawValue
+        capabilities = TranscriptionCapabilities(
             supportsTimestamps: model.supportsTimestamps,
             supportsLanguageDetection: model.supportsLanguageDetection,
         )
     }
 
-    public func transcribe(request: TranscriptionRequest) async throws -> TranscriptionResult {
+    public func transcribe(request _: TranscriptionRequest) async throws -> TranscriptionResult {
         // ElevenLabs doesn't have a transcription API yet
         // This is a placeholder for future implementation
         throw TachikomaError
@@ -577,9 +579,9 @@ public final class ElevenLabsSpeechProvider: SpeechProvider {
     public let modelId: String
     public let capabilities: SpeechCapabilities
 
-    public init(model: SpeechModel.ElevenLabs, configuration: TachikomaConfiguration) throws {
-        self.modelId = model.rawValue
-        self.capabilities = SpeechCapabilities(
+    public init(model: SpeechModel.ElevenLabs, configuration _: TachikomaConfiguration) throws {
+        modelId = model.rawValue
+        capabilities = SpeechCapabilities(
             supportedFormats: model.supportedFormats,
             supportsVoiceInstructions: model.supportsVoiceCloning,
         )
@@ -612,7 +614,7 @@ public final class ElevenLabsSpeechProvider: SpeechProvider {
         }
 
         // Default voice if not specified - map VoiceOption to ElevenLabs voice ID
-        let voiceId = self.mapVoiceToElevenLabsId(request.voice)
+        let voiceId = mapVoiceToElevenLabsId(request.voice)
         let url = URL(string: "https://api.elevenlabs.io/v1/text-to-speech/\(voiceId)")!
 
         var urlRequest = URLRequest(url: url)
@@ -636,7 +638,7 @@ public final class ElevenLabsSpeechProvider: SpeechProvider {
 
         let requestBody = ElevenLabsRequest(
             text: request.text,
-            model_id: self.modelId,
+            model_id: modelId,
             voice_settings: ElevenLabsRequest.VoiceSettings(
                 stability: 0.5,
                 similarity_boost: 0.75,
@@ -677,12 +679,12 @@ public final class MockTranscriptionProvider: TranscriptionProvider {
 
     public init(model: TranscriptionModel) {
         self.model = model
-        self.modelId = model.modelId
+        modelId = model.modelId
 
         // Set capabilities based on the model
         switch model {
         case let .openai(openaiModel):
-            self.capabilities = TranscriptionCapabilities(
+            capabilities = TranscriptionCapabilities(
                 supportedFormats: [.flac, .m4a, .mp3, .opus, .aac, .ogg, .wav, .pcm],
                 supportsTimestamps: openaiModel.supportsTimestamps,
                 supportsLanguageDetection: openaiModel.supportsLanguageDetection,
@@ -690,7 +692,7 @@ public final class MockTranscriptionProvider: TranscriptionProvider {
                 maxFileSize: 25 * 1024 * 1024, // 25MB
             )
         default:
-            self.capabilities = TranscriptionCapabilities(
+            capabilities = TranscriptionCapabilities(
                 supportedFormats: AudioFormat.allCases,
                 supportsTimestamps: true,
                 supportsLanguageDetection: true,
@@ -760,12 +762,12 @@ public final class MockSpeechProvider: SpeechProvider {
 
     public init(model: SpeechModel) {
         self.model = model
-        self.modelId = model.modelId
+        modelId = model.modelId
 
         // Set capabilities based on the model
         switch model {
         case let .openai(openaiModel):
-            self.capabilities = SpeechCapabilities(
+            capabilities = SpeechCapabilities(
                 supportedFormats: openaiModel.supportedFormats,
                 supportedVoices: openaiModel.supportedVoices,
                 supportsVoiceInstructions: openaiModel.supportsVoiceInstructions,
@@ -773,7 +775,7 @@ public final class MockSpeechProvider: SpeechProvider {
                 maxTextLength: 4096,
             )
         default:
-            self.capabilities = SpeechCapabilities(
+            capabilities = SpeechCapabilities(
                 supportedFormats: [.mp3, .wav],
                 supportedVoices: [.alloy, .echo, .fable, .onyx, .nova, .shimmer],
                 supportsSpeedControl: true,
@@ -796,12 +798,12 @@ public final class MockSpeechProvider: SpeechProvider {
         }
 
         // Validate voice
-        if !self.capabilities.supportedVoices.contains(request.voice) {
+        if !capabilities.supportedVoices.contains(request.voice) {
             throw TachikomaError.invalidInput("Unsupported voice: \(request.voice.stringValue)")
         }
 
         // Validate format
-        if !self.capabilities.supportedFormats.contains(request.format) {
+        if !capabilities.supportedFormats.contains(request.format) {
             throw TachikomaError.invalidInput("Unsupported format: \(request.format.rawValue)")
         }
 

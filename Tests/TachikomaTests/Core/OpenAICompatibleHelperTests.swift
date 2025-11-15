@@ -35,8 +35,8 @@ struct OpenAICompatibleHelperTests {
 
         let response = try await withMockedSession { urlRequest in
             #expect(urlRequest.value(forHTTPHeaderField: "Authorization")?.hasPrefix("Bearer ") == true)
-            capture.body = self.bodyData(from: urlRequest)
-            return self.jsonResponse(for: urlRequest, data: Self.chatCompletionPayload(text: "pong"))
+            capture.body = bodyData(from: urlRequest)
+            return jsonResponse(for: urlRequest, data: Self.chatCompletionPayload(text: "pong"))
         } operation: { session in
             try await OpenAICompatibleHelper.generateText(
                 request: request,
@@ -115,7 +115,7 @@ struct OpenAICompatibleHelperTests {
 
     @Test("non-200 responses surface TachikomaError.apiError")
     func apiErrorsSurface() async throws {
-        await self.withMockedSession { urlRequest in
+        await withMockedSession { urlRequest in
             let errorJSON = """
             {"error":{"message":"bad request","type":"invalid_request_error"}}
             """.utf8Data()
@@ -156,7 +156,8 @@ struct OpenAICompatibleHelperTests {
         handler: @Sendable @escaping (URLRequest) throws -> (HTTPURLResponse, Data),
         operation: (URLSession) async throws -> T,
     ) async rethrows
-    -> T {
+        -> T
+    {
         let previousHandler = OpenAIHelperURLProtocol.handler
         OpenAIHelperURLProtocol.handler = handler
         let configuration = URLSessionConfiguration.ephemeral
@@ -247,7 +248,7 @@ private final class OpenAIHelperURLProtocol: URLProtocol {
         set { handlerLock.withLock { _handler = newValue } }
     }
 
-    override class func canInit(with request: URLRequest) -> Bool {
+    override class func canInit(with _: URLRequest) -> Bool {
         true
     }
 

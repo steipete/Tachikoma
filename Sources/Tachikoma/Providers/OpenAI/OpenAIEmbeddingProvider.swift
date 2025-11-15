@@ -1,6 +1,6 @@
 import Foundation
 #if canImport(FoundationNetworking)
-import FoundationNetworking
+    import FoundationNetworking
 #endif
 
 @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
@@ -9,15 +9,15 @@ struct OpenAIEmbeddingProvider: EmbeddingProvider, ModelProvider {
     let apiKey: String?
     let baseURL: String?
 
-    var modelId: String { self.model.rawValue }
+    var modelId: String { model.rawValue }
     var capabilities: ModelCapabilities { ModelCapabilities() }
 
     // ModelProvider conformance (not used for embeddings)
-    func generateText(request: ProviderRequest) async throws -> ProviderResponse {
+    func generateText(request _: ProviderRequest) async throws -> ProviderResponse {
         throw TachikomaError.unsupportedOperation("Text generation not supported for embedding models")
     }
 
-    func streamText(request: ProviderRequest) async throws -> AsyncThrowingStream<TextStreamDelta, Error> {
+    func streamText(request _: ProviderRequest) async throws -> AsyncThrowingStream<TextStreamDelta, Error> {
         throw TachikomaError.unsupportedOperation("Streaming not supported for embedding models")
     }
 
@@ -79,7 +79,7 @@ struct OpenAIEmbeddingProvider: EmbeddingProvider, ModelProvider {
 
         return EmbeddingResult(
             embeddings: embeddings,
-            model: self.model.rawValue,
+            model: model.rawValue,
             usage: usage,
             metadata: EmbeddingMetadata(
                 truncated: false,
@@ -95,20 +95,20 @@ struct CohereEmbeddingProvider: EmbeddingProvider, ModelProvider {
     let model: EmbeddingModel.CohereEmbedding
     let apiKey: String?
 
-    var modelId: String { self.model.rawValue }
+    var modelId: String { model.rawValue }
     var baseURL: String? { nil }
     var capabilities: ModelCapabilities { ModelCapabilities() }
 
     // ModelProvider conformance (not used for embeddings)
-    func generateText(request: ProviderRequest) async throws -> ProviderResponse {
+    func generateText(request _: ProviderRequest) async throws -> ProviderResponse {
         throw TachikomaError.unsupportedOperation("Text generation not supported for embedding models")
     }
 
-    func streamText(request: ProviderRequest) async throws -> AsyncThrowingStream<TextStreamDelta, Error> {
+    func streamText(request _: ProviderRequest) async throws -> AsyncThrowingStream<TextStreamDelta, Error> {
         throw TachikomaError.unsupportedOperation("Streaming not supported for embedding models")
     }
 
-    func generateEmbedding(request: EmbeddingRequest) async throws -> EmbeddingResult {
+    func generateEmbedding(request _: EmbeddingRequest) async throws -> EmbeddingResult {
         throw TachikomaError.unsupportedOperation("Cohere embeddings not yet implemented")
     }
 }
@@ -118,20 +118,20 @@ struct VoyageEmbeddingProvider: EmbeddingProvider, ModelProvider {
     let model: EmbeddingModel.VoyageEmbedding
     let apiKey: String?
 
-    var modelId: String { self.model.rawValue }
+    var modelId: String { model.rawValue }
     var baseURL: String? { nil }
     var capabilities: ModelCapabilities { ModelCapabilities() }
 
     // ModelProvider conformance (not used for embeddings)
-    func generateText(request: ProviderRequest) async throws -> ProviderResponse {
+    func generateText(request _: ProviderRequest) async throws -> ProviderResponse {
         throw TachikomaError.unsupportedOperation("Text generation not supported for embedding models")
     }
 
-    func streamText(request: ProviderRequest) async throws -> AsyncThrowingStream<TextStreamDelta, Error> {
+    func streamText(request _: ProviderRequest) async throws -> AsyncThrowingStream<TextStreamDelta, Error> {
         throw TachikomaError.unsupportedOperation("Streaming not supported for embedding models")
     }
 
-    func generateEmbedding(request: EmbeddingRequest) async throws -> EmbeddingResult {
+    func generateEmbedding(request _: EmbeddingRequest) async throws -> EmbeddingResult {
         throw TachikomaError.unsupportedOperation("Voyage embeddings not yet implemented")
     }
 }

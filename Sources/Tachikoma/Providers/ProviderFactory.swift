@@ -10,7 +10,8 @@ public struct ProviderFactory {
         for model: LanguageModel,
         configuration: TachikomaConfiguration,
     ) throws
-    -> any ModelProvider {
+        -> any ModelProvider
+    {
         // Create a provider for the specified language model
         switch model {
         case let .openai(openaiModel):

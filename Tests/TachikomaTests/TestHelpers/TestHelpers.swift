@@ -9,14 +9,15 @@ enum TestHelpers {
         apiKeys: [String: String] = [:],
         enableMockOverride: Bool = true,
     )
-    -> TachikomaConfiguration {
+        -> TachikomaConfiguration
+    {
         let config = TachikomaConfiguration(loadFromEnvironment: false)
         for (provider, key) in apiKeys {
-            let resolved = self.resolve(provider: provider, provided: key)
+            let resolved = resolve(provider: provider, provided: key)
             config.setAPIKey(resolved, for: provider)
         }
         if enableMockOverride {
-            self.configureTestBehavior(for: config, apiKeys: apiKeys)
+            configureTestBehavior(for: config, apiKeys: apiKeys)
         }
         return config
     }
@@ -26,12 +27,12 @@ enum TestHelpers {
 
     /// Create a configuration with standard test API keys
     static func createStandardTestConfiguration() -> TachikomaConfiguration {
-        self.createTestConfiguration(apiKeys: self.standardTestKeys)
+        createTestConfiguration(apiKeys: standardTestKeys)
     }
 
     /// Create a configuration with no API keys (for testing missing key scenarios)
     static func createEmptyTestConfiguration() -> TachikomaConfiguration {
-        self.createTestConfiguration(apiKeys: [:], enableMockOverride: false)
+        createTestConfiguration(apiKeys: [:], enableMockOverride: false)
     }
 
     /// Create a configuration with specific API keys present and others missing
@@ -39,7 +40,7 @@ enum TestHelpers {
         let keys = present.reduce(into: [String: String]()) { result, provider in
             result[provider] = "test-key"
         }
-        return self.createTestConfiguration(apiKeys: keys)
+        return createTestConfiguration(apiKeys: keys)
     }
 
     /// Execute a test block with a specific configuration
@@ -49,8 +50,9 @@ enum TestHelpers {
         apiKeys: [String: String] = [:],
         _ body: (TachikomaConfiguration) async throws -> T,
     ) async rethrows
-    -> T {
-        let config = self.createTestConfiguration(apiKeys: apiKeys)
+        -> T
+    {
+        let config = createTestConfiguration(apiKeys: apiKeys)
         return try await body(config)
     }
 
@@ -59,8 +61,9 @@ enum TestHelpers {
     static func withStandardTestConfiguration<T>(
         _ body: (TachikomaConfiguration) async throws -> T,
     ) async rethrows
-    -> T {
-        let config = self.createStandardTestConfiguration()
+        -> T
+    {
+        let config = createStandardTestConfiguration()
         return try await body(config)
     }
 
@@ -69,8 +72,9 @@ enum TestHelpers {
     static func withEmptyTestConfiguration<T>(
         _ body: (TachikomaConfiguration) async throws -> T,
     ) async rethrows
-    -> T {
-        let config = self.createEmptyTestConfiguration()
+        -> T
+    {
+        let config = createEmptyTestConfiguration()
         return try await body(config)
     }
 
@@ -80,17 +84,19 @@ enum TestHelpers {
         present: [String],
         _ body: (TachikomaConfiguration) async throws -> T,
     ) async rethrows
-    -> T {
-        let config = self.createSelectiveTestConfiguration(present: present)
+        -> T
+    {
+        let config = createSelectiveTestConfiguration(present: present)
         return try await body(config)
     }
 
     @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
     static func sampleAudioData(
-        configuration: TachikomaConfiguration,
+        configuration _: TachikomaConfiguration,
         format: AudioFormat = .mp3,
     )
-    -> AudioData {
+        -> AudioData
+    {
         // Use deterministic stub audio data for unit tests to avoid network calls.
         let stub = Data([0x01, 0x02, 0x03, 0x04])
         return AudioData(data: stub, format: format)
@@ -100,7 +106,8 @@ enum TestHelpers {
     static func withMockProviderEnvironment<T>(
         _ body: () async throws -> T,
     ) async rethrows
-    -> T {
+        -> T
+    {
         let previousMode = getenv("TACHIKOMA_TEST_MODE").flatMap { String(cString: $0) }
         let previousDisable = getenv("TACHIKOMA_DISABLE_API_TESTS").flatMap { String(cString: $0) }
         setenv("TACHIKOMA_TEST_MODE", "mock", 1)
@@ -122,12 +129,12 @@ enum TestHelpers {
 
     private static func makeStandardTestKeys() -> [String: String] {
         [
-            "openai": self.resolve(provider: "openai", provided: "test-key"),
-            "anthropic": self.resolve(provider: "anthropic", provided: "test-key"),
-            "grok": self.resolve(provider: "grok", provided: "test-key"),
-            "groq": self.resolve(provider: "groq", provided: "test-key"),
-            "mistral": self.resolve(provider: "mistral", provided: "test-key"),
-            "google": self.resolve(provider: "google", provided: "test-key"),
+            "openai": resolve(provider: "openai", provided: "test-key"),
+            "anthropic": resolve(provider: "anthropic", provided: "test-key"),
+            "grok": resolve(provider: "grok", provided: "test-key"),
+            "groq": resolve(provider: "groq", provided: "test-key"),
+            "mistral": resolve(provider: "mistral", provided: "test-key"),
+            "google": resolve(provider: "google", provided: "test-key"),
         ]
     }
 
@@ -143,7 +150,7 @@ enum TestHelpers {
         }
 
         let env = ProcessInfo.processInfo.environment
-        for name in self.environmentVariables(for: provider) {
+        for name in environmentVariables(for: provider) {
             if let value = env[name], !value.isEmpty {
                 return value
             }
@@ -171,7 +178,7 @@ enum TestHelpers {
     }
 
     private static func configureTestBehavior(for config: TachikomaConfiguration, apiKeys: [String: String]) {
-        guard self.shouldUseMockProviders(apiKeys: apiKeys) else { return }
+        guard shouldUseMockProviders(apiKeys: apiKeys) else { return }
         config.setProviderFactoryOverride { model, _ in
             MockProvider(model: model)
         }

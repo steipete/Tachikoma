@@ -12,17 +12,17 @@ public final class GrokProvider: ModelProvider {
 
     public init(model: LanguageModel.Grok, configuration: TachikomaConfiguration) throws {
         self.model = model
-        self.modelId = model.modelId
-        self.baseURL = configuration.getBaseURL(for: .grok) ?? "https://api.x.ai/v1"
+        modelId = model.modelId
+        baseURL = configuration.getBaseURL(for: .grok) ?? "https://api.x.ai/v1"
 
         // Get API key from configuration system (environment or credentials)
         if let key = configuration.getAPIKey(for: .grok) {
-            self.apiKey = key
+            apiKey = key
         } else {
             throw TachikomaError.authenticationFailed("X_AI_API_KEY or XAI_API_KEY not found")
         }
 
-        self.capabilities = ModelCapabilities(
+        capabilities = ModelCapabilities(
             supportsVision: model.supportsVision,
             supportsTools: model.supportsTools,
             supportsStreaming: true,
@@ -35,9 +35,9 @@ public final class GrokProvider: ModelProvider {
         // Grok uses OpenAI-compatible API format - delegate to shared implementation
         try await OpenAICompatibleHelper.generateText(
             request: request,
-            modelId: self.modelId,
-            baseURL: self.baseURL!,
-            apiKey: self.apiKey!,
+            modelId: modelId,
+            baseURL: baseURL!,
+            apiKey: apiKey!,
             providerName: "Grok",
         )
     }
@@ -46,9 +46,9 @@ public final class GrokProvider: ModelProvider {
         // Grok uses OpenAI-compatible API format - delegate to shared implementation
         try await OpenAICompatibleHelper.streamText(
             request: request,
-            modelId: self.modelId,
-            baseURL: self.baseURL!,
-            apiKey: self.apiKey!,
+            modelId: modelId,
+            baseURL: baseURL!,
+            apiKey: apiKey!,
             providerName: "Grok",
         )
     }

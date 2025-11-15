@@ -353,7 +353,7 @@ struct AgentToolValueTests {
                 static var agentValueType: AgentValueType { .object }
 
                 func toJSON() throws -> Any {
-                    ["location": self.location, "units": self.units]
+                    ["location": location, "units": units]
                 }
 
                 static func fromJSON(_ json: Any) throws -> Input {
@@ -375,7 +375,7 @@ struct AgentToolValueTests {
                 static var agentValueType: AgentValueType { .object }
 
                 func toJSON() throws -> Any {
-                    ["temperature": self.temperature, "conditions": self.conditions]
+                    ["temperature": temperature, "conditions": conditions]
                 }
 
                 static func fromJSON(_ json: Any) throws -> Output {
@@ -406,7 +406,7 @@ struct AgentToolValueTests {
                 )
             }
 
-            func execute(_ input: Input, context: ToolExecutionContext) async throws -> Output {
+            func execute(_: Input, context _: ToolExecutionContext) async throws -> Output {
                 // Mock implementation
                 Output(temperature: 22.5, conditions: "Sunny")
             }

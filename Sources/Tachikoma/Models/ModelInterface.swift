@@ -75,14 +75,14 @@ public struct ModelSettings: Sendable, Codable {
         settings: GenerationSettings = .default,
         stream: Bool = false,
     ) {
-        self.modelName = model.modelId
-        self.maxTokens = settings.maxTokens
-        self.temperature = settings.temperature
-        self.topP = settings.topP
-        self.topK = settings.topK
-        self.frequencyPenalty = settings.frequencyPenalty
-        self.presencePenalty = settings.presencePenalty
-        self.stopSequences = settings.stopSequences
+        modelName = model.modelId
+        maxTokens = settings.maxTokens
+        temperature = settings.temperature
+        topP = settings.topP
+        topK = settings.topK
+        frequencyPenalty = settings.frequencyPenalty
+        presencePenalty = settings.presencePenalty
+        stopSequences = settings.stopSequences
         self.stream = stream
     }
 
@@ -132,9 +132,9 @@ public struct ModelRequest: Sendable {
 
     /// Create from modern ProviderRequest
     public init(from providerRequest: ProviderRequest, model: LanguageModel, stream: Bool = false) {
-        self.messages = providerRequest.messages
-        self.settings = ModelSettings(model: model, settings: providerRequest.settings, stream: stream)
-        self.tools = providerRequest.tools
+        messages = providerRequest.messages
+        settings = ModelSettings(model: model, settings: providerRequest.settings, stream: stream)
+        tools = providerRequest.tools
         self.stream = stream
     }
 }
@@ -166,10 +166,10 @@ public struct ModelResponse: Sendable {
     public func toProviderResponse() -> ProviderResponse {
         // Convert to ProviderResponse
         ProviderResponse(
-            text: self.text,
-            usage: self.usage,
-            finishReason: self.finishReason,
-            toolCalls: self.toolCalls,
+            text: text,
+            usage: usage,
+            finishReason: finishReason,
+            toolCalls: toolCalls,
         )
     }
 }

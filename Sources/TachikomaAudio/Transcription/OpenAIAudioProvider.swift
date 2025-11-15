@@ -1,7 +1,7 @@
 import Foundation
 import Tachikoma // For TachikomaError
 #if canImport(FoundationNetworking)
-import FoundationNetworking
+    import FoundationNetworking
 #endif
 
 // MARK: - OpenAI Error Response
@@ -331,7 +331,7 @@ extension OpenAISpeechProvider {
 extension Data {
     mutating func append(_ string: String) {
         if let data = string.data(using: .utf8) {
-            self.append(data)
+            append(data)
         }
     }
 }

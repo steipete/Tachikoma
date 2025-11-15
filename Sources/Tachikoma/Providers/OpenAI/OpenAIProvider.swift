@@ -17,18 +17,18 @@ public final class OpenAIProvider: ModelProvider {
         session: URLSession = .shared,
     ) throws {
         self.model = model
-        self.modelId = model.modelId
-        self.baseURL = configuration.getBaseURL(for: .openai) ?? "https://api.openai.com/v1"
+        modelId = model.modelId
+        baseURL = configuration.getBaseURL(for: .openai) ?? "https://api.openai.com/v1"
         self.session = session
 
         // Get API key from configuration system (environment or credentials)
         if let key = configuration.getAPIKey(for: .openai) {
-            self.apiKey = key
+            apiKey = key
         } else {
             throw TachikomaError.authenticationFailed("OPENAI_API_KEY not found")
         }
 
-        self.capabilities = ModelCapabilities(
+        capabilities = ModelCapabilities(
             supportsVision: model.supportsVision,
             supportsTools: model.supportsTools,
             supportsStreaming: true,
@@ -47,12 +47,12 @@ public final class OpenAIProvider: ModelProvider {
         // Use shared OpenAI-compatible implementation
         return try await OpenAICompatibleHelper.generateText(
             request: request,
-            modelId: self.modelId,
-            baseURL: self.baseURL!,
-            apiKey: self.apiKey!,
+            modelId: modelId,
+            baseURL: baseURL!,
+            apiKey: apiKey!,
             providerName: "OpenAI",
             additionalHeaders: additionalHeaders,
-            session: self.session,
+            session: session,
         )
     }
 
@@ -66,12 +66,12 @@ public final class OpenAIProvider: ModelProvider {
         // Use shared OpenAI-compatible implementation
         return try await OpenAICompatibleHelper.streamText(
             request: request,
-            modelId: self.modelId,
-            baseURL: self.baseURL!,
-            apiKey: self.apiKey!,
+            modelId: modelId,
+            baseURL: baseURL!,
+            apiKey: apiKey!,
             providerName: "OpenAI",
             additionalHeaders: additionalHeaders,
-            session: self.session,
+            session: session,
         )
     }
 }

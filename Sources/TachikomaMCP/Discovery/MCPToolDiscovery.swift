@@ -16,7 +16,7 @@ public enum MCPToolDiscovery {
             args: args,
         )
 
-        return try await self.discover(from: config, name: self.extractName(from: command))
+        return try await discover(from: config, name: extractName(from: command))
     }
 
     /// Discover tools from an MCP server with configuration
@@ -33,14 +33,14 @@ public enum MCPToolDiscovery {
     /// Connect to an MCP server and return a provider
     public static func connectServer(_ config: MCPServerConfig, name: String? = nil) async throws -> MCPToolProvider {
         // Connect to an MCP server and return a provider
-        let serverName = name ?? self.extractName(from: config.command)
+        let serverName = name ?? extractName(from: config.command)
         let client = MCPClient(name: serverName, config: config)
         let provider = MCPToolProvider(client: client)
 
         // Connect to ensure it's ready
         try await provider.connect()
 
-        self.logger.info("Connected to MCP server '\(serverName)'")
+        logger.info("Connected to MCP server '\(serverName)'")
 
         return provider
     }
@@ -66,9 +66,9 @@ public enum MCPToolDiscovery {
                 switch result {
                 case let .success(provider):
                     providers[name] = provider
-                    self.logger.info("Successfully connected to '\(name)'")
+                    logger.info("Successfully connected to '\(name)'")
                 case let .failure(error):
-                    self.logger.error("Failed to connect to '\(name)': \(error)")
+                    logger.error("Failed to connect to '\(name)': \(error)")
                 }
             }
         }
@@ -90,7 +90,7 @@ public enum MCPToolDiscovery {
         var seen = Set<String>()
         return allTools.filter { tool in
             if seen.contains(tool.name) {
-                self.logger.warning("Duplicate tool '\(tool.name)' found, keeping first occurrence")
+                logger.warning("Duplicate tool '\(tool.name)' found, keeping first occurrence")
                 return false
             }
             seen.insert(tool.name)
@@ -156,7 +156,7 @@ extension MCPToolDiscovery {
             command: "npx",
             args: ["-y", "@modelcontextprotocol/server-filesystem", path],
         )
-        return try await self.discover(from: config, name: "filesystem")
+        return try await discover(from: config, name: "filesystem")
     }
 
     /// Quick start with GitHub tools
@@ -175,7 +175,7 @@ extension MCPToolDiscovery {
             env: ["GITHUB_PERSONAL_ACCESS_TOKEN": githubToken],
         )
 
-        return try await self.discover(from: config, name: "github")
+        return try await discover(from: config, name: "github")
     }
 
     /// Quick start with browser automation
@@ -186,6 +186,6 @@ extension MCPToolDiscovery {
             command: "npx",
             args: ["-y", "@agent-infra/mcp-server-browser"],
         )
-        return try await self.discover(from: config, name: "browser")
+        return try await discover(from: config, name: "browser")
     }
 }

@@ -10,7 +10,7 @@ public final class MCPToolProvider: DynamicToolProvider {
 
     public init(client: MCPClient) {
         self.client = client
-        self.logger = Logger(label: "tachikoma.mcp.provider")
+        logger = Logger(label: "tachikoma.mcp.provider")
     }
 
     /// Convenience initializer with configuration
@@ -22,20 +22,20 @@ public final class MCPToolProvider: DynamicToolProvider {
     /// Connect to the MCP server (if not already connected)
     public func connect() async throws {
         // Connect to the MCP server (if not already connected)
-        if await !(self.client.isConnected) {
-            try await self.client.connect()
+        if await !(client.isConnected) {
+            try await client.connect()
         }
     }
 
     /// Discover available tools from the MCP server
     public func discoverTools() async throws -> [DynamicTool] {
         // Ensure we're connected
-        try await self.connect()
+        try await connect()
 
         // Get tools from MCP client
         let mcpTools = await client.tools
 
-        self.logger.info("Discovered \(mcpTools.count) tools from MCP server")
+        logger.info("Discovered \(mcpTools.count) tools from MCP server")
 
         // Convert to DynamicTool format
         return mcpTools.map { mcpTool in
@@ -52,7 +52,8 @@ public final class MCPToolProvider: DynamicToolProvider {
         name: String,
         arguments: AgentToolArguments,
     ) async throws
-    -> AnyAgentToolValue {
+        -> AnyAgentToolValue
+    {
         // Convert arguments to MCP format
         var mcpArgs: [String: Any] = [:]
         for key in arguments.keys {
@@ -68,13 +69,13 @@ public final class MCPToolProvider: DynamicToolProvider {
         )
 
         // Convert response back to AnyAgentToolValue
-        return self.convertResponseToAnyAgentToolValue(response)
+        return convertResponseToAnyAgentToolValue(response)
     }
 
     /// Get all available tools as AgentTools
     public func getAgentTools() async throws -> [AgentTool] {
         // Ensure we're connected
-        try await self.connect()
+        try await connect()
 
         // Get tools from MCP client
         let mcpTools = await client.tools
@@ -101,7 +102,7 @@ public final class MCPToolProvider: DynamicToolProvider {
                 case let .object(propsDict) = propsValue
             {
                 for (key, propValue) in propsDict {
-                    properties[key] = self.convertPropertyToDynamic(propValue)
+                    properties[key] = convertPropertyToDynamic(propValue)
                 }
             }
 
@@ -172,7 +173,7 @@ public final class MCPToolProvider: DynamicToolProvider {
         // Convert content to appropriate format
         if response.content.count == 1 {
             // Single content item
-            return self.convertContentToAnyAgentToolValue(response.content[0])
+            return convertContentToAnyAgentToolValue(response.content[0])
         } else if response.content.isEmpty {
             // No content
             return AnyAgentToolValue(null: ())

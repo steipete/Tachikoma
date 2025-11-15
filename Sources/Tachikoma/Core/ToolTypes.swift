@@ -106,7 +106,7 @@ extension Array: AgentToolValue where Element: AgentToolValue {
     public static var agentValueType: AgentValueType { .array }
 
     public func toJSON() throws -> Any {
-        try self.map { try $0.toJSON() }
+        try map { try $0.toJSON() }
     }
 
     public static func fromJSON(_ json: Any) throws -> Self {
@@ -165,36 +165,36 @@ public struct AnyAgentToolValue: AgentToolValue, Equatable, Codable {
         self = try Self.fromJSON(json)
     }
 
-    public init(null: ()) {
-        self.storage = .null
+    public init(null _: ()) {
+        storage = .null
     }
 
     public init(bool: Bool) {
-        self.storage = .bool(bool)
+        storage = .bool(bool)
     }
 
     public init(int: Int) {
-        self.storage = .int(int)
+        storage = .int(int)
     }
 
     public init(double: Double) {
-        self.storage = .double(double)
+        storage = .double(double)
     }
 
     public init(string: String) {
-        self.storage = .string(string)
+        storage = .string(string)
     }
 
     public init(array: [AnyAgentToolValue]) {
-        self.storage = .array(array)
+        storage = .array(array)
     }
 
     public init(object: [String: AnyAgentToolValue]) {
-        self.storage = .object(object)
+        storage = .object(object)
     }
 
     public func toJSON() throws -> Any {
-        switch self.storage {
+        switch storage {
         case .null:
             return NSNull()
         case let .bool(value):
@@ -248,13 +248,13 @@ public struct AnyAgentToolValue: AgentToolValue, Equatable, Codable {
     /// Create from dictionary for tool arguments
     public static func fromDictionary(_ dict: [String: Any]) throws -> AnyAgentToolValue {
         // Create from dictionary for tool arguments
-        try self.fromJSON(dict)
+        try fromJSON(dict)
     }
 
     /// Create from Any value
     public static func from(_ value: Any) -> AnyAgentToolValue {
         // Create from Any value
-        (try? self.fromJSON(value)) ?? AnyAgentToolValue(string: "\(value)")
+        (try? fromJSON(value)) ?? AnyAgentToolValue(string: "\(value)")
     }
 
     /// Convenience accessors
@@ -269,7 +269,7 @@ public struct AnyAgentToolValue: AgentToolValue, Equatable, Codable {
     }
 
     public var doubleValue: Double? {
-        switch self.storage {
+        switch storage {
         case let .double(value): value
         case let .int(value): Double(value)
         default: nil
@@ -292,7 +292,7 @@ public struct AnyAgentToolValue: AgentToolValue, Equatable, Codable {
     }
 
     public var isNull: Bool {
-        if case .null = self.storage { return true }
+        if case .null = storage { return true }
         return false
     }
 
@@ -302,19 +302,19 @@ public struct AnyAgentToolValue: AgentToolValue, Equatable, Codable {
         let container = try decoder.singleValueContainer()
 
         if container.decodeNil() {
-            self.storage = .null
+            storage = .null
         } else if let bool = try? container.decode(Bool.self) {
-            self.storage = .bool(bool)
+            storage = .bool(bool)
         } else if let int = try? container.decode(Int.self) {
-            self.storage = .int(int)
+            storage = .int(int)
         } else if let double = try? container.decode(Double.self) {
-            self.storage = .double(double)
+            storage = .double(double)
         } else if let string = try? container.decode(String.self) {
-            self.storage = .string(string)
+            storage = .string(string)
         } else if let array = try? container.decode([AnyAgentToolValue].self) {
-            self.storage = .array(array)
+            storage = .array(array)
         } else if let object = try? container.decode([String: AnyAgentToolValue].self) {
-            self.storage = .object(object)
+            storage = .object(object)
         } else {
             throw DecodingError.dataCorruptedError(in: container, debugDescription: "Cannot decode AnyAgentToolValue")
         }
@@ -323,7 +323,7 @@ public struct AnyAgentToolValue: AgentToolValue, Equatable, Codable {
     public func encode(to encoder: Encoder) throws {
         var container = encoder.singleValueContainer()
 
-        switch self.storage {
+        switch storage {
         case .null:
             try container.encodeNil()
         case let .bool(value):
@@ -417,7 +417,7 @@ public struct AgentToolArguments: Sendable {
     private let storage: [String: AnyAgentToolValue]
 
     public init(_ dictionary: [String: AnyAgentToolValue] = [:]) {
-        self.storage = dictionary
+        storage = dictionary
     }
 
     public init(_ dictionary: [String: Any]) {
@@ -425,14 +425,14 @@ public struct AgentToolArguments: Sendable {
         for (key, value) in dictionary {
             converted[key] = AnyAgentToolValue.from(value)
         }
-        self.storage = converted
+        storage = converted
     }
 
     public subscript(key: String) -> AnyAgentToolValue? {
-        self.storage[key]
+        storage[key]
     }
 
-    public func get<T: AgentToolValue>(_ key: String, as type: T.Type) throws -> T {
+    public func get<T: AgentToolValue>(_ key: String, as _: T.Type) throws -> T {
         guard let value = storage[key] else {
             throw TachikomaError.invalidInput("Missing required argument: \(key)")
         }
@@ -440,21 +440,21 @@ public struct AgentToolArguments: Sendable {
         return try T.fromJSON(json)
     }
 
-    public func getOptional<T: AgentToolValue>(_ key: String, as type: T.Type) -> T? {
+    public func getOptional<T: AgentToolValue>(_ key: String, as _: T.Type) -> T? {
         guard let value = storage[key] else { return nil }
         return try? T.fromJSON(value.toJSON())
     }
 
     public var keys: Dictionary<String, AnyAgentToolValue>.Keys {
-        self.storage.keys
+        storage.keys
     }
 
     public var count: Int {
-        self.storage.count
+        storage.count
     }
 
     public var isEmpty: Bool {
-        self.storage.isEmpty
+        storage.isEmpty
     }
 }
 
@@ -466,7 +466,7 @@ public struct AgentToolParameters: Sendable, Codable {
     public let required: [String]
 
     public init(properties: [String: AgentToolParameterProperty] = [:], required: [String] = []) {
-        self.type = "object"
+        type = "object"
         self.properties = properties
         self.required = required
     }
@@ -559,7 +559,7 @@ public struct AgentTool: Sendable {
         self.parameters = parameters
         self.namespace = namespace
         self.recipient = recipient
-        self.execute = executeWithContext
+        execute = executeWithContext
     }
 
     /// Execute the tool with context
@@ -567,9 +567,10 @@ public struct AgentTool: Sendable {
         _ arguments: AgentToolArguments,
         context: ToolExecutionContext,
     ) async throws
-    -> AnyAgentToolValue {
+        -> AnyAgentToolValue
+    {
         // Execute the tool with context
-        try await self.execute(arguments, context)
+        try await execute(arguments, context)
     }
 }
 
@@ -638,14 +639,15 @@ public struct DynamicTool: Sendable {
 
     /// Convert to a static AgentTool with the provided executor
     public func toAgentTool(executor: @escaping @Sendable (AgentToolArguments) async throws -> AnyAgentToolValue)
-    -> AgentTool {
+        -> AgentTool
+    {
         // Convert to a static AgentTool with the provided executor
         AgentTool(
-            name: self.name,
-            description: self.description,
-            parameters: self.schema.toAgentToolParameters(),
-            namespace: self.namespace,
-            recipient: self.recipient,
+            name: name,
+            description: description,
+            parameters: schema.toAgentToolParameters(),
+            namespace: namespace,
+            recipient: recipient,
             execute: executor,
         )
     }
@@ -760,7 +762,7 @@ public struct DynamicSchema: Sendable, Codable {
 
         return AgentToolParameters(
             properties: props,
-            required: self.required ?? [],
+            required: required ?? [],
         )
     }
 }

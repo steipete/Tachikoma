@@ -15,16 +15,16 @@ public final class ReplicateProvider: ModelProvider {
         session: URLSession = .shared,
     ) throws {
         self.modelId = modelId
-        self.baseURL = configuration.getBaseURL(for: .custom("replicate")) ?? "https://api.replicate.com/v1"
+        baseURL = configuration.getBaseURL(for: .custom("replicate")) ?? "https://api.replicate.com/v1"
         self.session = session
 
         if let key = configuration.getAPIKey(for: .custom("replicate")) {
-            self.apiKey = key
+            apiKey = key
         } else {
             throw TachikomaError.authenticationFailed("REPLICATE_API_TOKEN not found")
         }
 
-        self.capabilities = ModelCapabilities(
+        capabilities = ModelCapabilities(
             supportsVision: false,
             supportsTools: false, // Most Replicate models don't support tools
             supportsStreaming: true,
@@ -45,12 +45,12 @@ public final class ReplicateProvider: ModelProvider {
 
         return try await OpenAICompatibleHelper.generateText(
             request: request,
-            modelId: self.modelId,
+            modelId: modelId,
             baseURL: baseURL,
             apiKey: apiKey,
             providerName: "Replicate",
             additionalHeaders: headers,
-            session: self.session,
+            session: session,
         )
     }
 
@@ -61,11 +61,11 @@ public final class ReplicateProvider: ModelProvider {
 
         return try await OpenAICompatibleHelper.streamText(
             request: request,
-            modelId: self.modelId,
+            modelId: modelId,
             baseURL: baseURL,
             apiKey: apiKey,
             providerName: "Replicate",
-            session: self.session,
+            session: session,
         )
     }
 }

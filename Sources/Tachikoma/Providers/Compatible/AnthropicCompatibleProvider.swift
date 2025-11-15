@@ -16,17 +16,17 @@ public final class AnthropicCompatibleProvider: ModelProvider {
 
         // Try to get API key from configuration, otherwise try common environment variable patterns
         if let key = configuration.getAPIKey(for: .custom("anthropic_compatible")) {
-            self.apiKey = key
+            apiKey = key
         } else if
             let key = ProcessInfo.processInfo.environment["ANTHROPIC_COMPATIBLE_API_KEY"] ??
             ProcessInfo.processInfo.environment["API_KEY"]
         {
-            self.apiKey = key
+            apiKey = key
         } else {
-            self.apiKey = nil
+            apiKey = nil
         }
 
-        self.capabilities = ModelCapabilities(
+        capabilities = ModelCapabilities(
             supportsVision: true,
             supportsTools: true,
             supportsStreaming: true,
@@ -36,17 +36,17 @@ public final class AnthropicCompatibleProvider: ModelProvider {
     }
 
     public func generateText(request: ProviderRequest) async throws -> ProviderResponse {
-        let provider = try self.makeAnthropicProvider()
+        let provider = try makeAnthropicProvider()
         return try await provider.generateText(request: request)
     }
 
     public func streamText(request: ProviderRequest) async throws -> AsyncThrowingStream<TextStreamDelta, Error> {
-        let provider = try self.makeAnthropicProvider()
+        let provider = try makeAnthropicProvider()
         return try await provider.streamText(request: request)
     }
 
     private func makeAnthropicProvider() throws -> AnthropicProvider {
-        guard let apiKey = self.apiKey else {
+        guard let apiKey else {
             throw TachikomaError.authenticationFailed("ANTHROPIC_COMPATIBLE_API_KEY not found")
         }
 
@@ -57,10 +57,10 @@ public final class AnthropicCompatibleProvider: ModelProvider {
         }
 
         // Propagate verbose flag/settings from original configuration if set
-        compatConfig.setVerbose(self.configuration.verbose)
+        compatConfig.setVerbose(configuration.verbose)
 
         return try AnthropicProvider(
-            model: .custom(self.modelId),
+            model: .custom(modelId),
             configuration: compatConfig,
         )
     }

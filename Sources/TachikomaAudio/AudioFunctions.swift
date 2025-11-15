@@ -33,7 +33,8 @@ public func transcribe(
     headers: [String: String] = [:],
     configuration: TachikomaConfiguration = TachikomaConfiguration(),
 ) async throws
--> TranscriptionResult {
+    -> TranscriptionResult
+{
     guard !audio.data.isEmpty else {
         throw TachikomaError.invalidInput("Audio data is empty")
     }
@@ -88,7 +89,8 @@ public func generateSpeech(
     headers: [String: String] = [:],
     configuration: TachikomaConfiguration = TachikomaConfiguration(),
 ) async throws
--> SpeechResult {
+    -> SpeechResult
+{
     let provider = try SpeechProviderFactory.createProvider(for: model, configuration: configuration)
 
     let request = SpeechRequest(
@@ -122,7 +124,8 @@ public func transcribe(
     language: String? = nil,
     configuration: TachikomaConfiguration = TachikomaConfiguration(),
 ) async throws
--> String {
+    -> String
+{
     let result = try await transcribe(
         audio,
         using: .default,
@@ -145,7 +148,8 @@ public func transcribe(
     language: String? = nil,
     configuration: TachikomaConfiguration = TachikomaConfiguration(),
 ) async throws
--> String {
+    -> String
+{
     let audio = try AudioData(contentsOf: url)
     let result = try await transcribe(audio, using: model, language: language, configuration: configuration)
     return result.text
@@ -165,7 +169,8 @@ public func generateSpeech(
     voice: VoiceOption = .alloy,
     configuration: TachikomaConfiguration = TachikomaConfiguration(),
 ) async throws
--> AudioData {
+    -> AudioData
+{
     let result = try await generateSpeech(
         text,
         using: .default,
@@ -220,7 +225,8 @@ public func transcribeBatch(
     concurrency: Int = 3,
     configuration: TachikomaConfiguration = TachikomaConfiguration(),
 ) async throws
--> [TranscriptionResult] {
+    -> [TranscriptionResult]
+{
     try await withThrowingTaskGroup(
         of: (Int, TranscriptionResult).self,
         returning: [TranscriptionResult].self,
@@ -266,7 +272,8 @@ public func generateSpeechBatch(
     concurrency: Int = 3,
     configuration: TachikomaConfiguration = TachikomaConfiguration(),
 ) async throws
--> [SpeechResult] {
+    -> [SpeechResult]
+{
     try await withThrowingTaskGroup(of: (Int, SpeechResult).self, returning: [SpeechResult].self) { group in
         let semaphore = AsyncSemaphore(value: concurrency)
 
@@ -345,7 +352,8 @@ public func capabilities(
     for model: TranscriptionModel,
     configuration: TachikomaConfiguration = TachikomaConfiguration(),
 ) throws
--> TranscriptionCapabilities {
+    -> TranscriptionCapabilities
+{
     let provider = try TranscriptionProviderFactory.createProvider(for: model, configuration: configuration)
     return provider.capabilities
 }
@@ -356,7 +364,8 @@ public func capabilities(
     for model: SpeechModel,
     configuration: TachikomaConfiguration = TachikomaConfiguration(),
 ) throws
--> SpeechCapabilities {
+    -> SpeechCapabilities
+{
     let provider = try SpeechProviderFactory.createProvider(for: model, configuration: configuration)
     return provider.capabilities
 }
@@ -374,8 +383,8 @@ actor AsyncSemaphore {
     }
 
     func wait() async {
-        if self.value > 0 {
-            self.value -= 1
+        if value > 0 {
+            value -= 1
             return
         }
 
@@ -385,10 +394,10 @@ actor AsyncSemaphore {
     }
 
     func signal() {
-        if self.waiters.isEmpty {
-            self.value += 1
+        if waiters.isEmpty {
+            value += 1
         } else {
-            let waiter = self.waiters.removeFirst()
+            let waiter = waiters.removeFirst()
             waiter.resume()
         }
     }

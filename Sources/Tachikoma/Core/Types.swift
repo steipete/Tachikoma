@@ -144,8 +144,8 @@ public struct RetryError: Error, LocalizedError, Sendable {
 
     public var errorDescription: String? {
         var description = "Retry failed: \(reason)"
-        if self.attempts > 0 {
-            description += " after \(self.attempts) attempts"
+        if attempts > 0 {
+            description += " after \(attempts) attempts"
         }
         if let lastError {
             description += ". Last error: \(lastError.localizedDescription)"
@@ -281,14 +281,14 @@ public struct Usage: Sendable, Codable, Equatable {
         public init(input: Double, output: Double) {
             self.input = input
             self.output = output
-            self.total = input + output
+            total = input + output
         }
     }
 
     public init(inputTokens: Int, outputTokens: Int, cost: Cost? = nil) {
         self.inputTokens = inputTokens
         self.outputTokens = outputTokens
-        self.totalTokens = inputTokens + outputTokens
+        totalTokens = inputTokens + outputTokens
         self.cost = cost
     }
 }
@@ -380,31 +380,31 @@ extension GenerationSettings: Codable {
 
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        self.maxTokens = try container.decodeIfPresent(Int.self, forKey: .maxTokens)
-        self.temperature = try container.decodeIfPresent(Double.self, forKey: .temperature)
-        self.topP = try container.decodeIfPresent(Double.self, forKey: .topP)
-        self.topK = try container.decodeIfPresent(Int.self, forKey: .topK)
-        self.frequencyPenalty = try container.decodeIfPresent(Double.self, forKey: .frequencyPenalty)
-        self.presencePenalty = try container.decodeIfPresent(Double.self, forKey: .presencePenalty)
-        self.stopSequences = try container.decodeIfPresent([String].self, forKey: .stopSequences)
-        self.reasoningEffort = try container.decodeIfPresent(ReasoningEffort.self, forKey: .reasoningEffort)
-        self.seed = try container.decodeIfPresent(Int.self, forKey: .seed)
-        self.providerOptions = try container.decodeIfPresent(ProviderOptions.self, forKey: .providerOptions) ?? .init()
-        self.stopConditions = nil // Can't decode function types
+        maxTokens = try container.decodeIfPresent(Int.self, forKey: .maxTokens)
+        temperature = try container.decodeIfPresent(Double.self, forKey: .temperature)
+        topP = try container.decodeIfPresent(Double.self, forKey: .topP)
+        topK = try container.decodeIfPresent(Int.self, forKey: .topK)
+        frequencyPenalty = try container.decodeIfPresent(Double.self, forKey: .frequencyPenalty)
+        presencePenalty = try container.decodeIfPresent(Double.self, forKey: .presencePenalty)
+        stopSequences = try container.decodeIfPresent([String].self, forKey: .stopSequences)
+        reasoningEffort = try container.decodeIfPresent(ReasoningEffort.self, forKey: .reasoningEffort)
+        seed = try container.decodeIfPresent(Int.self, forKey: .seed)
+        providerOptions = try container.decodeIfPresent(ProviderOptions.self, forKey: .providerOptions) ?? .init()
+        stopConditions = nil // Can't decode function types
     }
 
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
-        try container.encodeIfPresent(self.maxTokens, forKey: .maxTokens)
-        try container.encodeIfPresent(self.temperature, forKey: .temperature)
-        try container.encodeIfPresent(self.topP, forKey: .topP)
-        try container.encodeIfPresent(self.topK, forKey: .topK)
-        try container.encodeIfPresent(self.frequencyPenalty, forKey: .frequencyPenalty)
-        try container.encodeIfPresent(self.presencePenalty, forKey: .presencePenalty)
-        try container.encodeIfPresent(self.stopSequences, forKey: .stopSequences)
-        try container.encodeIfPresent(self.reasoningEffort, forKey: .reasoningEffort)
-        try container.encodeIfPresent(self.seed, forKey: .seed)
-        try container.encode(self.providerOptions, forKey: .providerOptions)
+        try container.encodeIfPresent(maxTokens, forKey: .maxTokens)
+        try container.encodeIfPresent(temperature, forKey: .temperature)
+        try container.encodeIfPresent(topP, forKey: .topP)
+        try container.encodeIfPresent(topK, forKey: .topK)
+        try container.encodeIfPresent(frequencyPenalty, forKey: .frequencyPenalty)
+        try container.encodeIfPresent(presencePenalty, forKey: .presencePenalty)
+        try container.encodeIfPresent(stopSequences, forKey: .stopSequences)
+        try container.encodeIfPresent(reasoningEffort, forKey: .reasoningEffort)
+        try container.encodeIfPresent(seed, forKey: .seed)
+        try container.encode(providerOptions, forKey: .providerOptions)
         // Don't encode stopConditions since it can't be serialized
     }
 }
@@ -433,10 +433,11 @@ public struct StreamTextResult: Sendable {
         sendReasoning: Bool = false,
         headers: [String: String]? = nil,
     )
-    -> UIMessageStreamResponse {
+        -> UIMessageStreamResponse
+    {
         // Convert stream to UI message stream response format (following Vercel AI SDK pattern)
         UIMessageStreamResponse(
-            stream: self.stream,
+            stream: stream,
             sendReasoning: sendReasoning,
             headers: headers,
         )

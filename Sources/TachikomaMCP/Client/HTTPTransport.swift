@@ -9,16 +9,16 @@ private actor HTTPTransportState {
     var headers: [String: String] = [:]
 
     func setConnection(session: URLSession?, url: URL?, timeout: TimeInterval, headers: [String: String]) {
-        self.urlSession = session
-        self.baseURL = url
-        self.requestTimeout = timeout
+        urlSession = session
+        baseURL = url
+        requestTimeout = timeout
         self.headers = headers
     }
 
-    func getSession() -> URLSession? { self.urlSession }
-    func getBaseURL() -> URL? { self.baseURL }
-    func getTimeout() -> TimeInterval { self.requestTimeout }
-    func getHeaders() -> [String: String] { self.headers }
+    func getSession() -> URLSession? { urlSession }
+    func getBaseURL() -> URL? { baseURL }
+    func getTimeout() -> TimeInterval { requestTimeout }
+    func getHeaders() -> [String: String] { headers }
 }
 
 /// HTTP transport for MCP communication
@@ -39,21 +39,22 @@ public final class HTTPTransport: MCPTransport {
         let session = URLSession(configuration: cfg)
         await state.setConnection(session: session, url: url, timeout: config.timeout, headers: config.headers ?? [:])
 
-        self.logger.info("HTTP transport ready (with SSE support): \(url)")
+        logger.info("HTTP transport ready (with SSE support): \(url)")
     }
 
     public func disconnect() async {
-        self.logger.info("Disconnecting HTTP transport")
+        logger.info("Disconnecting HTTP transport")
         let currentTimeout = await state.getTimeout()
         let currentHeaders = await state.getHeaders()
-        await self.state.setConnection(session: nil, url: nil, timeout: currentTimeout, headers: currentHeaders)
+        await state.setConnection(session: nil, url: nil, timeout: currentTimeout, headers: currentHeaders)
     }
 
     public func sendRequest<R: Decodable>(
         method: String,
         params: some Encodable,
     ) async throws
-    -> R {
+        -> R
+    {
         guard
             let baseURL = await state.getBaseURL(),
             let urlSession = await state.getSession() else
@@ -83,7 +84,7 @@ public final class HTTPTransport: MCPTransport {
         do {
             (data, response) = try await urlSession.data(for: request)
         } catch {
-            self.logger.error("HTTP request failed for \(method): \(error)")
+            logger.error("HTTP request failed for \(method): \(error)")
             throw MCPError.executionFailed("HTTP request failed: \(error)")
         }
         guard let httpResponse = response as? HTTPURLResponse else {
@@ -92,7 +93,7 @@ public final class HTTPTransport: MCPTransport {
 
         if !(200...299).contains(httpResponse.statusCode) {
             let bodyStr = String(data: data, encoding: .utf8) ?? "<non-utf8>"
-            self.logger.error("HTTP \(httpResponse.statusCode) for \(method): \(bodyStr)")
+            logger.error("HTTP \(httpResponse.statusCode) for \(method): \(bodyStr)")
             throw MCPError.executionFailed("HTTP \(httpResponse.statusCode): \(bodyStr)")
         }
 
@@ -117,7 +118,7 @@ public final class HTTPTransport: MCPTransport {
             }
 
             guard let jsonData else {
-                self.logger.error("No JSON data found in SSE response: \(responseStr)")
+                logger.error("No JSON data found in SSE response: \(responseStr)")
                 throw MCPError.invalidResponse
             }
 

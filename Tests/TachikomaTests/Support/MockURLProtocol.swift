@@ -1,7 +1,7 @@
 import Foundation
 
 #if canImport(FoundationNetworking)
-import FoundationNetworking
+    import FoundationNetworking
 #endif
 
 /// Simple URL protocol that lets tests stub network responses for providers.
@@ -16,7 +16,7 @@ final class MockURLProtocol: URLProtocol {
         set { handlerLock.withLock { _handler = newValue } }
     }
 
-    override class func canInit(with request: URLRequest) -> Bool {
+    override class func canInit(with _: URLRequest) -> Bool {
         true
     }
 

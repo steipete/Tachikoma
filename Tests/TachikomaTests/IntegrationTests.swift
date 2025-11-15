@@ -172,7 +172,7 @@ struct IntegrationTests {
                 )
             }
 
-            func streamText(request: ProviderRequest) async throws -> AsyncThrowingStream<TextStreamDelta, Error> {
+            func streamText(request _: ProviderRequest) async throws -> AsyncThrowingStream<TextStreamDelta, Error> {
                 throw TachikomaError.unsupportedOperation("Streaming not supported")
             }
         }

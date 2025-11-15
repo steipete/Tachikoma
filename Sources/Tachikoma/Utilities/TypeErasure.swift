@@ -16,7 +16,7 @@ struct AnyEncodable: Encodable {
     func encode(to encoder: Encoder) throws {
         var container = encoder.singleValueContainer()
 
-        switch self.value {
+        switch value {
         case let bool as Bool:
             try container.encode(bool)
         case let int as Int:
@@ -55,10 +55,10 @@ struct AnyEncodable: Encodable {
             try encodable.encode(to: encoder)
         default:
             throw EncodingError.invalidValue(
-                self.value,
+                value,
                 .init(
                     codingPath: encoder.codingPath,
-                    debugDescription: "Cannot encode value of type \(type(of: self.value))",
+                    debugDescription: "Cannot encode value of type \(type(of: value))",
                 ),
             )
         }
@@ -80,19 +80,19 @@ struct AnyDecodable: Decodable {
         let container = try decoder.singleValueContainer()
 
         if container.decodeNil() {
-            self.value = NSNull()
+            value = NSNull()
         } else if let bool = try? container.decode(Bool.self) {
-            self.value = bool
+            value = bool
         } else if let int = try? container.decode(Int.self) {
-            self.value = int
+            value = int
         } else if let double = try? container.decode(Double.self) {
-            self.value = double
+            value = double
         } else if let string = try? container.decode(String.self) {
-            self.value = string
+            value = string
         } else if let array = try? container.decode([AnyDecodable].self) {
-            self.value = array.map(\.value)
+            value = array.map(\.value)
         } else if let dict = try? container.decode([String: AnyDecodable].self) {
-            self.value = dict.mapValues(\.value)
+            value = dict.mapValues(\.value)
         } else {
             throw DecodingError.dataCorruptedError(
                 in: container,

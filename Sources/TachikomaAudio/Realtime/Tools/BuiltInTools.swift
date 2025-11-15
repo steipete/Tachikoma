@@ -157,22 +157,22 @@ public struct CalculatorTool: RealtimeExecutableTool {
         }
 
         #if canImport(ObjectiveC)
-        // Use NSExpression for safe math evaluation (only available on Darwin platforms)
-        // Basic sanitization
-        let sanitized = expression
-            .replacingOccurrences(of: "sqrt", with: "sqrt")
-            .replacingOccurrences(of: "^", with: "**")
+            // Use NSExpression for safe math evaluation (only available on Darwin platforms)
+            // Basic sanitization
+            let sanitized = expression
+                .replacingOccurrences(of: "sqrt", with: "sqrt")
+                .replacingOccurrences(of: "^", with: "**")
 
-        let mathExpression = NSExpression(format: sanitized)
-        if let result = mathExpression.expressionValue(with: nil, context: nil) {
-            return "Result: \(result)"
-        } else {
-            return "Error: Could not evaluate expression"
-        }
+            let mathExpression = NSExpression(format: sanitized)
+            if let result = mathExpression.expressionValue(with: nil, context: nil) {
+                return "Result: \(result)"
+            } else {
+                return "Error: Could not evaluate expression"
+            }
         #else
-        // Simple fallback for Linux - only handle basic operations
-        // This is a very basic implementation and should be replaced with a proper math parser
-        return "Error: Math evaluation not supported on this platform"
+            // Simple fallback for Linux - only handle basic operations
+            // This is a very basic implementation and should be replaced with a proper math parser
+            return "Error: Math evaluation not supported on this platform"
         #endif
     }
 
@@ -309,21 +309,21 @@ public final class RealtimeToolRegistry: Sendable {
     private let executor: RealtimeToolExecutor
 
     public init() {
-        self.executor = RealtimeToolExecutor()
+        executor = RealtimeToolExecutor()
     }
 
     /// Register all built-in tools
     public func registerBuiltInTools() async {
         // Register all built-in tools
         for tool in BuiltInTools.all() {
-            await self.executor.register(tool)
+            await executor.register(tool)
         }
     }
 
     /// Register a custom tool
     public func register(_ tool: some RealtimeExecutableTool) async {
         // Register a custom tool
-        await self.executor.register(tool)
+        await executor.register(tool)
     }
 
     /// Execute a tool
@@ -331,9 +331,10 @@ public final class RealtimeToolRegistry: Sendable {
         toolName: String,
         arguments: String,
     ) async
-    -> String {
+        -> String
+    {
         // Execute a tool
-        await self.executor.executeSimple(
+        await executor.executeSimple(
             toolName: toolName,
             arguments: arguments,
         )
@@ -355,6 +356,6 @@ public final class RealtimeToolRegistry: Sendable {
     /// Get execution history
     public func getHistory(limit: Int? = nil) async -> [RealtimeToolExecutor.ToolExecution] {
         // Get execution history
-        await self.executor.getHistory(limit: limit)
+        await executor.getHistory(limit: limit)
     }
 }

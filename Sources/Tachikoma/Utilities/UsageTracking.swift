@@ -17,7 +17,7 @@ public final class UsageTracker: @unchecked Sendable {
 
     /// Create a new usage tracker instance for testing
     /// - Note: This initializer is primarily intended for testing to avoid shared state issues
-    public init(forTesting: Bool) {
+    public init(forTesting _: Bool) {
         // Same as private init but allows creating separate instances for tests
     }
 
@@ -31,7 +31,7 @@ public final class UsageTracker: @unchecked Sendable {
         let id = sessionId ?? UUID().uuidString
         let session = UsageSession(id: id, startTime: Date())
 
-        self.lock.withLock {
+        lock.withLock {
             self._sessions[id] = session
         }
 
@@ -43,7 +43,7 @@ public final class UsageTracker: @unchecked Sendable {
     /// - Returns: The final session usage data
     @discardableResult
     public func endSession(_ sessionId: String) -> UsageSession? {
-        self.lock.withLock {
+        lock.withLock {
             guard let session = _sessions[sessionId] else { return nil }
 
             let finalSession = session.ended()
@@ -69,7 +69,7 @@ public final class UsageTracker: @unchecked Sendable {
         operation: OperationType = .textGeneration,
     ) {
         // Record usage for a session
-        self.lock.withLock {
+        lock.withLock {
             guard let session = _sessions[sessionId] else { return }
 
             let cost = self._costCalculator.calculateCost(for: model, usage: usage)
@@ -94,21 +94,21 @@ public final class UsageTracker: @unchecked Sendable {
     /// - Returns: The current session data if it exists
     public func getSession(_ sessionId: String) -> UsageSession? {
         // Get current session data
-        self.lock.withLock {
+        lock.withLock {
             self._sessions[sessionId]
         }
     }
 
     /// Get all active sessions
     public var activeSessions: [UsageSession] {
-        self.lock.withLock {
+        lock.withLock {
             Array(self._sessions.values.filter { !$0.isComplete })
         }
     }
 
     /// Get all completed sessions
     public var completedSessions: [UsageSession] {
-        self.lock.withLock {
+        lock.withLock {
             Array(self._sessions.values.filter(\.isComplete))
         }
     }
@@ -117,7 +117,7 @@ public final class UsageTracker: @unchecked Sendable {
 
     /// Get total usage across all sessions
     public var totalUsage: TotalUsage {
-        self.lock.withLock {
+        lock.withLock {
             self._totalUsage
         }
     }
@@ -125,7 +125,7 @@ public final class UsageTracker: @unchecked Sendable {
     /// Reset all usage data
     public func reset() {
         // Reset all usage data
-        self.lock.withLock {
+        lock.withLock {
             self._sessions.removeAll()
             self._totalUsage = TotalUsage()
         }
@@ -140,7 +140,7 @@ public final class UsageTracker: @unchecked Sendable {
     /// - Returns: Usage report for the specified period
     public func generateReport(from startDate: Date, to endDate: Date) -> UsageReport {
         // Generate a usage report for a date range
-        let sessions = self.lock.withLock {
+        let sessions = lock.withLock {
             Array(self._sessions.values.filter { session in
                 session.startTime >= startDate && session.startTime <= endDate
             })
@@ -150,7 +150,7 @@ public final class UsageTracker: @unchecked Sendable {
             startDate: startDate,
             endDate: endDate,
             sessions: sessions,
-            costCalculator: self._costCalculator,
+            costCalculator: _costCalculator,
         )
     }
 
@@ -162,7 +162,7 @@ public final class UsageTracker: @unchecked Sendable {
         let startOfDay = calendar.startOfDay(for: today)
         let endOfDay = calendar.date(byAdding: .day, value: 1, to: startOfDay) ?? today
 
-        return self.generateReport(from: startOfDay, to: endOfDay)
+        return generateReport(from: startOfDay, to: endOfDay)
     }
 
     /// Generate a usage report for this month
@@ -173,7 +173,7 @@ public final class UsageTracker: @unchecked Sendable {
         let startOfMonth = calendar.dateInterval(of: .month, for: today)?.start ?? today
         let endOfMonth = calendar.dateInterval(of: .month, for: today)?.end ?? today
 
-        return self.generateReport(from: startOfMonth, to: endOfMonth)
+        return generateReport(from: startOfMonth, to: endOfMonth)
     }
 }
 
@@ -188,27 +188,27 @@ public struct UsageSession: Sendable, Codable {
     public let operations: [UsageOperation]
 
     public var isComplete: Bool {
-        self.endTime != nil
+        endTime != nil
     }
 
     public var duration: TimeInterval? {
         guard let endTime else { return nil }
-        return endTime.timeIntervalSince(self.startTime)
+        return endTime.timeIntervalSince(startTime)
     }
 
     public var totalTokens: Int {
-        self.operations.reduce(0) { $0 + $1.usage.totalTokens }
+        operations.reduce(0) { $0 + $1.usage.totalTokens }
     }
 
     public var totalCost: Double {
-        self.operations.compactMap { $0.usage.cost?.total }.reduce(0, +)
+        operations.compactMap { $0.usage.cost?.total }.reduce(0, +)
     }
 
     init(id: String, startTime: Date) {
         self.id = id
         self.startTime = startTime
-        self.endTime = nil
-        self.operations = []
+        endTime = nil
+        operations = []
     }
 
     private init(id: String, startTime: Date, endTime: Date?, operations: [UsageOperation]) {
@@ -229,10 +229,10 @@ public struct UsageSession: Sendable, Codable {
         )
 
         return UsageSession(
-            id: self.id,
-            startTime: self.startTime,
-            endTime: self.endTime,
-            operations: self.operations + [newOperation],
+            id: id,
+            startTime: startTime,
+            endTime: endTime,
+            operations: operations + [newOperation],
         )
     }
 
@@ -240,10 +240,10 @@ public struct UsageSession: Sendable, Codable {
     func ended() -> UsageSession {
         // Create a new session marked as ended
         UsageSession(
-            id: self.id,
-            startTime: self.startTime,
+            id: id,
+            startTime: startTime,
             endTime: Date(),
-            operations: self.operations,
+            operations: operations,
         )
     }
 }
@@ -261,15 +261,15 @@ public struct UsageOperation: Sendable, Codable {
 
     public init(timestamp: Date, model: LanguageModel, usage: Usage, type: OperationType) {
         self.timestamp = timestamp
-        self.modelId = model.modelId
-        self.providerName = model.providerName
+        modelId = model.modelId
+        providerName = model.providerName
         self.usage = usage
         self.type = type
     }
 
     // For backward compatibility, provide a computed property to reconstruct model info
     public var modelDescription: String {
-        "\(self.providerName)/\(self.modelId)"
+        "\(providerName)/\(modelId)"
     }
 }
 
@@ -315,10 +315,10 @@ public struct TotalUsage: Sendable, Codable {
     public var operationBreakdown: [String: OperationUsage] = [:]
 
     mutating func addSession(_ session: UsageSession) {
-        self.totalSessions += 1
-        self.totalOperations += session.operations.count
-        self.totalTokens += session.totalTokens
-        self.totalCost += session.totalCost
+        totalSessions += 1
+        totalOperations += session.operations.count
+        totalTokens += session.totalTokens
+        totalCost += session.totalCost
 
         for operation in session.operations {
             let providerName = operation.providerName
@@ -326,19 +326,19 @@ public struct TotalUsage: Sendable, Codable {
             let operationType = operation.type.rawValue
 
             // Update provider breakdown
-            var providerUsage = self.providerBreakdown[providerName] ?? ProviderUsage()
+            var providerUsage = providerBreakdown[providerName] ?? ProviderUsage()
             providerUsage.addOperation(operation)
-            self.providerBreakdown[providerName] = providerUsage
+            providerBreakdown[providerName] = providerUsage
 
             // Update model breakdown
-            var modelUsage = self.modelBreakdown[modelName] ?? ModelUsage()
+            var modelUsage = modelBreakdown[modelName] ?? ModelUsage()
             modelUsage.addOperation(operation)
-            self.modelBreakdown[modelName] = modelUsage
+            modelBreakdown[modelName] = modelUsage
 
             // Update operation type breakdown
-            var opUsage = self.operationBreakdown[operationType] ?? OperationUsage()
+            var opUsage = operationBreakdown[operationType] ?? OperationUsage()
             opUsage.addOperation(operation)
-            self.operationBreakdown[operationType] = opUsage
+            operationBreakdown[operationType] = opUsage
         }
     }
 }
@@ -352,9 +352,9 @@ public struct ProviderUsage: Sendable, Codable {
     public var cost: Double = 0.0
 
     mutating func addOperation(_ operation: UsageOperation) {
-        self.operations += 1
-        self.tokens += operation.usage.totalTokens
-        self.cost += operation.usage.cost?.total ?? 0.0
+        operations += 1
+        tokens += operation.usage.totalTokens
+        cost += operation.usage.cost?.total ?? 0.0
     }
 }
 
@@ -365,9 +365,9 @@ public struct ModelUsage: Sendable, Codable {
     public var cost: Double = 0.0
 
     mutating func addOperation(_ operation: UsageOperation) {
-        self.operations += 1
-        self.tokens += operation.usage.totalTokens
-        self.cost += operation.usage.cost?.total ?? 0.0
+        operations += 1
+        tokens += operation.usage.totalTokens
+        cost += operation.usage.cost?.total ?? 0.0
     }
 }
 
@@ -378,9 +378,9 @@ public struct OperationUsage: Sendable, Codable {
     public var cost: Double = 0.0
 
     mutating func addOperation(_ operation: UsageOperation) {
-        self.operations += 1
-        self.tokens += operation.usage.totalTokens
-        self.cost += operation.usage.cost?.total ?? 0.0
+        operations += 1
+        tokens += operation.usage.totalTokens
+        cost += operation.usage.cost?.total ?? 0.0
     }
 }
 
@@ -393,16 +393,16 @@ public struct UsageReport: Sendable {
     public let endDate: Date
     public let sessions: [UsageSession]
 
-    public var totalSessions: Int { self.sessions.count }
-    public var totalOperations: Int { self.sessions.reduce(0) { $0 + $1.operations.count } }
-    public var totalTokens: Int { self.sessions.reduce(0) { $0 + $1.totalTokens } }
-    public var totalCost: Double { self.sessions.reduce(0) { $0 + $1.totalCost } }
+    public var totalSessions: Int { sessions.count }
+    public var totalOperations: Int { sessions.reduce(0) { $0 + $1.operations.count } }
+    public var totalTokens: Int { sessions.reduce(0) { $0 + $1.totalTokens } }
+    public var totalCost: Double { sessions.reduce(0) { $0 + $1.totalCost } }
 
     public let providerBreakdown: [String: ProviderUsage]
     public let modelBreakdown: [String: ModelUsage]
     public let operationBreakdown: [String: OperationUsage]
 
-    init(startDate: Date, endDate: Date, sessions: [UsageSession], costCalculator: ModelCostCalculator) {
+    init(startDate: Date, endDate: Date, sessions: [UsageSession], costCalculator _: ModelCostCalculator) {
         self.startDate = startDate
         self.endDate = endDate
         self.sessions = sessions
@@ -432,9 +432,9 @@ public struct UsageReport: Sendable {
             }
         }
 
-        self.providerBreakdown = providers
-        self.modelBreakdown = models
-        self.operationBreakdown = operations
+        providerBreakdown = providers
+        modelBreakdown = models
+        operationBreakdown = operations
     }
 
     /// Generate a formatted text report
@@ -447,19 +447,19 @@ public struct UsageReport: Sendable {
         var lines: [String] = []
         lines.append("Usage Report")
         lines.append("============")
-        lines.append("Period: \(formatter.string(from: self.startDate)) - \(formatter.string(from: self.endDate))")
+        lines.append("Period: \(formatter.string(from: startDate)) - \(formatter.string(from: endDate))")
         lines.append("")
 
         lines.append("Summary:")
-        lines.append("  Sessions: \(self.totalSessions)")
-        lines.append("  Operations: \(self.totalOperations)")
-        lines.append("  Total Tokens: \(self.totalTokens)")
-        lines.append("  Total Cost: $\(String(format: "%.4f", self.totalCost))")
+        lines.append("  Sessions: \(totalSessions)")
+        lines.append("  Operations: \(totalOperations)")
+        lines.append("  Total Tokens: \(totalTokens)")
+        lines.append("  Total Cost: $\(String(format: "%.4f", totalCost))")
         lines.append("")
 
-        if !self.providerBreakdown.isEmpty {
+        if !providerBreakdown.isEmpty {
             lines.append("By Provider:")
-            for (provider, usage) in self.providerBreakdown.sorted(by: { $0.value.cost > $1.value.cost }) {
+            for (provider, usage) in providerBreakdown.sorted(by: { $0.value.cost > $1.value.cost }) {
                 lines
                     .append(
                         "  \(provider): \(usage.operations) ops, \(usage.tokens) tokens, $\(String(format: "%.4f", usage.cost))",
@@ -468,9 +468,9 @@ public struct UsageReport: Sendable {
             lines.append("")
         }
 
-        if !self.modelBreakdown.isEmpty {
+        if !modelBreakdown.isEmpty {
             lines.append("By Model:")
-            for (model, usage) in self.modelBreakdown.sorted(by: { $0.value.cost > $1.value.cost }) {
+            for (model, usage) in modelBreakdown.sorted(by: { $0.value.cost > $1.value.cost }) {
                 lines
                     .append(
                         "  \(model): \(usage.operations) ops, \(usage.tokens) tokens, $\(String(format: "%.4f", usage.cost))",
@@ -479,9 +479,9 @@ public struct UsageReport: Sendable {
             lines.append("")
         }
 
-        if !self.operationBreakdown.isEmpty {
+        if !operationBreakdown.isEmpty {
             lines.append("By Operation Type:")
-            for (operation, usage) in self.operationBreakdown.sorted(by: { $0.value.cost > $1.value.cost }) {
+            for (operation, usage) in operationBreakdown.sorted(by: { $0.value.cost > $1.value.cost }) {
                 let displayName = OperationType(rawValue: operation)?.displayName ?? operation
                 lines
                     .append(
@@ -502,7 +502,7 @@ public struct ModelCostCalculator: Sendable {
     /// Calculate cost for a model usage
     public func calculateCost(for model: LanguageModel, usage: Usage) -> Usage.Cost {
         // Calculate cost for a model usage
-        let pricing = self.getPricing(for: model)
+        let pricing = getPricing(for: model)
 
         let inputCost = Double(usage.inputTokens) * pricing.input / 1_000_000.0
         let outputCost = Double(usage.outputTokens) * pricing.output / 1_000_000.0

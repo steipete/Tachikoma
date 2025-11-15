@@ -597,11 +597,11 @@ private struct DummyProvider: ModelProvider {
         maxOutputTokens: 1,
     )
 
-    func generateText(request: ProviderRequest) async throws -> ProviderResponse {
+    func generateText(request _: ProviderRequest) async throws -> ProviderResponse {
         ProviderResponse(text: "dummy")
     }
 
-    func streamText(request: ProviderRequest) async throws -> AsyncThrowingStream<TextStreamDelta, Error> {
+    func streamText(request _: ProviderRequest) async throws -> AsyncThrowingStream<TextStreamDelta, Error> {
         AsyncThrowingStream { continuation in
             continuation.yield(TextStreamDelta.text("dummy"))
             continuation.finish()

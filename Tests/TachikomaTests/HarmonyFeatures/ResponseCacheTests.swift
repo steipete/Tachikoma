@@ -419,12 +419,12 @@ private struct ResponseCacheMockProvider: ModelProvider {
     }
 
     func generateText(request: ProviderRequest) async throws -> ProviderResponse {
-        self.onGenerateText?(request)
-        return self.response
+        onGenerateText?(request)
+        return response
     }
 
     func streamText(request: ProviderRequest) async throws -> AsyncThrowingStream<TextStreamDelta, Error> {
-        self.onStreamText?(request)
+        onStreamText?(request)
         return AsyncThrowingStream { continuation in
             continuation.yield(TextStreamDelta(type: .textDelta, content: "Stream"))
             continuation.finish()

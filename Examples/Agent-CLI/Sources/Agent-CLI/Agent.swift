@@ -29,21 +29,21 @@ final class Agent {
     init(configuration: AgentConfiguration, eventDelegate: AgentEventDelegate? = nil) {
         self.configuration = configuration
         self.eventDelegate = eventDelegate
-        self.tachikomaConfig = TachikomaConfiguration.current
+        tachikomaConfig = TachikomaConfiguration.current
     }
 
     /// Execute the agent with the given messages
     func execute(messages: [ModelMessage], maxTurns: Int? = nil) async throws -> AgentExecutionResult {
         let startTime = Date()
-        let turns = maxTurns ?? self.configuration.maxIterations
+        let turns = maxTurns ?? configuration.maxIterations
 
         // Notify start
-        self.eventDelegate?.agentDidEmitEvent(.started("Processing request..."))
+        eventDelegate?.agentDidEmitEvent(.started("Processing request..."))
 
         // Build messages with system prompt
         var allMessages = messages
-        if !self.configuration.systemPrompt.isEmpty {
-            allMessages.insert(.system(self.configuration.systemPrompt), at: 0)
+        if !configuration.systemPrompt.isEmpty {
+            allMessages.insert(.system(configuration.systemPrompt), at: 0)
         }
 
         // Track tool calls
@@ -53,36 +53,36 @@ final class Agent {
 
         // Main execution loop
         for turn in 0..<turns {
-            self.eventDelegate?.agentDidEmitEvent(.statusUpdate("Turn \(turn + 1)/\(turns)"))
+            eventDelegate?.agentDidEmitEvent(.statusUpdate("Turn \(turn + 1)/\(turns)"))
 
             // Check if we should show thinking for this model
-            let shouldShowThinking = self.configuration.showThinking && self.isReasoningModel(self.configuration.model)
+            let shouldShowThinking = configuration.showThinking && isReasoningModel(configuration.model)
 
             // Generate response
             let response: GenerateTextResult
 
-            if self.configuration.tools.isEmpty {
+            if configuration.tools.isEmpty {
                 // No tools - simple generation
                 response = try await generateText(
-                    model: self.configuration.model,
+                    model: configuration.model,
                     messages: allMessages,
                     settings: GenerationSettings(
                         maxTokens: 2000,
-                        temperature: self.configuration.temperature,
+                        temperature: configuration.temperature,
                     ),
-                    configuration: self.tachikomaConfig,
+                    configuration: tachikomaConfig,
                 )
             } else {
                 // With tools - use generateText with tools
                 response = try await generateText(
-                    model: self.configuration.model,
+                    model: configuration.model,
                     messages: allMessages,
-                    tools: self.configuration.tools,
+                    tools: configuration.tools,
                     settings: GenerationSettings(
                         maxTokens: 2000,
-                        temperature: self.configuration.temperature,
+                        temperature: configuration.temperature,
                     ),
-                    configuration: self.tachikomaConfig,
+                    configuration: tachikomaConfig,
                 )
 
                 // Track tool calls from response steps
@@ -93,7 +93,7 @@ final class Agent {
                         // Notify UI about tool call
                         let argsData = try? JSONEncoder().encode(toolCall.arguments)
                         let argsString = String(data: argsData ?? Data(), encoding: .utf8) ?? "{}"
-                        self.eventDelegate?.agentDidEmitEvent(.toolCallStarted(
+                        eventDelegate?.agentDidEmitEvent(.toolCallStarted(
                             name: toolCall.name,
                             arguments: argsString,
                         ))
@@ -104,7 +104,7 @@ final class Agent {
                         // Notify UI about tool result
                         let resultData = try? JSONEncoder().encode(toolResult.result)
                         let resultString = String(data: resultData ?? Data(), encoding: .utf8) ?? "{}"
-                        self.eventDelegate?.agentDidEmitEvent(.toolCallCompleted(
+                        eventDelegate?.agentDidEmitEvent(.toolCallCompleted(
                             name: toolResult.toolCallId,
                             result: resultString,
                         ))
@@ -116,7 +116,7 @@ final class Agent {
             if shouldShowThinking, response.text.contains("thinking:") {
                 let parts = response.text.components(separatedBy: "thinking:")
                 if parts.count > 1 {
-                    self.eventDelegate?
+                    eventDelegate?
                         .agentDidEmitEvent(.thinking(parts[1].trimmingCharacters(in: .whitespacesAndNewlines)))
                 }
             }
@@ -145,7 +145,7 @@ final class Agent {
         }
 
         // Notify completion
-        self.eventDelegate?.agentDidEmitEvent(.completed(finalContent.prefix(100).description))
+        eventDelegate?.agentDidEmitEvent(.completed(finalContent.prefix(100).description))
 
         let duration = Date().timeIntervalSince(startTime)
 
@@ -216,7 +216,7 @@ final class Agent {
                     let toolCall = ToolCall(
                         id: UUID().uuidString,
                         name: name,
-                        arguments: self.convertToAgentArguments(args),
+                        arguments: convertToAgentArguments(args),
                     )
                     toolCalls.append(toolCall)
                 }
@@ -248,7 +248,7 @@ final class Agent {
     private func convertToAgentArguments(_ dict: [String: Any]) -> AgentToolArguments {
         var args: [String: AnyAgentToolValue] = [:]
         for (key, value) in dict {
-            args[key] = self.convertToAgentValue(value)
+            args[key] = convertToAgentValue(value)
         }
         return AgentToolArguments(args)
     }
@@ -268,7 +268,7 @@ final class Agent {
         } else if let dict = value as? [String: Any] {
             var converted: [String: AnyAgentToolValue] = [:]
             for (key, val) in dict {
-                converted[key] = self.convertToAgentValue(val)
+                converted[key] = convertToAgentValue(val)
             }
             return AnyAgentToolValue(object: converted)
         } else {

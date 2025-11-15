@@ -1,6 +1,6 @@
 import Foundation
 #if canImport(FoundationNetworking)
-import FoundationNetworking
+    import FoundationNetworking
 #endif
 import Tachikoma
 
@@ -64,8 +64,8 @@ public actor WebSocketTransport: RealtimeTransport {
 
     public func connect(url: URL, headers: [String: String]) async throws {
         // Disconnect if already connected
-        if self._isConnected {
-            await self.disconnect()
+        if _isConnected {
+            await disconnect()
         }
 
         // Create request with headers
@@ -75,10 +75,10 @@ public actor WebSocketTransport: RealtimeTransport {
         }
 
         // Create WebSocket task
-        self.task = self.session.webSocketTask(with: request)
+        task = session.webSocketTask(with: request)
 
         // Start the connection
-        self.task?.resume()
+        task?.resume()
 
         // Wait for connection confirmation
         try await withCheckedThrowingContinuation { continuation in
@@ -106,23 +106,23 @@ public actor WebSocketTransport: RealtimeTransport {
     }
 
     public func disconnect() async {
-        self._isConnected = false
+        _isConnected = false
 
         // Cancel the task
-        self.task?.cancel(with: .goingAway, reason: nil)
-        self.task = nil
+        task?.cancel(with: .goingAway, reason: nil)
+        task = nil
 
         // Complete any pending continuations
-        self.receiveContinuation?.finish()
-        self.receiveContinuation = nil
+        receiveContinuation?.finish()
+        receiveContinuation = nil
 
-        self.connectionContinuation?.resume(throwing: TachikomaError.networkError(
+        connectionContinuation?.resume(throwing: TachikomaError.networkError(
             NSError(domain: "WebSocket", code: -1, userInfo: [NSLocalizedDescriptionKey: "Connection closed"]),
         ))
-        self.connectionContinuation = nil
+        connectionContinuation = nil
 
         // Reset reconnect counter
-        self.reconnectAttempt = 0
+        reconnectAttempt = 0
     }
 
     // MARK: - Data Transfer
@@ -147,7 +147,7 @@ public actor WebSocketTransport: RealtimeTransport {
     }
 
     private func setReceiveContinuation(_ continuation: AsyncThrowingStream<Data, Error>.Continuation) {
-        self.receiveContinuation = continuation
+        receiveContinuation = continuation
     }
 
     // MARK: - Private Methods
@@ -156,15 +156,15 @@ public actor WebSocketTransport: RealtimeTransport {
         guard let task else { return }
 
         do {
-            while self._isConnected {
+            while _isConnected {
                 let message = try await task.receive()
 
                 switch message {
                 case let .data(data):
-                    self.receiveContinuation?.yield(data)
+                    receiveContinuation?.yield(data)
                 case let .string(string):
                     if let data = string.data(using: .utf8) {
-                        self.receiveContinuation?.yield(data)
+                        receiveContinuation?.yield(data)
                     }
                 @unknown default:
                     break
@@ -172,20 +172,20 @@ public actor WebSocketTransport: RealtimeTransport {
             }
         } catch {
             // Connection error - attempt reconnection
-            if self._isConnected {
-                await self.handleConnectionError(error)
+            if _isConnected {
+                await handleConnectionError(error)
             }
         }
     }
 
     private func startHeartbeat() async {
-        while self._isConnected {
+        while _isConnected {
             do {
                 // Send ping every 30 seconds
                 try await Task.sleep(nanoseconds: 30_000_000_000)
 
-                if self._isConnected {
-                    try await self.sendPing()
+                if _isConnected {
+                    try await sendPing()
                 }
             } catch {
                 // Ignore heartbeat errors
@@ -211,21 +211,21 @@ public actor WebSocketTransport: RealtimeTransport {
     }
 
     private func handleConnectionError(_ error: Error) async {
-        guard self._isConnected else { return }
+        guard _isConnected else { return }
 
         // Mark as disconnected
-        self._isConnected = false
+        _isConnected = false
 
         // Notify about disconnection
-        self.receiveContinuation?.finish(throwing: error)
+        receiveContinuation?.finish(throwing: error)
 
         // Attempt reconnection with exponential backoff
-        if self.reconnectAttempt < self.maxReconnectAttempts {
-            self.reconnectAttempt += 1
+        if reconnectAttempt < maxReconnectAttempts {
+            reconnectAttempt += 1
 
             let delay = min(
-                baseReconnectDelay * pow(2.0, Double(self.reconnectAttempt - 1)),
-                self.maxReconnectDelay,
+                baseReconnectDelay * pow(2.0, Double(reconnectAttempt - 1)),
+                maxReconnectDelay,
             )
 
             do {
@@ -234,13 +234,13 @@ public actor WebSocketTransport: RealtimeTransport {
                 // Attempt to reconnect
                 // Note: In production, we'd need to store the original URL and headers
                 // For now, this is a placeholder
-                print("WebSocket: Reconnection attempt \(self.reconnectAttempt) after \(delay)s delay")
+                print("WebSocket: Reconnection attempt \(reconnectAttempt) after \(delay)s delay")
             } catch {
                 // Task was cancelled
             }
         } else {
             // Max reconnection attempts reached
-            self.receiveContinuation?.finish(throwing: TachikomaError.networkError(
+            receiveContinuation?.finish(throwing: TachikomaError.networkError(
                 NSError(domain: "WebSocket", code: -1, userInfo: [
                     NSLocalizedDescriptionKey: "Maximum reconnection attempts reached",
                 ]),
@@ -257,7 +257,8 @@ public struct WebSocketTransportFactory {
     public static func create(
         session: URLSession = .shared,
     )
-    -> RealtimeTransport {
+        -> RealtimeTransport
+    {
         // Create a WebSocket transport with custom configuration
         WebSocketTransport(session: session)
     }
@@ -269,8 +270,8 @@ public struct WebSocketTransportFactory {
         configuration.timeoutIntervalForRequest = 30
         configuration.timeoutIntervalForResource = 300
         #if !os(Linux)
-        // waitsForConnectivity is not available on Linux
-        configuration.waitsForConnectivity = false
+            // waitsForConnectivity is not available on Linux
+            configuration.waitsForConnectivity = false
         #endif
 
         let session = URLSession(configuration: configuration)

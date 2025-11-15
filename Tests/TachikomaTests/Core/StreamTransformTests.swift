@@ -83,7 +83,7 @@ struct StreamTransformTests {
         actor SideEffectsCollector {
             var values: [Int] = []
             func append(_ value: Int) {
-                self.values.append(value)
+                values.append(value)
             }
         }
 
@@ -144,7 +144,7 @@ struct StreamTransformTests {
         actor TapCollector {
             var values: [String] = []
             func append(_ value: String) {
-                self.values.append(value)
+                values.append(value)
             }
         }
 

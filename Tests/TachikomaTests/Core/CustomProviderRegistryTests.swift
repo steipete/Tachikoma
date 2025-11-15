@@ -2,11 +2,11 @@ import Foundation
 import Tachikoma
 import Testing
 #if os(Windows)
-import CRT
+    import CRT
 #elseif canImport(Darwin)
-import Darwin
+    import Darwin
 #else
-import Glibc
+    import Glibc
 #endif
 
 @Suite("Custom Provider Registry")
@@ -51,15 +51,15 @@ struct CustomProviderRegistryTests {
 
         let originalHome = ProcessInfo.processInfo.environment["HOME"]
         #if os(Windows)
-        let originalUserProfile = ProcessInfo.processInfo.environment["USERPROFILE"]
+            let originalUserProfile = ProcessInfo.processInfo.environment["USERPROFILE"]
         #endif
         let originalProfileDir = TachikomaConfiguration.profileDirectoryName
 
         defer {
             #if os(Windows)
-            let userProfileValue = originalUserProfile
+                let userProfileValue = originalUserProfile
             #else
-            let userProfileValue: String? = nil
+                let userProfileValue: String? = nil
             #endif
             TachikomaConfiguration.profileDirectoryName = originalProfileDir
             unsetenv("WEATHER_TOKEN")
@@ -71,7 +71,7 @@ struct CustomProviderRegistryTests {
         }
 
         TachikomaConfiguration.profileDirectoryName = profileDirName
-        self.setHomeEnvironment(to: tempHome.path)
+        setHomeEnvironment(to: tempHome.path)
         setenv("WEATHER_TOKEN", "sk-test-weather", 1)
 
         CustomProviderRegistry.shared.loadFromProfile()
@@ -96,7 +96,7 @@ struct CustomProviderRegistryTests {
     private func setHomeEnvironment(to path: String) {
         setenv("HOME", path, 1)
         #if os(Windows)
-        setenv("USERPROFILE", path, 1)
+            setenv("USERPROFILE", path, 1)
         #endif
     }
 
@@ -109,13 +109,13 @@ struct CustomProviderRegistryTests {
     }
 
     #if os(Windows)
-    private func restoreUserProfile(_ path: String?) {
-        if let path {
-            setenv("USERPROFILE", path, 1)
-        } else {
-            unsetenv("USERPROFILE")
+        private func restoreUserProfile(_ path: String?) {
+            if let path {
+                setenv("USERPROFILE", path, 1)
+            } else {
+                unsetenv("USERPROFILE")
+            }
         }
-    }
     #endif
 
     private func resetRegistry(
@@ -132,11 +132,11 @@ struct CustomProviderRegistryTests {
         try? "{ \"customProviders\": {} }".write(to: resetConfigURL, atomically: true, encoding: .utf8)
 
         TachikomaConfiguration.profileDirectoryName = profileDir
-        self.setHomeEnvironment(to: resetHome.path)
+        setHomeEnvironment(to: resetHome.path)
         CustomProviderRegistry.shared.loadFromProfile()
-        self.restoreEnvironment(home: originalHome)
+        restoreEnvironment(home: originalHome)
         #if os(Windows)
-        self.restoreUserProfile(originalUserProfile)
+            restoreUserProfile(originalUserProfile)
         #endif
     }
 }
