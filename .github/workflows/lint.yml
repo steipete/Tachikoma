@@ -119,7 +119,7 @@ jobs:
     - name: Check Swift 6 Language Mode
       run: |
         # Verify Swift 6 language mode is enabled (either via swiftLanguageModes or swiftLanguageVersion)
-        cd ${GITHUB_WORKSPACE}/Tachikoma
+        cd ${GITHUB_WORKSPACE}
         SWIFT_DUMP="$(swift package dump-package 2>/dev/null)"
         if jq -e '.swiftLanguageModes[] | select(. == "6")' <<< "$SWIFT_DUMP" >/dev/null 2>&1; then
           echo "Swift 6 language mode detected via dump-package"
