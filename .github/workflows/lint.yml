@@ -171,9 +171,6 @@ jobs:
         
         # Validate dependencies
         swift package show-dependencies --format json | jq '.'
-        
-        # Check for common issues
-        swift package diagnose
 
     - name: Check Documentation
       run: |

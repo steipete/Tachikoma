@@ -1,4 +1,8 @@
-import Darwin
+#if canImport(Darwin)
+    import Darwin
+#else
+    import Glibc
+#endif
 import Testing
 @testable import Tachikoma
 @testable import TachikomaAudio

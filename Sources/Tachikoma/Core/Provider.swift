@@ -1,5 +1,9 @@
 import Configuration
-import Darwin
+#if canImport(Darwin)
+    import Darwin
+#else
+    import Glibc
+#endif
 import Foundation
 
 /// Type-safe provider enumeration supporting both standard and custom AI providers.
