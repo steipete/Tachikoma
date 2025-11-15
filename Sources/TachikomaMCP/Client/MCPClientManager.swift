@@ -8,6 +8,13 @@ public struct ServerProbeResult: Sendable {
     public let toolCount: Int
     public let responseTime: TimeInterval
     public let error: String?
+
+    public init(isConnected: Bool, toolCount: Int, responseTime: TimeInterval, error: String?) {
+        self.isConnected = isConnected
+        self.toolCount = toolCount
+        self.responseTime = responseTime
+        self.error = error
+    }
 }
 
 private enum AutoConnectPolicy {
