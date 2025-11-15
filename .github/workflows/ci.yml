@@ -25,19 +25,19 @@ jobs:
       uses: actions/checkout@v4
       with:
         repository: steipete/Commander
-        path: Commander
+        path: ../Commander
 
     - name: Checkout Commander dependency
       uses: actions/checkout@v4
       with:
         repository: steipete/Commander
-        path: Commander
+        path: ../Commander
 
     - name: Checkout Commander dependency
       uses: actions/checkout@v4
       with:
         repository: steipete/Commander
-        path: Commander
+        path: ../Commander
 
     - name: Select Xcode 16
       if: runner.os == 'macOS'
@@ -107,7 +107,7 @@ jobs:
       uses: actions/checkout@v4
       with:
         repository: steipete/Commander
-        path: Commander
+        path: ../Commander
 
     - name: Select Xcode 16
       if: runner.os == 'macOS'

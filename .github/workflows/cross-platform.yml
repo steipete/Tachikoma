@@ -17,7 +17,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: steipete/Commander
-          path: Commander
+          path: ../Commander
       
       - name: Select Xcode
         run: sudo xcode-select -s /Applications/Xcode_16.1.app || sudo xcode-select -s /Applications/Xcode_16.0.app || sudo xcode-select -s /Applications/Xcode.app
@@ -40,7 +40,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: steipete/Commander
-          path: Commander
+          path: ../Commander
       
       - name: Select Xcode
         run: sudo xcode-select -s /Applications/Xcode_16.1.app || sudo xcode-select -s /Applications/Xcode_16.0.app || sudo xcode-select -s /Applications/Xcode.app
@@ -65,7 +65,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: steipete/Commander
-          path: Commander
+          path: ../Commander
       
       - name: Install dependencies
         run: |
@@ -91,7 +91,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: steipete/Commander
-          path: Commander
+          path: ../Commander
       
       - name: Install dependencies
         run: |
@@ -117,7 +117,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: steipete/Commander
-          path: Commander
+          path: ../Commander
       
       - name: Setup Swift
         uses: compnerd/gha-setup-swift@v0.3.0
