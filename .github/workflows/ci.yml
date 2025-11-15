@@ -30,34 +30,10 @@ jobs:
       if: runner.os == 'macOS'
       run: sudo xcode-select -s /Applications/Xcode_16.1.app || sudo xcode-select -s /Applications/Xcode_16.0.app || sudo xcode-select -s /Applications/Xcode.app
 
-    - name: Install Swift toolchain (macOS/Linux)
-      if: runner.os != 'Windows'
-      uses: SwiftyLab/setup-swift@v1
+    - name: Setup Swift 6.2.1
+      uses: swift-actions/setup-swift@v2
       with:
         swift-version: '6.2.1'
-
-    - name: Install Swift toolchain (Windows)
-      if: runner.os == 'Windows'
-      uses: compnerd/gha-setup-swift@v0.3.0
-      with:
-        branch: swift-6.2-release
-        tag: 6.2-RELEASE
-
-    - name: Ensure Swift CLI available (Windows)
-      if: runner.os == 'Windows'
-      shell: pwsh
-      run: |
-        $swiftExe = Get-ChildItem -Path "C:\Users\runneradmin\AppData\Local\Programs\Swift" -Filter swift.exe -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
-        if (-not $swiftExe) {
-          $swiftExe = Get-ChildItem -Path "C:\Library\Developer" -Filter swift.exe -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
-        }
-        if (-not $swiftExe) {
-          throw "Swift executable not found after installation."
-        }
-        $dir = Split-Path $swiftExe.FullName
-        Add-Content -Path $env:GITHUB_PATH -Value $dir
-        Write-Host "Added $dir to PATH"
-        swift --version
 
     - name: Cache Swift Package Manager
       uses: actions/cache@v4
@@ -114,34 +90,10 @@ jobs:
       if: runner.os == 'macOS'
       run: sudo xcode-select -s /Applications/Xcode_16.1.app || sudo xcode-select -s /Applications/Xcode_16.0.app || sudo xcode-select -s /Applications/Xcode.app
 
-    - name: Install Swift toolchain (macOS/Linux)
-      if: runner.os != 'Windows'
-      uses: SwiftyLab/setup-swift@v1
+    - name: Setup Swift 6.2.1
+      uses: swift-actions/setup-swift@v2
       with:
         swift-version: '6.2.1'
-
-    - name: Install Swift toolchain (Windows)
-      if: runner.os == 'Windows'
-      uses: compnerd/gha-setup-swift@v0.3.0
-      with:
-        branch: swift-6.2-release
-        tag: 6.2-RELEASE
-
-    - name: Ensure Swift CLI available (Windows)
-      if: runner.os == 'Windows'
-      shell: pwsh
-      run: |
-        $swiftExe = Get-ChildItem -Path "C:\Users\runneradmin\AppData\Local\Programs\Swift" -Filter swift.exe -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
-        if (-not $swiftExe) {
-          $swiftExe = Get-ChildItem -Path "C:\Library\Developer" -Filter swift.exe -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
-        }
-        if (-not $swiftExe) {
-          throw "Swift executable not found after installation."
-        }
-        $dir = Split-Path $swiftExe.FullName
-        Add-Content -Path $env:GITHUB_PATH -Value $dir
-        Write-Host "Added $dir to PATH"
-        swift --version
 
     - name: Build Examples
       run: |
