@@ -5,6 +5,7 @@ import PackageDescription
 
 let package = Package(
     name: "Tachikoma",
+    swiftLanguageModes: [.v6],
     platforms: [
         .macOS(.v14),
         .iOS(.v16),
