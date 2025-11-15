@@ -149,6 +149,20 @@ jobs:
       with:
         branch: swift-${{ matrix.swift-version }}-release
         tag: ${{ matrix.swift-version }}-RELEASE
+    - name: Ensure Swift CLI available (Windows)
+      shell: pwsh
+      run: |
+        $swiftExe = Get-ChildItem -Path "C:\Users\runneradmin\AppData\Local\Programs\Swift" -Filter swift.exe -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
+        if (-not $swiftExe) {
+          $swiftExe = Get-ChildItem -Path "C:\Library\Developer" -Filter swift.exe -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
+        }
+        if (-not $swiftExe) {
+          throw "Swift executable not found after installation."
+        }
+        $dir = Split-Path $swiftExe.FullName
+        Add-Content -Path $env:GITHUB_PATH -Value $dir
+        Write-Host "Added $dir to PATH"
+        swift --version
 
     - name: Cache Swift Package Manager
       uses: actions/cache@v4

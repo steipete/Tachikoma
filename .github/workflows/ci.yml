@@ -43,6 +43,22 @@ jobs:
         branch: swift-6.2-release
         tag: 6.2-RELEASE
 
+    - name: Ensure Swift CLI available (Windows)
+      if: runner.os == 'Windows'
+      shell: pwsh
+      run: |
+        $swiftExe = Get-ChildItem -Path "C:\Users\runneradmin\AppData\Local\Programs\Swift" -Filter swift.exe -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
+        if (-not $swiftExe) {
+          $swiftExe = Get-ChildItem -Path "C:\Library\Developer" -Filter swift.exe -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
+        }
+        if (-not $swiftExe) {
+          throw "Swift executable not found after installation."
+        }
+        $dir = Split-Path $swiftExe.FullName
+        Add-Content -Path $env:GITHUB_PATH -Value $dir
+        Write-Host "Added $dir to PATH"
+        swift --version
+
     - name: Cache Swift Package Manager
       uses: actions/cache@v4
       with:
@@ -110,6 +126,22 @@ jobs:
       with:
         branch: swift-6.2-release
         tag: 6.2-RELEASE
+
+    - name: Ensure Swift CLI available (Windows)
+      if: runner.os == 'Windows'
+      shell: pwsh
+      run: |
+        $swiftExe = Get-ChildItem -Path "C:\Users\runneradmin\AppData\Local\Programs\Swift" -Filter swift.exe -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
+        if (-not $swiftExe) {
+          $swiftExe = Get-ChildItem -Path "C:\Library\Developer" -Filter swift.exe -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
+        }
+        if (-not $swiftExe) {
+          throw "Swift executable not found after installation."
+        }
+        $dir = Split-Path $swiftExe.FullName
+        Add-Content -Path $env:GITHUB_PATH -Value $dir
+        Write-Host "Added $dir to PATH"
+        swift --version
 
     - name: Build Examples
       run: |

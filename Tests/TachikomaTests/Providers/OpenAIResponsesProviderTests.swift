@@ -247,8 +247,10 @@ struct OpenAIResponsesProviderTests {
                         description: "Batch targets",
                         items: AgentToolParameterItems(type: "string")),
                 ],
-                required: ["action"]),
-            execute: { _ in AnyAgentToolValue(string: "ok") })
+                required: ["action"])
+        ) { _ in
+            AnyAgentToolValue(string: "ok")
+        }
 
         let providerRequest = ProviderRequest(
             messages: [ModelMessage(role: .user, content: [.text("ping")])],

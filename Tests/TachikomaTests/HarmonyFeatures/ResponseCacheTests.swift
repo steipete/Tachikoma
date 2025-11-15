@@ -336,10 +336,11 @@ struct ResponseCacheTests {
 
         // Use a simple counter that can be modified in the closure
         let callCount = Box(value: 0)
-        let mockProvider = ResponseCacheMockProvider(
+        var mockProvider = ResponseCacheMockProvider(
             model: .openai(.gpt4o),
-            response: ProviderResponse(text: "Response", usage: nil, finishReason: .stop),
-        ) { _ in
+            response: ProviderResponse(text: "Response", usage: nil, finishReason: .stop)
+        )
+        mockProvider.onGenerateText = { _ in
             callCount.value += 1
         }
 
@@ -367,14 +368,13 @@ struct ResponseCacheTests {
         let cache = ResponseCache()
 
         let callCount = Box(value: 0)
-        // swiftlint:disable:next trailing_closure
-        let mockProvider = ResponseCacheMockProvider(
+        var mockProvider = ResponseCacheMockProvider(
             model: .openai(.gpt4o),
-            response: ProviderResponse(text: "Test", usage: nil, finishReason: .stop),
-            onStreamText: { _ in
-                callCount.value += 1
-            }
+            response: ProviderResponse(text: "Test", usage: nil, finishReason: .stop)
         )
+        mockProvider.onStreamText = { _ in
+            callCount.value += 1
+        }
 
         let cachedProvider = await cache.wrapProvider(mockProvider)
 
@@ -417,6 +417,7 @@ private struct ResponseCacheMockProvider: ModelProvider {
         self.onGenerateText = onGenerateText
         self.onStreamText = onStreamText
     }
+
 
     func generateText(request: ProviderRequest) async throws -> ProviderResponse {
         self.onGenerateText?(request)
