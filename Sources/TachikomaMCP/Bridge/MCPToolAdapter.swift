@@ -183,7 +183,6 @@ public enum MCPToolAdapter {
 
     /// Convert MCP ToolResponse to AnyAgentToolValue
     private static func convertResponse(_ response: ToolResponse) -> AnyAgentToolValue {
-        // If there's an error, return it as a string
         if response.isError {
             let errorMessage = response.content.compactMap { content -> String? in
                 if case let .text(text) = content {
@@ -195,16 +194,57 @@ public enum MCPToolAdapter {
             return AnyAgentToolValue(string: "Error: \(errorMessage)")
         }
 
-        // Convert content to appropriate format
-        if response.content.count == 1 {
-            // Single content item
-            return self.convertContent(response.content[0])
-        } else if response.content.isEmpty {
-            // No content
-            return AnyAgentToolValue(null: ())
+        let contentValue: AnyAgentToolValue
+        if response.content.isEmpty {
+            contentValue = AnyAgentToolValue(null: ())
+        } else if response.content.count == 1 {
+            contentValue = self.convertContent(response.content[0])
         } else {
-            // Multiple content items - return as array
-            return AnyAgentToolValue(array: response.content.map { self.convertContent($0) })
+            contentValue = AnyAgentToolValue(array: response.content.map { self.convertContent($0) })
+        }
+
+        guard let meta = response.meta else {
+            return contentValue
+        }
+
+        var payload: [String: AnyAgentToolValue] = [
+            "result": contentValue,
+            "meta": self.convertMetaValue(meta),
+        ]
+
+        if let text = contentValue.stringValue {
+            payload["text"] = AnyAgentToolValue(string: text)
+        }
+
+        return AnyAgentToolValue(object: payload)
+    }
+
+    private static func convertMetaValue(_ value: Value) -> AnyAgentToolValue {
+        switch value {
+        case let .string(str):
+            return AnyAgentToolValue(string: str)
+        case let .int(num):
+            return AnyAgentToolValue(int: num)
+        case let .double(num):
+            return AnyAgentToolValue(double: num)
+        case let .bool(flag):
+            return AnyAgentToolValue(bool: flag)
+        case let .array(values):
+            return AnyAgentToolValue(array: values.map { self.convertMetaValue($0) })
+        case let .object(dict):
+            var converted: [String: AnyAgentToolValue] = [:]
+            for (key, entry) in dict {
+                converted[key] = self.convertMetaValue(entry)
+            }
+            return AnyAgentToolValue(object: converted)
+        case .null:
+            return AnyAgentToolValue(null: ())
+        case let .data(mime, data):
+            return AnyAgentToolValue(object: [
+                "type": AnyAgentToolValue(string: "data"),
+                "mimeType": AnyAgentToolValue(string: mime ?? "application/octet-stream"),
+                "size": AnyAgentToolValue(int: data.count),
+            ])
         }
     }
 
