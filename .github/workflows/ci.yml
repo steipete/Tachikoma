@@ -33,7 +33,7 @@ jobs:
 
     - name: Install Swift toolchain (Windows)
       if: runner.os == 'Windows'
-      uses: compnerd/gha-setup-swift@v1
+      uses: compnerd/gha-setup-swift@v0.3.0
       with:
         branch: swift-6.2-release
         tag: 6.2-RELEASE
@@ -97,7 +97,7 @@ jobs:
 
     - name: Install Swift toolchain (Windows)
       if: runner.os == 'Windows'
-      uses: compnerd/gha-setup-swift@v1
+      uses: compnerd/gha-setup-swift@v0.3.0
       with:
         branch: swift-6.2-release
         tag: 6.2-RELEASE
@@ -160,7 +160,10 @@ jobs:
     steps:
     - name: Checkout
       uses: actions/checkout@v4
-      
+
+    - name: Install SwiftLint
+      run: brew install swiftlint
+
     - name: SwiftLint
-      uses: norio-nomura/action-swiftlint@3.2.1
+      run: swiftlint --config .swiftlint.yml --strict
       continue-on-error: true # Don't fail CI on lint issues initially
