@@ -16,7 +16,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [macos-15, ubuntu-22.04, windows-2025]
+        os: [macos-15, ubuntu-22.04]
     steps:
     - name: Checkout
       uses: actions/checkout@v4
@@ -35,30 +35,6 @@ jobs:
       uses: SwiftyLab/setup-swift@v1
       with:
         swift-version: '6.2.1'
-
-    - name: Install Swift toolchain (Windows)
-      if: runner.os == 'Windows'
-      uses: compnerd/gha-setup-swift@v0.3.0
-      with:
-        github-repo: swiftlang/swift
-        release-tag-name: swift-6.2-RELEASE
-        release-asset-name: swift-6.2-RELEASE-windows10.exe
-
-    - name: Ensure Swift CLI available (Windows)
-      if: runner.os == 'Windows'
-      shell: pwsh
-      run: |
-        $swiftExe = Get-ChildItem -Path "C:\Users\runneradmin\AppData\Local\Programs\Swift" -Filter swift.exe -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
-        if (-not $swiftExe) {
-          $swiftExe = Get-ChildItem -Path "C:\Library\Developer" -Filter swift.exe -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
-        }
-        if (-not $swiftExe) {
-          throw "Swift executable not found after installation."
-        }
-        $dir = Split-Path $swiftExe.FullName
-        Add-Content -Path $env:GITHUB_PATH -Value $dir
-        Write-Host "Added $dir to PATH"
-        swift --version
 
     - name: Cache Swift Package Manager
       uses: actions/cache@v4

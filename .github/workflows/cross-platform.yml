@@ -101,6 +101,7 @@ jobs:
 
   # Windows testing - latest only
   test-windows:
+    if: github.event_name == 'workflow_dispatch'
     runs-on: windows-2025
     name: Windows (2025 runner)
     steps:

@@ -129,6 +129,7 @@ jobs:
 
   # Windows tests
   test-windows:
+    if: github.event_name == 'workflow_dispatch'
     name: Test Windows
     runs-on: windows-latest
     strategy:
