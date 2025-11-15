@@ -1,6 +1,9 @@
 import Foundation
+import Logging
 import MCP
+#if canImport(os)
 import os.log
+#endif
 import Tachikoma
 
 public struct ServerProbeResult: Sendable {
@@ -69,7 +72,11 @@ public final class TachikomaMCPClientManager {
 
     // MARK: Internal state
 
+    #if canImport(os)
     private let logger = os.Logger(subsystem: "tachikoma.mcp", category: "client-manager")
+    #else
+    private let logger = Logger(label: "tachikoma.mcp.client-manager")
+    #endif
     private var connections: [String: MCPClient] = [:]
     private var effectiveConfigs: [String: MCPServerConfig] = [:]
     private var defaultConfigs: [String: MCPServerConfig] = [:]

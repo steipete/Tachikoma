@@ -125,9 +125,9 @@ jobs:
       if: runner.os == 'Windows'
       uses: compnerd/gha-setup-swift@v0.3.0
       with:
-        branch: swift-6.2-release
-        tag: 6.2-RELEASE
-        build_arch: amd64
+        github-repo: swiftlang/swift
+        release-tag-name: swift-6.2-RELEASE
+        release-asset-name: swift-6.2-RELEASE-windows10.exe
 
     - name: Ensure Swift CLI available (Windows)
       if: runner.os == 'Windows'
@@ -148,9 +148,9 @@ jobs:
     - name: Build Examples
       run: |
         swift build --package-path . -c release
-        find . -name "*.swift" -path "./Examples/*" -exec swift -typecheck {} \;
-        find . -name "*_demo.swift" -exec swift -typecheck {} \;
-        find . -name "*_examples.swift" -exec swift -typecheck {} \;
+        find . -name "*.swift" -path "./Examples/*" -exec swiftc -typecheck {} \;
+        find . -name "*_demo.swift" -exec swiftc -typecheck {} \;
+        find . -name "*_examples.swift" -exec swiftc -typecheck {} \;
 
   apple-simulators:
     name: Apple Platforms (${{ matrix.platform }})
