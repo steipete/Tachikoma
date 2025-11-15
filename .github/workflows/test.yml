@@ -37,6 +37,12 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v4
 
+    - name: Checkout Commander dependency
+      uses: actions/checkout@v4
+      with:
+        repository: steipete/Commander
+        path: Commander
+
     - name: Setup Xcode
       uses: maxim-lobanov/setup-xcode@v1
       with:
@@ -91,6 +97,12 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v4
 
+    - name: Checkout Commander dependency
+      uses: actions/checkout@v4
+      with:
+        repository: steipete/Commander
+        path: Commander
+
     - name: Setup Swift
       uses: SwiftyLab/setup-swift@latest
       with:
@@ -132,6 +144,12 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v4
 
+    - name: Checkout Commander dependency
+      uses: actions/checkout@v4
+      with:
+        repository: steipete/Commander
+        path: Commander
+
     - name: Setup Swift
       uses: compnerd/gha-setup-swift@v0.3.0
       with:
@@ -171,6 +189,12 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v4
 
+    - name: Checkout Commander dependency
+      uses: actions/checkout@v4
+      with:
+        repository: steipete/Commander
+        path: Commander
+
     - name: Setup Xcode
       uses: maxim-lobanov/setup-xcode@v1
       with:
@@ -190,6 +214,12 @@ jobs:
     steps:
     - name: Checkout
       uses: actions/checkout@v4
+
+    - name: Checkout Commander dependency
+      uses: actions/checkout@v4
+      with:
+        repository: steipete/Commander
+        path: Commander
 
     - name: Setup Xcode
       uses: maxim-lobanov/setup-xcode@v1

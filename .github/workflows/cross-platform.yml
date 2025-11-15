@@ -13,6 +13,11 @@ jobs:
     name: macOS 14 (Sonoma)
     steps:
       - uses: actions/checkout@v4
+      - name: Checkout Commander dependency
+        uses: actions/checkout@v4
+        with:
+          repository: steipete/Commander
+          path: Commander
       
       - name: Select Xcode
         run: sudo xcode-select -s /Applications/Xcode_16.1.app || sudo xcode-select -s /Applications/Xcode_16.0.app || sudo xcode-select -s /Applications/Xcode.app
@@ -31,6 +36,11 @@ jobs:
     name: macOS 15 (Sequoia)
     steps:
       - uses: actions/checkout@v4
+      - name: Checkout Commander dependency
+        uses: actions/checkout@v4
+        with:
+          repository: steipete/Commander
+          path: Commander
       
       - name: Select Xcode
         run: sudo xcode-select -s /Applications/Xcode_16.1.app || sudo xcode-select -s /Applications/Xcode_16.0.app || sudo xcode-select -s /Applications/Xcode.app
@@ -51,6 +61,11 @@ jobs:
     container: swift:6.2
     steps:
       - uses: actions/checkout@v4
+      - name: Checkout Commander dependency
+        uses: actions/checkout@v4
+        with:
+          repository: steipete/Commander
+          path: Commander
       
       - name: Install dependencies
         run: |
@@ -72,6 +87,11 @@ jobs:
     container: swift:6.2
     steps:
       - uses: actions/checkout@v4
+      - name: Checkout Commander dependency
+        uses: actions/checkout@v4
+        with:
+          repository: steipete/Commander
+          path: Commander
       
       - name: Install dependencies
         run: |
@@ -93,6 +113,11 @@ jobs:
     name: Windows (2025 runner)
     steps:
       - uses: actions/checkout@v4
+      - name: Checkout Commander dependency
+        uses: actions/checkout@v4
+        with:
+          repository: steipete/Commander
+          path: Commander
       
       - name: Setup Swift
         uses: compnerd/gha-setup-swift@v0.3.0
