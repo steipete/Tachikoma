@@ -18,6 +18,10 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v4
 
+    - name: Fetch Commander dependency
+      shell: bash
+      run: git clone --depth 1 https://github.com/steipete/Commander.git ../Commander
+
     - name: Setup Xcode
       uses: maxim-lobanov/setup-xcode@v1
       with:
@@ -61,6 +65,10 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v4
 
+    - name: Fetch Commander dependency
+      shell: bash
+      run: git clone --depth 1 https://github.com/steipete/Commander.git ../Commander
+
     - name: Setup Xcode
       uses: maxim-lobanov/setup-xcode@v1
       with:
@@ -99,6 +107,10 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v4
 
+    - name: Fetch Commander dependency
+      shell: bash
+      run: git clone --depth 1 https://github.com/steipete/Commander.git ../Commander
+
     - name: Setup Xcode
       uses: maxim-lobanov/setup-xcode@v1
       with:
@@ -136,6 +148,10 @@ jobs:
     steps:
     - name: Checkout
       uses: actions/checkout@v4
+
+    - name: Fetch Commander dependency
+      shell: bash
+      run: git clone --depth 1 https://github.com/steipete/Commander.git ../Commander
 
     - name: Setup Xcode
       uses: maxim-lobanov/setup-xcode@v1
