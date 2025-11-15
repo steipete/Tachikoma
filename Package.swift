@@ -42,7 +42,6 @@ let package = Package(
             name: "ai-cli",
             targets: ["AICLI"]),
     ],
-    swiftLanguageModes: [.v6],
     dependencies: [
         .package(path: "../Commander"),
         .package(url: "https://github.com/apple/swift-log.git", from: "1.6.4"),
@@ -50,6 +49,7 @@ let package = Package(
         .package(url: "https://github.com/modelcontextprotocol/swift-sdk.git", from: "0.10.2"),
         .package(url: "https://github.com/apple/swift-configuration", .upToNextMinor(from: "0.2.0")),
     ],
+    swiftLanguageModes: [.v6],
     targets: [
         // Core Tachikoma module (no MCP dependencies)
         .target(
