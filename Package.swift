@@ -11,7 +11,6 @@ let package = Package(
         .watchOS(.v9),
         .tvOS(.v16),
     ],
-    swiftLanguageModes: [.v6],
     products: [
         // Core Tachikoma library (lightweight, no MCP or Agent)
         .library(
@@ -50,6 +49,7 @@ let package = Package(
         .package(url: "https://github.com/modelcontextprotocol/swift-sdk.git", from: "0.10.2"),
         .package(url: "https://github.com/apple/swift-configuration", .upToNextMinor(from: "0.2.0")),
     ],
+    swiftLanguageModes: [.v6],
     targets: [
         // Core Tachikoma module (no MCP dependencies)
         .target(
