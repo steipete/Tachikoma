@@ -4,7 +4,11 @@ import Testing
 
 private final class AzureTestURLProtocol: URLProtocol {
     private actor Store {
-        var lastRequest: URLRequest?
+        private(set) var lastRequest: URLRequest?
+
+        func store(_ request: URLRequest) {
+            self.lastRequest = request
+        }
     }
 
     private static let store = Store()
@@ -46,7 +50,7 @@ private final class AzureTestURLProtocol: URLProtocol {
     override func stopLoading() {}
 
     private static func storeMedia(_ request: URLRequest) async {
-        await self.store.lastRequest = request
+        await self.store.store(request)
     }
 
     static func fetchLastRequest() async -> URLRequest? {
