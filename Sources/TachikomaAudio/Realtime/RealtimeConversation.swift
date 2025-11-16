@@ -557,6 +557,7 @@ public final class RealtimeConversation {
     }
 }
 
+// swiftformat:disable wrapreturntype
 @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public func startRealtimeConversation(
     model _: LanguageModel.OpenAI = .gpt4oRealtime,
@@ -568,4 +569,5 @@ public func startRealtimeConversation(
 -> RealtimeConversation {
     throw TachikomaError.unavailable("RealtimeConversation requires Combine.")
 }
+// swiftformat:enable wrapreturntype
 #endif
