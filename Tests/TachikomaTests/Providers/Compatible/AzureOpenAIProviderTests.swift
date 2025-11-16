@@ -2,10 +2,13 @@ import Foundation
 import Testing
 @testable import Tachikoma
 
-@MainActor
 private final class AzureTestURLProtocol: URLProtocol {
-    static var lastRequest: URLRequest?
-    static var responseBody: Data = {
+    private actor Store {
+        var lastRequest: URLRequest?
+    }
+
+    private static let store = Store()
+    static let responseBody: Data = {
         """
         {
           "id": "chatcmpl-azure",
@@ -25,9 +28,8 @@ private final class AzureTestURLProtocol: URLProtocol {
     override class func canInit(with request: URLRequest) -> Bool { true }
     override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
 
-    @MainActor
     override func startLoading() {
-        Self.lastRequest = request
+        Task { await Self.storeMedia(request) }
 
         let response = HTTPURLResponse(
             url: request.url!,
@@ -41,8 +43,15 @@ private final class AzureTestURLProtocol: URLProtocol {
         client?.urlProtocolDidFinishLoading(self)
     }
 
-    @MainActor
     override func stopLoading() {}
+
+    private static func storeMedia(_ request: URLRequest) async {
+        await self.store.lastRequest = request
+    }
+
+    static func fetchLastRequest() async -> URLRequest? {
+        await self.store.lastRequest
+    }
 }
 
 @Suite("Azure OpenAI Provider")
@@ -68,7 +77,7 @@ struct AzureOpenAIProviderTests {
 
         #expect(response.text == "hello azure")
 
-        let sentRequest = await MainActor.run { AzureTestURLProtocol.lastRequest }
+        let sentRequest = await AzureTestURLProtocol.fetchLastRequest()
         #expect(sentRequest?.url?.path == "/openai/deployments/gpt-4o/chat/completions")
 
         if let components = sentRequest?.url.flatMap({ URLComponents(url: $0, resolvingAgainstBaseURL: false) }) {
@@ -104,7 +113,7 @@ struct AzureOpenAIProviderTests {
         let request = ProviderRequest(messages: [ModelMessage(role: .user, content: [.text("hi")])])
         _ = try await provider.generateText(request: request)
 
-        let sentRequest = await MainActor.run { AzureTestURLProtocol.lastRequest }
+        let sentRequest = await AzureTestURLProtocol.fetchLastRequest()
         #expect(sentRequest?.url?.host == "custom.azure.example.com")
         #expect(
             sentRequest?.value(forHTTPHeaderField: "Authorization") == "Bearer bearer-123",
