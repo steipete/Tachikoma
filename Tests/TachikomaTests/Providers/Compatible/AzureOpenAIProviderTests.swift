@@ -2,6 +2,7 @@ import Foundation
 import Testing
 @testable import Tachikoma
 
+@MainActor
 private final class AzureTestURLProtocol: URLProtocol {
     static var lastRequest: URLRequest?
     static var responseBody: Data = {
