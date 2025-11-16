@@ -25,6 +25,7 @@ private final class AzureTestURLProtocol: URLProtocol {
     override class func canInit(with request: URLRequest) -> Bool { true }
     override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
 
+    @MainActor
     override func startLoading() {
         Self.lastRequest = request
 
@@ -40,6 +41,7 @@ private final class AzureTestURLProtocol: URLProtocol {
         client?.urlProtocolDidFinishLoading(self)
     }
 
+    @MainActor
     override func stopLoading() {}
 }
 
@@ -66,7 +68,7 @@ struct AzureOpenAIProviderTests {
 
         #expect(response.text == "hello azure")
 
-        let sentRequest = AzureTestURLProtocol.lastRequest
+        let sentRequest = await MainActor.run { AzureTestURLProtocol.lastRequest }
         #expect(sentRequest?.url?.path == "/openai/deployments/gpt-4o/chat/completions")
 
         if let components = sentRequest?.url.flatMap({ URLComponents(url: $0, resolvingAgainstBaseURL: false) }) {
@@ -102,7 +104,7 @@ struct AzureOpenAIProviderTests {
         let request = ProviderRequest(messages: [ModelMessage(role: .user, content: [.text("hi")])])
         _ = try await provider.generateText(request: request)
 
-        let sentRequest = AzureTestURLProtocol.lastRequest
+        let sentRequest = await MainActor.run { AzureTestURLProtocol.lastRequest }
         #expect(sentRequest?.url?.host == "custom.azure.example.com")
         #expect(
             sentRequest?.value(forHTTPHeaderField: "Authorization") == "Bearer bearer-123",
