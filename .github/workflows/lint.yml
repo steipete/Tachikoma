@@ -55,8 +55,14 @@ jobs:
         
     - name: Run SwiftLint (Autocorrect Check)
       run: |
-        # Run autocorrect in dry-run mode to check for fixable issues  
-        swiftlint lint --fix --dry-run --quiet
+        # Apply autocorrect and fail if it would change files.
+        swiftlint lint --fix --quiet
+        if ! git diff --quiet; then
+          echo "::error::SwiftLint autocorrect produced changes. Run 'swiftlint lint --fix' locally and commit the results."
+          git status -sb
+          git --no-pager diff
+          exit 1
+        fi
 
   swiftformat:
     name: SwiftFormat
