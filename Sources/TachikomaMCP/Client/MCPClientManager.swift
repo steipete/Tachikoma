@@ -9,7 +9,7 @@ import Tachikoma
 #if canImport(Darwin)
 private typealias MCPOverrideLock = OSAllocatedUnfairLock<Bool?>
 #else
-private final class MCPOverrideLock {
+private final class MCPOverrideLock: @unchecked Sendable {
     private let lock = NSLock()
     private var state: Bool?
 

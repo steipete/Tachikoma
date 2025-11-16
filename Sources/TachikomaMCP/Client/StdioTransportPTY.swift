@@ -71,6 +71,47 @@ private actor StdioTransportPTYState {
     }
 }
 
+#if canImport(Darwin)
+private func createPTYHandles() throws -> (FileHandle, FileHandle) {
+    var master: Int32 = 0
+    var slave: Int32 = 0
+    guard openpty(&master, &slave, nil, nil, nil) != -1 else {
+        throw MCPError.connectionFailed("Failed to create PTY (openpty)")
+    }
+    let primaryHandle = FileHandle(fileDescriptor: master, closeOnDealloc: true)
+    let secondaryHandle = FileHandle(fileDescriptor: slave, closeOnDealloc: true)
+    return (primaryHandle, secondaryHandle)
+}
+#else
+private func createPTYHandles() throws -> (FileHandle, FileHandle) {
+    let master = posix_openpt(O_RDWR | O_NOCTTY | O_CLOEXEC)
+    guard master >= 0 else {
+        throw MCPError.connectionFailed("Failed to open PTY master (errno: \(errno))")
+    }
+    if grantpt(master) != 0 {
+        close(master)
+        throw MCPError.connectionFailed("Failed to grant PTY slave (errno: \(errno))")
+    }
+    if unlockpt(master) != 0 {
+        close(master)
+        throw MCPError.connectionFailed("Failed to unlock PTY slave (errno: \(errno))")
+    }
+    guard let slaveNamePtr = ptsname(master) else {
+        close(master)
+        throw MCPError.connectionFailed("Failed to resolve PTY slave name (errno: \(errno))")
+    }
+    let slaveName = String(cString: slaveNamePtr)
+    let slave = open(slaveName, O_RDWR | O_NOCTTY)
+    guard slave >= 0 else {
+        close(master)
+        throw MCPError.connectionFailed("Failed to open PTY slave (errno: \(errno))")
+    }
+    let primaryHandle = FileHandle(fileDescriptor: master, closeOnDealloc: true)
+    let secondaryHandle = FileHandle(fileDescriptor: slave, closeOnDealloc: true)
+    return (primaryHandle, secondaryHandle)
+}
+#endif
+
 /// PTY-enabled Standard I/O transport for MCP communication
 /// This version creates a pseudo-terminal to better support tools like npx that check for TTY
 public final class StdioTransportPTY: MCPTransport {
@@ -83,15 +124,7 @@ public final class StdioTransportPTY: MCPTransport {
         self.logger.info("Starting PTY stdio transport with command: \(config.command)")
 
         // Create PTY pair
-        var primaryFD: Int32 = 0
-        var secondaryFD: Int32 = 0
-
-        guard Darwin.openpty(&primaryFD, &secondaryFD, nil, nil, nil) != -1 else {
-            throw MCPError.connectionFailed("Failed to create PTY")
-        }
-
-        let primaryHandle = FileHandle(fileDescriptor: primaryFD, closeOnDealloc: true)
-        let secondaryHandle = FileHandle(fileDescriptor: secondaryFD, closeOnDealloc: true)
+        let (primaryHandle, secondaryHandle) = try createPTYHandles()
 
         let process = Process()
         let errorPipe = Pipe()
