@@ -9,6 +9,10 @@ private final class AzureTestURLProtocol: URLProtocol {
         func store(_ request: URLRequest) {
             self.lastRequest = request
         }
+
+        func reset() {
+            self.lastRequest = nil
+        }
     }
 
     private static let store = Store()
@@ -56,6 +60,10 @@ private final class AzureTestURLProtocol: URLProtocol {
     static func fetchLastRequest() async -> URLRequest? {
         await self.store.lastRequest
     }
+
+    static func reset() async {
+        await self.store.reset()
+    }
 }
 
 @Suite("Azure OpenAI Provider")
@@ -64,6 +72,7 @@ struct AzureOpenAIProviderTests {
     func buildsAzureURLAndHeaders() async throws {
         let config = TachikomaConfiguration(loadFromEnvironment: false)
         config.setAPIKey("test-key", for: .azureOpenAI)
+        await AzureTestURLProtocol.reset()
 
         URLProtocol.registerClass(AzureTestURLProtocol.self)
         defer { URLProtocol.unregisterClass(AzureTestURLProtocol.self) }
@@ -102,6 +111,7 @@ struct AzureOpenAIProviderTests {
             unsetenv("AZURE_OPENAI_BEARER_TOKEN")
             unsetenv("AZURE_OPENAI_ENDPOINT")
         }
+        await AzureTestURLProtocol.reset()
 
         URLProtocol.registerClass(AzureTestURLProtocol.self)
         defer { URLProtocol.unregisterClass(AzureTestURLProtocol.self) }
