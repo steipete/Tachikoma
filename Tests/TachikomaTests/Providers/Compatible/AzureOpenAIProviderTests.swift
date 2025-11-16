@@ -66,7 +66,7 @@ private final class AzureTestURLProtocol: URLProtocol {
     }
 }
 
-@Suite("Azure OpenAI Provider")
+@Suite("Azure OpenAI Provider", .serialized)
 struct AzureOpenAIProviderTests {
     @Test("Builds Azure chat URL with api-version and api-key header")
     func buildsAzureURLAndHeaders() async throws {
