@@ -30,6 +30,7 @@ public enum ConnectionStatus: String, Sendable {
 
 // MARK: - Realtime Conversation
 
+#if canImport(Combine)
 /// High-level API for managing real-time voice conversations
 @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 @MainActor
@@ -536,3 +537,35 @@ public func startRealtimeConversation(
 
     return conversation
 }
+#else
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
+@MainActor
+public final class RealtimeConversation {
+    public init(configuration _: TachikomaConfiguration = TachikomaConfiguration()) throws {
+        throw TachikomaError.unavailable(
+            "RealtimeConversation requires Combine, which is not available on this platform.",
+        )
+    }
+
+    public func start(
+        model _: LanguageModel.OpenAI = .gpt4oRealtime,
+        voice _: RealtimeVoice = .alloy,
+        instructions _: String? = nil,
+        tools _: [RealtimeTool]? = nil,
+    ) async throws {
+        throw TachikomaError.unavailable("RealtimeConversation requires Combine.")
+    }
+}
+
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
+public func startRealtimeConversation(
+    model _: LanguageModel.OpenAI = .gpt4oRealtime,
+    voice _: RealtimeVoice = .alloy,
+    instructions _: String? = nil,
+    tools _: [AgentTool]? = nil,
+    configuration _: TachikomaConfiguration = TachikomaConfiguration(),
+) async throws
+-> RealtimeConversation {
+    throw TachikomaError.unavailable("RealtimeConversation requires Combine.")
+}
+#endif
