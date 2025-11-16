@@ -2,6 +2,11 @@ import Foundation
 #if canImport(FoundationNetworking)
 import FoundationNetworking
 #endif
+#if canImport(Darwin)
+import Darwin
+#else
+import Glibc
+#endif
 import Tachikoma
 
 struct CLIConfig {
@@ -732,7 +737,7 @@ struct AICLI {
             case .textDelta:
                 if let content = delta.content {
                     print(content, terminator: "")
-                    fflush(stdout)
+                    fflush(nil)
                     fullText += content
                 }
             case .done:
