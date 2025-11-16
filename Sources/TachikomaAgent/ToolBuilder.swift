@@ -119,9 +119,9 @@ public struct ParameterDefinition {
     func toProperty(name: String) -> AgentToolParameterProperty {
         AgentToolParameterProperty(
             name: name,
-            type: type,
-            description: description,
-            enumValues: enumValues,
+            type: self.type,
+            description: self.description,
+            enumValues: self.enumValues,
         )
     }
 }
@@ -162,7 +162,7 @@ private struct ConcreteAgentTool<I: AgentToolValue, O: AgentToolValue>: AgentToo
     let executeFunc: @Sendable (I, ToolExecutionContext) async throws -> O
 
     func execute(_ input: I, context: ToolExecutionContext) async throws -> O {
-        try await executeFunc(input, context)
+        try await self.executeFunc(input, context)
     }
 }
 

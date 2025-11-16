@@ -37,9 +37,9 @@ struct OpenAIChatRequest: Codable {
 
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        model = try container.decode(String.self, forKey: .model)
-        messages = try container.decode([OpenAIChatMessage].self, forKey: .messages)
-        temperature = try container.decodeIfPresent(Double.self, forKey: .temperature)
+        self.model = try container.decode(String.self, forKey: .model)
+        self.messages = try container.decode([OpenAIChatMessage].self, forKey: .messages)
+        self.temperature = try container.decodeIfPresent(Double.self, forKey: .temperature)
 
         // Try both max_tokens and max_completion_tokens
         if let maxTokens = try container.decodeIfPresent(Int.self, forKey: .maxTokens) {
@@ -48,27 +48,27 @@ struct OpenAIChatRequest: Codable {
             maxTokens = try container.decodeIfPresent(Int.self, forKey: .maxCompletionTokens)
         }
 
-        tools = try container.decodeIfPresent([OpenAITool].self, forKey: .tools)
-        stream = try container.decodeIfPresent(Bool.self, forKey: .stream)
-        stop = try container.decodeIfPresent([String].self, forKey: .stop)
+        self.tools = try container.decodeIfPresent([OpenAITool].self, forKey: .tools)
+        self.stream = try container.decodeIfPresent(Bool.self, forKey: .stream)
+        self.stop = try container.decodeIfPresent([String].self, forKey: .stop)
     }
 
     func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
-        try container.encode(model, forKey: .model)
-        try container.encode(messages, forKey: .messages)
-        try container.encodeIfPresent(temperature, forKey: .temperature)
+        try container.encode(self.model, forKey: .model)
+        try container.encode(self.messages, forKey: .messages)
+        try container.encodeIfPresent(self.temperature, forKey: .temperature)
 
         // Use max_completion_tokens for GPT-5 models, max_tokens for others
-        if model.hasPrefix("gpt-5") {
-            try container.encodeIfPresent(maxTokens, forKey: .maxCompletionTokens)
+        if self.model.hasPrefix("gpt-5") {
+            try container.encodeIfPresent(self.maxTokens, forKey: .maxCompletionTokens)
         } else {
-            try container.encodeIfPresent(maxTokens, forKey: .maxTokens)
+            try container.encodeIfPresent(self.maxTokens, forKey: .maxTokens)
         }
 
-        try container.encodeIfPresent(tools, forKey: .tools)
-        try container.encodeIfPresent(stream, forKey: .stream)
-        try container.encodeIfPresent(stop, forKey: .stop)
+        try container.encodeIfPresent(self.tools, forKey: .tools)
+        try container.encodeIfPresent(self.stream, forKey: .stream)
+        try container.encodeIfPresent(self.stop, forKey: .stop)
     }
 }
 
@@ -99,20 +99,20 @@ struct OpenAIChatMessage: Codable {
         self.role = role
         self.content = .left(content)
         self.toolCallId = toolCallId
-        toolCalls = nil
+        self.toolCalls = nil
     }
 
     init(role: String, content: [OpenAIChatMessageContent], toolCallId: String? = nil) {
         self.role = role
         self.content = .right(content)
         self.toolCallId = toolCallId
-        toolCalls = nil
+        self.toolCalls = nil
     }
 
     init(role: String, content: String? = nil, toolCalls: [AgentToolCall]?) {
         self.role = role
         self.content = content.map { .left($0) }
-        toolCallId = nil
+        self.toolCallId = nil
         self.toolCalls = toolCalls
     }
 }
@@ -200,28 +200,28 @@ struct OpenAITool: Codable {
 
         init(from decoder: Decoder) throws {
             let container = try decoder.container(keyedBy: CodingKeys.self)
-            name = try container.decode(String.self, forKey: .name)
-            description = try container.decode(String.self, forKey: .description)
+            self.name = try container.decode(String.self, forKey: .name)
+            self.description = try container.decode(String.self, forKey: .description)
 
             // Decode parameters as generic dictionary
             if
                 let data = try? container.decode(Data.self, forKey: .parameters),
                 let dict = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
             {
-                parameters = dict
+                self.parameters = dict
             } else {
-                parameters = [:]
+                self.parameters = [:]
             }
         }
 
         func encode(to encoder: Encoder) throws {
             var container = encoder.container(keyedBy: CodingKeys.self)
-            try container.encode(name, forKey: .name)
-            try container.encode(description, forKey: .description)
+            try container.encode(self.name, forKey: .name)
+            try container.encode(self.description, forKey: .description)
 
             // Encode parameters as a nested JSON structure
             var parametersContainer = container.nestedContainer(keyedBy: DynamicCodingKey.self, forKey: .parameters)
-            try encodeAnyValue(parameters, to: &parametersContainer)
+            try encodeAnyValue(self.parameters, to: &parametersContainer)
         }
     }
 }

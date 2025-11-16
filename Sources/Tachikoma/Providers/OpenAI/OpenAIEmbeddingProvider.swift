@@ -1,9 +1,9 @@
 import Foundation
 #if canImport(FoundationNetworking)
-    import FoundationNetworking
+import FoundationNetworking
 #endif
 #if canImport(FoundationNetworking)
-    import FoundationNetworking
+import FoundationNetworking
 #endif
 
 @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
@@ -12,7 +12,7 @@ struct OpenAIEmbeddingProvider: EmbeddingProvider, ModelProvider {
     let apiKey: String?
     let baseURL: String?
 
-    var modelId: String { model.rawValue }
+    var modelId: String { self.model.rawValue }
     var capabilities: ModelCapabilities { ModelCapabilities() }
 
     // ModelProvider conformance (not used for embeddings)
@@ -82,7 +82,7 @@ struct OpenAIEmbeddingProvider: EmbeddingProvider, ModelProvider {
 
         return EmbeddingResult(
             embeddings: embeddings,
-            model: model.rawValue,
+            model: self.model.rawValue,
             usage: usage,
             metadata: EmbeddingMetadata(
                 truncated: false,
@@ -98,7 +98,7 @@ struct CohereEmbeddingProvider: EmbeddingProvider, ModelProvider {
     let model: EmbeddingModel.CohereEmbedding
     let apiKey: String?
 
-    var modelId: String { model.rawValue }
+    var modelId: String { self.model.rawValue }
     var baseURL: String? { nil }
     var capabilities: ModelCapabilities { ModelCapabilities() }
 
@@ -121,7 +121,7 @@ struct VoyageEmbeddingProvider: EmbeddingProvider, ModelProvider {
     let model: EmbeddingModel.VoyageEmbedding
     let apiKey: String?
 
-    var modelId: String { model.rawValue }
+    var modelId: String { self.model.rawValue }
     var baseURL: String? { nil }
     var capabilities: ModelCapabilities { ModelCapabilities() }
 

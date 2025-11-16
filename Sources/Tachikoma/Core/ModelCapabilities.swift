@@ -144,15 +144,15 @@ public final class ModelCapabilityRegistry: @unchecked Sendable {
     private let lock = NSLock()
 
     private init() {
-        registerDefaultCapabilities()
+        self.registerDefaultCapabilities()
     }
 
     /// Get capabilities for a model
     public func capabilities(for model: LanguageModel) -> ModelParameterCapabilities {
         // Get capabilities for a model
-        let key = capabilityKey(for: model)
+        let key = self.capabilityKey(for: model)
 
-        lock.lock()
+        self.lock.lock()
         defer { lock.unlock() }
 
         // Check for registered capabilities
@@ -161,15 +161,15 @@ public final class ModelCapabilityRegistry: @unchecked Sendable {
         }
 
         // Return default based on model type
-        return defaultCapabilities(for: model)
+        return self.defaultCapabilities(for: model)
     }
 
     /// Register custom capabilities for a model
     public func register(_ capabilities: ModelParameterCapabilities, for model: LanguageModel) {
         // Register custom capabilities for a model
-        let key = capabilityKey(for: model)
+        let key = self.capabilityKey(for: model)
 
-        lock.lock()
+        self.lock.lock()
         defer { lock.unlock() }
 
         self.capabilities[key] = capabilities
@@ -180,7 +180,7 @@ public final class ModelCapabilityRegistry: @unchecked Sendable {
         // Register capabilities for an OpenAI-compatible endpoint
         let key = "openai-compatible:\(endpoint):default"
 
-        lock.lock()
+        self.lock.lock()
         defer { lock.unlock() }
 
         self.capabilities[key] = capabilities
@@ -235,17 +235,17 @@ public final class ModelCapabilityRegistry: @unchecked Sendable {
             excludedParameters: ["temperature", "topP", "frequencyPenalty", "presencePenalty"],
         )
 
-        capabilities["openai:gpt-5.1"] = gpt5Capabilities
-        capabilities["openai:gpt-5.1-mini"] = gpt5Capabilities
-        capabilities["openai:gpt-5.1-nano"] = gpt5Capabilities
-        capabilities["openai:gpt-5"] = gpt5Capabilities
-        capabilities["openai:gpt-5-pro"] = gpt5Capabilities
-        capabilities["openai:gpt-5-mini"] = gpt5Capabilities
-        capabilities["openai:gpt-5-nano"] = gpt5Capabilities
-        capabilities["openai:gpt-5-thinking"] = gpt5Capabilities
-        capabilities["openai:gpt-5-thinking-mini"] = gpt5Capabilities
-        capabilities["openai:gpt-5-thinking-nano"] = gpt5Capabilities
-        capabilities["openai:gpt-5-chat-latest"] = gpt5Capabilities
+        self.capabilities["openai:gpt-5.1"] = gpt5Capabilities
+        self.capabilities["openai:gpt-5.1-mini"] = gpt5Capabilities
+        self.capabilities["openai:gpt-5.1-nano"] = gpt5Capabilities
+        self.capabilities["openai:gpt-5"] = gpt5Capabilities
+        self.capabilities["openai:gpt-5-pro"] = gpt5Capabilities
+        self.capabilities["openai:gpt-5-mini"] = gpt5Capabilities
+        self.capabilities["openai:gpt-5-nano"] = gpt5Capabilities
+        self.capabilities["openai:gpt-5-thinking"] = gpt5Capabilities
+        self.capabilities["openai:gpt-5-thinking-mini"] = gpt5Capabilities
+        self.capabilities["openai:gpt-5-thinking-nano"] = gpt5Capabilities
+        self.capabilities["openai:gpt-5-chat-latest"] = gpt5Capabilities
 
         // O4/GPT-5 reasoning models (fixed temperature, reasoning effort)
         let reasoningCapabilities = ModelParameterCapabilities(
@@ -259,8 +259,8 @@ public final class ModelCapabilityRegistry: @unchecked Sendable {
             excludedParameters: ["temperature", "topP"],
         )
 
-        capabilities["openai:o4"] = reasoningCapabilities
-        capabilities["openai:o4-mini"] = reasoningCapabilities
+        self.capabilities["openai:o4"] = reasoningCapabilities
+        self.capabilities["openai:o4-mini"] = reasoningCapabilities
 
         // Standard GPT-4 models
         let gpt4Capabilities = ModelParameterCapabilities(
@@ -271,11 +271,11 @@ public final class ModelCapabilityRegistry: @unchecked Sendable {
             ),
         )
 
-        capabilities["openai:gpt-4o"] = gpt4Capabilities
-        capabilities["openai:gpt-4o-mini"] = gpt4Capabilities
-        capabilities["openai:gpt-4.1"] = gpt4Capabilities
-        capabilities["openai:gpt-4.1-mini"] = gpt4Capabilities
-        capabilities["openai:gpt-4-turbo"] = gpt4Capabilities
+        self.capabilities["openai:gpt-4o"] = gpt4Capabilities
+        self.capabilities["openai:gpt-4o-mini"] = gpt4Capabilities
+        self.capabilities["openai:gpt-4.1"] = gpt4Capabilities
+        self.capabilities["openai:gpt-4.1-mini"] = gpt4Capabilities
+        self.capabilities["openai:gpt-4-turbo"] = gpt4Capabilities
 
         // Claude 4 models with thinking
         let claude4Capabilities = ModelParameterCapabilities(
@@ -285,10 +285,10 @@ public final class ModelCapabilityRegistry: @unchecked Sendable {
             ),
         )
 
-        capabilities["anthropic:claude-opus-4-1-20250805"] = claude4Capabilities
-        capabilities["anthropic:claude-sonnet-4-20250514"] = claude4Capabilities
-        capabilities["anthropic:claude-sonnet-4-5-20250929"] = claude4Capabilities
-        capabilities["anthropic:claude-haiku-4.5"] = claude4Capabilities
+        self.capabilities["anthropic:claude-opus-4-1-20250805"] = claude4Capabilities
+        self.capabilities["anthropic:claude-sonnet-4-20250514"] = claude4Capabilities
+        self.capabilities["anthropic:claude-sonnet-4-5-20250929"] = claude4Capabilities
+        self.capabilities["anthropic:claude-haiku-4.5"] = claude4Capabilities
 
         // Google Gemini with thinking
         let geminiCapabilities = ModelParameterCapabilities(
@@ -299,9 +299,9 @@ public final class ModelCapabilityRegistry: @unchecked Sendable {
             ),
         )
 
-        capabilities["google:gemini-2.5-pro"] = geminiCapabilities
-        capabilities["google:gemini-2.5-flash"] = geminiCapabilities
-        capabilities["google:gemini-2.5-flash-lite"] = geminiCapabilities
+        self.capabilities["google:gemini-2.5-pro"] = geminiCapabilities
+        self.capabilities["google:gemini-2.5-flash"] = geminiCapabilities
+        self.capabilities["google:gemini-2.5-flash-lite"] = geminiCapabilities
 
         // Mistral models
         let mistralCapabilities = ModelParameterCapabilities(
@@ -310,8 +310,8 @@ public final class ModelCapabilityRegistry: @unchecked Sendable {
             ),
         )
 
-        capabilities["mistral:mistral-large-2"] = mistralCapabilities
-        capabilities["mistral:codestral"] = mistralCapabilities
+        self.capabilities["mistral:mistral-large-2"] = mistralCapabilities
+        self.capabilities["mistral:codestral"] = mistralCapabilities
 
         // Groq models (ultra-fast inference)
         let groqCapabilities = ModelParameterCapabilities(
@@ -320,12 +320,12 @@ public final class ModelCapabilityRegistry: @unchecked Sendable {
             ),
         )
 
-        capabilities["groq:llama-3.1-70b"] = groqCapabilities
-        capabilities["groq:llama-3.1-8b"] = groqCapabilities
-        capabilities["groq:llama-3-70b"] = groqCapabilities
-        capabilities["groq:llama-3-8b"] = groqCapabilities
-        capabilities["groq:mixtral-8x7b"] = groqCapabilities
-        capabilities["groq:gemma2-9b"] = groqCapabilities
+        self.capabilities["groq:llama-3.1-70b"] = groqCapabilities
+        self.capabilities["groq:llama-3.1-8b"] = groqCapabilities
+        self.capabilities["groq:llama-3-70b"] = groqCapabilities
+        self.capabilities["groq:llama-3-8b"] = groqCapabilities
+        self.capabilities["groq:mixtral-8x7b"] = groqCapabilities
+        self.capabilities["groq:gemma2-9b"] = groqCapabilities
 
         // Grok models
         let grokCapabilities = ModelParameterCapabilities(
@@ -335,22 +335,22 @@ public final class ModelCapabilityRegistry: @unchecked Sendable {
             ),
         )
 
-        capabilities["grok:grok-4-0709"] = grokCapabilities
-        capabilities["grok:grok-4-fast-reasoning"] = grokCapabilities
-        capabilities["grok:grok-4-fast-non-reasoning"] = grokCapabilities
-        capabilities["grok:grok-code-fast-1"] = grokCapabilities
-        capabilities["grok:grok-3"] = grokCapabilities
-        capabilities["grok:grok-3-mini"] = grokCapabilities
-        capabilities["grok:grok-2-1212"] = grokCapabilities
-        capabilities["grok:grok-2-vision-1212"] = grokCapabilities
-        capabilities["grok:grok-2-image-1212"] = grokCapabilities
-        capabilities["grok:grok-vision-beta"] = grokCapabilities
-        capabilities["grok:grok-beta"] = grokCapabilities
+        self.capabilities["grok:grok-4-0709"] = grokCapabilities
+        self.capabilities["grok:grok-4-fast-reasoning"] = grokCapabilities
+        self.capabilities["grok:grok-4-fast-non-reasoning"] = grokCapabilities
+        self.capabilities["grok:grok-code-fast-1"] = grokCapabilities
+        self.capabilities["grok:grok-3"] = grokCapabilities
+        self.capabilities["grok:grok-3-mini"] = grokCapabilities
+        self.capabilities["grok:grok-2-1212"] = grokCapabilities
+        self.capabilities["grok:grok-2-vision-1212"] = grokCapabilities
+        self.capabilities["grok:grok-2-image-1212"] = grokCapabilities
+        self.capabilities["grok:grok-vision-beta"] = grokCapabilities
+        self.capabilities["grok:grok-beta"] = grokCapabilities
     }
 
     private func defaultCapabilities(for model: LanguageModel) -> ModelParameterCapabilities {
         // Check if we have registered capabilities for this specific model
-        let key = capabilityKey(for: model)
+        let key = self.capabilityKey(for: model)
         if let registered = capabilities[key] {
             return registered
         }
@@ -426,7 +426,7 @@ extension GenerationSettings {
         }
 
         // Validate provider options
-        adjustedProviderOptions = validateProviderOptions(
+        adjustedProviderOptions = self.validateProviderOptions(
             adjustedProviderOptions,
             capabilities: capabilities,
             model: model,
@@ -524,6 +524,6 @@ extension GenerationSettings {
     /// Filters settings to only include supported parameters (legacy compatibility)
     public func filtered(for model: LanguageModel) -> GenerationSettings {
         // Filters settings to only include supported parameters (legacy compatibility)
-        validated(for: model)
+        self.validated(for: model)
     }
 }

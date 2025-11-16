@@ -12,16 +12,16 @@ public final class GroqProvider: ModelProvider {
 
     public init(model: LanguageModel.Groq, configuration: TachikomaConfiguration) throws {
         self.model = model
-        modelId = model.rawValue
-        baseURL = configuration.getBaseURL(for: .groq) ?? "https://api.groq.com/openai/v1"
+        self.modelId = model.rawValue
+        self.baseURL = configuration.getBaseURL(for: .groq) ?? "https://api.groq.com/openai/v1"
 
         if let key = configuration.getAPIKey(for: .groq) {
-            apiKey = key
+            self.apiKey = key
         } else {
             throw TachikomaError.authenticationFailed("GROQ_API_KEY not found")
         }
 
-        capabilities = ModelCapabilities(
+        self.capabilities = ModelCapabilities(
             supportsVision: model.supportsVision,
             supportsTools: model.supportsTools,
             supportsStreaming: true,
@@ -34,9 +34,9 @@ public final class GroqProvider: ModelProvider {
         // Use OpenAI-compatible implementation for Groq
         try await OpenAICompatibleHelper.generateText(
             request: request,
-            modelId: modelId,
-            baseURL: baseURL!,
-            apiKey: apiKey!,
+            modelId: self.modelId,
+            baseURL: self.baseURL!,
+            apiKey: self.apiKey!,
             providerName: "Groq",
         )
     }
@@ -45,9 +45,9 @@ public final class GroqProvider: ModelProvider {
         // Use OpenAI-compatible streaming for Groq
         try await OpenAICompatibleHelper.streamText(
             request: request,
-            modelId: modelId,
-            baseURL: baseURL!,
-            apiKey: apiKey!,
+            modelId: self.modelId,
+            baseURL: self.baseURL!,
+            apiKey: self.apiKey!,
             providerName: "Groq",
         )
     }

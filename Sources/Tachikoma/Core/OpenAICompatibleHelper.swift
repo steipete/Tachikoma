@@ -1,6 +1,6 @@
 import Foundation
 #if canImport(FoundationNetworking)
-    import FoundationNetworking
+import FoundationNetworking
 #endif
 
 // MARK: - OpenAI-Compatible Helper
@@ -39,7 +39,7 @@ struct OpenAICompatibleHelper {
             messages: convertMessages(request.messages),
             temperature: request.settings.temperature,
             maxTokens: request.settings.maxTokens,
-            tools: request.tools?.compactMap { try convertTool($0) },
+            tools: request.tools?.compactMap { try self.convertTool($0) },
             stream: false,
             stop: stopSequences.isEmpty ? nil : stopSequences,
         )
@@ -171,7 +171,7 @@ struct OpenAICompatibleHelper {
             messages: convertMessages(request.messages),
             temperature: request.settings.temperature,
             maxTokens: request.settings.maxTokens,
-            tools: request.tools?.compactMap { try convertTool($0) },
+            tools: request.tools?.compactMap { try self.convertTool($0) },
             stream: true,
             stop: stopSequences.isEmpty ? nil : stopSequences,
         )
@@ -204,236 +204,236 @@ struct OpenAICompatibleHelper {
             Task {
                 do {
                     #if canImport(FoundationNetworking)
-                        // Linux: Use data task
-                        let (data, response) = try await withCheckedThrowingContinuation { (cont: CheckedContinuation<
-                            (Data, URLResponse),
-                            Error,
-                        >) in
-                            session.dataTask(with: finalRequest) { data, response, error in
-                                if let error {
-                                    cont.resume(throwing: error)
-                                } else if let data, let response {
-                                    cont.resume(returning: (data, response))
-                                } else {
-                                    cont.resume(throwing: TachikomaError.networkError(NSError(
-                                        domain: "Invalid response",
-                                        code: 0,
-                                    )))
-                                }
-                            }.resume()
-                        }
-
-                        guard let httpResponse = response as? HTTPURLResponse else {
-                            throw TachikomaError.networkError(NSError(domain: "Invalid response", code: 0))
-                        }
-
-                        guard httpResponse.statusCode == 200 else {
-                            let errorText = String(data: data, encoding: .utf8) ?? "Unknown error"
-                            throw TachikomaError
-                                .apiError("\(providerName) Error (HTTP \(httpResponse.statusCode)): \(errorText)")
-                        }
-
-                        // Process the entire response for Linux
-                        let lines = String(data: data, encoding: .utf8)?.components(separatedBy: "\n") ?? []
-                    #else
-                        // macOS/iOS: Use streaming API
-                        let (bytes, response) = try await session.bytes(for: finalRequest)
-
-                        guard let httpResponse = response as? HTTPURLResponse else {
-                            throw TachikomaError.networkError(NSError(domain: "Invalid response", code: 0))
-                        }
-
-                        guard httpResponse.statusCode == 200 else {
-                            // Try to read error message from response
-                            var errorBody = ""
-                            for try await line in bytes.lines {
-                                errorBody += line
-                                if errorBody.count > 1000 { break }
+                    // Linux: Use data task
+                    let (data, response) = try await withCheckedThrowingContinuation { (cont: CheckedContinuation<
+                        (Data, URLResponse),
+                        Error,
+                    >) in
+                        session.dataTask(with: finalRequest) { data, response, error in
+                            if let error {
+                                cont.resume(throwing: error)
+                            } else if let data, let response {
+                                cont.resume(returning: (data, response))
+                            } else {
+                                cont.resume(throwing: TachikomaError.networkError(NSError(
+                                    domain: "Invalid response",
+                                    code: 0,
+                                )))
                             }
-                            let errorText = errorBody.isEmpty ? "Unknown error" : errorBody
-                            throw TachikomaError
-                                .apiError("\(providerName) Error (HTTP \(httpResponse.statusCode)): \(errorText)")
+                        }.resume()
+                    }
+
+                    guard let httpResponse = response as? HTTPURLResponse else {
+                        throw TachikomaError.networkError(NSError(domain: "Invalid response", code: 0))
+                    }
+
+                    guard httpResponse.statusCode == 200 else {
+                        let errorText = String(data: data, encoding: .utf8) ?? "Unknown error"
+                        throw TachikomaError
+                            .apiError("\(providerName) Error (HTTP \(httpResponse.statusCode)): \(errorText)")
+                    }
+
+                    // Process the entire response for Linux
+                    let lines = String(data: data, encoding: .utf8)?.components(separatedBy: "\n") ?? []
+                    #else
+                    // macOS/iOS: Use streaming API
+                    let (bytes, response) = try await session.bytes(for: finalRequest)
+
+                    guard let httpResponse = response as? HTTPURLResponse else {
+                        throw TachikomaError.networkError(NSError(domain: "Invalid response", code: 0))
+                    }
+
+                    guard httpResponse.statusCode == 200 else {
+                        // Try to read error message from response
+                        var errorBody = ""
+                        for try await line in bytes.lines {
+                            errorBody += line
+                            if errorBody.count > 1000 { break }
                         }
+                        let errorText = errorBody.isEmpty ? "Unknown error" : errorBody
+                        throw TachikomaError
+                            .apiError("\(providerName) Error (HTTP \(httpResponse.statusCode)): \(errorText)")
+                    }
                     #endif
 
                     // Process the streaming response
                     var hasReceivedContent = false
 
                     #if canImport(FoundationNetworking)
-                        // Linux: Process all lines at once
-                        for line in lines {
-                            if line.hasPrefix("data: ") {
-                                let jsonString = String(line.dropFirst(6))
+                    // Linux: Process all lines at once
+                    for line in lines {
+                        if line.hasPrefix("data: ") {
+                            let jsonString = String(line.dropFirst(6))
 
-                                if jsonString.trimmingCharacters(in: .whitespacesAndNewlines) == "[DONE]" {
-                                    // If we haven't received any content yet and see [DONE],
-                                    // yield an empty text delta to prevent hanging
-                                    if !hasReceivedContent {
-                                        continuation.yield(TextStreamDelta.text(""))
-                                    }
-                                    continuation.yield(TextStreamDelta.done())
-                                    break
+                            if jsonString.trimmingCharacters(in: .whitespacesAndNewlines) == "[DONE]" {
+                                // If we haven't received any content yet and see [DONE],
+                                // yield an empty text delta to prevent hanging
+                                if !hasReceivedContent {
+                                    continuation.yield(TextStreamDelta.text(""))
                                 }
+                                continuation.yield(TextStreamDelta.done())
+                                break
+                            }
 
-                                guard let data = jsonString.data(using: .utf8) else { continue }
+                            guard let data = jsonString.data(using: .utf8) else { continue }
 
-                                do {
-                                    let chunk = try JSONDecoder().decode(OpenAIStreamChunk.self, from: data)
-                                    if let choice = chunk.choices.first {
-                                        // Debug logging for Grok models
-                                        if
-                                            modelId.contains("grok"),
-                                            ProcessInfo.processInfo.environment["DEBUG_GROK"] != nil
-                                        {
-                                            print("🔵 DEBUG Grok chunk: \(jsonString)")
-                                        }
+                            do {
+                                let chunk = try JSONDecoder().decode(OpenAIStreamChunk.self, from: data)
+                                if let choice = chunk.choices.first {
+                                    // Debug logging for Grok models
+                                    if
+                                        modelId.contains("grok"),
+                                        ProcessInfo.processInfo.environment["DEBUG_GROK"] != nil
+                                    {
+                                        print("🔵 DEBUG Grok chunk: \(jsonString)")
+                                    }
 
-                                        if let content = choice.delta.content, !content.isEmpty {
-                                            continuation.yield(TextStreamDelta.text(content))
-                                            hasReceivedContent = true
-                                        }
+                                    if let content = choice.delta.content, !content.isEmpty {
+                                        continuation.yield(TextStreamDelta.text(content))
+                                        hasReceivedContent = true
+                                    }
 
-                                        // Handle tool calls - Grok sends them all at once
-                                        if let toolCalls = choice.delta.toolCalls {
-                                            for toolCall in toolCalls {
-                                                // For Grok, function data comes directly in the toolCall
-                                                if let function = toolCall.function {
-                                                    // Grok always provides name and arguments together
-                                                    if let name = function.name, let argumentsStr = function.arguments {
-                                                        // Parse arguments JSON string into dictionary
-                                                        let argumentsDict: [String: AnyAgentToolValue] = if
-                                                            !argumentsStr.isEmpty,
-                                                            let data = argumentsStr.data(using: .utf8),
-                                                            let json = try? JSONSerialization
-                                                                .jsonObject(with: data) as? [String: Any]
-                                                        {
-                                                            // Convert JSON to AnyAgentToolValue dictionary
-                                                            json.compactMapValues { value in
-                                                                if let stringValue = value as? String {
-                                                                    return AnyAgentToolValue(string: stringValue)
-                                                                } else if let intValue = value as? Int {
-                                                                    return AnyAgentToolValue(int: intValue)
-                                                                } else if let doubleValue = value as? Double {
-                                                                    return AnyAgentToolValue(double: doubleValue)
-                                                                } else if let boolValue = value as? Bool {
-                                                                    return AnyAgentToolValue(bool: boolValue)
-                                                                }
-                                                                return nil
+                                    // Handle tool calls - Grok sends them all at once
+                                    if let toolCalls = choice.delta.toolCalls {
+                                        for toolCall in toolCalls {
+                                            // For Grok, function data comes directly in the toolCall
+                                            if let function = toolCall.function {
+                                                // Grok always provides name and arguments together
+                                                if let name = function.name, let argumentsStr = function.arguments {
+                                                    // Parse arguments JSON string into dictionary
+                                                    let argumentsDict: [String: AnyAgentToolValue] = if
+                                                        !argumentsStr.isEmpty,
+                                                        let data = argumentsStr.data(using: .utf8),
+                                                        let json = try? JSONSerialization
+                                                            .jsonObject(with: data) as? [String: Any]
+                                                    {
+                                                        // Convert JSON to AnyAgentToolValue dictionary
+                                                        json.compactMapValues { value in
+                                                            if let stringValue = value as? String {
+                                                                return AnyAgentToolValue(string: stringValue)
+                                                            } else if let intValue = value as? Int {
+                                                                return AnyAgentToolValue(int: intValue)
+                                                            } else if let doubleValue = value as? Double {
+                                                                return AnyAgentToolValue(double: doubleValue)
+                                                            } else if let boolValue = value as? Bool {
+                                                                return AnyAgentToolValue(bool: boolValue)
                                                             }
-                                                        } else {
-                                                            [:]
+                                                            return nil
                                                         }
-
-                                                        let agentToolCall = AgentToolCall(
-                                                            id: toolCall.id ?? UUID().uuidString,
-                                                            name: name,
-                                                            arguments: argumentsDict,
-                                                        )
-                                                        continuation.yield(TextStreamDelta.tool(agentToolCall))
-                                                        hasReceivedContent = true
+                                                    } else {
+                                                        [:]
                                                     }
+
+                                                    let agentToolCall = AgentToolCall(
+                                                        id: toolCall.id ?? UUID().uuidString,
+                                                        name: name,
+                                                        arguments: argumentsDict,
+                                                    )
+                                                    continuation.yield(TextStreamDelta.tool(agentToolCall))
+                                                    hasReceivedContent = true
                                                 }
                                             }
                                         }
+                                    }
 
-                                        if choice.finishReason != nil {
-                                            continuation.yield(TextStreamDelta.done())
-                                            break
-                                        }
+                                    if choice.finishReason != nil {
+                                        continuation.yield(TextStreamDelta.done())
+                                        break
                                     }
-                                } catch {
-                                    // Log decoding errors for debugging
-                                    if modelId.contains("grok") {
-                                        print("⚠️ Grok streaming decode error: \(error)")
-                                        print("   Raw JSON: \(jsonString)")
-                                    }
-                                    // Skip malformed chunks
-                                    continue
                                 }
+                            } catch {
+                                // Log decoding errors for debugging
+                                if modelId.contains("grok") {
+                                    print("⚠️ Grok streaming decode error: \(error)")
+                                    print("   Raw JSON: \(jsonString)")
+                                }
+                                // Skip malformed chunks
+                                continue
                             }
-                        } // End of Linux for loop
+                        }
+                    } // End of Linux for loop
                     #else
-                        // macOS/iOS: Stream lines
-                        for try await line in bytes.lines {
-                            if line.hasPrefix("data: ") {
-                                let jsonString = String(line.dropFirst(6))
+                    // macOS/iOS: Stream lines
+                    for try await line in bytes.lines {
+                        if line.hasPrefix("data: ") {
+                            let jsonString = String(line.dropFirst(6))
 
-                                if jsonString.trimmingCharacters(in: .whitespacesAndNewlines) == "[DONE]" {
-                                    // If we haven't received any content yet and see [DONE],
-                                    // yield an empty text delta to prevent hanging
-                                    if !hasReceivedContent {
-                                        continuation.yield(TextStreamDelta.text(""))
-                                    }
-                                    continuation.yield(TextStreamDelta.done())
-                                    break
+                            if jsonString.trimmingCharacters(in: .whitespacesAndNewlines) == "[DONE]" {
+                                // If we haven't received any content yet and see [DONE],
+                                // yield an empty text delta to prevent hanging
+                                if !hasReceivedContent {
+                                    continuation.yield(TextStreamDelta.text(""))
                                 }
+                                continuation.yield(TextStreamDelta.done())
+                                break
+                            }
 
-                                guard let data = jsonString.data(using: .utf8) else { continue }
+                            guard let data = jsonString.data(using: .utf8) else { continue }
 
-                                do {
-                                    let chunk = try JSONDecoder().decode(OpenAIStreamChunk.self, from: data)
-                                    if let choice = chunk.choices.first {
-                                        // Debug logging for Grok models
-                                        if
-                                            modelId.contains("grok"),
-                                            ProcessInfo.processInfo.environment["DEBUG_GROK"] != nil
-                                        {
-                                            print("🔵 DEBUG Grok chunk: \(jsonString)")
-                                        }
+                            do {
+                                let chunk = try JSONDecoder().decode(OpenAIStreamChunk.self, from: data)
+                                if let choice = chunk.choices.first {
+                                    // Debug logging for Grok models
+                                    if
+                                        modelId.contains("grok"),
+                                        ProcessInfo.processInfo.environment["DEBUG_GROK"] != nil
+                                    {
+                                        print("🔵 DEBUG Grok chunk: \(jsonString)")
+                                    }
 
-                                        if let content = choice.delta.content, !content.isEmpty {
-                                            continuation.yield(TextStreamDelta.text(content))
-                                            hasReceivedContent = true
-                                        }
+                                    if let content = choice.delta.content, !content.isEmpty {
+                                        continuation.yield(TextStreamDelta.text(content))
+                                        hasReceivedContent = true
+                                    }
 
-                                        // Handle tool calls - Grok sends them all at once
-                                        if let toolCalls = choice.delta.toolCalls {
-                                            for toolCall in toolCalls {
-                                                // For Grok, function data comes directly in the toolCall
-                                                if let function = toolCall.function {
-                                                    // Grok always provides name and arguments together
-                                                    if let name = function.name, let argumentsStr = function.arguments {
-                                                        // Parse arguments JSON string into dictionary
-                                                        let argumentsDict: [String: AnyAgentToolValue] = if
-                                                            let data = argumentsStr.data(using: .utf8),
-                                                            let parsed = try? JSONSerialization
-                                                                .jsonObject(with: data) as? [String: Any]
-                                                        {
-                                                            parsed.mapValues { AnyAgentToolValue.from($0) }
-                                                        } else {
-                                                            [:]
-                                                        }
-
-                                                        let call = AgentToolCall(
-                                                            id: toolCall.id ?? UUID().uuidString,
-                                                            name: name,
-                                                            arguments: argumentsDict,
-                                                        )
-                                                        continuation.yield(TextStreamDelta.tool(call))
-                                                        hasReceivedContent = true
+                                    // Handle tool calls - Grok sends them all at once
+                                    if let toolCalls = choice.delta.toolCalls {
+                                        for toolCall in toolCalls {
+                                            // For Grok, function data comes directly in the toolCall
+                                            if let function = toolCall.function {
+                                                // Grok always provides name and arguments together
+                                                if let name = function.name, let argumentsStr = function.arguments {
+                                                    // Parse arguments JSON string into dictionary
+                                                    let argumentsDict: [String: AnyAgentToolValue] = if
+                                                        let data = argumentsStr.data(using: .utf8),
+                                                        let parsed = try? JSONSerialization
+                                                            .jsonObject(with: data) as? [String: Any]
+                                                    {
+                                                        parsed.mapValues { AnyAgentToolValue.from($0) }
+                                                    } else {
+                                                        [:]
                                                     }
+
+                                                    let call = AgentToolCall(
+                                                        id: toolCall.id ?? UUID().uuidString,
+                                                        name: name,
+                                                        arguments: argumentsDict,
+                                                    )
+                                                    continuation.yield(TextStreamDelta.tool(call))
+                                                    hasReceivedContent = true
                                                 }
                                             }
                                         }
+                                    }
 
-                                        if let finishReason = choice.finishReason {
-                                            if finishReason == "stop" || finishReason == "tool_calls" {
-                                                continuation.yield(TextStreamDelta.done())
-                                            }
+                                    if let finishReason = choice.finishReason {
+                                        if finishReason == "stop" || finishReason == "tool_calls" {
+                                            continuation.yield(TextStreamDelta.done())
                                         }
                                     }
-                                } catch {
-                                    // Log error in verbose mode
-                                    let config = TachikomaConfiguration.current
-                                    if config.verbose || modelId.contains("grok") {
-                                        print("[\(providerName)] Failed to parse chunk: \(error)")
-                                        print("   Raw JSON: \(jsonString)")
-                                    }
-                                    // Skip malformed chunks
-                                    continue
                                 }
+                            } catch {
+                                // Log error in verbose mode
+                                let config = TachikomaConfiguration.current
+                                if config.verbose || modelId.contains("grok") {
+                                    print("[\(providerName)] Failed to parse chunk: \(error)")
+                                    print("   Raw JSON: \(jsonString)")
+                                }
+                                // Skip malformed chunks
+                                continue
                             }
-                        } // End of macOS for loop
+                        }
+                    } // End of macOS for loop
                     #endif
 
                     continuation.finish()
@@ -580,7 +580,7 @@ struct OpenAICompatibleHelper {
                     case let .toolResult(result):
                         toolCallId = result.toolCallId
                         // Convert the result to a string representation
-                        resultContent = convertToolResultToString(result.result)
+                        resultContent = self.convertToolResultToString(result.result)
                     case let .text(text):
                         resultContent = text
                     default:

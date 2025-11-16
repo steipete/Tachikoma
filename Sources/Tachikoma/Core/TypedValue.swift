@@ -229,7 +229,7 @@ extension TypedValue {
     /// Decode into a specific Decodable type
     public func decode<T: Decodable>(as type: T.Type) throws -> T {
         // Decode into a specific Decodable type
-        let json = toJSON()
+        let json = self.toJSON()
         let data = try JSONSerialization.data(withJSONObject: json)
         let decoder = JSONDecoder()
         return try decoder.decode(type, from: data)
@@ -242,14 +242,14 @@ extension TypedValue {
     /// Create from a dictionary with string keys
     public static func fromDictionary(_ dict: [String: Any]) throws -> TypedValue {
         // Create from a dictionary with string keys
-        try fromJSON(dict)
+        try self.fromJSON(dict)
     }
 
     /// Convert to dictionary if this is an object type
     public func toDictionary() throws -> [String: Any] {
         // Convert to dictionary if this is an object type
         guard case let .object(dict) = self else {
-            throw TypedValueError.conversionFailed(from: "\(valueType)", to: "dictionary")
+            throw TypedValueError.conversionFailed(from: "\(self.valueType)", to: "dictionary")
         }
         return dict.mapValues { $0.toJSON() }
     }

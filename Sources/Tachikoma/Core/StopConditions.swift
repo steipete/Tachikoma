@@ -27,11 +27,11 @@ public struct StringStopCondition: StopCondition {
     }
 
     public func shouldStop(text: String, delta: String?) async -> Bool {
-        if caseSensitive {
-            text.contains(stopString) || (delta?.contains(stopString) ?? false)
+        if self.caseSensitive {
+            text.contains(self.stopString) || (delta?.contains(self.stopString) ?? false)
         } else {
-            text.lowercased().contains(stopString.lowercased()) ||
-                (delta?.lowercased().contains(stopString.lowercased()) ?? false)
+            text.lowercased().contains(self.stopString.lowercased()) ||
+                (delta?.lowercased().contains(self.stopString.lowercased()) ?? false)
         }
     }
 
@@ -46,7 +46,7 @@ public struct RegexStopCondition: StopCondition {
 
     public init(pattern: String) {
         self.pattern = pattern
-        regex = try? NSRegularExpression(pattern: pattern, options: [])
+        self.regex = try? NSRegularExpression(pattern: pattern, options: [])
     }
 
     public func shouldStop(text: String, delta: String?) async -> Bool {
@@ -97,16 +97,16 @@ public actor TokenCountStopCondition: StopCondition {
         if let delta, !delta.isEmpty {
             // Count based on character count, with minimum of 1 token
             let tokenEstimate = max(1, (delta.count + 3) / 4) // Round up by adding 3
-            currentTokens += tokenEstimate
+            self.currentTokens += tokenEstimate
         } else if !text.isEmpty {
             // For full text, recalculate from scratch
-            currentTokens = max(1, text.count / 4)
+            self.currentTokens = max(1, text.count / 4)
         }
-        return currentTokens >= maxTokens
+        return self.currentTokens >= self.maxTokens
     }
 
     public func reset() async {
-        currentTokens = 0
+        self.currentTokens = 0
     }
 }
 
@@ -126,11 +126,11 @@ public actor TimeoutStopCondition: StopCondition {
         }
 
         guard let startTime else { return false }
-        return Date().timeIntervalSince(startTime) >= timeout
+        return Date().timeIntervalSince(startTime) >= self.timeout
     }
 
     public func reset() async {
-        startTime = nil
+        self.startTime = nil
     }
 }
 
@@ -144,7 +144,7 @@ public struct PredicateStopCondition: StopCondition {
     }
 
     public func shouldStop(text: String, delta: String?) async -> Bool {
-        await predicate(text, delta)
+        await self.predicate(text, delta)
     }
 
     public func reset() async {}
@@ -166,7 +166,7 @@ public struct AnyStopCondition: StopCondition {
     }
 
     public func shouldStop(text: String, delta: String?) async -> Bool {
-        for condition in conditions {
+        for condition in self.conditions {
             if await condition.shouldStop(text: text, delta: delta) {
                 return true
             }
@@ -175,7 +175,7 @@ public struct AnyStopCondition: StopCondition {
     }
 
     public func reset() async {
-        for condition in conditions {
+        for condition in self.conditions {
             await condition.reset()
         }
     }
@@ -195,7 +195,7 @@ public struct AllStopCondition: StopCondition {
     }
 
     public func shouldStop(text: String, delta: String?) async -> Bool {
-        for condition in conditions {
+        for condition in self.conditions {
             if await !condition.shouldStop(text: text, delta: delta) {
                 return false
             }
@@ -204,7 +204,7 @@ public struct AllStopCondition: StopCondition {
     }
 
     public func reset() async {
-        for condition in conditions {
+        for condition in self.conditions {
             await condition.reset()
         }
     }
@@ -222,27 +222,27 @@ public actor ConsecutivePatternStopCondition: StopCondition {
 
     public init(pattern: String, count: Int) {
         self.pattern = pattern
-        requiredCount = count
+        self.requiredCount = count
     }
 
     public func shouldStop(text: String, delta: String?) async -> Bool {
         // Count new occurrences in the delta
         if let delta {
-            let newOccurrences = delta.components(separatedBy: pattern).count - 1
-            currentCount += newOccurrences
+            let newOccurrences = delta.components(separatedBy: self.pattern).count - 1
+            self.currentCount += newOccurrences
         } else {
             // Full text check
-            let occurrences = text.components(separatedBy: pattern).count - 1
-            currentCount = occurrences
+            let occurrences = text.components(separatedBy: self.pattern).count - 1
+            self.currentCount = occurrences
         }
 
-        lastText = text
-        return currentCount >= requiredCount
+        self.lastText = text
+        return self.currentCount >= self.requiredCount
     }
 
     public func reset() async {
-        currentCount = 0
-        lastText = ""
+        self.currentCount = 0
+        self.lastText = ""
     }
 }
 
@@ -262,22 +262,22 @@ public actor RepetitionStopCondition: StopCondition {
         guard let delta, !delta.isEmpty else { return false }
 
         // Add new chunk
-        recentChunks.append(delta)
+        self.recentChunks.append(delta)
 
         // Keep only recent chunks (use windowSize for the window)
-        while recentChunks.joined().count > windowSize, recentChunks.count > 1 {
-            recentChunks.removeFirst()
+        while self.recentChunks.joined().count > self.windowSize, self.recentChunks.count > 1 {
+            self.recentChunks.removeFirst()
         }
 
         // Check for repetition
-        guard recentChunks.count >= 2 else { return false }
+        guard self.recentChunks.count >= 2 else { return false }
 
         // Check if the last chunk is exactly the same as any previous chunk
-        let lastChunk = recentChunks.last!
+        let lastChunk = self.recentChunks.last!
         var exactMatchCount = 0
 
-        for i in 0..<(recentChunks.count - 1) {
-            if recentChunks[i] == lastChunk {
+        for i in 0..<(self.recentChunks.count - 1) {
+            if self.recentChunks[i] == lastChunk {
                 exactMatchCount += 1
             }
         }
@@ -289,14 +289,14 @@ public actor RepetitionStopCondition: StopCondition {
 
         // Also check for high similarity with flexible threshold
         var similarCount = 0
-        for i in 0..<(recentChunks.count - 1) {
-            if similarity(recentChunks[i], lastChunk) >= threshold {
+        for i in 0..<(self.recentChunks.count - 1) {
+            if self.similarity(self.recentChunks[i], lastChunk) >= self.threshold {
                 similarCount += 1
             }
         }
 
         // Stop if more than half of recent chunks are similar
-        return recentChunks.count >= 3 && Double(similarCount) / Double(recentChunks.count - 1) > 0.5
+        return self.recentChunks.count >= 3 && Double(similarCount) / Double(self.recentChunks.count - 1) > 0.5
     }
 
     private func similarity(_ s1: String, _ s2: String) -> Double {
@@ -316,7 +316,7 @@ public actor RepetitionStopCondition: StopCondition {
     }
 
     public func reset() async {
-        recentChunks = []
+        self.recentChunks = []
     }
 }
 
@@ -372,13 +372,13 @@ public struct StopConditionBuilder {
     /// Build the final condition
     public func build() -> any StopCondition {
         // Build the final condition
-        switch conditions.count {
+        switch self.conditions.count {
         case 0:
             NeverStopCondition()
         case 1:
-            conditions[0]
+            self.conditions[0]
         default:
-            AnyStopCondition(conditions)
+            AnyStopCondition(self.conditions)
         }
     }
 }
@@ -481,18 +481,18 @@ extension StreamTextResult {
     /// Convenience method for common stop patterns
     public func stopOnString(_ text: String, caseSensitive: Bool = true) -> StreamTextResult {
         // Convenience method for common stop patterns
-        stopWhen(StringStopCondition(text, caseSensitive: caseSensitive))
+        self.stopWhen(StringStopCondition(text, caseSensitive: caseSensitive))
     }
 
     public func stopOnPattern(_ pattern: String) -> StreamTextResult {
-        stopWhen(RegexStopCondition(pattern: pattern))
+        self.stopWhen(RegexStopCondition(pattern: pattern))
     }
 
     public func stopAfterTokens(_ count: Int) -> StreamTextResult {
-        stopWhen(TokenCountStopCondition(maxTokens: count))
+        self.stopWhen(TokenCountStopCondition(maxTokens: count))
     }
 
     public func stopAfterTime(_ seconds: TimeInterval) -> StreamTextResult {
-        stopWhen(TimeoutStopCondition(timeout: seconds))
+        self.stopWhen(TimeoutStopCondition(timeout: seconds))
     }
 }

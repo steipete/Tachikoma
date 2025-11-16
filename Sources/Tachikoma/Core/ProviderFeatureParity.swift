@@ -110,47 +110,47 @@ public final class ProviderAdapter: EnhancedModelProvider {
     private let baseProvider: ModelProvider
     public let configuration: ProviderConfiguration
 
-    public var modelId: String { baseProvider.modelId }
-    public var baseURL: String? { baseProvider.baseURL }
-    public var apiKey: String? { baseProvider.apiKey }
-    public var capabilities: ModelCapabilities { baseProvider.capabilities }
+    public var modelId: String { self.baseProvider.modelId }
+    public var baseURL: String? { self.baseProvider.baseURL }
+    public var apiKey: String? { self.baseProvider.apiKey }
+    public var capabilities: ModelCapabilities { self.baseProvider.capabilities }
 
     public init(provider: ModelProvider, configuration: ProviderConfiguration) {
-        baseProvider = provider
+        self.baseProvider = provider
         self.configuration = configuration
     }
 
     public func generateText(request: ProviderRequest) async throws -> ProviderResponse {
         let validatedRequest = try validateRequest(request)
-        return try await baseProvider.generateText(request: validatedRequest)
+        return try await self.baseProvider.generateText(request: validatedRequest)
     }
 
     public func streamText(request: ProviderRequest) async throws -> AsyncThrowingStream<TextStreamDelta, Error> {
         // Check if streaming is supported
-        guard capabilities.supportsStreaming else {
+        guard self.capabilities.supportsStreaming else {
             // Fallback to non-streaming and simulate stream
-            return simulateStream(from: request)
+            return self.simulateStream(from: request)
         }
 
         let validatedRequest = try validateRequest(request)
-        return try await baseProvider.streamText(request: validatedRequest)
+        return try await self.baseProvider.streamText(request: validatedRequest)
     }
 
     public func validateMessages(_ messages: [ModelMessage]) throws -> [ModelMessage] {
         var validated = messages
 
         // Handle system messages if not supported
-        if !configuration.supportsSystemRole {
-            validated = transformSystemMessages(messages)
+        if !self.configuration.supportsSystemRole {
+            validated = self.transformSystemMessages(messages)
         }
 
         // Ensure alternating roles if required
-        if configuration.requiresAlternatingRoles {
-            validated = ensureAlternatingRoles(validated)
+        if self.configuration.requiresAlternatingRoles {
+            validated = self.ensureAlternatingRoles(validated)
         }
 
         // Validate vision inputs
-        validated = try validateVisionInputs(validated)
+        validated = try self.validateVisionInputs(validated)
 
         return validated
     }
@@ -158,21 +158,21 @@ public final class ProviderAdapter: EnhancedModelProvider {
     public func isFeatureSupported(_ feature: ProviderFeature) -> Bool {
         switch feature {
         case .streaming:
-            capabilities.supportsStreaming
+            self.capabilities.supportsStreaming
         case .toolCalling, .functionCalling:
-            capabilities.supportsTools
+            self.capabilities.supportsTools
         case .systemMessages:
-            configuration.supportsSystemRole
+            self.configuration.supportsSystemRole
         case .visionInputs, .multiModal:
-            capabilities.supportsVision
+            self.capabilities.supportsVision
         case .parallelToolCalls:
-            capabilities.supportsTools && configuration.maxToolCalls > 1
+            self.capabilities.supportsTools && self.configuration.maxToolCalls > 1
         case .jsonMode:
             false // Not yet implemented in ModelCapabilities
         case .contextCaching:
             false // Most providers don't support this yet
         case .longContext:
-            configuration.maxContextLength > 100_000
+            self.configuration.maxContextLength > 100_000
         }
     }
 
@@ -185,13 +185,13 @@ public final class ProviderAdapter: EnhancedModelProvider {
         // Validate tools
         var validatedTools = request.tools
         if let tools = request.tools, !tools.isEmpty {
-            guard capabilities.supportsTools else {
+            guard self.capabilities.supportsTools else {
                 throw TachikomaError.unsupportedOperation("This model doesn't support tool calling")
             }
 
-            if tools.count > configuration.maxToolCalls {
+            if tools.count > self.configuration.maxToolCalls {
                 // Truncate to max allowed
-                validatedTools = Array(tools.prefix(configuration.maxToolCalls))
+                validatedTools = Array(tools.prefix(self.configuration.maxToolCalls))
             }
         }
 
@@ -246,7 +246,7 @@ public final class ProviderAdapter: EnhancedModelProvider {
     }
 
     private func validateVisionInputs(_ messages: [ModelMessage]) throws -> [ModelMessage] {
-        guard capabilities.supportsVision else {
+        guard self.capabilities.supportsVision else {
             // Strip image content if not supported
             return messages.map { message in
                 let filteredContent = message.content.compactMap { part -> ModelMessage.ContentPart? in
@@ -286,7 +286,7 @@ public final class ProviderAdapter: EnhancedModelProvider {
                 .replacingOccurrences(of: "data:image/", with: "")
                 .replacingOccurrences(of: ";base64", with: "")
 
-            guard configuration.supportedImageFormats.contains(format) else {
+            guard self.configuration.supportedImageFormats.contains(format) else {
                 throw TachikomaError.invalidInput("Unsupported image format: \(format)")
             }
 
@@ -333,7 +333,7 @@ public final class ProviderAdapter: EnhancedModelProvider {
 
 extension String {
     fileprivate func split(by wordCount: Int) -> [String] {
-        let words = split(separator: " ")
+        let words = self.split(separator: " ")
         var chunks: [String] = []
 
         for i in stride(from: 0, to: words.count, by: wordCount) {
@@ -360,7 +360,7 @@ extension ModelProvider {
         }
 
         // Auto-detect configuration based on provider type
-        let config = configuration ?? detectConfiguration()
+        let config = configuration ?? self.detectConfiguration()
         return ProviderAdapter(provider: self, configuration: config)
     }
 

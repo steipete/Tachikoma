@@ -1,6 +1,6 @@
 import Foundation
 #if canImport(FoundationNetworking)
-    import FoundationNetworking
+import FoundationNetworking
 #endif
 
 /// Provider for OpenRouter models
@@ -19,16 +19,16 @@ public final class OpenRouterProvider: ModelProvider {
         session: URLSession = .shared,
     ) throws {
         self.modelId = modelId
-        baseURL = configuration.getBaseURL(for: .custom("openrouter")) ?? "https://openrouter.ai/api/v1"
+        self.baseURL = configuration.getBaseURL(for: .custom("openrouter")) ?? "https://openrouter.ai/api/v1"
         self.session = session
 
         if let key = configuration.getAPIKey(for: .custom("openrouter")) {
-            apiKey = key
+            self.apiKey = key
         } else {
             throw TachikomaError.authenticationFailed("OPENROUTER_API_KEY not found")
         }
 
-        capabilities = ModelCapabilities(
+        self.capabilities = ModelCapabilities(
             supportsVision: true,
             supportsTools: true,
             supportsStreaming: true,
@@ -36,7 +36,7 @@ public final class OpenRouterProvider: ModelProvider {
             maxOutputTokens: 4096,
         )
 
-        defaultHeaders = [
+        self.defaultHeaders = [
             "HTTP-Referer": ProcessInfo.processInfo.environment["OPENROUTER_REFERER"] ?? "https://peekaboo.app",
             "X-Title": ProcessInfo.processInfo.environment["OPENROUTER_TITLE"] ?? "Peekaboo",
         ]
@@ -49,12 +49,12 @@ public final class OpenRouterProvider: ModelProvider {
 
         return try await OpenAICompatibleHelper.generateText(
             request: request,
-            modelId: modelId,
+            modelId: self.modelId,
             baseURL: baseURL,
             apiKey: apiKey,
             providerName: "OpenRouter",
-            additionalHeaders: defaultHeaders,
-            session: session,
+            additionalHeaders: self.defaultHeaders,
+            session: self.session,
         )
     }
 
@@ -65,12 +65,12 @@ public final class OpenRouterProvider: ModelProvider {
 
         return try await OpenAICompatibleHelper.streamText(
             request: request,
-            modelId: modelId,
+            modelId: self.modelId,
             baseURL: baseURL,
             apiKey: apiKey,
             providerName: "OpenRouter",
-            additionalHeaders: defaultHeaders,
-            session: session,
+            additionalHeaders: self.defaultHeaders,
+            session: self.session,
         )
     }
 }

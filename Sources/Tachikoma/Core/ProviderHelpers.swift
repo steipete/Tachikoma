@@ -9,11 +9,11 @@ public struct AnyCodingKey: CodingKey {
 
     public init?(stringValue: String) {
         self.stringValue = stringValue
-        intValue = nil
+        self.intValue = nil
     }
 
     public init?(intValue: Int) {
-        stringValue = String(intValue)
+        self.stringValue = String(intValue)
         self.intValue = intValue
     }
 }
@@ -25,17 +25,17 @@ public struct DynamicCodingKey: CodingKey {
 
     public init?(stringValue: String) {
         self.stringValue = stringValue
-        intValue = nil
+        self.intValue = nil
     }
 
     public init?(intValue: Int) {
-        stringValue = String(intValue)
+        self.stringValue = String(intValue)
         self.intValue = intValue
     }
 
     public init(stringLiteral value: String) {
-        stringValue = value
-        intValue = nil
+        self.stringValue = value
+        self.intValue = nil
     }
 }
 

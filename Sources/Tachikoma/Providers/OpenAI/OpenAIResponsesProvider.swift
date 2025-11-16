@@ -1,9 +1,9 @@
 import Foundation
 #if canImport(FoundationNetworking)
-    import FoundationNetworking
+import FoundationNetworking
 #endif
 #if canImport(FoundationNetworking)
-    import FoundationNetworking
+import FoundationNetworking
 #endif
 
 /// Provider for OpenAI Responses API (GPT-5, o3, o4)
@@ -32,14 +32,14 @@ public final class OpenAIResponsesProvider: ModelProvider {
         session: URLSession = .shared,
     ) throws {
         self.model = model
-        modelId = model.modelId
+        self.modelId = model.modelId
         self.configuration = configuration
         self.session = session
-        baseURL = configuration.getBaseURL(for: .openai) ?? "https://api.openai.com/v1"
+        self.baseURL = configuration.getBaseURL(for: .openai) ?? "https://api.openai.com/v1"
 
         // Get API key from configuration
         if let key = configuration.getAPIKey(for: .openai) {
-            apiKey = key
+            self.apiKey = key
         } else {
             throw TachikomaError.authenticationFailed("OPENAI_API_KEY not found")
         }
@@ -48,7 +48,7 @@ public final class OpenAIResponsesProvider: ModelProvider {
         let isReasoningModel = Self.isReasoningModel(model)
         let isGPT5 = Self.isGPT5Model(model)
 
-        capabilities = ModelCapabilities(
+        self.capabilities = ModelCapabilities(
             supportsVision: model.supportsVision,
             supportsTools: model.supportsTools,
             supportsStreaming: true,
@@ -65,7 +65,7 @@ public final class OpenAIResponsesProvider: ModelProvider {
         let url = URL(string: "\(baseURL!)/responses")!
         var urlRequest = URLRequest(url: url)
         urlRequest.httpMethod = "POST"
-        urlRequest.setValue("Bearer \(apiKey!)", forHTTPHeaderField: "Authorization")
+        urlRequest.setValue("Bearer \(self.apiKey!)", forHTTPHeaderField: "Authorization")
         urlRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
 
         // Add OpenAI-specific headers
@@ -81,27 +81,27 @@ public final class OpenAIResponsesProvider: ModelProvider {
 
         // Send request
         #if canImport(FoundationNetworking)
-            // Linux: Use data task
-            let (data, response) = try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<
-                (Data, URLResponse),
-                Error,
-            >) in
-                self.session.dataTask(with: urlRequest) { data, response, error in
-                    if let error {
-                        continuation.resume(throwing: error)
-                    } else if let data, let response {
-                        continuation.resume(returning: (data, response))
-                    } else {
-                        continuation.resume(throwing: TachikomaError.networkError(NSError(
-                            domain: "Invalid response",
-                            code: 0,
-                        )))
-                    }
-                }.resume()
-            }
+        // Linux: Use data task
+        let (data, response) = try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<
+            (Data, URLResponse),
+            Error,
+        >) in
+            self.session.dataTask(with: urlRequest) { data, response, error in
+                if let error {
+                    continuation.resume(throwing: error)
+                } else if let data, let response {
+                    continuation.resume(returning: (data, response))
+                } else {
+                    continuation.resume(throwing: TachikomaError.networkError(NSError(
+                        domain: "Invalid response",
+                        code: 0,
+                    )))
+                }
+            }.resume()
+        }
         #else
-            // macOS/iOS: Use async API
-            let (data, response) = try await session.data(for: urlRequest)
+        // macOS/iOS: Use async API
+        let (data, response) = try await session.data(for: urlRequest)
         #endif
 
         guard let httpResponse = response as? HTTPURLResponse else {
@@ -166,222 +166,222 @@ public final class OpenAIResponsesProvider: ModelProvider {
             Task {
                 do {
                     #if canImport(FoundationNetworking)
-                        // Linux: Use data task for now (streaming not available)
-                        let (data, response) = try await withCheckedThrowingContinuation { (cont: CheckedContinuation<
-                            (Data, URLResponse),
-                            Error,
-                        >) in
-                            self.session.dataTask(with: finalURLRequest) { data, response, error in
-                                if let error {
-                                    cont.resume(throwing: error)
-                                } else if let data, let response {
-                                    cont.resume(returning: (data, response))
-                                } else {
-                                    cont.resume(throwing: TachikomaError.networkError(NSError(
-                                        domain: "Invalid response",
-                                        code: 0,
-                                    )))
-                                }
-                            }.resume()
-                        }
+                    // Linux: Use data task for now (streaming not available)
+                    let (data, response) = try await withCheckedThrowingContinuation { (cont: CheckedContinuation<
+                        (Data, URLResponse),
+                        Error,
+                    >) in
+                        self.session.dataTask(with: finalURLRequest) { data, response, error in
+                            if let error {
+                                cont.resume(throwing: error)
+                            } else if let data, let response {
+                                cont.resume(returning: (data, response))
+                            } else {
+                                cont.resume(throwing: TachikomaError.networkError(NSError(
+                                    domain: "Invalid response",
+                                    code: 0,
+                                )))
+                            }
+                        }.resume()
+                    }
 
-                        guard let httpResponse = response as? HTTPURLResponse else {
-                            throw TachikomaError.apiError("Invalid response type")
-                        }
+                    guard let httpResponse = response as? HTTPURLResponse else {
+                        throw TachikomaError.apiError("Invalid response type")
+                    }
 
-                        if httpResponse.statusCode != 200 {
-                            let errorBody = String(data: data, encoding: .utf8) ?? ""
-                            let errorMessage = "HTTP \(httpResponse.statusCode): \(errorBody.prefix(1000))"
-                            throw TachikomaError.apiError("OpenAI Responses API Error: \(errorMessage)")
-                        }
+                    if httpResponse.statusCode != 200 {
+                        let errorBody = String(data: data, encoding: .utf8) ?? ""
+                        let errorMessage = "HTTP \(httpResponse.statusCode): \(errorBody.prefix(1000))"
+                        throw TachikomaError.apiError("OpenAI Responses API Error: \(errorMessage)")
+                    }
 
-                        // Parse the entire response for Linux
-                        let responseText = String(data: data, encoding: .utf8) ?? ""
-                        let lines = responseText.components(separatedBy: "\n")
+                    // Parse the entire response for Linux
+                    let responseText = String(data: data, encoding: .utf8) ?? ""
+                    let lines = responseText.components(separatedBy: "\n")
                     #else
-                        // macOS/iOS: Use streaming API
-                        let (bytes, response) = try await self.session.bytes(for: finalURLRequest)
+                    // macOS/iOS: Use streaming API
+                    let (bytes, response) = try await self.session.bytes(for: finalURLRequest)
 
-                        guard let httpResponse = response as? HTTPURLResponse else {
-                            throw TachikomaError.apiError("Invalid response type")
-                        }
+                    guard let httpResponse = response as? HTTPURLResponse else {
+                        throw TachikomaError.apiError("Invalid response type")
+                    }
 
-                        if httpResponse.statusCode != 200 {
-                            // Try to read error message from response
-                            var errorMessage = "HTTP \(httpResponse.statusCode)"
-                            var errorBody = ""
-                            for try await line in bytes.lines {
-                                errorBody += line
-                                if errorBody.count > 1000 { break } // Limit error message size
-                            }
-                            if
-                                let data = errorBody.data(using: .utf8),
-                                let errorResponse = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-                                let error = errorResponse["error"] as? [String: Any],
-                                let message = error["message"] as? String
-                            {
-                                errorMessage = "\(httpResponse.statusCode): \(message)"
-                            } else if !errorBody.isEmpty {
-                                errorMessage = "\(httpResponse.statusCode): \(errorBody.prefix(500))"
-                            }
-                            throw TachikomaError.apiError("Failed to start streaming: \(errorMessage)")
-                        }
-
-                        var previousContent = "" // Track previously sent content for GPT-5 preambles
-                        struct PartialToolCall {
-                            var id: String
-                            var name: String?
-                            var arguments: String
-                        }
-                        var pendingToolCalls: [String: PartialToolCall] = [:]
-
+                    if httpResponse.statusCode != 200 {
+                        // Try to read error message from response
+                        var errorMessage = "HTTP \(httpResponse.statusCode)"
+                        var errorBody = ""
                         for try await line in bytes.lines {
-                            // Handle SSE format
-                            if line.hasPrefix("data: ") {
-                                let jsonString = String(line.dropFirst(6))
+                            errorBody += line
+                            if errorBody.count > 1000 { break } // Limit error message size
+                        }
+                        if
+                            let data = errorBody.data(using: .utf8),
+                            let errorResponse = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                            let error = errorResponse["error"] as? [String: Any],
+                            let message = error["message"] as? String
+                        {
+                            errorMessage = "\(httpResponse.statusCode): \(message)"
+                        } else if !errorBody.isEmpty {
+                            errorMessage = "\(httpResponse.statusCode): \(errorBody.prefix(500))"
+                        }
+                        throw TachikomaError.apiError("Failed to start streaming: \(errorMessage)")
+                    }
 
-                                if ProcessInfo.processInfo.environment["DEBUG_TACHIKOMA_STREAM"] != nil {
-                                    Self.debugLog("raw stream: \(jsonString)")
-                                }
+                    var previousContent = "" // Track previously sent content for GPT-5 preambles
+                    struct PartialToolCall {
+                        var id: String
+                        var name: String?
+                        var arguments: String
+                    }
+                    var pendingToolCalls: [String: PartialToolCall] = [:]
 
-                                if jsonString == "[DONE]" {
-                                    continuation.finish()
-                                    return
-                                }
+                    for try await line in bytes.lines {
+                        // Handle SSE format
+                        if line.hasPrefix("data: ") {
+                            let jsonString = String(line.dropFirst(6))
 
-                                if let data = jsonString.data(using: .utf8) {
-                                    // Try GPT-5 format first
-                                    if Self.isGPT5Model(self.model) {
-                                        if
-                                            let event = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-                                            let eventType = event["type"] as? String
-                                        {
-                                            if ProcessInfo.processInfo.environment["DEBUG_TACHIKOMA"] != nil {
-                                                Self.debugLog("event: \(eventType) payload: \(event)")
-                                            }
+                            if ProcessInfo.processInfo.environment["DEBUG_TACHIKOMA_STREAM"] != nil {
+                                Self.debugLog("raw stream: \(jsonString)")
+                            }
 
-                                            switch eventType {
-                                            case "response.output_text.delta":
-                                                if let delta = event["delta"] as? String, !delta.isEmpty {
-                                                    continuation.yield(TextStreamDelta.text(delta))
-                                                }
+                            if jsonString == "[DONE]" {
+                                continuation.finish()
+                                return
+                            }
 
-                                            case "response.output_item.added":
-                                                if
-                                                    let item = event["item"] as? [String: Any],
-                                                    let itemType = item["type"] as? String,
-                                                    itemType == "function_call"
-                                                {
-                                                    let identifier = (item["id"] as? String) ??
-                                                        (item["call_id"] as? String) ?? UUID().uuidString
-                                                    var partial = pendingToolCalls[identifier] ?? PartialToolCall(
-                                                        id: identifier,
-                                                        name: nil,
-                                                        arguments: "",
-                                                    )
-                                                    if let name = item["name"] as? String {
-                                                        partial.name = name
-                                                    }
-                                                    pendingToolCalls[identifier] = partial
-                                                }
-
-                                            case "response.function_call_arguments.delta":
-                                                if
-                                                    let itemId = event["item_id"] as? String,
-                                                    let delta = event["delta"] as? String
-                                                {
-                                                    var partial = pendingToolCalls[itemId] ?? PartialToolCall(
-                                                        id: itemId,
-                                                        name: nil,
-                                                        arguments: "",
-                                                    )
-                                                    partial.arguments.append(delta)
-                                                    pendingToolCalls[itemId] = partial
-                                                }
-
-                                            case "response.function_call_arguments.done":
-                                                if
-                                                    let itemId = event["item_id"] as? String,
-                                                    let arguments = event["arguments"] as? String
-                                                {
-                                                    var partial = pendingToolCalls[itemId] ?? PartialToolCall(
-                                                        id: itemId,
-                                                        name: nil,
-                                                        arguments: "",
-                                                    )
-                                                    partial.arguments = arguments
-                                                    pendingToolCalls[itemId] = partial
-
-                                                    if
-                                                        let name = partial.name,
-                                                        let toolCall = Self.makeToolCall(
-                                                            id: itemId,
-                                                            name: name,
-                                                            argumentsJSON: arguments,
-                                                        )
-                                                    {
-                                                        continuation.yield(.tool(toolCall))
-                                                        pendingToolCalls.removeValue(forKey: itemId)
-                                                    }
-                                                }
-
-                                            case "response.completed":
-                                                continuation.finish()
-                                                return
-
-                                            default:
-                                                break
-                                            }
+                            if let data = jsonString.data(using: .utf8) {
+                                // Try GPT-5 format first
+                                if Self.isGPT5Model(self.model) {
+                                    if
+                                        let event = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                                        let eventType = event["type"] as? String
+                                    {
+                                        if ProcessInfo.processInfo.environment["DEBUG_TACHIKOMA"] != nil {
+                                            Self.debugLog("event: \(eventType) payload: \(event)")
                                         }
-                                    } else {
-                                        // Try standard Responses API format (O3, etc.)
-                                        do {
-                                            let chunk = try JSONDecoder().decode(
-                                                OpenAIResponsesStreamChunk.self,
-                                                from: data,
-                                            )
 
-                                            // Convert to TextStreamDelta
+                                        switch eventType {
+                                        case "response.output_text.delta":
+                                            if let delta = event["delta"] as? String, !delta.isEmpty {
+                                                continuation.yield(TextStreamDelta.text(delta))
+                                            }
+
+                                        case "response.output_item.added":
                                             if
-                                                let choice = chunk.choices.first,
-                                                let content = choice.delta.content,
-                                                !content.isEmpty
+                                                let item = event["item"] as? [String: Any],
+                                                let itemType = item["type"] as? String,
+                                                itemType == "function_call"
                                             {
-                                                // Handle accumulated content for models with preambles
-                                                if content.hasPrefix(previousContent), !previousContent.isEmpty {
-                                                    // This is accumulated content, extract just the delta
-                                                    let delta = String(content.dropFirst(previousContent.count))
-                                                    if !delta.isEmpty {
-                                                        continuation.yield(TextStreamDelta.text(delta))
-                                                        previousContent = content // Update the accumulated content
-                                                    }
-                                                } else {
-                                                    // This is a true delta or the first chunk
-                                                    continuation.yield(TextStreamDelta.text(content))
-                                                    previousContent += content // Accumulate for comparison
+                                                let identifier = (item["id"] as? String) ??
+                                                    (item["call_id"] as? String) ?? UUID().uuidString
+                                                var partial = pendingToolCalls[identifier] ?? PartialToolCall(
+                                                    id: identifier,
+                                                    name: nil,
+                                                    arguments: "",
+                                                )
+                                                if let name = item["name"] as? String {
+                                                    partial.name = name
+                                                }
+                                                pendingToolCalls[identifier] = partial
+                                            }
+
+                                        case "response.function_call_arguments.delta":
+                                            if
+                                                let itemId = event["item_id"] as? String,
+                                                let delta = event["delta"] as? String
+                                            {
+                                                var partial = pendingToolCalls[itemId] ?? PartialToolCall(
+                                                    id: itemId,
+                                                    name: nil,
+                                                    arguments: "",
+                                                )
+                                                partial.arguments.append(delta)
+                                                pendingToolCalls[itemId] = partial
+                                            }
+
+                                        case "response.function_call_arguments.done":
+                                            if
+                                                let itemId = event["item_id"] as? String,
+                                                let arguments = event["arguments"] as? String
+                                            {
+                                                var partial = pendingToolCalls[itemId] ?? PartialToolCall(
+                                                    id: itemId,
+                                                    name: nil,
+                                                    arguments: "",
+                                                )
+                                                partial.arguments = arguments
+                                                pendingToolCalls[itemId] = partial
+
+                                                if
+                                                    let name = partial.name,
+                                                    let toolCall = Self.makeToolCall(
+                                                        id: itemId,
+                                                        name: name,
+                                                        argumentsJSON: arguments,
+                                                    )
+                                                {
+                                                    continuation.yield(.tool(toolCall))
+                                                    pendingToolCalls.removeValue(forKey: itemId)
                                                 }
                                             }
 
-                                            // Check for finish
-                                            if
-                                                let choice = chunk.choices.first,
-                                                choice.finishReason != nil
-                                            {
-                                                continuation.finish()
-                                                return
-                                            }
-                                        } catch {
-                                            // Ignore parsing errors for incomplete chunks
+                                        case "response.completed":
+                                            continuation.finish()
+                                            return
+
+                                        default:
+                                            break
                                         }
                                     }
-                                }
-                            } else if line.hasPrefix("event: ") {
-                                // Track event types for GPT-5 streaming (but we handle them in data lines)
-                                // This helps us understand the stream structure
-                            }
-                        }
+                                } else {
+                                    // Try standard Responses API format (O3, etc.)
+                                    do {
+                                        let chunk = try JSONDecoder().decode(
+                                            OpenAIResponsesStreamChunk.self,
+                                            from: data,
+                                        )
 
-                        continuation.finish()
+                                        // Convert to TextStreamDelta
+                                        if
+                                            let choice = chunk.choices.first,
+                                            let content = choice.delta.content,
+                                            !content.isEmpty
+                                        {
+                                            // Handle accumulated content for models with preambles
+                                            if content.hasPrefix(previousContent), !previousContent.isEmpty {
+                                                // This is accumulated content, extract just the delta
+                                                let delta = String(content.dropFirst(previousContent.count))
+                                                if !delta.isEmpty {
+                                                    continuation.yield(TextStreamDelta.text(delta))
+                                                    previousContent = content // Update the accumulated content
+                                                }
+                                            } else {
+                                                // This is a true delta or the first chunk
+                                                continuation.yield(TextStreamDelta.text(content))
+                                                previousContent += content // Accumulate for comparison
+                                            }
+                                        }
+
+                                        // Check for finish
+                                        if
+                                            let choice = chunk.choices.first,
+                                            choice.finishReason != nil
+                                        {
+                                            continuation.finish()
+                                            return
+                                        }
+                                    } catch {
+                                        // Ignore parsing errors for incomplete chunks
+                                    }
+                                }
+                            }
+                        } else if line.hasPrefix("event: ") {
+                            // Track event types for GPT-5 streaming (but we handle them in data lines)
+                            // This helps us understand the stream structure
+                        }
+                    }
+
+                    continuation.finish()
                     #endif
                 } catch {
                     continuation.finish(throwing: error)
@@ -407,12 +407,12 @@ public final class OpenAIResponsesProvider: ModelProvider {
         }
 
         // Get validated settings and provider options
-        let validatedSettings = request.settings.validated(for: .openai(model))
+        let validatedSettings = request.settings.validated(for: .openai(self.model))
         let openaiOptions = validatedSettings.providerOptions.openai
 
         // Determine reasoning configuration
         let reasoning: ReasoningConfig?
-        if Self.isReasoningModel(model) || Self.isGPT5Model(model) {
+        if Self.isReasoningModel(self.model) || Self.isGPT5Model(self.model) {
             let effort: OpenAIReasoningEffort = if let optionEffort = openaiOptions?.reasoningEffort {
                 // Convert from public API to internal type
                 OpenAIReasoningEffort(rawValue: optionEffort.rawValue) ?? .medium
@@ -429,7 +429,7 @@ public final class OpenAIResponsesProvider: ModelProvider {
 
         // Determine text configuration for GPT-5 (enables preamble messages)
         let textConfig: TextConfig?
-        if Self.isGPT5Model(model) {
+        if Self.isGPT5Model(self.model) {
             let verbosity: TextVerbosity = if let optionVerbosity = openaiOptions?.verbosity {
                 // Convert from public API to internal type
                 TextVerbosity(rawValue: optionVerbosity.rawValue) ?? .high
@@ -452,14 +452,14 @@ public final class OpenAIResponsesProvider: ModelProvider {
             toolChoice: nil, // TODO: Add tool choice support
             metadata: nil,
             parallelToolCalls: openaiOptions?.parallelToolCalls ?? true,
-            previousResponseId: openaiOptions?.previousResponseId ?? previousResponseId,
+            previousResponseId: openaiOptions?.previousResponseId ?? self.previousResponseId,
             store: false,
             user: nil,
             instructions: nil,
             serviceTier: nil,
             include: nil,
             reasoning: reasoning,
-            truncation: Self.isReasoningModel(model) ? "auto" : nil,
+            truncation: Self.isReasoningModel(self.model) ? "auto" : nil,
             stream: streaming,
         )
 
@@ -535,11 +535,11 @@ public final class OpenAIResponsesProvider: ModelProvider {
     }
 
     private func makeMessageEntry(role: String, message: ModelMessage) -> ResponsesMessage? {
-        let parts = convertContentParts(for: message)
+        let parts = self.convertContentParts(for: message)
         guard !parts.isEmpty else { return nil }
 
         return ResponsesMessage(
-            role: normalizedRole(role),
+            role: self.normalizedRole(role),
             content: .parts(parts),
         )
     }
@@ -569,7 +569,7 @@ public final class OpenAIResponsesProvider: ModelProvider {
                     let imageReference = ResponsesContentPart.ImageURL(url: dataURL, detail: "auto")
                     parts.append(ResponsesContentPart(type: "input_image", text: nil, imageUrl: imageReference))
                 case let .toolResult(result):
-                    let rendered = convertToolResultToString(result.result)
+                    let rendered = self.convertToolResultToString(result.result)
                     if !rendered.isEmpty {
                         parts.append(ResponsesContentPart(type: "input_text", text: rendered, imageUrl: nil))
                     }
@@ -611,7 +611,7 @@ public final class OpenAIResponsesProvider: ModelProvider {
     }
 
     private func makeFunctionCallOutput(_ result: AgentToolResult) -> ResponsesInputItem.FunctionCallOutput? {
-        let outputText = convertToolResultToString(result.result)
+        let outputText = self.convertToolResultToString(result.result)
         guard !outputText.isEmpty else { return nil }
 
         return ResponsesInputItem.FunctionCallOutput(

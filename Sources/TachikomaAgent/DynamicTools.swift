@@ -32,18 +32,18 @@ public actor DynamicToolRegistry {
     /// Register a dynamic tool provider
     public func register(_ provider: DynamicToolProvider, id: String) {
         // Register a dynamic tool provider
-        providers[id] = provider
+        self.providers[id] = provider
     }
 
     /// Unregister a provider
     public func unregister(id: String) {
         // Unregister a provider
-        _ = providers.removeValue(forKey: id)
+        _ = self.providers.removeValue(forKey: id)
     }
 
     /// Get all registered providers
     public var allProviders: [DynamicToolProvider] {
-        Array(providers.values)
+        Array(self.providers.values)
     }
 
     /// Discover all tools from all providers
@@ -51,7 +51,7 @@ public actor DynamicToolRegistry {
         // Discover all tools from all providers
         var allTools: [DynamicTool] = []
 
-        for provider in allProviders {
+        for provider in self.allProviders {
             let tools = try await provider.discoverTools()
             allTools.append(contentsOf: tools)
         }
@@ -101,14 +101,14 @@ public struct MockDynamicToolProvider: DynamicToolProvider {
     }
 
     public func discoverTools() async throws -> [DynamicTool] {
-        tools
+        self.tools
     }
 
     public func executeTool(name: String, arguments: AgentToolArguments) async throws -> AnyAgentToolValue {
-        guard tools.contains(where: { $0.name == name }) else {
+        guard self.tools.contains(where: { $0.name == name }) else {
             throw TachikomaError.toolCallFailed("Tool not found: \(name)")
         }
-        return try await executor(name, arguments)
+        return try await self.executor(name, arguments)
     }
 }
 
@@ -265,7 +265,7 @@ public struct CompositeDynamicToolProvider: DynamicToolProvider {
     public func discoverTools() async throws -> [DynamicTool] {
         var allTools: [DynamicTool] = []
 
-        for provider in providers {
+        for provider in self.providers {
             let tools = try await provider.discoverTools()
             allTools.append(contentsOf: tools)
         }
@@ -275,7 +275,7 @@ public struct CompositeDynamicToolProvider: DynamicToolProvider {
 
     public func executeTool(name: String, arguments: AgentToolArguments) async throws -> AnyAgentToolValue {
         // Try each provider until one can execute the tool
-        for provider in providers {
+        for provider in self.providers {
             let tools = try await provider.discoverTools()
             if tools.contains(where: { $0.name == name }) {
                 return try await provider.executeTool(name: name, arguments: arguments)
@@ -304,7 +304,7 @@ public struct FilteringDynamicToolProvider: DynamicToolProvider {
 
     public func discoverTools() async throws -> [DynamicTool] {
         let allTools = try await baseProvider.discoverTools()
-        return allTools.filter(filter)
+        return allTools.filter(self.filter)
     }
 
     public func executeTool(name: String, arguments: AgentToolArguments) async throws -> AnyAgentToolValue {
@@ -314,7 +314,7 @@ public struct FilteringDynamicToolProvider: DynamicToolProvider {
             throw TachikomaError.toolCallFailed("Tool filtered out or not found: \(name)")
         }
 
-        return try await baseProvider.executeTool(name: name, arguments: arguments)
+        return try await self.baseProvider.executeTool(name: name, arguments: arguments)
     }
 }
 
@@ -360,13 +360,13 @@ public actor CachingDynamicToolProvider: DynamicToolProvider {
             throw TachikomaError.toolCallFailed("Tool not found: \(name)")
         }
 
-        return try await baseProvider.executeTool(name: name, arguments: arguments)
+        return try await self.baseProvider.executeTool(name: name, arguments: arguments)
     }
 
     /// Clear the cache
     public func clearCache() {
         // Clear the cache
-        cachedTools = nil
-        lastCacheTime = nil
+        self.cachedTools = nil
+        self.lastCacheTime = nil
     }
 }

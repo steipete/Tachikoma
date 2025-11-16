@@ -1,6 +1,6 @@
 import Foundation
 #if canImport(FoundationNetworking)
-    import FoundationNetworking
+import FoundationNetworking
 #endif
 
 /// Provider for Mistral models
@@ -20,17 +20,17 @@ public final class MistralProvider: ModelProvider {
         session: URLSession = .shared,
     ) throws {
         self.model = model
-        modelId = model.rawValue
-        baseURL = configuration.getBaseURL(for: .mistral) ?? "https://api.mistral.ai/v1"
+        self.modelId = model.rawValue
+        self.baseURL = configuration.getBaseURL(for: .mistral) ?? "https://api.mistral.ai/v1"
         self.session = session
 
         if let key = configuration.getAPIKey(for: .mistral) {
-            apiKey = key
+            self.apiKey = key
         } else {
             throw TachikomaError.authenticationFailed("MISTRAL_API_KEY not found")
         }
 
-        capabilities = ModelCapabilities(
+        self.capabilities = ModelCapabilities(
             supportsVision: model.supportsVision,
             supportsTools: model.supportsTools,
             supportsStreaming: true,
@@ -43,11 +43,11 @@ public final class MistralProvider: ModelProvider {
         // Use OpenAI-compatible implementation for Mistral
         try await OpenAICompatibleHelper.generateText(
             request: request,
-            modelId: modelId,
-            baseURL: baseURL!,
-            apiKey: apiKey!,
+            modelId: self.modelId,
+            baseURL: self.baseURL!,
+            apiKey: self.apiKey!,
             providerName: "Mistral",
-            session: session,
+            session: self.session,
         )
     }
 
@@ -55,11 +55,11 @@ public final class MistralProvider: ModelProvider {
         // Use OpenAI-compatible streaming for Mistral
         try await OpenAICompatibleHelper.streamText(
             request: request,
-            modelId: modelId,
-            baseURL: baseURL!,
-            apiKey: apiKey!,
+            modelId: self.modelId,
+            baseURL: self.baseURL!,
+            apiKey: self.apiKey!,
             providerName: "Mistral",
-            session: session,
+            session: self.session,
         )
     }
 }

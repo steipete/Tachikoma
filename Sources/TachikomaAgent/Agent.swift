@@ -4,11 +4,11 @@ import Tachikoma
 extension FileManager {
     var userDirectory: URL {
         #if os(macOS)
-            return homeDirectoryForCurrentUser
+        return homeDirectoryForCurrentUser
         #elseif os(iOS)
-            return urls(for: .documentDirectory, in: .userDomainMask).first ?? temporaryDirectory
+        return urls(for: .documentDirectory, in: .userDomainMask).first ?? temporaryDirectory
         #else
-            return temporaryDirectory
+        return temporaryDirectory
         #endif
     }
 }
@@ -51,40 +51,40 @@ public final class Agent<Context>: @unchecked Sendable {
         self.tools = tools
         self.settings = settings
         self.context = context
-        conversation = Conversation()
+        self.conversation = Conversation()
 
         // Add system message with instructions
-        conversation.addSystemMessage(instructions)
+        self.conversation.addSystemMessage(instructions)
     }
 
     /// Add a tool to the agent
     public func addTool(_ tool: AgentTool) {
         // Add a tool to the agent
-        tools.append(tool)
+        self.tools.append(tool)
     }
 
     /// Remove a tool from the agent
     public func removeTool(named name: String) {
         // Remove a tool from the agent
-        tools.removeAll { $0.name == name }
+        self.tools.removeAll { $0.name == name }
     }
 
     /// Execute a single message with the agent
     public func execute(_ message: String) async throws -> AgentResponse {
         // Add user message to conversation
-        conversation.addUserMessage(message)
+        self.conversation.addUserMessage(message)
 
         // Generate response using the conversation
         let result = try await generateText(
             model: model,
             messages: conversation.getModelMessages(),
-            tools: tools.isEmpty ? nil : tools,
-            settings: settings,
+            tools: self.tools.isEmpty ? nil : self.tools,
+            settings: self.settings,
             maxSteps: 5, // Allow multi-step tool execution
         )
 
         // Add assistant response to conversation
-        conversation.addAssistantMessage(result.text)
+        self.conversation.addAssistantMessage(result.text)
 
         // Add any tool calls and results to conversation
         for step in result.steps {
@@ -105,21 +105,21 @@ public final class Agent<Context>: @unchecked Sendable {
             usage: result.usage,
             finishReason: result.finishReason ?? .other,
             steps: result.steps,
-            conversationLength: conversation.messages.count,
+            conversationLength: self.conversation.messages.count,
         )
     }
 
     /// Stream a response from the agent
     public func stream(_ message: String) async throws -> AsyncThrowingStream<TextStreamDelta, Error> {
         // Add user message to conversation
-        conversation.addUserMessage(message)
+        self.conversation.addUserMessage(message)
 
         // Stream response
         let streamResult = try await streamText(
             model: model,
             messages: conversation.getModelMessages(),
-            tools: tools.isEmpty ? nil : tools,
-            settings: settings,
+            tools: self.tools.isEmpty ? nil : self.tools,
+            settings: self.settings,
             maxSteps: 5,
         )
 
@@ -158,25 +158,25 @@ public final class Agent<Context>: @unchecked Sendable {
     /// Reset the agent's conversation history
     public func resetConversation() {
         // Reset the agent's conversation history
-        conversation = Conversation()
-        conversation.addSystemMessage(instructions)
+        self.conversation = Conversation()
+        self.conversation.addSystemMessage(self.instructions)
     }
 
     /// Get the current conversation history
     public var messages: [ModelMessage] {
-        conversation.getModelMessages()
+        self.conversation.getModelMessages()
     }
 
     /// Update the agent's instructions
     public func updateInstructions(_ newInstructions: String) {
         // Create new conversation with updated instructions
-        let oldMessages = conversation.getModelMessages().filter { $0.role != .system }
-        conversation = Conversation()
-        conversation.addSystemMessage(newInstructions)
+        let oldMessages = self.conversation.getModelMessages().filter { $0.role != .system }
+        self.conversation = Conversation()
+        self.conversation.addSystemMessage(newInstructions)
 
         // Re-add non-system messages
         for message in oldMessages {
-            conversation.addModelMessage(message)
+            self.conversation.addModelMessage(message)
         }
     }
 }
@@ -235,11 +235,11 @@ public final class AgentSessionManager: @unchecked Sendable {
     /// Get the sessions storage directory
     private func getSessionsDirectory() -> URL {
         // Get the sessions storage directory
-        let url = fileManager.userDirectory
+        let url = self.fileManager.userDirectory
             .appendingPathComponent(".peekaboo/agent_sessions")
 
         // Ensure the directory exists
-        try? fileManager.createDirectory(at: url, withIntermediateDirectories: true)
+        try? self.fileManager.createDirectory(at: url, withIntermediateDirectories: true)
 
         return url
     }
@@ -247,7 +247,7 @@ public final class AgentSessionManager: @unchecked Sendable {
     /// Get the file path for a specific session
     private func getSessionFilePath(for sessionId: String) -> URL {
         // Get the file path for a specific session
-        getSessionsDirectory().appendingPathComponent("\(sessionId).json")
+        self.getSessionsDirectory().appendingPathComponent("\(sessionId).json")
     }
 
     /// Create a new agent session
@@ -256,10 +256,10 @@ public final class AgentSessionManager: @unchecked Sendable {
         agent: Agent<some Any>,
     ) {
         // Create a new agent session
-        lock.lock()
+        self.lock.lock()
         defer { lock.unlock() }
 
-        sessions[sessionId] = AgentSessionData(
+        self.sessions[sessionId] = AgentSessionData(
             id: sessionId,
             modelName: agent.model.description,
             createdAt: Date(),
@@ -275,33 +275,33 @@ public final class AgentSessionManager: @unchecked Sendable {
         agent: Agent<some Any>,
     ) {
         // Update session data
-        lock.lock()
+        self.lock.lock()
         defer { lock.unlock() }
 
         if var sessionData = sessions[sessionId] {
             sessionData.lastAccessedAt = Date()
             sessionData.messageCount = agent.messages.count
-            sessions[sessionId] = sessionData
+            self.sessions[sessionId] = sessionData
         }
     }
 
     /// Complete a session
     public func completeSession(sessionId: String) {
         // Complete a session
-        lock.lock()
+        self.lock.lock()
         defer { lock.unlock() }
 
         if var sessionData = sessions[sessionId] {
             sessionData.status = .completed
             sessionData.lastAccessedAt = Date()
-            sessions[sessionId] = sessionData
+            self.sessions[sessionId] = sessionData
         }
     }
 
     /// Get session summary
     public func getSessionSummary(sessionId: String) -> SessionSummary? {
         // Get session summary
-        lock.lock()
+        self.lock.lock()
         defer { lock.unlock() }
 
         guard let sessionData = sessions[sessionId] else { return nil }
@@ -320,7 +320,7 @@ public final class AgentSessionManager: @unchecked Sendable {
     /// List all sessions from disk
     public func listSessions() -> [SessionSummary] {
         // List all sessions from disk
-        let sessionsDir = getSessionsDirectory()
+        let sessionsDir = self.getSessionsDirectory()
 
         guard
             let sessionFiles = try? fileManager.contentsOfDirectory(
@@ -363,21 +363,21 @@ public final class AgentSessionManager: @unchecked Sendable {
     /// Remove a session
     public func removeSession(sessionId: String) {
         // Remove a session
-        lock.lock()
+        self.lock.lock()
         defer { lock.unlock() }
 
-        sessions.removeValue(forKey: sessionId)
+        self.sessions.removeValue(forKey: sessionId)
     }
 
     /// Clear old sessions (older than specified days)
     public func clearOldSessions(olderThanDays days: Int = 30) {
         // Clear old sessions (older than specified days)
-        lock.lock()
+        self.lock.lock()
         defer { lock.unlock() }
 
         let cutoffDate = Calendar.current.date(byAdding: .day, value: -days, to: Date()) ?? Date()
 
-        sessions = sessions.filter { _, sessionData in
+        self.sessions = self.sessions.filter { _, sessionData in
             sessionData.lastAccessedAt >= cutoffDate
         }
     }
@@ -385,9 +385,9 @@ public final class AgentSessionManager: @unchecked Sendable {
     /// Load a session from disk
     public func loadSession(id: String) async throws -> AgentSession? {
         // Load a session from disk
-        let filePath = getSessionFilePath(for: id)
+        let filePath = self.getSessionFilePath(for: id)
 
-        guard fileManager.fileExists(atPath: filePath.path) else {
+        guard self.fileManager.fileExists(atPath: filePath.path) else {
             return nil
         }
 
@@ -396,7 +396,7 @@ public final class AgentSessionManager: @unchecked Sendable {
             let session = try JSONDecoder().decode(AgentSession.self, from: data)
 
             // Update in-memory cache
-            lock.withLock {
+            self.lock.withLock {
                 let sessionData = AgentSessionData(
                     id: session.id,
                     modelName: session.modelName,
@@ -411,7 +411,7 @@ public final class AgentSessionManager: @unchecked Sendable {
             return session
         } catch {
             // Remove corrupted session file
-            try? fileManager.removeItem(at: filePath)
+            try? self.fileManager.removeItem(at: filePath)
             return nil
         }
     }
@@ -419,24 +419,24 @@ public final class AgentSessionManager: @unchecked Sendable {
     /// Delete a session from disk and memory
     public func deleteSession(id: String) async throws {
         // Remove from memory
-        _ = lock.withLock {
+        _ = self.lock.withLock {
             self.sessions.removeValue(forKey: id)
         }
 
         // Remove from disk
-        let filePath = getSessionFilePath(for: id)
-        try? fileManager.removeItem(at: filePath)
+        let filePath = self.getSessionFilePath(for: id)
+        try? self.fileManager.removeItem(at: filePath)
     }
 
     /// Save a session to disk and memory
     public func saveSession(_ session: AgentSession) async throws {
         // Save to disk
-        let filePath = getSessionFilePath(for: session.id)
+        let filePath = self.getSessionFilePath(for: session.id)
         let data = try JSONEncoder().encode(session)
         try data.write(to: filePath, options: .atomic)
 
         // Update in-memory cache
-        lock.withLock {
+        self.lock.withLock {
             let sessionData = AgentSessionData(
                 id: session.id,
                 modelName: session.modelName,

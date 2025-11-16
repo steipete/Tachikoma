@@ -16,17 +16,17 @@ public final class AnthropicCompatibleProvider: ModelProvider {
 
         // Try to get API key from configuration, otherwise try common environment variable patterns
         if let key = configuration.getAPIKey(for: .custom("anthropic_compatible")) {
-            apiKey = key
+            self.apiKey = key
         } else if
             let key = ProcessInfo.processInfo.environment["ANTHROPIC_COMPATIBLE_API_KEY"] ??
             ProcessInfo.processInfo.environment["API_KEY"]
         {
-            apiKey = key
+            self.apiKey = key
         } else {
-            apiKey = nil
+            self.apiKey = nil
         }
 
-        capabilities = ModelCapabilities(
+        self.capabilities = ModelCapabilities(
             supportsVision: true,
             supportsTools: true,
             supportsStreaming: true,
@@ -57,10 +57,10 @@ public final class AnthropicCompatibleProvider: ModelProvider {
         }
 
         // Propagate verbose flag/settings from original configuration if set
-        compatConfig.setVerbose(configuration.verbose)
+        compatConfig.setVerbose(self.configuration.verbose)
 
         return try AnthropicProvider(
-            model: .custom(modelId),
+            model: .custom(self.modelId),
             configuration: compatConfig,
         )
     }

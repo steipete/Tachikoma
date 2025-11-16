@@ -1,6 +1,6 @@
 import Foundation
 #if canImport(FoundationNetworking)
-    import FoundationNetworking
+import FoundationNetworking
 #endif
 
 /// Provider for Together AI models
@@ -18,16 +18,16 @@ public final class TogetherProvider: ModelProvider {
         session: URLSession = .shared,
     ) throws {
         self.modelId = modelId
-        baseURL = configuration.getBaseURL(for: .custom("together")) ?? "https://api.together.xyz/v1"
+        self.baseURL = configuration.getBaseURL(for: .custom("together")) ?? "https://api.together.xyz/v1"
         self.session = session
 
         if let key = configuration.getAPIKey(for: .custom("together")) {
-            apiKey = key
+            self.apiKey = key
         } else {
             throw TachikomaError.authenticationFailed("TOGETHER_API_KEY not found")
         }
 
-        capabilities = ModelCapabilities(
+        self.capabilities = ModelCapabilities(
             supportsVision: true,
             supportsTools: true,
             supportsStreaming: true,
@@ -43,11 +43,11 @@ public final class TogetherProvider: ModelProvider {
 
         return try await OpenAICompatibleHelper.generateText(
             request: request,
-            modelId: modelId,
+            modelId: self.modelId,
             baseURL: baseURL,
             apiKey: apiKey,
             providerName: "Together",
-            session: session,
+            session: self.session,
         )
     }
 
@@ -58,11 +58,11 @@ public final class TogetherProvider: ModelProvider {
 
         return try await OpenAICompatibleHelper.streamText(
             request: request,
-            modelId: modelId,
+            modelId: self.modelId,
             baseURL: baseURL,
             apiKey: apiKey,
             providerName: "Together",
-            session: session,
+            session: self.session,
         )
     }
 }

@@ -1,6 +1,6 @@
 import Foundation
 #if canImport(FoundationNetworking)
-    import FoundationNetworking
+import FoundationNetworking
 #endif
 
 /// Provider for Replicate models
@@ -18,16 +18,16 @@ public final class ReplicateProvider: ModelProvider {
         session: URLSession = .shared,
     ) throws {
         self.modelId = modelId
-        baseURL = configuration.getBaseURL(for: .custom("replicate")) ?? "https://api.replicate.com/v1"
+        self.baseURL = configuration.getBaseURL(for: .custom("replicate")) ?? "https://api.replicate.com/v1"
         self.session = session
 
         if let key = configuration.getAPIKey(for: .custom("replicate")) {
-            apiKey = key
+            self.apiKey = key
         } else {
             throw TachikomaError.authenticationFailed("REPLICATE_API_TOKEN not found")
         }
 
-        capabilities = ModelCapabilities(
+        self.capabilities = ModelCapabilities(
             supportsVision: false,
             supportsTools: false, // Most Replicate models don't support tools
             supportsStreaming: true,
@@ -48,12 +48,12 @@ public final class ReplicateProvider: ModelProvider {
 
         return try await OpenAICompatibleHelper.generateText(
             request: request,
-            modelId: modelId,
+            modelId: self.modelId,
             baseURL: baseURL,
             apiKey: apiKey,
             providerName: "Replicate",
             additionalHeaders: headers,
-            session: session,
+            session: self.session,
         )
     }
 
@@ -64,11 +64,11 @@ public final class ReplicateProvider: ModelProvider {
 
         return try await OpenAICompatibleHelper.streamText(
             request: request,
-            modelId: modelId,
+            modelId: self.modelId,
             baseURL: baseURL,
             apiKey: apiKey,
             providerName: "Replicate",
-            session: session,
+            session: self.session,
         )
     }
 }

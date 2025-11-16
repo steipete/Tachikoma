@@ -16,7 +16,7 @@ public struct SimplifiedToolBuilder {
         -> AgentTool
     {
         // Create a tool with simplified definition pattern
-        let parameters = generateParameters(from: Input.self)
+        let parameters = self.generateParameters(from: Input.self)
 
         return AgentTool(
             name: name,
@@ -46,7 +46,7 @@ public struct SimplifiedToolBuilder {
         -> AgentTool
     {
         // Create a tool with context support
-        let parameters = generateParameters(from: Input.self)
+        let parameters = self.generateParameters(from: Input.self)
 
         return AgentTool(
             name: name,
@@ -258,10 +258,10 @@ public struct ToolSchemaBuilder {
     public func build() -> AgentToolParameters {
         // Convert array of properties to dictionary keyed by name
         var propertiesDict: [String: AgentToolParameterProperty] = [:]
-        for prop in properties {
+        for prop in self.properties {
             propertiesDict[prop.name] = prop
         }
-        return AgentToolParameters(properties: propertiesDict, required: required)
+        return AgentToolParameters(properties: propertiesDict, required: self.required)
     }
 }
 

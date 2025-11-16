@@ -807,12 +807,12 @@ extension StreamObjectResult: AsyncSequence {
         var iterator: AsyncThrowingStream<ObjectStreamDelta<T>, Error>.AsyncIterator
 
         public mutating func next() async throws -> ObjectStreamDelta<T>? {
-            try await iterator.next()
+            try await self.iterator.next()
         }
     }
 
     public func makeAsyncIterator() -> AsyncIterator {
-        AsyncIterator(iterator: objectStream.makeAsyncIterator())
+        AsyncIterator(iterator: self.objectStream.makeAsyncIterator())
     }
 }
 

@@ -12,39 +12,39 @@ public actor CancellationToken {
 
     /// Check if cancelled
     public var cancelled: Bool {
-        get async { isCancelled }
+        get async { self.isCancelled }
     }
 
     /// Cancel all operations
     public func cancel() {
         // Cancel all operations
-        guard !isCancelled else { return }
-        isCancelled = true
+        guard !self.isCancelled else { return }
+        self.isCancelled = true
 
         // Call all handlers
-        for handler in handlers.values {
+        for handler in self.handlers.values {
             handler()
         }
-        handlers.removeAll()
+        self.handlers.removeAll()
     }
 
     /// Register a cancellation handler
     @discardableResult
     public func onCancel(_ handler: @escaping @Sendable () -> Void) -> UUID {
         // Register a cancellation handler
-        if isCancelled {
+        if self.isCancelled {
             handler()
             return UUID()
         } else {
             let token = UUID()
-            handlers[token] = handler
+            self.handlers[token] = handler
             return token
         }
     }
 
     /// Remove a previously registered cancellation handler
     public func removeHandler(_ token: UUID) {
-        handlers.removeValue(forKey: token)
+        self.handlers.removeValue(forKey: token)
     }
 }
 
@@ -90,7 +90,7 @@ public struct TimeoutError: Error, LocalizedError, Sendable {
     public let timeout: TimeInterval
 
     public var errorDescription: String? {
-        "Operation timed out after \(timeout) seconds"
+        "Operation timed out after \(self.timeout) seconds"
     }
 }
 

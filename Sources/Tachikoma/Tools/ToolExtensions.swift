@@ -66,8 +66,8 @@ public struct AgentToolDefinition: Sendable, Codable {
     }
 
     public init(name: String, description: String, parameters: AgentToolParameters) {
-        type = .function
-        function = AgentFunctionDefinition(
+        self.type = .function
+        self.function = AgentFunctionDefinition(
             name: name,
             description: description,
             parameters: parameters,
@@ -97,15 +97,15 @@ public struct AnyAgentTool: Sendable {
     private let _schema: AgentToolSchema
     private let _execute: @Sendable (AnyAgentToolValue, ToolExecutionContext) async throws -> AnyAgentToolValue
 
-    public var name: String { _name }
-    public var description: String { _description }
-    public var schema: AgentToolSchema { _schema }
+    public var name: String { self._name }
+    public var description: String { self._description }
+    public var schema: AgentToolSchema { self._schema }
 
     public init<T: AgentToolProtocol>(_ tool: T) {
-        _name = tool.name
-        _description = tool.description
-        _schema = tool.schema
-        _execute = { input, context in
+        self._name = tool.name
+        self._description = tool.description
+        self._schema = tool.schema
+        self._execute = { input, context in
             let json = try input.toJSON()
             let typedInput = try T.Input.fromJSON(json)
             let output = try await tool.execute(typedInput, context: context)
@@ -115,7 +115,7 @@ public struct AnyAgentTool: Sendable {
 
     public func execute(_ arguments: [String: Any], context: ToolExecutionContext) async throws -> AnyAgentToolValue {
         let input = try AnyAgentToolValue.fromDictionary(arguments)
-        return try await _execute(input, context)
+        return try await self._execute(input, context)
     }
 
     public func execute(
@@ -124,7 +124,7 @@ public struct AnyAgentTool: Sendable {
     ) async throws
         -> AnyAgentToolValue
     {
-        try await _execute(arguments, context)
+        try await self._execute(arguments, context)
     }
 }
 

@@ -1,9 +1,9 @@
 import Foundation
 #if canImport(FoundationNetworking)
-    import FoundationNetworking
+import FoundationNetworking
 #endif
 #if canImport(FoundationNetworking)
-    import FoundationNetworking
+import FoundationNetworking
 #endif
 
 /// Provider for Google Gemini models
@@ -15,20 +15,20 @@ public final class GoogleProvider: ModelProvider {
     public let capabilities: ModelCapabilities
 
     private let model: LanguageModel.Google
-    private var apiModelName: String { modelId }
+    private var apiModelName: String { self.modelId }
 
     public init(model: LanguageModel.Google, configuration: TachikomaConfiguration) throws {
         self.model = model
-        modelId = model.rawValue
-        baseURL = configuration.getBaseURL(for: .google) ?? "https://generativelanguage.googleapis.com/v1beta"
+        self.modelId = model.rawValue
+        self.baseURL = configuration.getBaseURL(for: .google) ?? "https://generativelanguage.googleapis.com/v1beta"
 
         if let key = configuration.getAPIKey(for: .google) {
-            apiKey = key
+            self.apiKey = key
         } else {
             throw TachikomaError.authenticationFailed("GEMINI_API_KEY not found")
         }
 
-        capabilities = ModelCapabilities(
+        self.capabilities = ModelCapabilities(
             supportsVision: model.supportsVision,
             supportsTools: model.supportsTools,
             supportsStreaming: true,
@@ -71,46 +71,46 @@ public final class GoogleProvider: ModelProvider {
                     let urlRequest = try self.makeStreamRequest(body: requestBody)
 
                     #if canImport(FoundationNetworking)
-                        let (data, response) = try await URLSession.shared.data(for: urlRequest)
-                        let httpResponse = try self.httpResponse(response)
-                        guard 200..<300 ~= httpResponse.statusCode else {
-                            let body = String(data: data, encoding: .utf8) ?? ""
-                            throw TachikomaError.apiError(
-                                "Google API request failed (HTTP \(httpResponse.statusCode)): \(body)",
-                            )
-                        }
+                    let (data, response) = try await URLSession.shared.data(for: urlRequest)
+                    let httpResponse = try self.httpResponse(response)
+                    guard 200..<300 ~= httpResponse.statusCode else {
+                        let body = String(data: data, encoding: .utf8) ?? ""
+                        throw TachikomaError.apiError(
+                            "Google API request failed (HTTP \(httpResponse.statusCode)): \(body)",
+                        )
+                    }
 
-                        var parser = GoogleSSEParser { text in
-                            continuation.yield(TextStreamDelta.text(text))
-                        }
-                        try parser.feed(data: data)
-                        continuation.yield(parser.makeDoneDelta())
+                    var parser = GoogleSSEParser { text in
+                        continuation.yield(TextStreamDelta.text(text))
+                    }
+                    try parser.feed(data: data)
+                    continuation.yield(parser.makeDoneDelta())
                     #else
-                        let (bytes, response) = try await URLSession.shared.bytes(for: urlRequest)
-                        let httpResponse = try self.httpResponse(response)
-                        if !(200..<300 ~= httpResponse.statusCode) {
-                            var errorBody = ""
-                            var iterator = bytes.makeAsyncIterator()
-                            while let byte = try await iterator.next() {
-                                errorBody.append(Character(UnicodeScalar(byte)))
-                                if errorBody.count >= 512 {
-                                    errorBody.append("…")
-                                    break
-                                }
+                    let (bytes, response) = try await URLSession.shared.bytes(for: urlRequest)
+                    let httpResponse = try self.httpResponse(response)
+                    if !(200..<300 ~= httpResponse.statusCode) {
+                        var errorBody = ""
+                        var iterator = bytes.makeAsyncIterator()
+                        while let byte = try await iterator.next() {
+                            errorBody.append(Character(UnicodeScalar(byte)))
+                            if errorBody.count >= 512 {
+                                errorBody.append("…")
+                                break
                             }
-                            throw TachikomaError.apiError(
-                                "Google API request failed (HTTP \(httpResponse.statusCode)): \(errorBody)",
-                            )
                         }
+                        throw TachikomaError.apiError(
+                            "Google API request failed (HTTP \(httpResponse.statusCode)): \(errorBody)",
+                        )
+                    }
 
-                        var parser = GoogleSSEParser { text in
-                            continuation.yield(TextStreamDelta.text(text))
-                        }
-                        for try await line in bytes.lines {
-                            try parser.feed(line: line)
-                        }
-                        parser.finish()
-                        continuation.yield(parser.makeDoneDelta())
+                    var parser = GoogleSSEParser { text in
+                        continuation.yield(TextStreamDelta.text(text))
+                    }
+                    for try await line in bytes.lines {
+                        try parser.feed(line: line)
+                    }
+                    parser.finish()
+                    continuation.yield(parser.makeDoneDelta())
                     #endif
 
                     continuation.finish()
@@ -222,7 +222,7 @@ private struct GoogleSSEParser {
         let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines)
         guard trimmed.hasPrefix("data:") else { return }
         let payload = trimmed.dropFirst(5).drop { $0 == " " }
-        try process(payload: String(payload))
+        try self.process(payload: String(payload))
     }
 
     mutating func feed(data: Data) throws {
@@ -231,7 +231,7 @@ private struct GoogleSSEParser {
         }
         let lines = body.components(separatedBy: .newlines)
         for line in lines {
-            try feed(line: line)
+            try self.feed(line: line)
         }
     }
 
@@ -247,11 +247,11 @@ private struct GoogleSSEParser {
                 if let textParts = candidate.content?.parts?.compactMap(\.text), !textParts.isEmpty {
                     let text = textParts.joined()
                     if !text.isEmpty {
-                        onText(text)
+                        self.onText(text)
                     }
                 }
                 if let reason = candidate.finishReason {
-                    finishReason = GoogleProvider.mapFinishReason(reason)
+                    self.finishReason = GoogleProvider.mapFinishReason(reason)
                 }
             }
         }
@@ -260,12 +260,12 @@ private struct GoogleSSEParser {
             let input = metadata.promptTokenCount ?? 0
             let output = metadata.candidatesTokenCount
                 ?? max(0, (metadata.totalTokenCount ?? 0) - (metadata.promptTokenCount ?? 0))
-            usage = Usage(inputTokens: input, outputTokens: output)
+            self.usage = Usage(inputTokens: input, outputTokens: output)
         }
     }
 
     func makeDoneDelta() -> TextStreamDelta {
-        TextStreamDelta.done(usage: usage, finishReason: finishReason)
+        TextStreamDelta.done(usage: self.usage, finishReason: self.finishReason)
     }
 }
 

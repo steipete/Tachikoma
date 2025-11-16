@@ -13,7 +13,7 @@ public enum ProviderParser {
 
         /// The full string representation (e.g., "openai/gpt-4")
         public var fullString: String {
-            "\(provider)/\(model)"
+            "\(self.provider)/\(self.model)"
         }
 
         public init(provider: String, model: String) {
@@ -50,7 +50,7 @@ public enum ProviderParser {
         // Parse a comma-separated list of providers
         providersString
             .split(separator: ",")
-            .compactMap { parse(String($0)) }
+            .compactMap { self.parse(String($0)) }
     }
 
     /// Get the first provider from a comma-separated list
@@ -58,7 +58,7 @@ public enum ProviderParser {
     /// - Returns: First parsed configuration or nil if none valid
     public static func parseFirst(_ providersString: String) -> ProviderConfig? {
         // Get the first provider from a comma-separated list
-        parseList(providersString).first
+        self.parseList(providersString).first
     }
 
     /// Result of determining the default model with conflict information
@@ -110,21 +110,21 @@ public enum ProviderParser {
         -> ModelDetermination
     {
         // Parse providers and find first available one
-        let providers = parseList(providersString)
+        let providers = self.parseList(providersString)
         var environmentModel: LanguageModel?
 
         for config in providers {
             switch config.provider.lowercased() {
             case "openai" where hasOpenAI:
-                environmentModel = parseOpenAIModel(config.model)
+                environmentModel = self.parseOpenAIModel(config.model)
             case "anthropic" where hasAnthropic:
-                environmentModel = parseAnthropicModel(config.model)
+                environmentModel = self.parseAnthropicModel(config.model)
             case "google", "gemini":
-                environmentModel = parseGoogleModel(config.model)
+                environmentModel = self.parseGoogleModel(config.model)
             case "grok" where hasGrok, "xai" where hasGrok:
-                environmentModel = parseGrokModel(config.model)
+                environmentModel = self.parseGrokModel(config.model)
             case "ollama" where hasOllama:
-                environmentModel = parseOllamaModel(config.model)
+                environmentModel = self.parseOllamaModel(config.model)
             default:
                 continue
             }
@@ -135,7 +135,7 @@ public enum ProviderParser {
         let hasConflict = isEnvironmentProvided &&
             environmentModel != nil &&
             configuredDefault != nil &&
-            !modelsAreEqual(environmentModel, configuredDefault)
+            !self.modelsAreEqual(environmentModel, configuredDefault)
 
         // Environment variable takes precedence over config
         let finalModel: LanguageModel = if let envModel = environmentModel, isEnvironmentProvided {
@@ -147,7 +147,7 @@ public enum ProviderParser {
             envModel
         } else {
             // Fall back to defaults based on available API keys
-            getDefaultFallbackModel(
+            self.getDefaultFallbackModel(
                 hasOpenAI: hasOpenAI,
                 hasAnthropic: hasAnthropic,
                 hasGrok: hasGrok,
@@ -175,7 +175,7 @@ public enum ProviderParser {
         -> LanguageModel
     {
         // Determine the default model based on available providers and API keys (simple version)
-        let determination = determineDefaultModelWithConflict(
+        let determination = self.determineDefaultModelWithConflict(
             from: providersString,
             hasOpenAI: hasOpenAI,
             hasAnthropic: hasAnthropic,
@@ -190,13 +190,13 @@ public enum ProviderParser {
     /// Extract provider name from a full provider/model string
     public static func extractProvider(from fullString: String) -> String? {
         // Extract provider name from a full provider/model string
-        parse(fullString)?.provider
+        self.parse(fullString)?.provider
     }
 
     /// Extract model name from a full provider/model string
     public static func extractModel(from fullString: String) -> String? {
         // Extract model name from a full provider/model string
-        parse(fullString)?.model
+        self.parse(fullString)?.model
     }
 
     // MARK: - Private Helpers

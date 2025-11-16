@@ -327,12 +327,12 @@ public struct ModelCapabilityInfo {
     /// Format capabilities for CLI display
     public var description: String {
         var capabilities: [String] = []
-        if supportsVision { capabilities.append("vision") }
-        if supportsTools { capabilities.append("tools") }
-        if supportsStreaming { capabilities.append("streaming") }
+        if self.supportsVision { capabilities.append("vision") }
+        if self.supportsTools { capabilities.append("tools") }
+        if self.supportsStreaming { capabilities.append("streaming") }
 
         let capabilityString = capabilities.isEmpty ? "basic" : capabilities.joined(separator: ", ")
-        return "\(provider)/\(modelId) (\(capabilityString))"
+        return "\(self.provider)/\(self.modelId) (\(capabilityString))"
     }
 }
 

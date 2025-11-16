@@ -26,7 +26,7 @@ public struct TachikomaUnifiedError: Error, LocalizedError, Sendable {
     }
 
     public var errorDescription: String? {
-        var description = "[\(code.category.rawValue):\(code.rawValue)] \(message)"
+        var description = "[\(code.category.rawValue):\(self.code.rawValue)] \(self.message)"
         if let recovery {
             description += "\n💡 \(recovery.suggestion)"
         }
@@ -34,15 +34,15 @@ public struct TachikomaUnifiedError: Error, LocalizedError, Sendable {
     }
 
     public var failureReason: String? {
-        details?.reason
+        self.details?.reason
     }
 
     public var recoverySuggestion: String? {
-        recovery?.suggestion
+        self.recovery?.suggestion
     }
 
     public var helpAnchor: String? {
-        recovery?.helpURL
+        self.recovery?.helpURL
     }
 }
 
@@ -55,7 +55,7 @@ public struct ErrorCode: Sendable, Equatable {
 
     public init(category: ErrorCategory, code: String) {
         self.category = category
-        rawValue = "\(category.rawValue)_\(code)"
+        self.rawValue = "\(category.rawValue)_\(code)"
     }
 
     // Common error codes

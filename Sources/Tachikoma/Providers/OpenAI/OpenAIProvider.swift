@@ -1,6 +1,6 @@
 import Foundation
 #if canImport(FoundationNetworking)
-    import FoundationNetworking
+import FoundationNetworking
 #endif
 
 /// Provider for OpenAI models
@@ -20,18 +20,18 @@ public final class OpenAIProvider: ModelProvider {
         session: URLSession = .shared,
     ) throws {
         self.model = model
-        modelId = model.modelId
-        baseURL = configuration.getBaseURL(for: .openai) ?? "https://api.openai.com/v1"
+        self.modelId = model.modelId
+        self.baseURL = configuration.getBaseURL(for: .openai) ?? "https://api.openai.com/v1"
         self.session = session
 
         // Get API key from configuration system (environment or credentials)
         if let key = configuration.getAPIKey(for: .openai) {
-            apiKey = key
+            self.apiKey = key
         } else {
             throw TachikomaError.authenticationFailed("OPENAI_API_KEY not found")
         }
 
-        capabilities = ModelCapabilities(
+        self.capabilities = ModelCapabilities(
             supportsVision: model.supportsVision,
             supportsTools: model.supportsTools,
             supportsStreaming: true,
@@ -50,12 +50,12 @@ public final class OpenAIProvider: ModelProvider {
         // Use shared OpenAI-compatible implementation
         return try await OpenAICompatibleHelper.generateText(
             request: request,
-            modelId: modelId,
-            baseURL: baseURL!,
-            apiKey: apiKey!,
+            modelId: self.modelId,
+            baseURL: self.baseURL!,
+            apiKey: self.apiKey!,
             providerName: "OpenAI",
             additionalHeaders: additionalHeaders,
-            session: session,
+            session: self.session,
         )
     }
 
@@ -69,12 +69,12 @@ public final class OpenAIProvider: ModelProvider {
         // Use shared OpenAI-compatible implementation
         return try await OpenAICompatibleHelper.streamText(
             request: request,
-            modelId: modelId,
-            baseURL: baseURL!,
-            apiKey: apiKey!,
+            modelId: self.modelId,
+            baseURL: self.baseURL!,
+            apiKey: self.apiKey!,
             providerName: "OpenAI",
             additionalHeaders: additionalHeaders,
-            session: session,
+            session: self.session,
         )
     }
 }

@@ -1,6 +1,6 @@
 import Foundation
 #if canImport(FoundationNetworking)
-    import FoundationNetworking
+import FoundationNetworking
 #endif
 
 // MARK: - Provider Base Classes
@@ -17,17 +17,17 @@ public final class AnthropicProvider: ModelProvider {
 
     public init(model: LanguageModel.Anthropic, configuration: TachikomaConfiguration) throws {
         self.model = model
-        modelId = model.modelId
-        baseURL = configuration.getBaseURL(for: .anthropic) ?? "https://api.anthropic.com"
+        self.modelId = model.modelId
+        self.baseURL = configuration.getBaseURL(for: .anthropic) ?? "https://api.anthropic.com"
 
         // Get API key from configuration system (environment or credentials)
         if let key = configuration.getAPIKey(for: .anthropic) {
-            apiKey = key
+            self.apiKey = key
         } else {
             throw TachikomaError.authenticationFailed("ANTHROPIC_API_KEY not found")
         }
 
-        capabilities = ModelCapabilities(
+        self.capabilities = ModelCapabilities(
             supportsVision: model.supportsVision,
             supportsTools: model.supportsTools,
             supportsStreaming: true,
@@ -205,7 +205,7 @@ public final class AnthropicProvider: ModelProvider {
             config.verbose
         {
             print("\n🔴 DEBUG AnthropicProvider.streamText called with:")
-            print("   Model: \(modelId)")
+            print("   Model: \(self.modelId)")
             print("   Tools count: \(anthropicRequest.tools?.count ?? 0)")
             if let tools = anthropicRequest.tools {
                 print("   Tool names: \(tools.map(\.name).joined(separator: ", "))")
@@ -239,270 +239,270 @@ public final class AnthropicProvider: ModelProvider {
 
         // Use URLSession's bytes API for proper streaming
         #if canImport(FoundationNetworking)
-            // Linux: Use data task for now (streaming not available)
-            let (data, response) = try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<
-                (Data, URLResponse),
-                Error,
-            >) in
-                URLSession.shared.dataTask(with: urlRequest) { data, response, error in
-                    if let error {
-                        continuation.resume(throwing: error)
-                    } else if let data, let response {
-                        continuation.resume(returning: (data, response))
-                    } else {
-                        continuation.resume(throwing: TachikomaError.networkError(NSError(
-                            domain: "Invalid response",
-                            code: 0,
-                        )))
-                    }
-                }.resume()
-            }
-
-            guard let httpResponse = response as? HTTPURLResponse else {
-                throw TachikomaError.networkError(NSError(domain: "Invalid response", code: 0))
-            }
-
-            guard httpResponse.statusCode == 200 else {
-                // Return error data
-                let errorText = String(data: data, encoding: .utf8) ?? "Unknown error"
-                throw TachikomaError.apiError("Anthropic Error (HTTP \(httpResponse.statusCode)): \(errorText)")
-            }
-
-            // For Linux, parse the entire response at once
-            let lines = String(data: data, encoding: .utf8)?.components(separatedBy: "\n") ?? []
-        #else
-            // macOS/iOS: Use streaming API
-            let (bytes, response) = try await URLSession.shared.bytes(for: urlRequest)
-
-            guard let httpResponse = response as? HTTPURLResponse else {
-                throw TachikomaError.networkError(NSError(domain: "Invalid response", code: 0))
-            }
-
-            guard httpResponse.statusCode == 200 else {
-                // Collect error data
-                var errorData = Data()
-                for try await byte in bytes {
-                    errorData.append(byte)
+        // Linux: Use data task for now (streaming not available)
+        let (data, response) = try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<
+            (Data, URLResponse),
+            Error,
+        >) in
+            URLSession.shared.dataTask(with: urlRequest) { data, response, error in
+                if let error {
+                    continuation.resume(throwing: error)
+                } else if let data, let response {
+                    continuation.resume(returning: (data, response))
+                } else {
+                    continuation.resume(throwing: TachikomaError.networkError(NSError(
+                        domain: "Invalid response",
+                        code: 0,
+                    )))
                 }
-                let errorText = String(data: errorData, encoding: .utf8) ?? "Unknown error"
-                throw TachikomaError.apiError("Anthropic Error (HTTP \(httpResponse.statusCode)): \(errorText)")
+            }.resume()
+        }
+
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw TachikomaError.networkError(NSError(domain: "Invalid response", code: 0))
+        }
+
+        guard httpResponse.statusCode == 200 else {
+            // Return error data
+            let errorText = String(data: data, encoding: .utf8) ?? "Unknown error"
+            throw TachikomaError.apiError("Anthropic Error (HTTP \(httpResponse.statusCode)): \(errorText)")
+        }
+
+        // For Linux, parse the entire response at once
+        let lines = String(data: data, encoding: .utf8)?.components(separatedBy: "\n") ?? []
+        #else
+        // macOS/iOS: Use streaming API
+        let (bytes, response) = try await URLSession.shared.bytes(for: urlRequest)
+
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw TachikomaError.networkError(NSError(domain: "Invalid response", code: 0))
+        }
+
+        guard httpResponse.statusCode == 200 else {
+            // Collect error data
+            var errorData = Data()
+            for try await byte in bytes {
+                errorData.append(byte)
             }
+            let errorText = String(data: errorData, encoding: .utf8) ?? "Unknown error"
+            throw TachikomaError.apiError("Anthropic Error (HTTP \(httpResponse.statusCode)): \(errorText)")
+        }
 
-            return AsyncThrowingStream { continuation in
-                Task {
-                    var currentToolCall: (id: String, name: String, partialInput: String)?
-                    var accumulatedText = ""
+        return AsyncThrowingStream { continuation in
+            Task {
+                var currentToolCall: (id: String, name: String, partialInput: String)?
+                var accumulatedText = ""
 
-                    do {
-                        for try await line in bytes.lines {
-                            // Skip empty lines
-                            guard !line.isEmpty else { continue }
+                do {
+                    for try await line in bytes.lines {
+                        // Skip empty lines
+                        guard !line.isEmpty else { continue }
 
-                            // Process SSE events
-                            if line.hasPrefix("event: ") {
-                                // We'll use the event type in the next data line
-                                continue
+                        // Process SSE events
+                        if line.hasPrefix("event: ") {
+                            // We'll use the event type in the next data line
+                            continue
+                        }
+
+                        if line.hasPrefix("data: ") {
+                            let jsonString = String(line.dropFirst(6))
+
+                            // Check for stream end
+                            if jsonString.trimmingCharacters(in: .whitespacesAndNewlines) == "[DONE]" {
+                                // Yield accumulated text if any
+                                if !accumulatedText.isEmpty {
+                                    continuation.yield(TextStreamDelta.text(accumulatedText))
+                                    accumulatedText = ""
+                                }
+                                continuation.yield(TextStreamDelta.done())
+                                break
                             }
 
-                            if line.hasPrefix("data: ") {
-                                let jsonString = String(line.dropFirst(6))
+                            guard let data = jsonString.data(using: .utf8) else { continue }
 
-                                // Check for stream end
-                                if jsonString.trimmingCharacters(in: .whitespacesAndNewlines) == "[DONE]" {
-                                    // Yield accumulated text if any
+                            do {
+                                let event = try JSONDecoder().decode(AnthropicStreamEvent.self, from: data)
+
+                                switch event.type {
+                                case "message_start":
+                                    // Message is starting
+                                    continue
+
+                                case "content_block_start":
+                                    if let block = event.contentBlock {
+                                        if block.type == "tool_use" {
+                                            // Starting a tool call
+                                            currentToolCall = (
+                                                id: block.id ?? "",
+                                                name: block.name ?? "",
+                                                partialInput: "",
+                                            )
+                                        } else if block.type == "text" {
+                                            // Text block starting
+                                            continue
+                                        }
+                                    }
+
+                                case "content_block_delta":
+                                    if let delta = event.delta {
+                                        if delta.type == "text_delta", let text = delta.text {
+                                            // Accumulate text
+                                            accumulatedText += text
+                                            // Yield text in chunks
+                                            if accumulatedText.count >= 20 {
+                                                continuation.yield(TextStreamDelta.text(accumulatedText))
+                                                accumulatedText = ""
+                                            }
+                                        } else if
+                                            delta.type == "input_json_delta",
+                                            let partialJson = delta.partialJson
+                                        {
+                                            // Accumulate tool input
+                                            if var toolCall = currentToolCall {
+                                                toolCall.partialInput += partialJson
+                                                currentToolCall = toolCall
+                                            }
+                                        }
+                                    }
+
+                                case "content_block_stop":
+                                    // Yield any remaining text
+                                    if !accumulatedText.isEmpty {
+                                        continuation.yield(TextStreamDelta.text(accumulatedText))
+                                        accumulatedText = ""
+                                    }
+
+                                    // Complete tool call if we have one
+                                    if let toolCall = currentToolCall {
+                                        // Parse the complete JSON input
+                                        if
+                                            let inputData = toolCall.partialInput.data(using: .utf8),
+                                            let inputJson = try? JSONSerialization
+                                                .jsonObject(with: inputData) as? [String: Any]
+                                        {
+                                            // Convert to AnyAgentToolValue arguments
+                                            var arguments: [String: AnyAgentToolValue] = [:]
+                                            for (key, value) in inputJson {
+                                                do {
+                                                    arguments[key] = try AnyAgentToolValue.fromJSON(value)
+                                                } catch {
+                                                    print(
+                                                        "[WARNING] Failed to convert tool argument '\(key)': \(error)",
+                                                    )
+                                                }
+                                            }
+
+                                            let agentToolCall = AgentToolCall(
+                                                id: toolCall.id,
+                                                name: toolCall.name,
+                                                arguments: arguments,
+                                            )
+                                            continuation.yield(TextStreamDelta.tool(agentToolCall))
+                                        }
+                                        currentToolCall = nil
+                                    }
+
+                                case "message_delta":
+                                    // Message-level updates (usage, etc.)
+                                    // Usage is typically included in the done event, not separately
+                                    continue
+
+                                case "message_stop":
+                                    // Yield any final accumulated text
                                     if !accumulatedText.isEmpty {
                                         continuation.yield(TextStreamDelta.text(accumulatedText))
                                         accumulatedText = ""
                                     }
                                     continuation.yield(TextStreamDelta.done())
-                                    break
-                                }
 
-                                guard let data = jsonString.data(using: .utf8) else { continue }
-
-                                do {
-                                    let event = try JSONDecoder().decode(AnthropicStreamEvent.self, from: data)
-
-                                    switch event.type {
-                                    case "message_start":
-                                        // Message is starting
-                                        continue
-
-                                    case "content_block_start":
-                                        if let block = event.contentBlock {
-                                            if block.type == "tool_use" {
-                                                // Starting a tool call
-                                                currentToolCall = (
-                                                    id: block.id ?? "",
-                                                    name: block.name ?? "",
-                                                    partialInput: "",
-                                                )
-                                            } else if block.type == "text" {
-                                                // Text block starting
-                                                continue
-                                            }
-                                        }
-
-                                    case "content_block_delta":
-                                        if let delta = event.delta {
-                                            if delta.type == "text_delta", let text = delta.text {
-                                                // Accumulate text
-                                                accumulatedText += text
-                                                // Yield text in chunks
-                                                if accumulatedText.count >= 20 {
-                                                    continuation.yield(TextStreamDelta.text(accumulatedText))
-                                                    accumulatedText = ""
-                                                }
-                                            } else if
-                                                delta.type == "input_json_delta",
-                                                let partialJson = delta.partialJson
-                                            {
-                                                // Accumulate tool input
-                                                if var toolCall = currentToolCall {
-                                                    toolCall.partialInput += partialJson
-                                                    currentToolCall = toolCall
-                                                }
-                                            }
-                                        }
-
-                                    case "content_block_stop":
-                                        // Yield any remaining text
-                                        if !accumulatedText.isEmpty {
-                                            continuation.yield(TextStreamDelta.text(accumulatedText))
-                                            accumulatedText = ""
-                                        }
-
-                                        // Complete tool call if we have one
-                                        if let toolCall = currentToolCall {
-                                            // Parse the complete JSON input
-                                            if
-                                                let inputData = toolCall.partialInput.data(using: .utf8),
-                                                let inputJson = try? JSONSerialization
-                                                    .jsonObject(with: inputData) as? [String: Any]
-                                            {
-                                                // Convert to AnyAgentToolValue arguments
-                                                var arguments: [String: AnyAgentToolValue] = [:]
-                                                for (key, value) in inputJson {
-                                                    do {
-                                                        arguments[key] = try AnyAgentToolValue.fromJSON(value)
-                                                    } catch {
-                                                        print(
-                                                            "[WARNING] Failed to convert tool argument '\(key)': \(error)",
-                                                        )
-                                                    }
-                                                }
-
-                                                let agentToolCall = AgentToolCall(
-                                                    id: toolCall.id,
-                                                    name: toolCall.name,
-                                                    arguments: arguments,
-                                                )
-                                                continuation.yield(TextStreamDelta.tool(agentToolCall))
-                                            }
-                                            currentToolCall = nil
-                                        }
-
-                                    case "message_delta":
-                                        // Message-level updates (usage, etc.)
-                                        // Usage is typically included in the done event, not separately
-                                        continue
-
-                                    case "message_stop":
-                                        // Yield any final accumulated text
-                                        if !accumulatedText.isEmpty {
-                                            continuation.yield(TextStreamDelta.text(accumulatedText))
-                                            accumulatedText = ""
-                                        }
-                                        continuation.yield(TextStreamDelta.done())
-
-                                    default:
-                                        // Unknown event type, skip
-                                        continue
-                                    }
-                                } catch {
-                                    // Log parsing error in verbose mode
-                                    let config = TachikomaConfiguration.current
-                                    if config.verbose {
-                                        print("[WARNING] Failed to parse stream event: \(error)")
-                                        print("Raw JSON: \(jsonString)")
-                                    }
+                                default:
+                                    // Unknown event type, skip
                                     continue
                                 }
+                            } catch {
+                                // Log parsing error in verbose mode
+                                let config = TachikomaConfiguration.current
+                                if config.verbose {
+                                    print("[WARNING] Failed to parse stream event: \(error)")
+                                    print("Raw JSON: \(jsonString)")
+                                }
+                                continue
                             }
                         }
-                    } catch {
-                        continuation.finish(throwing: error)
-                        return
                     }
-
-                    continuation.finish()
+                } catch {
+                    continuation.finish(throwing: error)
+                    return
                 }
+
+                continuation.finish()
             }
+        }
         #endif // End of macOS/iOS streaming implementation
 
         #if canImport(FoundationNetworking)
-            // Linux implementation: Parse the entire response
-            return AsyncThrowingStream { continuation in
-                Task {
-                    var currentToolCall: (id: String, name: String, partialInput: String)?
-                    var accumulatedText = ""
+        // Linux implementation: Parse the entire response
+        return AsyncThrowingStream { continuation in
+            Task {
+                var currentToolCall: (id: String, name: String, partialInput: String)?
+                var accumulatedText = ""
 
-                    do {
-                        for line in lines {
-                            // Skip empty lines
-                            guard !line.isEmpty else { continue }
+                do {
+                    for line in lines {
+                        // Skip empty lines
+                        guard !line.isEmpty else { continue }
 
-                            // Process SSE events
-                            if line.hasPrefix("event: ") {
-                                continue
+                        // Process SSE events
+                        if line.hasPrefix("event: ") {
+                            continue
+                        }
+
+                        if line.hasPrefix("data: ") {
+                            let jsonString = String(line.dropFirst(6))
+
+                            // Check for stream end
+                            if jsonString.trimmingCharacters(in: .whitespacesAndNewlines) == "[DONE]" {
+                                if !accumulatedText.isEmpty {
+                                    continuation.yield(TextStreamDelta.text(accumulatedText))
+                                }
+                                continuation.yield(TextStreamDelta.done())
+                                break
                             }
 
-                            if line.hasPrefix("data: ") {
-                                let jsonString = String(line.dropFirst(6))
+                            guard let data = jsonString.data(using: .utf8) else { continue }
 
-                                // Check for stream end
-                                if jsonString.trimmingCharacters(in: .whitespacesAndNewlines) == "[DONE]" {
+                            do {
+                                let event = try JSONDecoder().decode(AnthropicStreamEvent.self, from: data)
+
+                                // Process events similar to macOS implementation
+                                switch event.type {
+                                case "content_block_delta":
+                                    if let delta = event.delta {
+                                        if let text = delta.text {
+                                            accumulatedText += text
+                                        }
+                                    }
+                                case "message_stop":
                                     if !accumulatedText.isEmpty {
                                         continuation.yield(TextStreamDelta.text(accumulatedText))
                                     }
                                     continuation.yield(TextStreamDelta.done())
-                                    break
-                                }
-
-                                guard let data = jsonString.data(using: .utf8) else { continue }
-
-                                do {
-                                    let event = try JSONDecoder().decode(AnthropicStreamEvent.self, from: data)
-
-                                    // Process events similar to macOS implementation
-                                    switch event.type {
-                                    case "content_block_delta":
-                                        if let delta = event.delta {
-                                            if let text = delta.text {
-                                                accumulatedText += text
-                                            }
-                                        }
-                                    case "message_stop":
-                                        if !accumulatedText.isEmpty {
-                                            continuation.yield(TextStreamDelta.text(accumulatedText))
-                                        }
-                                        continuation.yield(TextStreamDelta.done())
-                                    default:
-                                        continue
-                                    }
-                                } catch {
+                                default:
                                     continue
                                 }
+                            } catch {
+                                continue
                             }
                         }
-                    } catch {
-                        continuation.finish(throwing: error)
-                        return
                     }
-
-                    continuation.finish()
+                } catch {
+                    continuation.finish(throwing: error)
+                    return
                 }
+
+                continuation.finish()
             }
+        }
         #endif
     }
 
@@ -705,21 +705,21 @@ public final class OllamaProvider: ModelProvider {
 
     public init(model: LanguageModel.Ollama, configuration: TachikomaConfiguration) throws {
         self.model = model
-        modelId = model.modelId
+        self.modelId = model.modelId
 
         // Get base URL from configuration or environment or use default
         if let configURL = configuration.getBaseURL(for: .ollama) {
-            baseURL = configURL
+            self.baseURL = configURL
         } else if let customURL = ProcessInfo.processInfo.environment["PEEKABOO_OLLAMA_BASE_URL"] {
-            baseURL = customURL
+            self.baseURL = customURL
         } else {
-            baseURL = "http://localhost:11434"
+            self.baseURL = "http://localhost:11434"
         }
 
         // Ollama doesn't typically require an API key for local usage, but allow configuration
-        apiKey = configuration.getAPIKey(for: .ollama)
+        self.apiKey = configuration.getAPIKey(for: .ollama)
 
-        capabilities = ModelCapabilities(
+        self.capabilities = ModelCapabilities(
             supportsVision: model.supportsVision,
             supportsTools: model.supportsTools,
             supportsStreaming: true,

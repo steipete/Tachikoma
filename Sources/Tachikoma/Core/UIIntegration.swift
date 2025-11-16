@@ -274,7 +274,7 @@ public struct UIStreamResponse: Sendable {
         var toolCalls: [AgentToolCall] = []
         var currentToolCall: (id: String, name: String, arguments: String)?
 
-        for await chunk in stream {
+        for await chunk in self.stream {
             switch chunk {
             case let .text(text):
                 content += text
@@ -310,8 +310,8 @@ public struct UIStreamResponse: Sendable {
         }
 
         return UIMessage(
-            id: messageId,
-            role: role,
+            id: self.messageId,
+            role: self.role,
             content: content,
             toolCalls: toolCalls.isEmpty ? nil : toolCalls,
         )

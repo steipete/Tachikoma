@@ -188,12 +188,12 @@ public struct EmbeddingResult: Sendable {
 
     /// Get first embedding (convenience for single text input)
     public var embedding: [Double]? {
-        embeddings.first
+        self.embeddings.first
     }
 
     /// Number of dimensions in embeddings
     public var dimensions: Int? {
-        embeddings.first?.count
+        self.embeddings.first?.count
     }
 }
 
@@ -271,8 +271,8 @@ private actor EmbeddingAsyncSemaphore {
     }
 
     func wait() async {
-        if value > 0 {
-            value -= 1
+        if self.value > 0 {
+            self.value -= 1
         } else {
             await withCheckedContinuation { continuation in
                 self.waiters.append(continuation)
@@ -282,10 +282,10 @@ private actor EmbeddingAsyncSemaphore {
 
     func signal() {
         if let waiter = waiters.first {
-            waiters.removeFirst()
+            self.waiters.removeFirst()
             waiter.resume()
         } else {
-            value += 1
+            self.value += 1
         }
     }
 }

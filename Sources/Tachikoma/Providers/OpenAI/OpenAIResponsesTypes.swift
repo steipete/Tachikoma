@@ -161,26 +161,26 @@ struct JSONSchemaFormat: Codable {
 
     func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
-        try container.encode(type, forKey: .type)
-        try container.encode(strict, forKey: .strict)
-        try container.encode(name, forKey: .name)
-        try container.encodeIfPresent(description, forKey: .description)
+        try container.encode(self.type, forKey: .type)
+        try container.encode(self.strict, forKey: .strict)
+        try container.encode(self.name, forKey: .name)
+        try container.encodeIfPresent(self.description, forKey: .description)
 
         // Encode schema as JSON data
-        let schemaData = try JSONSerialization.data(withJSONObject: schema)
+        let schemaData = try JSONSerialization.data(withJSONObject: self.schema)
         let schemaJSON = try JSONSerialization.jsonObject(with: schemaData)
         try container.encode(AnyEncodable(schemaJSON), forKey: .schema)
     }
 
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        strict = try container.decode(Bool.self, forKey: .strict)
-        name = try container.decode(String.self, forKey: .name)
-        description = try container.decodeIfPresent(String.self, forKey: .description)
+        self.strict = try container.decode(Bool.self, forKey: .strict)
+        self.name = try container.decode(String.self, forKey: .name)
+        self.description = try container.decodeIfPresent(String.self, forKey: .description)
 
         // Decode schema as Any
         let anySchema = try container.decode(AnyDecodable.self, forKey: .schema)
-        schema = anySchema.value as? [String: Any] ?? [:]
+        self.schema = anySchema.value as? [String: Any] ?? [:]
     }
 }
 
@@ -330,9 +330,9 @@ struct ResponsesTool: Codable {
 
     func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
-        try container.encode(name, forKey: .name)
-        try container.encode(type, forKey: .type)
-        try container.encodeIfPresent(description, forKey: .description)
+        try container.encode(self.name, forKey: .name)
+        try container.encode(self.type, forKey: .type)
+        try container.encodeIfPresent(self.description, forKey: .description)
 
         if let params = parameters {
             let paramsData = try JSONSerialization.data(withJSONObject: params)
@@ -346,30 +346,30 @@ struct ResponsesTool: Codable {
             try container.encode(AnyEncodable(schemaJSON), forKey: .inputSchema)
         }
 
-        try container.encodeIfPresent(strict, forKey: .strict)
-        try container.encodeIfPresent(function, forKey: .function)
+        try container.encodeIfPresent(self.strict, forKey: .strict)
+        try container.encodeIfPresent(self.function, forKey: .function)
     }
 
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        name = try container.decode(String.self, forKey: .name)
-        type = try container.decode(String.self, forKey: .type)
-        description = try container.decodeIfPresent(String.self, forKey: .description)
+        self.name = try container.decode(String.self, forKey: .name)
+        self.type = try container.decode(String.self, forKey: .type)
+        self.description = try container.decodeIfPresent(String.self, forKey: .description)
 
         if let anyParams = try container.decodeIfPresent(AnyDecodable.self, forKey: .parameters) {
-            parameters = anyParams.value as? [String: Any]
+            self.parameters = anyParams.value as? [String: Any]
         } else {
-            parameters = nil
+            self.parameters = nil
         }
 
         if let schema = try container.decodeIfPresent(AnyDecodable.self, forKey: .inputSchema) {
-            inputSchema = schema.value as? [String: Any]
+            self.inputSchema = schema.value as? [String: Any]
         } else {
-            inputSchema = nil
+            self.inputSchema = nil
         }
 
-        strict = try container.decodeIfPresent(Bool.self, forKey: .strict)
-        function = try container.decodeIfPresent(ToolFunction.self, forKey: .function)
+        self.strict = try container.decodeIfPresent(Bool.self, forKey: .strict)
+        self.function = try container.decodeIfPresent(ToolFunction.self, forKey: .function)
     }
 
     struct ToolFunction: Codable {
@@ -399,8 +399,8 @@ struct ResponsesTool: Codable {
 
         func encode(to encoder: Encoder) throws {
             var container = encoder.container(keyedBy: CodingKeys.self)
-            try container.encode(name, forKey: .name)
-            try container.encodeIfPresent(description, forKey: .description)
+            try container.encode(self.name, forKey: .name)
+            try container.encodeIfPresent(self.description, forKey: .description)
 
             if let params = parameters {
                 let paramsData = try JSONSerialization.data(withJSONObject: params)
@@ -417,19 +417,19 @@ struct ResponsesTool: Codable {
 
         init(from decoder: Decoder) throws {
             let container = try decoder.container(keyedBy: CodingKeys.self)
-            name = try container.decode(String.self, forKey: .name)
-            description = try container.decodeIfPresent(String.self, forKey: .description)
+            self.name = try container.decode(String.self, forKey: .name)
+            self.description = try container.decodeIfPresent(String.self, forKey: .description)
 
             if let anyParams = try container.decodeIfPresent(AnyDecodable.self, forKey: .parameters) {
-                parameters = anyParams.value as? [String: Any]
+                self.parameters = anyParams.value as? [String: Any]
             } else {
-                parameters = nil
+                self.parameters = nil
             }
 
             if let schema = try container.decodeIfPresent(AnyDecodable.self, forKey: .inputSchema) {
-                inputSchema = schema.value as? [String: Any]
+                self.inputSchema = schema.value as? [String: Any]
             } else {
-                inputSchema = nil
+                self.inputSchema = nil
             }
         }
     }

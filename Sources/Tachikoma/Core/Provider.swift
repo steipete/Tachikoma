@@ -1,8 +1,8 @@
 import Configuration
 #if canImport(Darwin)
-    import Darwin
+import Darwin
 #else
-    import Glibc
+import Glibc
 #endif
 import Foundation
 
@@ -184,7 +184,7 @@ extension Provider {
     /// Checks primary environment variable first, then alternatives
     public func loadAPIKeyFromEnvironment() -> String? {
         // Check primary environment variable
-        if !environmentVariable.isEmpty {
+        if !self.environmentVariable.isEmpty {
             if #available(macOS 15.0, iOS 18.0, watchOS 11.0, tvOS 18.0, *) {
                 if
                     let key = Self.environmentReader.string(forKey: self.environmentVariable, isSecret: true),
@@ -201,7 +201,7 @@ extension Provider {
         }
 
         // Check alternative environment variables
-        for altVar in alternativeEnvironmentVariables {
+        for altVar in self.alternativeEnvironmentVariables {
             if #available(macOS 15.0, iOS 18.0, watchOS 11.0, tvOS 18.0, *) {
                 if let key = Self.environmentReader.string(forKey: altVar, isSecret: true), !key.isEmpty {
                     return key
@@ -216,7 +216,7 @@ extension Provider {
 
     /// Check if API key is available in environment
     public var hasEnvironmentAPIKey: Bool {
-        loadAPIKeyFromEnvironment() != nil
+        self.loadAPIKeyFromEnvironment() != nil
     }
 
     /// Read an environment value using the shared configuration reader.
@@ -247,6 +247,6 @@ extension Provider {
 
     public func encode(to encoder: Encoder) throws {
         var container = encoder.singleValueContainer()
-        try container.encode(identifier)
+        try container.encode(self.identifier)
     }
 }
