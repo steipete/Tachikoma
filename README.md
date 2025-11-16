@@ -1045,6 +1045,8 @@ export AZURE_OPENAI_BEARER_TOKEN="optional-entra-token"  # overrides api-key whe
 # Ollama (runs locally)
 export OLLAMA_API_KEY="optional-token"  # Usually not needed
 
+> Azure notes: You must use the deployment name (not the model id) when selecting `.azureOpenAI(deployment:resource:)`. Tachikoma builds the Azure path `/openai/deployments/{deployment}/chat/completions` and appends `api-version`; both `api-key` and Entra bearer tokens are supported.
+
 # Custom base URLs (optional)
 export OPENAI_BASE_URL="https://api.custom.com/v1"
 export ANTHROPIC_BASE_URL="https://api.custom.com"
