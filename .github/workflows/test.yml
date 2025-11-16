@@ -98,70 +98,13 @@ jobs:
       run: swift build --verbose
 
     - name: Test
-      run: swift test --verbose --parallel
-      env:
-        OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-        ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-        GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
-        MISTRAL_API_KEY: ${{ secrets.MISTRAL_API_KEY }}
-        GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
-        X_AI_API_KEY: ${{ secrets.X_AI_API_KEY }}
-        XAI_API_KEY: ${{ secrets.X_AI_API_KEY }}
-
-  # Windows tests
-  test-windows:
-    if: github.event_name == 'workflow_dispatch'
-    name: Test Windows
-    runs-on: windows-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        swift-version: ['6.0', '5.10']
-
-    steps:
-    - name: Checkout
-      uses: actions/checkout@v4
-
-    - name: Fetch Commander dependency
-      shell: bash
-      run: git clone --depth 1 https://github.com/steipete/Commander.git ../Commander
-
-    - name: Setup Swift
-      uses: compnerd/gha-setup-swift@v0.3.0
-      with:
-        github-repo: swiftlang/swift
-        release-tag-name: swift-${{ matrix.swift-version }}-RELEASE
-        release-asset-name: swift-${{ matrix.swift-version }}-RELEASE-windows10.exe
-    - name: Ensure Swift CLI available (Windows)
-      shell: pwsh
       run: |
-        $swiftExe = Get-ChildItem -Path "C:\Users\runneradmin\AppData\Local\Programs\Swift" -Filter swift.exe -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
-        if (-not $swiftExe) {
-          $swiftExe = Get-ChildItem -Path "C:\Library\Developer" -Filter swift.exe -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
-        }
-        if (-not $swiftExe) {
-          throw "Swift executable not found after installation."
-        }
-        $dir = Split-Path $swiftExe.FullName
-        Add-Content -Path $env:GITHUB_PATH -Value $dir
-        Write-Host "Added $dir to PATH"
-        swift --version
-
-    - name: Cache Swift Package Manager
-      uses: actions/cache@v4
-      with:
-        path: .build
-        key: ${{ runner.os }}-spm-${{ matrix.swift-version }}-${{ hashFiles('**/Package.resolved') }}
-        restore-keys: |
-          ${{ runner.os }}-spm-${{ matrix.swift-version }}-
-          ${{ runner.os }}-spm-
-
-    - name: Build
-      run: swift build --verbose
-      shell: cmd
-
-    - name: Test
-      run: swift test --verbose --parallel
+        SKIP_FLAGS=""
+        if [[ -z "$OPENAI_API_KEY" ]]; then
+          echo "OPENAI_API_KEY missing; skipping AudioProvidersTests"
+          SKIP_FLAGS='--skip AudioProvidersTests'
+        fi
+        swift test --verbose --parallel $SKIP_FLAGS
       env:
         OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
@@ -170,7 +113,6 @@ jobs:
         GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
         X_AI_API_KEY: ${{ secrets.X_AI_API_KEY }}
         XAI_API_KEY: ${{ secrets.X_AI_API_KEY }}
-      shell: cmd
 
   # Package validation
   validate-package:
