@@ -173,5 +173,9 @@ jobs:
 
     - name: Check Documentation
       run: |
-        # Verify documentation coverage
-        swift package generate-documentation --warnings-as-errors --analyze
+        # Verify documentation coverage when the Swift toolchain supports doc generation
+        if swift package --help | grep -q "generate-documentation"; then
+          swift package generate-documentation --warnings-as-errors --analyze
+        else
+          echo "::warning::Swift toolchain does not support 'swift package generate-documentation'; skipping doc validation."
+        fi
