@@ -18,8 +18,6 @@ private actor StdioTransportState {
     var pendingRequests: [String: CheckedContinuation<Data, Swift.Error>] = [:]
     var timeoutTasks: [Int: Task<Void, Never>] = [:]
     var requestTimeoutNs: UInt64 = 30_000_000_000 // default 30s
-    var outputTask: Task<Void, Never>?
-    var errorTask: Task<Void, Never>?
 
     func setProcess(_ process: Process?, input: Pipe?, output: Pipe?, error: Pipe?) {
         self.process = process
@@ -79,24 +77,6 @@ private actor StdioTransportState {
     func getErrorPipe() -> Pipe? {
         self.errorPipe
     }
-
-    func setOutputTask(_ task: Task<Void, Never>?) {
-        self.outputTask = task
-    }
-
-    func setErrorTask(_ task: Task<Void, Never>?) {
-        self.errorTask = task
-    }
-
-    func cancelOutputTask() {
-        self.outputTask?.cancel()
-        self.outputTask = nil
-    }
-
-    func cancelErrorTask() {
-        self.errorTask?.cancel()
-        self.errorTask = nil
-    }
 }
 
 /// Standard I/O transport for MCP communication
@@ -106,9 +86,20 @@ public final class StdioTransport: MCPTransport {
     private static let _sigpipeHandlerInstalled: Void = {
         signal(SIGPIPE, SIG_IGN)
     }()
+    private let debugStdoutHandle: FileHandle?
+    private let debugStderrHandle: FileHandle?
+    private let debugQueue = DispatchQueue(label: "tachikoma.mcp.stdio.debug")
+    private let stdoutQueue = DispatchQueue(label: "tachikoma.mcp.stdio.stdout")
+    private let stderrQueue = DispatchQueue(label: "tachikoma.mcp.stdio.stderr")
+    private var stdoutSource: DispatchSourceRead?
+    private var stderrSource: DispatchSourceRead?
+    private var stdoutBuffer = Data()
+    private var stderrBuffer = Data()
 
     public init() {
         Self._sigpipeHandlerInstalled
+        self.debugStdoutHandle = Self.makeDebugHandle(for: "MCP_STDIO_STDOUT")
+        self.debugStderrHandle = Self.makeDebugHandle(for: "MCP_STDIO_STDERR")
     }
 
     public func connect(config: MCPServerConfig) async throws {
@@ -176,16 +167,16 @@ public final class StdioTransport: MCPTransport {
             throw MCPError.connectionFailed("Failed to start process: \(error)")
         }
 
+        // Close parent's write ends for stdout/stderr so EOF is detected promptly
+        try? outputPipe.fileHandleForWriting.close()
+        try? errorPipe.fileHandleForWriting.close()
+
         await self.state.setProcess(process, input: inputPipe, output: outputPipe, error: errorPipe)
         await self.state.setRequestTimeout(seconds: config.timeout)
 
-        // Start reading output
         self.logger.info("About to start reading output")
-        let stdoutTask = self.startReadingOutput()
-        await self.state.setOutputTask(stdoutTask)
-
-        let stderrTask = self.startReadingError(from: errorPipe)
-        await self.state.setErrorTask(stderrTask)
+        self.stdoutSource = self.makeReadSource(for: outputPipe, isStderr: false)
+        self.stderrSource = self.makeReadSource(for: errorPipe, isStderr: true)
 
         self.logger.info("Stdio transport connected")
     }
@@ -193,8 +184,13 @@ public final class StdioTransport: MCPTransport {
     public func disconnect() async {
         self.logger.info("Disconnecting stdio transport")
 
-        await self.state.cancelOutputTask()
-        await self.state.cancelErrorTask()
+        self.stdoutSource?.cancel()
+        self.stderrSource?.cancel()
+        self.stdoutSource = nil
+        self.stderrSource = nil
+        self.stdoutQueue.sync { self.stdoutBuffer.removeAll(keepingCapacity: false) }
+        self.stderrQueue.sync { self.stderrBuffer.removeAll(keepingCapacity: false) }
+        self.closeDebugHandles()
 
         let inputPipe = await state.getInputPipe()
         let outputPipe = await state.getOutputPipe()
@@ -209,6 +205,10 @@ public final class StdioTransport: MCPTransport {
 
         await self.state.setProcess(nil, input: nil, output: nil, error: nil)
         await self.state.cancelAllRequests()
+    }
+
+    deinit {
+        self.closeDebugHandles()
     }
 
     public func sendRequest<R: Decodable>(
@@ -231,24 +231,27 @@ public final class StdioTransport: MCPTransport {
         if method == "initialize", let json = String(data: data, encoding: .utf8) {
             self.logger.info("[MCP stdio] → initialize payload: \(json)")
         }
-        try await self.send(data)
 
-        // Wait for response with timeout
         let responseData = try await withCheckedThrowingContinuation { continuation in
             Task {
                 await self.state.addPendingRequest(id: id, continuation: continuation)
-                // Schedule timeout task
                 let timeoutTask = Task { [logger] in
                     let ns = await state.requestTimeoutNs
                     try? await Task.sleep(nanoseconds: ns)
-                    // On timeout, try to remove pending and resume throwing
                     if let pending = await state.removePendingRequest(id: id) {
                         logger.error("MCP stdio request timed out: method=\(method), id=\(id)")
-                        pending
-                            .resume(throwing: MCPError.executionFailed("Request timed out after \(ns / 1_000_000)ms"))
+                        pending.resume(throwing: MCPError.executionFailed("Request timed out after \(ns / 1_000_000)ms"))
                     }
                 }
                 await state.addTimeoutTask(id: id, task: timeoutTask)
+
+                do {
+                    try await self.send(data)
+                } catch {
+                    _ = await self.state.removePendingRequest(id: id)
+                    await self.state.cancelTimeoutTask(id: id)
+                    continuation.resume(throwing: error)
+                }
             }
         }
 
@@ -297,174 +300,136 @@ public final class StdioTransport: MCPTransport {
         }
     }
 
-    private func startReadingOutput() -> Task<Void, Never> {
-        Task.detached(priority: .utility) { [weak self] in
-            guard let self else { return }
-            guard let outputPipe = await state.getOutputPipe() else {
-                self.logger.error("[MCP stdio] No output pipe available")
-                return
-            }
+    private func makeReadSource(for pipe: Pipe, isStderr: Bool) -> DispatchSourceRead? {
+        let fileHandle = pipe.fileHandleForReading
+        let fd = fileHandle.fileDescriptor
+        let currentFlags = fcntl(fd, F_GETFL)
+        if currentFlags != -1 {
+            _ = fcntl(fd, F_SETFL, currentFlags | O_NONBLOCK)
+        }
 
-            let fileHandle = outputPipe.fileHandleForReading
-            var buffer = Data()
-
-            while !Task.isCancelled {
-                do {
-                    guard let chunk = try fileHandle.read(upToCount: 4096) else {
-                        self.logger.debug("[MCP stdio] Output pipe closed")
-                        break
-                    }
-
-                    if chunk.isEmpty {
-                        continue
-                    }
-
-                    buffer.append(chunk)
-
-                    parseLoop: while true {
-                        if
-                            let newlineRange = buffer.firstRange(of: Data("\n".utf8)) ??
-                            buffer.firstRange(of: Data("\r".utf8))
-                        {
-                            var line = Data(buffer[..<newlineRange.lowerBound])
-                            buffer.removeSubrange(..<newlineRange.upperBound)
-
-                            guard !line.isEmpty else { continue parseLoop }
-
-                            if let lastByte = line.last, lastByte == 13 {
-                                line.removeLast()
-                            }
-
-                            guard !line.isEmpty else { continue parseLoop }
-
-                            if let json = String(data: line, encoding: .utf8) {
-                                self.logger.debug("[MCP stdio] ← received: \(json)")
-                            }
-
-                            await self.handleResponse(line)
-                            continue parseLoop
-                        }
-
-                        if let framed = Self.extractFramedMessage(from: &buffer) {
-                            if let json = String(data: framed, encoding: .utf8) {
-                                self.logger.debug("[MCP stdio] ← framed: \(json)")
-                            }
-                            await self.handleResponse(framed)
-                            continue parseLoop
-                        }
-
-                        break
-                    }
-                } catch {
-                    if Task.isCancelled {
-                        break
-                    }
-                    self.logger.error("[MCP stdio] Failed to read output: \(error.localizedDescription)")
+        let queue = isStderr ? self.stderrQueue : self.stdoutQueue
+        let source = DispatchSource.makeReadSource(fileDescriptor: fd, queue: queue)
+        source.setEventHandler { [weak self, weak source] in
+            guard let self, let source else { return }
+            var buffer = [UInt8](repeating: 0, count: 8192)
+            while true {
+                let count = read(fd, &buffer, buffer.count)
+                if count > 0 {
+                    let data = Data(buffer[0..<count])
+                    self.handleBytes(data, isStderr: isStderr)
+                    continue
+                }
+                if count == 0 {
+                    self.logger.debug("[MCP stdio] \(isStderr ? "stderr" : "stdout") pipe closed")
+                    source.cancel()
                     break
                 }
+                if errno == EAGAIN || errno == EWOULDBLOCK {
+                    break
+                }
+                self.logger.error("[MCP stdio] Read error: \(String(cString: strerror(errno)))")
+                source.cancel()
+                break
             }
+        }
+        source.resume()
+        return source
+    }
+
+    private func handleBytes(_ chunk: Data, isStderr: Bool) {
+        guard !chunk.isEmpty else { return }
+        if isStderr {
+            self.stderrBuffer.append(chunk)
+            self.writeDebug(chunk, handle: self.debugStderrHandle)
+            self.consumeBuffer(&self.stderrBuffer, isStderr: true)
+        } else {
+            self.stdoutBuffer.append(chunk)
+            self.writeDebug(chunk, handle: self.debugStdoutHandle)
+            self.consumeBuffer(&self.stdoutBuffer, isStderr: false)
         }
     }
 
-    private func startReadingError(from pipe: Pipe) -> Task<Void, Never> {
-        Task.detached(priority: .utility) { [weak self] in
-            guard let self else { return }
-            let handle = pipe.fileHandleForReading
-
-            while !Task.isCancelled {
-                do {
-                    guard let chunk = try handle.read(upToCount: 4096) else {
-                        break
-                    }
-
-                    guard !chunk.isEmpty else { continue }
-
-                    if let rawMessage = String(data: chunk, encoding: .utf8) {
-                        let message = rawMessage.trimmingCharacters(in: .whitespacesAndNewlines)
-                        if !message.isEmpty {
-                            self.logger.debug("[MCP stdio][stderr] \(message)")
-                        }
-                    }
-                } catch {
-                    if Task.isCancelled {
-                        break
-                    }
-                    self.logger.error("[MCP stdio] stderr read failed: \(error.localizedDescription)")
-                    break
+    private func consumeBuffer(_ buffer: inout Data, isStderr: Bool) {
+        if isStderr {
+            while let line = Self.consumeLine(from: &buffer) {
+                guard !line.isEmpty else { continue }
+                if let message = String(data: line, encoding: .utf8), !message.isEmpty {
+                    self.logger.debug("[MCP stdio][stderr] \(message)")
                 }
             }
+            return
+        }
+
+        while let framed = Self.extractFramedMessageBytes(from: &buffer) {
+            if let json = String(data: framed, encoding: .utf8) {
+                self.logger.debug("[MCP stdio] ← framed: \(json)")
+            }
+            Task { await self.handleResponse(framed) }
+        }
+
+        while let line = Self.consumeLine(from: &buffer) {
+            guard !line.isEmpty else { continue }
+            if let json = String(data: line, encoding: .utf8) {
+                self.logger.debug("[MCP stdio] ← received: \(json)")
+            }
+            Task { await self.handleResponse(line) }
         }
     }
 
-    // Robustly read MCP stdio-framed message, tolerating banner/noise
-    // Looks for a "Content-Length:" header, supports both CRLF and LF newlines
-    private func readFramedMessage(from fileHandle: FileHandle) async throws -> ([String: String], Data)? {
-        var buffer = Data()
-        let contentLengthTokenLower = "content-length:" // search case-insensitively
-        let crlfcrlf = "\r\n\r\n".utf8Data()
-        let lflf = "\n\n".utf8Data()
-
-        // Read until we have at least a Content-Length header and the blank line after headers
-        while true {
-            if let chunk = try fileHandle.read(upToCount: 1), !chunk.isEmpty {
-                buffer.append(chunk)
-                // Skip any leading noise before header (case-insensitive search)
-                let lower = String(data: buffer, encoding: .utf8)?.lowercased() ?? ""
-                if lower.contains(contentLengthTokenLower) {
-                    // Check for end of headers (CRLFCRLF or LFLF)
-                    if buffer.range(of: crlfcrlf) != nil || buffer.range(of: lflf) != nil {
-                        break
-                    }
-                }
-                // Otherwise keep reading
-            } else {
-                // EOF
-                return nil
-            }
-        }
-
-        // Normalize header segment starting at Content-Length
-        // Find start by locating the content-length line case-insensitively
-        let headerStringAll = String(data: buffer, encoding: .utf8) ?? ""
-        guard let tokenRange = headerStringAll.lowercased().range(of: contentLengthTokenLower) else {
-            // Did not find a frame header; drop noise and continue
+    private static func consumeLine(from buffer: inout Data) -> Data? {
+        guard let newlineIndex = buffer.firstIndex(where: { $0 == 0x0A || $0 == 0x0D }) else {
             return nil
         }
-        let headerStartIndex = headerStringAll.distance(from: headerStringAll.startIndex, to: tokenRange.lowerBound)
-        let headerBytes = buffer.suffix(buffer.count - headerStartIndex)
-        let headerSegment = headerBytes
+        let line = buffer[..<newlineIndex]
+        var removeEnd = buffer.index(after: newlineIndex)
+        if buffer[newlineIndex] == 0x0D,
+           removeEnd < buffer.endIndex,
+           buffer[removeEnd] == 0x0A
+        {
+            removeEnd = buffer.index(after: removeEnd)
+        }
+        buffer.removeSubrange(buffer.startIndex..<removeEnd)
+        return Data(line)
+    }
 
-        // Determine newline convention and split headers
-        let headerEndRange = headerSegment.range(of: crlfcrlf) ?? headerSegment.range(of: lflf)
-        guard let headerEnd = headerEndRange?.lowerBound else { return nil }
-        let headersData = headerSegment[..<headerEnd]
-        let headersString = String(data: headersData, encoding: .utf8) ?? ""
-        let lines = headersString.replacingOccurrences(of: "\r\n", with: "\n").components(separatedBy: "\n")
-            .filter { !$0.isEmpty }
-
-        var headers: [String: String] = [:]
-        for line in lines {
-            if let sep = line.firstIndex(of: ":") {
-                let key = line[..<sep].lowercased()
-                    .trimmingCharacters(in: CharacterSet.whitespaces)
-                let value = line[line.index(after: sep)...]
-                    .trimmingCharacters(in: CharacterSet.whitespaces)
-                headers[key] = value
-            }
+    private static func extractFramedMessageBytes(from buffer: inout Data) -> Data? {
+        guard let headerEndRange = buffer.range(of: Data([13, 10, 13, 10])) ??
+            buffer.range(of: Data([10, 10])) else {
+            return nil
         }
 
-        let length = Int(headers["content-length"] ?? "0") ?? 0
-
-        // Compute how many bytes remain in the file after headers to fulfill the body
-        var body = Data(capacity: max(length, 0))
-        var remaining = length
-        while remaining > 0 {
-            let chunk = try fileHandle.read(upToCount: remaining)
-            guard let chunk, !chunk.isEmpty else { break }
-            body.append(chunk)
-            remaining -= chunk.count
+        let header = buffer[..<headerEndRange.lowerBound]
+        guard let headerString = String(data: header, encoding: .utf8) else {
+            return nil
         }
-        return (headers, body)
+        let lowerHeader = headerString.lowercased()
+        guard let tokenRange = lowerHeader.range(of: "content-length:") else {
+            return nil
+        }
+
+        var digitIndex = tokenRange.upperBound
+        while digitIndex < lowerHeader.endIndex, lowerHeader[digitIndex] == " " {
+            digitIndex = lowerHeader.index(after: digitIndex)
+        }
+
+        var digitsEnd = digitIndex
+        while digitsEnd < lowerHeader.endIndex, lowerHeader[digitsEnd].isNumber {
+            digitsEnd = lowerHeader.index(after: digitsEnd)
+        }
+
+        guard digitsEnd > digitIndex else { return nil }
+        let lengthSubstring = lowerHeader[digitIndex..<digitsEnd]
+        guard let length = Int(lengthSubstring) else { return nil }
+
+        let headerBytes = buffer.distance(from: buffer.startIndex, to: headerEndRange.upperBound)
+        guard buffer.count >= headerBytes + length else { return nil }
+
+        let bodyStart = buffer.index(buffer.startIndex, offsetBy: headerBytes)
+        let bodyEnd = buffer.index(bodyStart, offsetBy: length)
+        let body = buffer[bodyStart..<bodyEnd]
+        buffer.removeSubrange(buffer.startIndex..<bodyEnd)
+        return Data(body)
     }
 
     private func handleResponse(_ data: Data) async {
@@ -536,53 +501,43 @@ public final class StdioTransport: MCPTransport {
         return !process.isRunning
     }
 
-    private static func extractFramedMessage(from buffer: inout Data) -> Data? {
-        guard !buffer.isEmpty else { return nil }
-        guard let text = String(data: buffer, encoding: .utf8) else { return nil }
-
-        let lowercased = text.lowercased()
-        guard let tokenRange = lowercased.range(of: "content-length:") else {
+    private static func makeDebugHandle(for envKey: String) -> FileHandle? {
+        guard let path = ProcessInfo.processInfo.environment[envKey], !path.isEmpty else {
             return nil
         }
 
-        let prefixLength = lowercased.distance(from: lowercased.startIndex, to: tokenRange.lowerBound)
-        if prefixLength > 0 {
-            buffer.removeSubrange(buffer.startIndex..<buffer.index(buffer.startIndex, offsetBy: prefixLength))
-            return self.extractFramedMessage(from: &buffer)
+        let fileURL = URL(fileURLWithPath: path).standardizedFileURL
+        let fileManager = FileManager.default
+
+        if !fileManager.fileExists(atPath: fileURL.path) {
+            fileManager.createFile(atPath: fileURL.path, contents: nil)
         }
 
-        guard let separatorRange = text.range(of: "\r\n\r\n") ?? text.range(of: "\n\n") else {
+        do {
+            let handle = try FileHandle(forWritingTo: fileURL)
+            try handle.seekToEnd()
+            return handle
+        } catch {
             return nil
         }
+    }
 
-        let headerString = String(text[..<separatorRange.lowerBound])
-        let lines = headerString
-            .replacingOccurrences(of: "\r", with: "")
-            .split(separator: "\n")
-
-        var contentLength: Int?
-        for line in lines {
-            let parts = line.split(separator: ":", maxSplits: 1)
-            guard parts.count == 2 else { continue }
-            if parts[0].trimmingCharacters(in: .whitespacesAndNewlines).lowercased() == "content-length" {
-                contentLength = Int(parts[1].trimmingCharacters(in: .whitespacesAndNewlines))
-                break
+    private func writeDebug(_ data: Data, handle: FileHandle?) {
+        guard let handle, !data.isEmpty else { return }
+        self.debugQueue.async {
+            do {
+                try handle.write(contentsOf: data)
+            } catch {
+                // Ignore debug output failures entirely.
             }
         }
-
-        guard let length = contentLength else { return nil }
-
-        let headerBytes = text[..<separatorRange.upperBound].data(using: .utf8)?.count ?? 0
-        let totalNeeded = headerBytes + length
-        guard buffer.count >= totalNeeded else { return nil }
-
-        let bodyStart = buffer.index(buffer.startIndex, offsetBy: headerBytes)
-        let bodyEnd = buffer.index(bodyStart, offsetBy: length)
-        let body = buffer[bodyStart..<bodyEnd]
-        buffer.removeSubrange(buffer.startIndex..<bodyEnd)
-
-        return Data(body)
     }
+
+    private func closeDebugHandles() {
+        try? self.debugStdoutHandle?.close()
+        try? self.debugStderrHandle?.close()
+    }
+
 }
 
 // MARK: - JSON-RPC Types
@@ -633,3 +588,5 @@ private struct JSONRPCError: Decodable {
     let code: Int
     let message: String
 }
+
+extension StdioTransport: @unchecked Sendable {}

@@ -115,12 +115,7 @@ public enum MCPToolDiscovery {
                 env: ["GITHUB_PERSONAL_ACCESS_TOKEN": ProcessInfo.processInfo.environment["GITHUB_TOKEN"] ?? ""],
                 description: "GitHub API access",
             ),
-            "chrome-devtools": MCPServerConfig(
-                transport: "stdio",
-                command: "npx",
-                args: ["-y", "chrome-devtools-mcp@latest"],
-                description: "Chrome DevTools automation",
-            ),
+            "chrome-devtools": Self.defaultChromeDevToolsConfig(),
             "postgres": MCPServerConfig(
                 transport: "stdio",
                 command: "npx",
@@ -181,11 +176,55 @@ extension MCPToolDiscovery {
     /// Quick start with Chrome DevTools automation
     public static func withChromeDevTools() async throws -> [AgentTool] {
         // Quick start with Chrome DevTools automation
-        let config = MCPServerConfig(
-            transport: "stdio",
-            command: "npx",
-            args: ["-y", "chrome-devtools-mcp@latest"],
-        )
+        let config = Self.defaultChromeDevToolsConfig()
         return try await self.discover(from: config, name: "chrome-devtools")
+    }
+}
+
+private extension MCPToolDiscovery {
+    static func defaultChromeDevToolsConfig() -> MCPServerConfig {
+        if let local = self.localBinaryPath() {
+            return MCPServerConfig(
+                transport: "stdio",
+                command: local,
+                args: ["--isolated"],
+                description: "Chrome DevTools automation"
+            )
+        } else if self.hasExecutable(named: "pnpm") {
+            return MCPServerConfig(
+                transport: "stdio",
+                command: "pnpm",
+                args: ["dlx", "chrome-devtools-mcp@latest", "--", "--isolated"],
+                description: "Chrome DevTools automation"
+            )
+        } else {
+            return MCPServerConfig(
+                transport: "stdio",
+                command: "npx",
+                args: ["-y", "chrome-devtools-mcp@latest", "--", "--isolated"],
+                description: "Chrome DevTools automation"
+            )
+        }
+    }
+
+    static func hasExecutable(named name: String) -> Bool {
+        let process = Process()
+        process.launchPath = "/usr/bin/which"
+        process.arguments = [name]
+        do {
+            try process.run()
+            process.waitUntilExit()
+            return process.terminationStatus == 0
+        } catch {
+            return false
+        }
+    }
+
+    static func localBinaryPath() -> String? {
+        let cwd = FileManager.default.currentDirectoryPath
+        let path = URL(fileURLWithPath: cwd)
+            .appendingPathComponent("node_modules/.bin/chrome-devtools-mcp")
+            .path
+        return FileManager.default.isExecutableFile(atPath: path) ? path : nil
     }
 }
