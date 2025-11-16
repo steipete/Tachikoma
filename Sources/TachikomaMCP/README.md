@@ -46,7 +46,7 @@ let fsTools = try await MCPToolDiscovery.withFilesystem(path: "/path/to/files")
 let githubTools = try await MCPToolDiscovery.withGitHub()  // Uses GITHUB_TOKEN env var
 
 // Browser automation
-let browserTools = try await MCPToolDiscovery.withBrowser()
+let browserTools = try await MCPToolDiscovery.withChromeDevTools()
 ```
 
 ### Custom MCP Server
@@ -137,7 +137,7 @@ MCP servers are external processes that expose tools via the Model Context Proto
 
 - `@modelcontextprotocol/server-filesystem` - File system operations
 - `@modelcontextprotocol/server-github` - GitHub API access
-- `@agent-infra/mcp-server-browser` - Browser automation
+- `chrome-devtools-mcp` - Chrome DevTools automation
 - `@modelcontextprotocol/server-postgres` - PostgreSQL database
 - Custom servers for your specific needs
 
