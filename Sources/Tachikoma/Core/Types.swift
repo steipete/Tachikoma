@@ -8,6 +8,7 @@ public enum TachikomaError: Error, LocalizedError, Sendable {
     case modelNotFound(String)
     case invalidConfiguration(String)
     case unsupportedOperation(String)
+    case unavailable(String)
     case apiError(String)
     case networkError(Error)
     case toolCallFailed(String)
@@ -25,6 +26,8 @@ public enum TachikomaError: Error, LocalizedError, Sendable {
             "Invalid configuration: \(message)"
         case let .unsupportedOperation(operation):
             "Unsupported operation: \(operation)"
+        case let .unavailable(message):
+            "Unavailable: \(message)"
         case let .apiError(message):
             "API error: \(message)"
         case let .networkError(error):

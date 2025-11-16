@@ -221,6 +221,13 @@ extension TachikomaError {
                 recovery: .upgradeModel,
             )
 
+        case let .unavailable(message):
+            TachikomaUnifiedError(
+                code: .unsupportedFeature,
+                message: message,
+                recovery: .upgradeModel,
+            )
+
         case let .apiError(message):
             TachikomaUnifiedError(
                 code: .serverError,
