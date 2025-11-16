@@ -13,9 +13,9 @@ public final class Conversation: @unchecked Sendable {
     public let configuration: TachikomaConfiguration
 
     public var messages: [ConversationMessage] {
-        lock.lock()
+        self.lock.lock()
         defer { lock.unlock() }
-        return _messages
+        return self._messages
     }
 
     public init(configuration: TachikomaConfiguration = .current) {
@@ -26,56 +26,56 @@ public final class Conversation: @unchecked Sendable {
     public func addUserMessage(_ content: String) {
         // Add a user message to the conversation
         let message = ConversationMessage(role: .user, content: content)
-        lock.lock()
-        _messages.append(message)
-        lock.unlock()
+        self.lock.lock()
+        self._messages.append(message)
+        self.lock.unlock()
     }
 
     /// Add an assistant message to the conversation
     public func addAssistantMessage(_ content: String) {
         // Add an assistant message to the conversation
         let message = ConversationMessage(role: .assistant, content: content)
-        lock.lock()
-        _messages.append(message)
-        lock.unlock()
+        self.lock.lock()
+        self._messages.append(message)
+        self.lock.unlock()
     }
 
     /// Add a system message to the conversation
     public func addSystemMessage(_ content: String) {
         // Add a system message to the conversation
         let message = ConversationMessage(role: .system, content: content)
-        lock.lock()
-        _messages.append(message)
-        lock.unlock()
+        self.lock.lock()
+        self._messages.append(message)
+        self.lock.unlock()
     }
 
     /// Clear all messages from the conversation
     public func clear() {
         // Clear all messages from the conversation
-        lock.lock()
-        _messages.removeAll()
-        lock.unlock()
+        self.lock.lock()
+        self._messages.removeAll()
+        self.lock.unlock()
     }
 
     /// Get messages as ModelMessage array for API compatibility
     public func getModelMessages() -> [ModelMessage] {
         // Get messages as ModelMessage array for API compatibility
-        messages.map { $0.toModelMessage() }
+        self.messages.map { $0.toModelMessage() }
     }
 
     /// Add a ModelMessage to the conversation
     public func addModelMessage(_ modelMessage: ModelMessage) {
         // Add a ModelMessage to the conversation
         let conversationMessage = ConversationMessage.from(modelMessage)
-        lock.lock()
-        _messages.append(conversationMessage)
-        lock.unlock()
+        self.lock.lock()
+        self._messages.append(conversationMessage)
+        self.lock.unlock()
     }
 
     /// Continue the conversation with a model
     public func continueConversation(using model: Model? = nil, tools _: [AgentTool]? = nil) async throws -> String {
         // Convert conversation messages to model messages
-        let modelMessages = messages.map { conversationMessage in
+        let modelMessages = self.messages.map { conversationMessage in
             ModelMessage(
                 id: conversationMessage.id,
                 role: ModelMessage.Role(rawValue: conversationMessage.role.rawValue) ?? .user,
@@ -94,7 +94,7 @@ public final class Conversation: @unchecked Sendable {
         )
 
         // Add the response to the conversation
-        addAssistantMessage(response.text)
+        self.addAssistantMessage(response.text)
 
         return response.text
     }
@@ -107,7 +107,7 @@ public final class Conversation: @unchecked Sendable {
         -> AsyncThrowingStream<String, Error>
     {
         // Convert conversation messages to model messages
-        let modelMessages = messages.map { conversationMessage in
+        let modelMessages = self.messages.map { conversationMessage in
             ModelMessage(
                 id: conversationMessage.id,
                 role: ModelMessage.Role(rawValue: conversationMessage.role.rawValue) ?? .user,
@@ -181,7 +181,7 @@ public struct ConversationMessage: Sendable, Codable, Equatable {
     /// Convert to ModelMessage for API compatibility
     public func toModelMessage() -> ModelMessage {
         // Convert to ModelMessage for API compatibility
-        let modelRole: ModelMessage.Role = switch role {
+        let modelRole: ModelMessage.Role = switch self.role {
         case .system: .system
         case .user: .user
         case .assistant: .assistant
@@ -189,10 +189,10 @@ public struct ConversationMessage: Sendable, Codable, Equatable {
         }
 
         return ModelMessage(
-            id: id,
+            id: self.id,
             role: modelRole,
-            content: [.text(content)],
-            timestamp: timestamp,
+            content: [.text(self.content)],
+            timestamp: self.timestamp,
         )
     }
 
