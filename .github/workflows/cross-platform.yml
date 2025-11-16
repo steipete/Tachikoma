@@ -17,8 +17,8 @@ jobs:
         shell: bash
         run: git clone --depth 1 https://github.com/steipete/Commander.git ../Commander
       
-      - name: Select Xcode
-        run: sudo xcode-select -s /Applications/Xcode_16.1.app || sudo xcode-select -s /Applications/Xcode_16.0.app || sudo xcode-select -s /Applications/Xcode.app
+      - name: Select Xcode (Swift 6.2)
+        run: sudo xcode-select -s /Applications/Xcode_26.1.app || sudo xcode-select -s /Applications/Xcode_26.0.app || sudo xcode-select -s /Applications/Xcode_16.4.app || sudo xcode-select -s /Applications/Xcode_16.3.app || sudo xcode-select -s /Applications/Xcode_16.2.app || sudo xcode-select -s /Applications/Xcode_16.1.app || sudo xcode-select -s /Applications/Xcode_16.0.app || sudo xcode-select -s /Applications/Xcode.app
       
       - name: Install Swift 6.2 toolchain
         uses: SwiftyLab/setup-swift@v1
@@ -49,8 +49,8 @@ jobs:
         shell: bash
         run: git clone --depth 1 https://github.com/steipete/Commander.git ../Commander
       
-      - name: Select Xcode
-        run: sudo xcode-select -s /Applications/Xcode_16.1.app || sudo xcode-select -s /Applications/Xcode_16.0.app || sudo xcode-select -s /Applications/Xcode.app
+      - name: Select Xcode (Swift 6.2)
+        run: sudo xcode-select -s /Applications/Xcode_26.1.app || sudo xcode-select -s /Applications/Xcode_26.0.app || sudo xcode-select -s /Applications/Xcode_16.4.app || sudo xcode-select -s /Applications/Xcode_16.3.app || sudo xcode-select -s /Applications/Xcode_16.2.app || sudo xcode-select -s /Applications/Xcode_16.1.app || sudo xcode-select -s /Applications/Xcode_16.0.app || sudo xcode-select -s /Applications/Xcode.app
       
       - name: Install Swift 6.2 toolchain
         uses: SwiftyLab/setup-swift@v1

@@ -26,9 +26,9 @@ jobs:
       shell: bash
       run: git clone --depth 1 https://github.com/steipete/Commander.git ../Commander
 
-    - name: Select Xcode 16
+    - name: Select Xcode (Swift 6.2)
       if: runner.os == 'macOS'
-      run: sudo xcode-select -s /Applications/Xcode_16.1.app || sudo xcode-select -s /Applications/Xcode_16.0.app || sudo xcode-select -s /Applications/Xcode.app
+      run: sudo xcode-select -s /Applications/Xcode_26.1.app || sudo xcode-select -s /Applications/Xcode_26.0.app || sudo xcode-select -s /Applications/Xcode_16.4.app || sudo xcode-select -s /Applications/Xcode_16.3.app || sudo xcode-select -s /Applications/Xcode_16.2.app || sudo xcode-select -s /Applications/Xcode_16.1.app || sudo xcode-select -s /Applications/Xcode_16.0.app || sudo xcode-select -s /Applications/Xcode.app
 
     - name: Install Swift toolchain (macOS/Linux)
       if: runner.os != 'Windows'
@@ -87,9 +87,9 @@ jobs:
       shell: bash
       run: git clone --depth 1 https://github.com/steipete/Commander.git ../Commander
 
-    - name: Select Xcode 16
+    - name: Select Xcode (Swift 6.2)
       if: runner.os == 'macOS'
-      run: sudo xcode-select -s /Applications/Xcode_16.1.app || sudo xcode-select -s /Applications/Xcode_16.0.app || sudo xcode-select -s /Applications/Xcode.app
+      run: sudo xcode-select -s /Applications/Xcode_26.1.app || sudo xcode-select -s /Applications/Xcode_26.0.app || sudo xcode-select -s /Applications/Xcode_16.4.app || sudo xcode-select -s /Applications/Xcode_16.3.app || sudo xcode-select -s /Applications/Xcode_16.2.app || sudo xcode-select -s /Applications/Xcode_16.1.app || sudo xcode-select -s /Applications/Xcode_16.0.app || sudo xcode-select -s /Applications/Xcode.app
 
     - name: Install Swift toolchain (macOS/Linux)
       if: runner.os != 'Windows'
@@ -128,9 +128,15 @@ jobs:
     - name: Fetch Commander dependency
       shell: bash
       run: git clone --depth 1 https://github.com/steipete/Commander.git ../Commander
-    - name: Select Xcode 16
-      run: sudo xcode-select -s /Applications/Xcode_16.1.app || sudo xcode-select -s /Applications/Xcode_16.0.app || sudo xcode-select -s /Applications/Xcode.app
+    - name: Select Xcode (Swift 6.2)
+      run: sudo xcode-select -s /Applications/Xcode_26.1.app || sudo xcode-select -s /Applications/Xcode_26.0.app || sudo xcode-select -s /Applications/Xcode_16.4.app || sudo xcode-select -s /Applications/Xcode_16.3.app || sudo xcode-select -s /Applications/Xcode_16.2.app || sudo xcode-select -s /Applications/Xcode_16.1.app || sudo xcode-select -s /Applications/Xcode_16.0.app || sudo xcode-select -s /Applications/Xcode.app
+    - name: Install Swift 6.2 toolchain
+      uses: SwiftyLab/setup-swift@v1
+      with:
+        swift-version: '6.2.1'
     - name: Build for ${{ matrix.platform }}
+      env:
+        TOOLCHAINS: swift
       run: |
         xcodebuild \
           -scheme Tachikoma-Package \
@@ -142,8 +148,6 @@ jobs:
     name: Android (aarch64)
     runs-on: ubuntu-22.04
     needs: test
-    container:
-      image: ghcr.io/swiftlang/swift:nightly-android-amd64
     steps:
     - name: Checkout
       uses: actions/checkout@v4
@@ -151,15 +155,31 @@ jobs:
     - name: Fetch Commander dependency
       shell: bash
       run: git clone --depth 1 https://github.com/steipete/Commander.git ../Commander
+
+    - name: Install Swift 6.2 toolchain
+      uses: SwiftyLab/setup-swift@v1
+      with:
+        swift-version: '6.2'
+
+    - name: Install Android Swift SDK (aarch64 API 24)
+      env:
+        ANDROID_SDK_URL: https://github.com/finagolfin/swift-android-sdk/releases/download/6.2/swift-6.2-RELEASE-android-24-0.1.artifactbundle.tar.gz
+      run: |
+        # Avoid older NDK environment leaking into the SDK installer
+        unset ANDROID_NDK_HOME ANDROID_NDK_ROOT
+        swift sdk install "$ANDROID_SDK_URL"
+        swift sdk list
+
     - name: Build Android artifacts
       env:
+        SWIFT_SDK: swift-6.2-RELEASE-android-24-0.1
         SWIFT_ANDROID_TRIPLE: aarch64-unknown-linux-android24
       run: |
         swift build \
+          --swift-sdk "$SWIFT_SDK" \
           --triple ${SWIFT_ANDROID_TRIPLE} \
           --build-path .build-android \
-          --cxx-flags "-fPIC" \
-          --swift-sdk android
+          --cxx-flags "-fPIC"
 
   lint:
     name: SwiftLint
