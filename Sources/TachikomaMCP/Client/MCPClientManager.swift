@@ -6,6 +6,25 @@ import os.log
 #endif
 import Tachikoma
 
+#if canImport(Darwin)
+private typealias MCPOverrideLock = OSAllocatedUnfairLock<Bool?>
+#else
+private final class MCPOverrideLock {
+    private let lock = NSLock()
+    private var state: Bool?
+
+    init(initialState: Bool?) {
+        self.state = initialState
+    }
+
+    func withLock<T>(_ operation: (inout Bool?) -> T) -> T {
+        self.lock.lock()
+        defer { lock.unlock() }
+        return operation(&self.state)
+    }
+}
+#endif
+
 public struct ServerProbeResult: Sendable {
     public let isConnected: Bool
     public let toolCount: Int
@@ -21,7 +40,7 @@ public struct ServerProbeResult: Sendable {
 }
 
 private enum AutoConnectPolicy {
-    private static let overrideLock = OSAllocatedUnfairLock(initialState: Bool?.none)
+    private static let overrideLock = MCPOverrideLock(initialState: nil)
     private static let forceEnable =
         ProcessInfo.processInfo.environment["PEEKABOO_FORCE_MCP_AUTOCONNECT"] == "true"
     private static let forceDisable =
