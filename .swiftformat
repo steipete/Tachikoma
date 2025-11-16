@@ -1,6 +1,10 @@
 # SwiftFormat Configuration for Swift 6
 # https://github.com/nicklockwood/SwiftFormat
 
+# Self/indentation rules to match root repo
+--self insert
+--ifdef no-indent
+
 # Swift version
 --swiftversion 6.2
 
