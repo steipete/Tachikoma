@@ -26,17 +26,17 @@ struct AICLI {
 
         // Handle special commands
         if config.showVersion {
-            showVersion()
+            self.showVersion()
             return
         }
 
         if config.showHelp {
-            showHelp()
+            self.showHelp()
             return
         }
 
         if config.showConfig {
-            showConfiguration(config: config)
+            self.showConfiguration(config: config)
             return
         }
 
@@ -63,10 +63,10 @@ struct AICLI {
 
         // Check API key for the provider
         do {
-            try validateAPIKey(for: model)
+            try self.validateAPIKey(for: model)
         } catch {
             print("❌ \(error)")
-            showAPIKeyInstructions(for: model)
+            self.showAPIKeyInstructions(for: model)
             exit(1)
         }
 
@@ -76,21 +76,21 @@ struct AICLI {
         }
 
         // Display configuration
-        showRequestConfig(model: model, config: config, query: query)
+        self.showRequestConfig(model: model, config: config, query: query)
 
         // Execute the request
         do {
             if config.stream {
-                try await executeStreamingRequest(model: model, config: config, query: query)
+                try await self.executeStreamingRequest(model: model, config: config, query: query)
             } else {
-                try await executeRequest(model: model, config: config, query: query)
+                try await self.executeRequest(model: model, config: config, query: query)
             }
         } catch {
             print("\n❌ Error: \(error)")
 
             // Provide helpful context for common errors
             if let error = error as? TachikomaError {
-                showErrorHelp(for: error, model: model)
+                self.showErrorHelp(for: error, model: model)
             }
             exit(1)
         }
@@ -174,6 +174,7 @@ struct AICLI {
     }
 
     static func showHelp() {
+        // swiftformat:disable indent trailingSpace
         print("""
         AI CLI - Universal AI Assistant
 
@@ -268,6 +269,7 @@ struct AICLI {
 
         For detailed documentation, visit: https://github.com/steipete/tachikoma
         """)
+        // swiftformat:enable indent trailingSpace
     }
 
     static func showConfiguration(config: CLIConfig) {
@@ -302,12 +304,12 @@ struct AICLI {
 
         // API Key status
         print("\n🔐 API Keys:")
-        checkAPIKeyStatus(provider: "OpenAI", envVars: ["OPENAI_API_KEY"])
-        checkAPIKeyStatus(provider: "Anthropic", envVars: ["ANTHROPIC_API_KEY"])
-        checkAPIKeyStatus(provider: "Google", envVars: ["GEMINI_API_KEY", "GOOGLE_API_KEY"])
-        checkAPIKeyStatus(provider: "Mistral", envVars: ["MISTRAL_API_KEY"])
-        checkAPIKeyStatus(provider: "Groq", envVars: ["GROQ_API_KEY"])
-        checkAPIKeyStatus(provider: "Grok", envVars: ["X_AI_API_KEY", "XAI_API_KEY"])
+        self.checkAPIKeyStatus(provider: "OpenAI", envVars: ["OPENAI_API_KEY"])
+        self.checkAPIKeyStatus(provider: "Anthropic", envVars: ["ANTHROPIC_API_KEY"])
+        self.checkAPIKeyStatus(provider: "Google", envVars: ["GEMINI_API_KEY", "GOOGLE_API_KEY"])
+        self.checkAPIKeyStatus(provider: "Mistral", envVars: ["MISTRAL_API_KEY"])
+        self.checkAPIKeyStatus(provider: "Groq", envVars: ["GROQ_API_KEY"])
+        self.checkAPIKeyStatus(provider: "Grok", envVars: ["X_AI_API_KEY", "XAI_API_KEY"])
 
         // Ollama status
         print("   • Ollama: Local (no API key required)")
@@ -321,13 +323,13 @@ struct AICLI {
         let prov = Provider.from(identifier: provider.lowercased())
 
         if let key = config.getAPIKey(for: prov), !key.isEmpty {
-            let masked = maskAPIKey(key)
+            let masked = self.maskAPIKey(key)
             print("   • \(provider): \(masked) (configured)")
         } else if
             let key = envVars.compactMap({ ProcessInfo.processInfo.environment[$0] })
                 .first(where: { !$0.isEmpty })
         {
-            let masked = maskAPIKey(key)
+            let masked = self.maskAPIKey(key)
             print("   • \(provider): \(masked) (environment)")
         } else {
             print("   • \(provider): Not set")
@@ -337,7 +339,7 @@ struct AICLI {
     // MARK: - API Key Validation
 
     static func validateAPIKey(for model: LanguageModel) throws {
-        let provider = getProvider(for: model)
+        let provider = self.getProvider(for: model)
         let config = TachikomaConfiguration.current
 
         // Check if API key is available (from config or environment)
@@ -425,7 +427,7 @@ struct AICLI {
     // MARK: - Request Execution
 
     static func showRequestConfig(model: LanguageModel, config: CLIConfig, query: String) {
-        let maskedKey = getCurrentAPIKey(for: model).map(maskAPIKey) ?? "Not required"
+        let maskedKey = self.getCurrentAPIKey(for: model).map(self.maskAPIKey) ?? "Not required"
         print("🔐 API Key: \(maskedKey)")
         print("🤖 Model: \(model.modelId)")
         print("🏢 Provider: \(model.providerName)")
@@ -455,7 +457,7 @@ struct AICLI {
             nil
         }
 
-        let supportsThinking = isReasoningModel(model) && actualApiMode != .chat
+        let supportsThinking = self.isReasoningModel(model) && actualApiMode != .chat
         if config.showThinking, !supportsThinking {
             print("⚠️  Note: --thinking only works with O3, O4, and GPT-5 models via Responses API")
         }
@@ -766,7 +768,7 @@ struct AICLI {
     // MARK: - Utility Functions
 
     static func getCurrentAPIKey(for model: LanguageModel) -> String? {
-        let provider = getProvider(for: model)
+        let provider = self.getProvider(for: model)
         return TachikomaConfiguration.current.getAPIKey(for: provider)
     }
 
@@ -824,7 +826,7 @@ struct AICLI {
         switch error {
         case .authenticationFailed:
             print("Authentication failed. Check your API key:")
-            showAPIKeyInstructions(for: model)
+            self.showAPIKeyInstructions(for: model)
         case .rateLimited:
             print("Rate limit exceeded. Try:")
             print("• Wait a moment and retry")
