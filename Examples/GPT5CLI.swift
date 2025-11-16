@@ -52,7 +52,7 @@ struct GPT5CLI {
         }
 
         // Display configuration
-        let maskedKey = maskAPIKey(apiKey)
+        let maskedKey = self.maskAPIKey(apiKey)
         print("🔐 API Key: \(maskedKey)")
         print("🤖 Model: \(modelName)")
         print("🌐 API: \(apiMode.displayName)")

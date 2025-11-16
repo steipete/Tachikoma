@@ -126,7 +126,7 @@ public struct RealtimeAPIDemo {
     /// Validate that all types are properly configured
     public static func validateTypes() -> Bool {
         // Test configuration creation
-        let config = createSampleConfiguration()
+        let config = self.createSampleConfiguration()
         guard config.model == "gpt-4o-realtime-preview" else { return false }
 
         // Test VAD configuration
