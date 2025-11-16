@@ -17,15 +17,15 @@ private final class AzureTestURLProtocol: URLProtocol {
         {
           "id": "chatcmpl-azure",
           "model": "gpt-4o",
-      "choices": [
-        {
-          "index": 0,
-          "message": { "role": "assistant", "content": "hello azure" },
-          "finish_reason": "stop"
+          "choices": [
+            {
+              "index": 0,
+              "message": { "role": "assistant", "content": "hello azure" },
+              "finish_reason": "stop"
+            }
+          ],
+          "usage": { "prompt_tokens": 1, "completion_tokens": 2, "total_tokens": 3 }
         }
-      ],
-      "usage": { "prompt_tokens": 1, "completion_tokens": 2, "total_tokens": 3 }
-    }
         """.utf8Data()
     }()
 
