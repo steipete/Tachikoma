@@ -4,6 +4,9 @@ import Darwin
 import Glibc
 #endif
 import Foundation
+#if canImport(FoundationNetworking)
+import FoundationNetworking
+#endif
 import Tachikoma // For TachikomaError and TachikomaConfiguration
 
 private enum AudioProviderEnvironment {
