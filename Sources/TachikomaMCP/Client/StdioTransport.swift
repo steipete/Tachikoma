@@ -1,8 +1,8 @@
 import Foundation
 #if canImport(Darwin)
-    import Darwin
+import Darwin
 #else
-    import Glibc
+import Glibc
 #endif
 import Logging
 import MCP
@@ -23,36 +23,36 @@ private actor StdioTransportState {
 
     func setProcess(_ process: Process?, input: Pipe?, output: Pipe?, error: Pipe?) {
         self.process = process
-        inputPipe = input
-        outputPipe = output
-        errorPipe = error
+        self.inputPipe = input
+        self.outputPipe = output
+        self.errorPipe = error
     }
 
     func getNextId() -> Int {
-        let id = nextId
-        nextId += 1
+        let id = self.nextId
+        self.nextId += 1
         return id
     }
 
     func addPendingRequest(id: Int, continuation: CheckedContinuation<Data, Swift.Error>) {
-        pendingRequests[String(id)] = continuation
+        self.pendingRequests[String(id)] = continuation
     }
 
     func removePendingRequest(id: Int) -> CheckedContinuation<Data, Swift.Error>? {
-        pendingRequests.removeValue(forKey: String(id))
+        self.pendingRequests.removeValue(forKey: String(id))
     }
 
     func removePendingRequestByStringId(_ id: String) -> CheckedContinuation<Data, Swift.Error>? {
-        pendingRequests.removeValue(forKey: id)
+        self.pendingRequests.removeValue(forKey: id)
     }
 
     func setRequestTimeout(seconds: TimeInterval) {
         let ns = seconds > 0 ? seconds * 1_000_000_000 : 30_000_000_000
-        requestTimeoutNs = UInt64(ns)
+        self.requestTimeoutNs = UInt64(ns)
     }
 
     func addTimeoutTask(id: Int, task: Task<Void, Never>) {
-        timeoutTasks[id] = task
+        self.timeoutTasks[id] = task
     }
 
     func cancelTimeoutTask(id: Int) {
@@ -62,40 +62,40 @@ private actor StdioTransportState {
     }
 
     func cancelAllRequests() {
-        for (_, continuation) in pendingRequests {
+        for (_, continuation) in self.pendingRequests {
             continuation.resume(throwing: MCPError.notConnected)
         }
-        pendingRequests.removeAll()
+        self.pendingRequests.removeAll()
     }
 
     func getInputPipe() -> Pipe? {
-        inputPipe
+        self.inputPipe
     }
 
     func getOutputPipe() -> Pipe? {
-        outputPipe
+        self.outputPipe
     }
 
     func getErrorPipe() -> Pipe? {
-        errorPipe
+        self.errorPipe
     }
 
     func setOutputTask(_ task: Task<Void, Never>?) {
-        outputTask = task
+        self.outputTask = task
     }
 
     func setErrorTask(_ task: Task<Void, Never>?) {
-        errorTask = task
+        self.errorTask = task
     }
 
     func cancelOutputTask() {
-        outputTask?.cancel()
-        outputTask = nil
+        self.outputTask?.cancel()
+        self.outputTask = nil
     }
 
     func cancelErrorTask() {
-        errorTask?.cancel()
-        errorTask = nil
+        self.errorTask?.cancel()
+        self.errorTask = nil
     }
 }
 
@@ -112,7 +112,7 @@ public final class StdioTransport: MCPTransport {
     }
 
     public func connect(config: MCPServerConfig) async throws {
-        logger.info("Starting stdio transport with command: \(config.command)")
+        self.logger.info("Starting stdio transport with command: \(config.command)")
 
         let process = Process()
         let inputPipe = Pipe()
@@ -176,39 +176,39 @@ public final class StdioTransport: MCPTransport {
             throw MCPError.connectionFailed("Failed to start process: \(error)")
         }
 
-        await state.setProcess(process, input: inputPipe, output: outputPipe, error: errorPipe)
-        await state.setRequestTimeout(seconds: config.timeout)
+        await self.state.setProcess(process, input: inputPipe, output: outputPipe, error: errorPipe)
+        await self.state.setRequestTimeout(seconds: config.timeout)
 
         // Start reading output
-        logger.info("About to start reading output")
-        let stdoutTask = startReadingOutput()
-        await state.setOutputTask(stdoutTask)
+        self.logger.info("About to start reading output")
+        let stdoutTask = self.startReadingOutput()
+        await self.state.setOutputTask(stdoutTask)
 
-        let stderrTask = startReadingError(from: errorPipe)
-        await state.setErrorTask(stderrTask)
+        let stderrTask = self.startReadingError(from: errorPipe)
+        await self.state.setErrorTask(stderrTask)
 
-        logger.info("Stdio transport connected")
+        self.logger.info("Stdio transport connected")
     }
 
     public func disconnect() async {
-        logger.info("Disconnecting stdio transport")
+        self.logger.info("Disconnecting stdio transport")
 
-        await state.cancelOutputTask()
-        await state.cancelErrorTask()
+        await self.state.cancelOutputTask()
+        await self.state.cancelErrorTask()
 
         let inputPipe = await state.getInputPipe()
         let outputPipe = await state.getOutputPipe()
         let errorPipe = await state.getErrorPipe()
         let process = await state.process
 
-        closePipe(inputPipe)
-        closePipe(outputPipe)
-        closePipe(errorPipe)
+        self.closePipe(inputPipe)
+        self.closePipe(outputPipe)
+        self.closePipe(errorPipe)
 
-        terminateProcess(process)
+        self.terminateProcess(process)
 
-        await state.setProcess(nil, input: nil, output: nil, error: nil)
-        await state.cancelAllRequests()
+        await self.state.setProcess(nil, input: nil, output: nil, error: nil)
+        await self.state.cancelAllRequests()
     }
 
     public func sendRequest<R: Decodable>(
@@ -229,9 +229,9 @@ public final class StdioTransport: MCPTransport {
         dict["id"] = id
         let data = try JSONSerialization.data(withJSONObject: dict)
         if method == "initialize", let json = String(data: data, encoding: .utf8) {
-            logger.info("[MCP stdio] → initialize payload: \(json)")
+            self.logger.info("[MCP stdio] → initialize payload: \(json)")
         }
-        try await send(data)
+        try await self.send(data)
 
         // Wait for response with timeout
         let responseData = try await withCheckedThrowingContinuation { continuation in
@@ -279,7 +279,7 @@ public final class StdioTransport: MCPTransport {
 
         // Encode and send
         let data = try JSONEncoder().encode(notification)
-        try await send(data)
+        try await self.send(data)
     }
 
     private func send(_ data: Data) async throws {
@@ -293,7 +293,7 @@ public final class StdioTransport: MCPTransport {
 
         // Log what we sent for debugging
         if let json = String(data: data, encoding: .utf8) {
-            logger.debug("[MCP stdio] → sent: \(json)")
+            self.logger.debug("[MCP stdio] → sent: \(json)")
         }
     }
 
@@ -301,7 +301,7 @@ public final class StdioTransport: MCPTransport {
         Task.detached(priority: .utility) { [weak self] in
             guard let self else { return }
             guard let outputPipe = await state.getOutputPipe() else {
-                logger.error("[MCP stdio] No output pipe available")
+                self.logger.error("[MCP stdio] No output pipe available")
                 return
             }
 
@@ -311,7 +311,7 @@ public final class StdioTransport: MCPTransport {
             while !Task.isCancelled {
                 do {
                     guard let chunk = try fileHandle.read(upToCount: 4096) else {
-                        logger.debug("[MCP stdio] Output pipe closed")
+                        self.logger.debug("[MCP stdio] Output pipe closed")
                         break
                     }
 
@@ -338,18 +338,18 @@ public final class StdioTransport: MCPTransport {
                             guard !line.isEmpty else { continue parseLoop }
 
                             if let json = String(data: line, encoding: .utf8) {
-                                logger.debug("[MCP stdio] ← received: \(json)")
+                                self.logger.debug("[MCP stdio] ← received: \(json)")
                             }
 
-                            await handleResponse(line)
+                            await self.handleResponse(line)
                             continue parseLoop
                         }
 
                         if let framed = Self.extractFramedMessage(from: &buffer) {
                             if let json = String(data: framed, encoding: .utf8) {
-                                logger.debug("[MCP stdio] ← framed: \(json)")
+                                self.logger.debug("[MCP stdio] ← framed: \(json)")
                             }
-                            await handleResponse(framed)
+                            await self.handleResponse(framed)
                             continue parseLoop
                         }
 
@@ -359,7 +359,7 @@ public final class StdioTransport: MCPTransport {
                     if Task.isCancelled {
                         break
                     }
-                    logger.error("[MCP stdio] Failed to read output: \(error.localizedDescription)")
+                    self.logger.error("[MCP stdio] Failed to read output: \(error.localizedDescription)")
                     break
                 }
             }
@@ -382,15 +382,15 @@ public final class StdioTransport: MCPTransport {
                     if
                         let message = String(data: chunk, encoding: .utf8)?
                             .trimmingCharacters(in: .whitespacesAndNewlines),
-                        !message.isEmpty
+                            !message.isEmpty
                     {
-                        logger.debug("[MCP stdio][stderr] \(message)")
+                        self.logger.debug("[MCP stdio][stderr] \(message)")
                     }
                 } catch {
                     if Task.isCancelled {
                         break
                     }
-                    logger.error("[MCP stdio] stderr read failed: \(error.localizedDescription)")
+                    self.logger.error("[MCP stdio] stderr read failed: \(error.localizedDescription)")
                     break
                 }
             }
@@ -475,7 +475,7 @@ public final class StdioTransport: MCPTransport {
             let id = response["id"] as? Int
         {
             if let continuation = await state.removePendingRequest(id: id) {
-                await state.cancelTimeoutTask(id: id)
+                await self.state.cancelTimeoutTask(id: id)
                 continuation.resume(returning: data)
             }
         } else if
@@ -484,10 +484,10 @@ public final class StdioTransport: MCPTransport {
             let idInt = Int(idString)
         {
             if let contByString = await state.removePendingRequestByStringId(idString) {
-                await state.cancelTimeoutTask(id: idInt)
+                await self.state.cancelTimeoutTask(id: idInt)
                 contByString.resume(returning: data)
             } else if let contByInt = await state.removePendingRequest(id: idInt) {
-                await state.cancelTimeoutTask(id: idInt)
+                await self.state.cancelTimeoutTask(id: idInt)
                 contByInt.resume(returning: data)
             }
         } else if
@@ -520,11 +520,11 @@ public final class StdioTransport: MCPTransport {
             process.terminate()
         }
 
-        if !waitForProcessExit(process, timeout: 0.7) {
+        if !self.waitForProcessExit(process, timeout: 0.7) {
             kill(process.processIdentifier, SIGTERM)
-            if !waitForProcessExit(process, timeout: 0.7) {
+            if !self.waitForProcessExit(process, timeout: 0.7) {
                 kill(process.processIdentifier, SIGKILL)
-                _ = waitForProcessExit(process, timeout: 0.3)
+                _ = self.waitForProcessExit(process, timeout: 0.3)
             }
         }
     }
@@ -549,7 +549,7 @@ public final class StdioTransport: MCPTransport {
         let prefixLength = lowercased.distance(from: lowercased.startIndex, to: tokenRange.lowerBound)
         if prefixLength > 0 {
             buffer.removeSubrange(buffer.startIndex..<buffer.index(buffer.startIndex, offsetBy: prefixLength))
-            return extractFramedMessage(from: &buffer)
+            return self.extractFramedMessage(from: &buffer)
         }
 
         guard let separatorRange = text.range(of: "\r\n\r\n") ?? text.range(of: "\n\n") else {

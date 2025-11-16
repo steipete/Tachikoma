@@ -160,7 +160,7 @@ extension ToolResponse {
         // Convert content to appropriate format
         if content.count == 1 {
             // Single content item
-            return convertContentToAnyAgentToolValue(content[0])
+            return self.convertContentToAnyAgentToolValue(content[0])
         } else if content.isEmpty {
             // No content
             return AnyAgentToolValue(null: ())

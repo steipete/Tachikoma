@@ -1,8 +1,8 @@
 import Foundation
 #if canImport(Darwin)
-    import Darwin
+import Darwin
 #else
-    import Glibc
+import Glibc
 #endif
 import Logging
 import MCP
@@ -21,36 +21,36 @@ private actor StdioTransportPTYState {
 
     func setProcess(_ process: Process?, primary: FileHandle?, secondary: FileHandle?, error: Pipe?) {
         self.process = process
-        primaryHandle = primary
-        secondaryHandle = secondary
-        errorPipe = error
+        self.primaryHandle = primary
+        self.secondaryHandle = secondary
+        self.errorPipe = error
     }
 
     func getNextId() -> Int {
-        let id = nextId
-        nextId += 1
+        let id = self.nextId
+        self.nextId += 1
         return id
     }
 
     func addPendingRequest(id: Int, continuation: CheckedContinuation<Data, Swift.Error>) {
-        pendingRequests[String(id)] = continuation
+        self.pendingRequests[String(id)] = continuation
     }
 
     func removePendingRequest(id: Int) -> CheckedContinuation<Data, Swift.Error>? {
-        pendingRequests.removeValue(forKey: String(id))
+        self.pendingRequests.removeValue(forKey: String(id))
     }
 
     func removePendingRequestByStringId(_ id: String) -> CheckedContinuation<Data, Swift.Error>? {
-        pendingRequests.removeValue(forKey: id)
+        self.pendingRequests.removeValue(forKey: id)
     }
 
     func setRequestTimeout(seconds: TimeInterval) {
         let ns = seconds > 0 ? seconds * 1_000_000_000 : 30_000_000_000
-        requestTimeoutNs = UInt64(ns)
+        self.requestTimeoutNs = UInt64(ns)
     }
 
     func addTimeoutTask(id: Int, task: Task<Void, Never>) {
-        timeoutTasks[id] = task
+        self.timeoutTasks[id] = task
     }
 
     func cancelTimeoutTask(id: Int) {
@@ -60,14 +60,14 @@ private actor StdioTransportPTYState {
     }
 
     func cancelAllRequests() {
-        for (_, continuation) in pendingRequests {
+        for (_, continuation) in self.pendingRequests {
             continuation.resume(throwing: MCPError.notConnected)
         }
-        pendingRequests.removeAll()
+        self.pendingRequests.removeAll()
     }
 
     func getPrimaryHandle() -> FileHandle? {
-        primaryHandle
+        self.primaryHandle
     }
 }
 
@@ -80,7 +80,7 @@ public final class StdioTransportPTY: MCPTransport {
     public init() {}
 
     public func connect(config: MCPServerConfig) async throws {
-        logger.info("Starting PTY stdio transport with command: \(config.command)")
+        self.logger.info("Starting PTY stdio transport with command: \(config.command)")
 
         // Create PTY pair
         var primaryFD: Int32 = 0
@@ -161,11 +161,11 @@ public final class StdioTransportPTY: MCPTransport {
             throw MCPError.connectionFailed("Failed to start process: \(error)")
         }
 
-        await state.setProcess(process, primary: primaryHandle, secondary: secondaryHandle, error: errorPipe)
-        await state.setRequestTimeout(seconds: config.timeout)
+        await self.state.setProcess(process, primary: primaryHandle, secondary: secondaryHandle, error: errorPipe)
+        await self.state.setRequestTimeout(seconds: config.timeout)
 
         // Start reading output from primary side of PTY
-        startReadingOutput()
+        self.startReadingOutput()
 
         // Drain and log stderr separately (non-blocking)
         Task {
@@ -179,15 +179,15 @@ public final class StdioTransportPTY: MCPTransport {
             }
         }
 
-        logger.info("PTY stdio transport connected")
+        self.logger.info("PTY stdio transport connected")
     }
 
     public func disconnect() async {
-        logger.info("Disconnecting PTY stdio transport")
+        self.logger.info("Disconnecting PTY stdio transport")
         let process = await state.process
         process?.terminate()
-        await state.setProcess(nil, primary: nil, secondary: nil, error: nil)
-        await state.cancelAllRequests()
+        await self.state.setProcess(nil, primary: nil, secondary: nil, error: nil)
+        await self.state.cancelAllRequests()
     }
 
     public func sendRequest<R: Decodable>(
@@ -209,10 +209,10 @@ public final class StdioTransportPTY: MCPTransport {
         let data = try JSONSerialization.data(withJSONObject: dict)
 
         if method == "initialize", let json = String(data: data, encoding: .utf8) {
-            logger.info("[MCP stdio-pty] → initialize payload: \(json)")
+            self.logger.info("[MCP stdio-pty] → initialize payload: \(json)")
         }
 
-        try await send(data)
+        try await self.send(data)
 
         // Wait for response with timeout
         let responseData = try await withCheckedThrowingContinuation { continuation in
@@ -253,7 +253,7 @@ public final class StdioTransportPTY: MCPTransport {
         let paramsObj = try JSONSerialization.jsonObject(with: paramsData)
         dict["params"] = paramsObj
         let data = try JSONSerialization.data(withJSONObject: dict)
-        try await send(data)
+        try await self.send(data)
     }
 
     private func send(_ data: Data) async throws {
@@ -315,7 +315,7 @@ public final class StdioTransportPTY: MCPTransport {
 
         if let id = idValue as? Int {
             if let continuation = await state.removePendingRequest(id: id) {
-                await state.cancelTimeoutTask(id: id)
+                await self.state.cancelTimeoutTask(id: id)
                 continuation.resume(returning: payload)
             }
             return
@@ -324,7 +324,7 @@ public final class StdioTransportPTY: MCPTransport {
         if let idString = idValue as? String {
             if let continuation = await state.removePendingRequestByStringId(idString) {
                 if let idInt = Int(idString) {
-                    await state.cancelTimeoutTask(id: idInt)
+                    await self.state.cancelTimeoutTask(id: idInt)
                 }
                 continuation.resume(returning: payload)
             }
