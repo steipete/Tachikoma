@@ -33,7 +33,7 @@ private final class AzureTestURLProtocol: URLProtocol {
     override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
 
     override func startLoading() {
-        Task { await Self.storeMedia(request) }
+        Task { [request] in await AzureTestURLProtocol.storeMedia(request) }
 
         let response = HTTPURLResponse(
             url: request.url!,
