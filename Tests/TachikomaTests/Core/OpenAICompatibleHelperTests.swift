@@ -1,6 +1,14 @@
 import Foundation
+#if canImport(FoundationNetworking)
+import FoundationNetworking
+#endif
 import Testing
 @testable import Tachikoma
+
+#if os(Linux)
+@Suite("OpenAICompatibleHelper Tests", .disabled("URLProtocol mocking unavailable on Linux"))
+struct OpenAICompatibleHelperTests {}
+#else
 
 @Suite("OpenAICompatibleHelper Tests", .serialized)
 struct OpenAICompatibleHelperTests {
@@ -226,6 +234,7 @@ struct OpenAICompatibleHelperTests {
         return try! JSONSerialization.data(withJSONObject: dict)
     }
 }
+#endif
 
 extension Data {
     fileprivate func jsonObject() throws -> [String: Any] {
