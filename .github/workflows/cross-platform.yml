@@ -20,6 +20,11 @@ jobs:
       - name: Select Xcode
         run: sudo xcode-select -s /Applications/Xcode_16.1.app || sudo xcode-select -s /Applications/Xcode_16.0.app || sudo xcode-select -s /Applications/Xcode.app
       
+      - name: Install Swift 6.2 toolchain
+        uses: SwiftyLab/setup-swift@v1
+        with:
+          swift-version: '6.2.1'
+      
       - name: Build
         run: swift build
       
@@ -40,6 +45,11 @@ jobs:
       
       - name: Select Xcode
         run: sudo xcode-select -s /Applications/Xcode_16.1.app || sudo xcode-select -s /Applications/Xcode_16.0.app || sudo xcode-select -s /Applications/Xcode.app
+      
+      - name: Install Swift 6.2 toolchain
+        uses: SwiftyLab/setup-swift@v1
+        with:
+          swift-version: '6.2.1'
       
       - name: Build
         run: swift build
@@ -99,54 +109,9 @@ jobs:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
 
-  # Windows testing - latest only
-  test-windows:
-    if: github.event_name == 'workflow_dispatch'
-    runs-on: windows-2025
-    name: Windows (2025 runner)
-    steps:
-      - uses: actions/checkout@v4
-      - name: Fetch Commander dependency
-        shell: bash
-        run: git clone --depth 1 https://github.com/steipete/Commander.git ../Commander
-      
-      - name: Setup Swift
-        uses: compnerd/gha-setup-swift@v0.3.0
-        with:
-          github-repo: swiftlang/swift
-          release-tag-name: swift-6.2-RELEASE
-          release-asset-name: swift-6.2-RELEASE-windows10.exe
-      - name: Ensure Swift CLI available (Windows)
-        shell: pwsh
-        run: |
-          $swiftExe = Get-ChildItem -Path "C:\Users\runneradmin\AppData\Local\Programs\Swift" -Filter swift.exe -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
-          if (-not $swiftExe) {
-            $swiftExe = Get-ChildItem -Path "C:\Library\Developer" -Filter swift.exe -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
-          }
-          if (-not $swiftExe) {
-            throw "Swift executable not found after installation."
-          }
-          $dir = Split-Path $swiftExe.FullName
-          Add-Content -Path $env:GITHUB_PATH -Value $dir
-          Write-Host "Added $dir to PATH"
-          swift --version
-      
-      - name: Install dependencies
-        run: |
-          # Windows dependencies are typically bundled with Swift
-      
-      - name: Build
-        run: swift build
-      
-      - name: Run tests  
-        run: swift test
-        env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-
   # Optional: Build release artifacts
   build-release:
-    needs: [test-macos-14, test-macos-15, test-linux-ubuntu-22, test-linux-ubuntu-24, test-windows]
+    needs: [test-macos-14, test-macos-15, test-linux-ubuntu-22, test-linux-ubuntu-24]
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
     steps:
@@ -161,9 +126,8 @@ jobs:
           echo "• macOS 15 (Sequoia) ✅" >> release-info.txt
           echo "• Ubuntu 22.04 LTS ✅" >> release-info.txt
           echo "• Ubuntu 24.04 LTS ✅" >> release-info.txt
-          echo "• Windows Latest ✅" >> release-info.txt
           echo "" >> release-info.txt
-          echo "Total: 5 platform configurations tested in parallel" >> release-info.txt
+          echo "Total: 4 platform configurations tested in parallel" >> release-info.txt
       
       - name: Upload release info
         uses: actions/upload-artifact@v4

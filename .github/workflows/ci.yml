@@ -99,10 +99,16 @@ jobs:
 
     - name: Build Examples
       run: |
-        swift build --package-path . -c release
-        find . -name "*.swift" -path "./Examples/*" -exec swiftc -typecheck {} \;
-        find . -name "*_demo.swift" -exec swiftc -typecheck {} \;
-        find . -name "*_examples.swift" -exec swiftc -typecheck {} \;
+        RELEASE_BIN=$(swift build --package-path . -c release --show-bin-path)
+        INCLUDE_FLAGS="-I $RELEASE_BIN"
+        DEBUG_BIN="${RELEASE_BIN%/release}/debug"
+        if [ -d "$DEBUG_BIN" ]; then
+          INCLUDE_FLAGS="$INCLUDE_FLAGS -I $DEBUG_BIN"
+        fi
+
+        find . -name "*.swift" -path "./Examples/*" -exec swiftc $INCLUDE_FLAGS -typecheck {} \;
+        find . -name "*_demo.swift" -exec swiftc $INCLUDE_FLAGS -typecheck {} \;
+        find . -name "*_examples.swift" -exec swiftc $INCLUDE_FLAGS -typecheck {} \;
 
   apple-simulators:
     name: Apple Platforms (${{ matrix.platform }})
