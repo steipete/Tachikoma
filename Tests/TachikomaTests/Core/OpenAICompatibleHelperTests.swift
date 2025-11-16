@@ -35,8 +35,8 @@ struct OpenAICompatibleHelperTests {
 
         let response = try await withMockedSession { urlRequest in
             #expect(urlRequest.value(forHTTPHeaderField: "Authorization")?.hasPrefix("Bearer ") == true)
-            capture.body = bodyData(from: urlRequest)
-            return jsonResponse(for: urlRequest, data: Self.chatCompletionPayload(text: "pong"))
+            capture.body = self.bodyData(from: urlRequest)
+            return self.jsonResponse(for: urlRequest, data: Self.chatCompletionPayload(text: "pong"))
         } operation: { session in
             try await OpenAICompatibleHelper.generateText(
                 request: request,
@@ -115,7 +115,7 @@ struct OpenAICompatibleHelperTests {
 
     @Test("non-200 responses surface TachikomaError.apiError")
     func apiErrorsSurface() async throws {
-        await withMockedSession { urlRequest in
+        await self.withMockedSession { urlRequest in
             let errorJSON = """
             {"error":{"message":"bad request","type":"invalid_request_error"}}
             """.utf8Data()

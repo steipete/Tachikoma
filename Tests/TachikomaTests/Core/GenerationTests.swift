@@ -16,7 +16,7 @@ struct GenerationTests {
                 configuration: config,
             )
 
-            assertOpenAIResult(
+            self.assertOpenAIResult(
                 result,
                 prompt: "What is 2+2?",
                 modelId: "gpt-4o",
@@ -63,7 +63,7 @@ struct GenerationTests {
                 configuration: config,
             )
 
-            assertOpenAIResult(
+            self.assertOpenAIResult(
                 result,
                 prompt: "Tell me a joke",
                 configuration: config,
@@ -146,7 +146,7 @@ struct GenerationTests {
                 configuration: config,
             )
 
-            assertOpenAIResult(
+            self.assertOpenAIResult(
                 result,
                 prompt: "What do you see?",
                 configuration: config,
@@ -181,7 +181,7 @@ struct GenerationTests {
             )
 
             // Should default to GPT-4o for vision tasks
-            assertOpenAIResult(
+            self.assertOpenAIResult(
                 result,
                 prompt: "Analyze this image",
                 configuration: config,

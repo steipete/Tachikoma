@@ -1,7 +1,7 @@
 import Foundation
 
 #if canImport(FoundationNetworking)
-    import FoundationNetworking
+import FoundationNetworking
 #endif
 
 /// Simple URL protocol that lets tests stub network responses for providers.

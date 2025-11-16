@@ -63,7 +63,7 @@ struct StopConditionsIntegrationTests {
     @Test("Streaming with multiple stop conditions")
     func streamingWithMultipleStopConditions() async throws {
         // Create a stream that emits text gradually
-        let stream = createMockStream(texts: [
+        let stream = self.createMockStream(texts: [
             "Hello ",
             "world. ",
             "This is a test. ",
@@ -98,7 +98,7 @@ struct StopConditionsIntegrationTests {
     func tokenCountStopWithStreaming() async throws {
         // Create a stream with many tokens
         let longTexts = (1...100).map { "Token \($0) " }
-        let stream = createMockStream(texts: longTexts)
+        let stream = self.createMockStream(texts: longTexts)
 
         // Stop after approximately 10 tokens (rough estimate: 3 chars per token)
         let stoppedStream = stream.stopWhen(TokenCountStopCondition(maxTokens: 10))
@@ -159,7 +159,7 @@ struct StopConditionsIntegrationTests {
             "Should not see this",
         ]
 
-        let stream = createMockStream(texts: texts)
+        let stream = self.createMockStream(texts: texts)
         let stoppedStream = stream.stopWhen(RegexStopCondition(pattern: "\\[DONE\\]"))
 
         var result = ""
@@ -175,7 +175,7 @@ struct StopConditionsIntegrationTests {
 
     @Test("Predicate stop condition with custom logic")
     func predicateStopCondition() async throws {
-        let stream = createMockStream(texts: [
+        let stream = self.createMockStream(texts: [
             "Step 1: Initialize",
             "Step 2: Process",
             "Step 3: Complete",
@@ -277,7 +277,7 @@ private struct MockTextProvider: ModelProvider {
     var capabilities: ModelCapabilities { ModelCapabilities() }
 
     func generateText(request: ProviderRequest) async throws -> ProviderResponse {
-        var finalText = responseText
+        var finalText = self.responseText
         var finishReason = FinishReason.stop
 
         // Apply stop conditions if present
@@ -303,7 +303,7 @@ private struct MockTextProvider: ModelProvider {
     func streamText(request _: ProviderRequest) throws -> AsyncThrowingStream<TextStreamDelta, Error> {
         AsyncThrowingStream { continuation in
             Task {
-                continuation.yield(TextStreamDelta(type: .textDelta, content: responseText))
+                continuation.yield(TextStreamDelta(type: .textDelta, content: self.responseText))
                 continuation.yield(TextStreamDelta(type: .done))
                 continuation.finish()
             }

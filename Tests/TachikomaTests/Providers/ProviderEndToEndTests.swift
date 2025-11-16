@@ -3,9 +3,9 @@ import Testing
 @testable import Tachikoma
 
 #if canImport(Darwin)
-    import Darwin
+import Darwin
 #elseif canImport(Glibc)
-    import Glibc
+import Glibc
 #endif
 
 @Suite("Provider Network E2E Tests", .serialized, .enabled(if: !_isLiveSuite))
@@ -15,7 +15,7 @@ struct ProviderEndToEndTests {
     @Test("OpenAI Responses provider returns text")
     func openAIResponsesProvider() async throws {
         try await NetworkMocking.withMockedNetwork { request in
-            expectPath(
+            self.expectPath(
                 request,
                 endsWithAny: ["/responses", "/chat/completions"],
                 allowAudioTranscriptions: true,
@@ -40,7 +40,7 @@ struct ProviderEndToEndTests {
     @Test("OpenAI chat provider hits /chat/completions")
     func openAIChatProvider() async throws {
         try await NetworkMocking.withMockedNetwork { request in
-            expectPath(request, endsWith: "/chat/completions")
+            self.expectPath(request, endsWith: "/chat/completions")
             return NetworkMocking.jsonResponse(
                 for: request,
                 data: Self.chatCompletionPayload(text: "OpenAI chat success"),
@@ -60,7 +60,7 @@ struct ProviderEndToEndTests {
     @Test("Anthropic provider decodes Claude responses")
     func anthropicProvider() async throws {
         try await NetworkMocking.withMockedNetwork { request in
-            expectPath(request, endsWith: "/messages")
+            self.expectPath(request, endsWith: "/messages")
             return NetworkMocking.jsonResponse(for: request, data: Self.anthropicPayload(text: "Claude says hello"))
         } operation: {
             let config = Self.makeConfiguration { config in
@@ -93,23 +93,23 @@ struct ProviderEndToEndTests {
 
     @Test("Mistral provider uses OpenAI-compatible flow")
     func mistralProvider() async throws {
-        try await assertOpenAICompatibleProvider(.mistral(.small), provider: .mistral)
+        try await self.assertOpenAICompatibleProvider(.mistral(.small), provider: .mistral)
     }
 
     @Test("Groq provider uses OpenAI-compatible flow")
     func groqProvider() async throws {
-        try await assertOpenAICompatibleProvider(.groq(.llama38b), provider: .groq)
+        try await self.assertOpenAICompatibleProvider(.groq(.llama38b), provider: .groq)
     }
 
     @Test("Grok provider uses OpenAI-compatible flow")
     func grokProvider() async throws {
-        try await assertOpenAICompatibleProvider(.grok(.grok4FastReasoning), provider: .grok)
+        try await self.assertOpenAICompatibleProvider(.grok(.grok4FastReasoning), provider: .grok)
     }
 
     @Test("All Grok catalog models share the same OpenAI-compatible flow")
     func grokCatalogUsesSameFlow() async throws {
         for grokModel in Model.Grok.allCases {
-            try await assertOpenAICompatibleProvider(.grok(grokModel), provider: .grok)
+            try await self.assertOpenAICompatibleProvider(.grok(grokModel), provider: .grok)
         }
     }
 
@@ -118,7 +118,7 @@ struct ProviderEndToEndTests {
     @Test("Ollama provider handles local responses")
     func ollamaProvider() async throws {
         try await NetworkMocking.withMockedNetwork { request in
-            expectPath(request, endsWith: "/api/chat")
+            self.expectPath(request, endsWith: "/api/chat")
             return NetworkMocking.jsonResponse(for: request, data: Self.ollamaPayload(text: "Ollama local reply"))
         } operation: {
             let config = Self.makeConfiguration { config in
@@ -154,7 +154,7 @@ struct ProviderEndToEndTests {
     @Test("OpenRouter provider uses OpenAI-compatible flow")
     func openRouterProvider() async throws {
         try await NetworkMocking.withMockedNetwork { request in
-            expectPath(request, endsWith: "/chat/completions")
+            self.expectPath(request, endsWith: "/chat/completions")
             #expect(request.value(forHTTPHeaderField: "HTTP-Referer") == "https://peekaboo.app")
             return NetworkMocking.jsonResponse(for: request, data: Self.chatCompletionPayload(text: "OpenRouter reply"))
         } operation: {
@@ -228,7 +228,7 @@ struct ProviderEndToEndTests {
     @Test("Anthropic-compatible provider decodes responses")
     func anthropicCompatibleProvider() async throws {
         try await NetworkMocking.withMockedNetwork { request in
-            expectPath(request, endsWith: "/messages")
+            self.expectPath(request, endsWith: "/messages")
             return NetworkMocking.jsonResponse(for: request, data: Self.anthropicPayload(text: "Compat Claude"))
         } operation: {
             let config = Self.makeConfiguration { config in
@@ -404,15 +404,15 @@ struct ProviderEndToEndTests {
         endsWith suffix: String,
         allowAudioTranscriptions: Bool = false,
     ) {
-        expectPath(request, endsWithAny: [suffix], allowAudioTranscriptions: allowAudioTranscriptions)
+        self.expectPath(request, endsWithAny: [suffix], allowAudioTranscriptions: allowAudioTranscriptions)
     }
 }
 
 private let _isLiveSuite: Bool = {
     #if LIVE_PROVIDER_TESTS
-        true
+    true
     #else
-        false
+    false
     #endif
 }()
 

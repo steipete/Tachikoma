@@ -353,7 +353,7 @@ struct AgentToolValueTests {
                 static var agentValueType: AgentValueType { .object }
 
                 func toJSON() throws -> Any {
-                    ["location": location, "units": units]
+                    ["location": self.location, "units": self.units]
                 }
 
                 static func fromJSON(_ json: Any) throws -> Input {
@@ -375,7 +375,7 @@ struct AgentToolValueTests {
                 static var agentValueType: AgentValueType { .object }
 
                 func toJSON() throws -> Any {
-                    ["temperature": temperature, "conditions": conditions]
+                    ["temperature": self.temperature, "conditions": self.conditions]
                 }
 
                 static func fromJSON(_ json: Any) throws -> Output {

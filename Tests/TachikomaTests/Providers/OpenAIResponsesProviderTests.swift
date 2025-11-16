@@ -7,7 +7,7 @@ struct OpenAIResponsesProviderTests {
     @Test("GPT-5+ uses Responses API provider")
     func gPT5UsesResponsesProvider() throws {
         // Test that GPT-5 models use the OpenAIResponsesProvider
-        let config = openAIConfig()
+        let config = self.openAIConfig()
 
         let gpt5Models: [LanguageModel.OpenAI] = [.gpt51, .gpt51Mini, .gpt51Nano, .gpt5, .gpt5Mini, .gpt5Nano]
 
@@ -27,7 +27,7 @@ struct OpenAIResponsesProviderTests {
     @Test("GPT-5.1 text.verbosity parameter is set correctly")
     func gPT51TextVerbosityParameter() throws {
         // Test that the text.verbosity parameter is properly configured for GPT-5.1
-        let config = openAIConfig()
+        let config = self.openAIConfig()
 
         // Skip if no API key
         guard config.getAPIKey(for: .openai) != nil else {
@@ -58,7 +58,7 @@ struct OpenAIResponsesProviderTests {
     @Test("Reasoning models use Responses API")
     func reasoningModelsUseResponsesAPI() throws {
         // Test that reasoning-oriented models also use the OpenAIResponsesProvider
-        let config = openAIConfig()
+        let config = self.openAIConfig()
 
         let reasoningModels: [LanguageModel.OpenAI] = [
             .o4Mini,
@@ -85,7 +85,7 @@ struct OpenAIResponsesProviderTests {
     @Test("Legacy models use standard OpenAI provider")
     func legacyModelsUseStandardProvider() throws {
         // Test that non-GPT-5/reasoning models use the standard OpenAIProvider
-        let config = openAIConfig()
+        let config = self.openAIConfig()
 
         let legacyModels: [LanguageModel.OpenAI] = [.gpt4o, .gpt4oMini, .gpt41]
 
@@ -199,7 +199,7 @@ struct OpenAIResponsesProviderTests {
         let config = TachikomaConfiguration(loadFromEnvironment: false)
         config.setAPIKey("live-openai", for: .openai)
 
-        try await withMockedSession { request in
+        try await self.withMockedSession { request in
             #expect(request.url?.path == "/v1/responses")
 
             let body = try #require(Self.bodyData(from: request))
@@ -220,14 +220,14 @@ struct OpenAIResponsesProviderTests {
             return NetworkMocking.jsonResponse(for: request, data: Self.responsesPayload(text: "pong"))
         } operation: { session in
             let provider = try OpenAIResponsesProvider(model: .gpt5Mini, configuration: config, session: session)
-            let response = try await provider.generateText(request: sampleRequest)
+            let response = try await provider.generateText(request: self.sampleRequest)
             #expect(response.text.contains("GPT-5") || response.text.contains("pong"))
         }
     }
 
     @Test("Responses provider emits tool schemas with parameters")
     func openAIResponsesIncludesToolSchemas() async throws {
-        let config = openAIConfig()
+        let config = self.openAIConfig()
         let tool = AgentTool(
             name: "app",
             description: "Control apps",
@@ -339,7 +339,7 @@ struct OpenAIResponsesProviderTests {
         let config = TachikomaConfiguration(loadFromEnvironment: false)
         config.setAPIKey("live-openai", for: .openai)
 
-        try await withMockedSession { request in
+        try await self.withMockedSession { request in
             #expect(request.url?.path == "/v1/responses")
             let payload = Self.responsesStreamPayload(chunks: [
                 Self.streamChunkJSON(content: "Hello", finishReason: nil),
@@ -349,7 +349,7 @@ struct OpenAIResponsesProviderTests {
             return NetworkMocking.streamResponse(for: request, data: payload)
         } operation: { session in
             let provider = try OpenAIResponsesProvider(model: .o4Mini, configuration: config, session: session)
-            let stream = try await provider.streamText(request: sampleRequest)
+            let stream = try await provider.streamText(request: self.sampleRequest)
 
             var collected = ""
             for try await delta in stream {

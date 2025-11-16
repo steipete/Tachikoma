@@ -1,7 +1,7 @@
 #if canImport(Darwin)
-    import Darwin
+import Darwin
 #else
-    import Glibc
+import Glibc
 #endif
 import Testing
 @testable import Tachikoma
