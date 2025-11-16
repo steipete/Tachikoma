@@ -9,7 +9,7 @@ struct TachikomaExamples {
         print("🕷️  Tachikoma - Modern Swift AI SDK Examples")
         print("=" * 50)
 
-        await runAllExamples()
+        await self.runAllExamples()
     }
 
     static func runAllExamples() async {

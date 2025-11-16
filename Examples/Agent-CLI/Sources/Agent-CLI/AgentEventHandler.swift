@@ -16,63 +16,63 @@ final class AgentEventHandler: AgentEventDelegate {
     func agentDidEmitEvent(_ event: AgentEvent) {
         switch event {
         case let .started(task):
-            handleStarted(task)
+            self.handleStarted(task)
 
         case let .thinking(content):
-            handleThinking(content)
+            self.handleThinking(content)
 
         case let .toolCallStarted(name, arguments):
-            handleToolCallStarted(name: name, arguments: arguments)
+            self.handleToolCallStarted(name: name, arguments: arguments)
 
         case let .toolCallCompleted(name, result):
-            handleToolCallCompleted(name: name, result: result)
+            self.handleToolCallCompleted(name: name, result: result)
 
         case let .toolCallFailed(name, error):
-            handleToolCallFailed(name: name, error: error)
+            self.handleToolCallFailed(name: name, error: error)
 
         case let .streamingContent(content):
-            handleStreamingContent(content)
+            self.handleStreamingContent(content)
 
         case let .completed(summary):
-            handleCompleted(summary)
+            self.handleCompleted(summary)
 
         case let .error(error):
-            handleError(error)
+            self.handleError(error)
 
         case let .statusUpdate(status):
-            handleStatusUpdate(status)
+            self.handleStatusUpdate(status)
         }
     }
 
     private func handleStarted(_ task: String) {
-        ui.startTask(task)
+        self.ui.startTask(task)
     }
 
     private func handleThinking(_ content: String) {
-        if showThinking {
-            ui.showThinking(content)
+        if self.showThinking {
+            self.ui.showThinking(content)
         }
     }
 
     private func handleToolCallStarted(name: String, arguments: String) {
-        toolStartTimes[name] = Date()
-        ui.showToolCall(name: name, arguments: arguments)
+        self.toolStartTimes[name] = Date()
+        self.ui.showToolCall(name: name, arguments: arguments)
     }
 
     private func handleToolCallCompleted(name: String, result: String) {
         let duration: TimeInterval
         if let startTime = toolStartTimes[name] {
             duration = Date().timeIntervalSince(startTime)
-            toolStartTimes.removeValue(forKey: name)
+            self.toolStartTimes.removeValue(forKey: name)
         } else {
             duration = 0
         }
 
-        ui.showToolResult(name: name, result: result, duration: duration)
+        self.ui.showToolResult(name: name, result: result, duration: duration)
     }
 
     private func handleToolCallFailed(name: String, error: Error) {
-        ui.showError("Tool '\(name)' failed: \(error.localizedDescription)")
+        self.ui.showError("Tool '\(name)' failed: \(error.localizedDescription)")
     }
 
     private func handleStreamingContent(_ content: String) {
@@ -82,18 +82,18 @@ final class AgentEventHandler: AgentEventDelegate {
     }
 
     private func handleCompleted(_ summary: String) {
-        ui.completeTask()
+        self.ui.completeTask()
         if !summary.isEmpty {
-            ui.showInfo("Summary: \(summary)")
+            self.ui.showInfo("Summary: \(summary)")
         }
     }
 
     private func handleError(_ error: Error) {
-        ui.showError(error.localizedDescription)
+        self.ui.showError(error.localizedDescription)
     }
 
     private func handleStatusUpdate(_ status: String) {
-        ui.updateTask(status)
+        self.ui.updateTask(status)
     }
 }
 
