@@ -101,8 +101,8 @@ jobs:
       run: |
         SKIP_FLAGS="--skip ProviderEndToEndTests"
         if [[ -z "$OPENAI_API_KEY" ]]; then
-          echo "OPENAI_API_KEY missing; skipping AudioProvidersTests"
-          SKIP_FLAGS="$SKIP_FLAGS --skip AudioProvidersTests"
+          echo "OPENAI_API_KEY missing; skipping OpenAIAudioProviderTests"
+          SKIP_FLAGS="$SKIP_FLAGS --skip OpenAIAudioProviderTests"
         fi
         swift test --verbose --parallel $SKIP_FLAGS
       env:
