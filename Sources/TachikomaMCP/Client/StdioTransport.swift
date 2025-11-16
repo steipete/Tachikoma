@@ -382,8 +382,10 @@ public final class StdioTransport: MCPTransport {
                     guard
                         let message = String(data: chunk, encoding: .utf8)?
                             .trimmingCharacters(in: .whitespacesAndNewlines),
-                            !message.isEmpty else { continue }
-
+                            !message.isEmpty else
+                    {
+                        continue
+                    }
                     self.logger.debug("[MCP stdio][stderr] \(message)")
                 } catch {
                     if Task.isCancelled {
