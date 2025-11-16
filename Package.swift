@@ -42,7 +42,6 @@ let package = Package(
             name: "ai-cli",
             targets: ["AICLI"]),
     ],
-    swiftLanguageModes: [.v6],
     dependencies: [
         .package(path: "../Commander"),
         .package(url: "https://github.com/apple/swift-log.git", from: "1.6.4"),
@@ -149,7 +148,8 @@ let package = Package(
             ],
             sources: ["Sources/AI-CLI.swift"],
             swiftSettings: tachikomaSwiftSettings),
-    ])
+    ],
+    swiftLanguageModes: [.v6])
 
 // Common Swift settings for all targets
 let commonSwiftSettings: [SwiftSetting] = [
