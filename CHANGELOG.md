@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- First-class Azure OpenAI provider: deployment-based model case `.azureOpenAI`, Azure-specific URL/header/query wiring (api-version, api-key or bearer token), env overrides (`AZURE_OPENAI_API_KEY`, `AZURE_OPENAI_BEARER_TOKEN`, `AZURE_OPENAI_ENDPOINT`/`RESOURCE`, `AZURE_OPENAI_API_VERSION`), and README guidance.
+- Azure provider unit tests using URLProtocol stubs to verify path, query, and auth header construction.
+
 ### Changed
 - Added OpenAI's GPT-5.1 family (flagship/mini/nano) throughout the model enums, selectors, provider factories, capability registry, pricing tables, docs, and test suites. GPT aliases (`gpt`, `gpt-5`, `gpt-4o`) now normalize to `.openai(.gpt51)` so downstream apps inherit the new default seamlessly.
 - Expanded xAI Grok support to the full November 2025 catalog (`grok-4-fast-*`, `grok-code-fast-1`, `grok-2-*`, `grok-vision-beta`, etc.), updated the CLI shortcuts so `grok` now maps to `grok-4-fast-reasoning`, and refreshed selectors, provider parsers, capability tables, and docs snippets to match the official API lineup.
