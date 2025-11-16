@@ -84,30 +84,13 @@ private func createPTYHandles() throws -> (FileHandle, FileHandle) {
 }
 #else
 private func createPTYHandles() throws -> (FileHandle, FileHandle) {
-    let primaryFD = Glibc.posix_openpt(O_RDWR | O_NOCTTY | O_CLOEXEC)
-    guard primaryFD >= 0 else {
-        throw MCPError.connectionFailed("Failed to open PTY primary endpoint (errno: \(errno))")
-    }
-    if Glibc.grantpt(primaryFD) != 0 {
-        Glibc.close(primaryFD)
-        throw MCPError.connectionFailed("Failed to grant PTY secondary endpoint (errno: \(errno))")
-    }
-    if Glibc.unlockpt(primaryFD) != 0 {
-        Glibc.close(primaryFD)
-        throw MCPError.connectionFailed("Failed to unlock PTY secondary endpoint (errno: \(errno))")
-    }
-    guard let secondaryNamePtr = Glibc.ptsname(primaryFD) else {
-        Glibc.close(primaryFD)
-        throw MCPError.connectionFailed("Failed to resolve PTY secondary endpoint name (errno: \(errno))")
-    }
-    let secondaryName = String(cString: secondaryNamePtr)
-    let secondaryFD = Glibc.open(secondaryName, O_RDWR | O_NOCTTY)
-    guard secondaryFD >= 0 else {
-        Glibc.close(primaryFD)
-        throw MCPError.connectionFailed("Failed to open PTY secondary endpoint (errno: \(errno))")
+    var primaryFD: Int32 = 0
+    var replicaFD: Int32 = 0
+    guard Glibc.openpty(&primaryFD, &replicaFD, nil, nil, nil) != -1 else {
+        throw MCPError.connectionFailed("Failed to create PTY (openpty)")
     }
     let primaryHandle = FileHandle(fileDescriptor: primaryFD, closeOnDealloc: true)
-    let secondaryHandle = FileHandle(fileDescriptor: secondaryFD, closeOnDealloc: true)
+    let secondaryHandle = FileHandle(fileDescriptor: replicaFD, closeOnDealloc: true)
     return (primaryHandle, secondaryHandle)
 }
 #endif

@@ -1,7 +1,45 @@
-import AVFoundation
 import Foundation
-import os.log
+import Logging
 import Tachikoma // For TachikomaError
+#if canImport(AVFoundation)
+@preconcurrency import AVFoundation
+#endif
+
+// MARK: - Recording Errors
+
+/// Error types for audio recording operations
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
+public enum AudioRecordingError: LocalizedError {
+    case alreadyRecording
+    case notRecording
+    case microphonePermissionDenied
+    case audioEngineError(String)
+    case failedToCreateFile
+    case noRecordingAvailable
+    case recordingTooShort
+    case recordingTooLong
+
+    public var errorDescription: String? {
+        switch self {
+        case .alreadyRecording:
+            "Already recording audio"
+        case .notRecording:
+            "Not currently recording"
+        case .microphonePermissionDenied:
+            "Microphone permission denied"
+        case let .audioEngineError(message):
+            "Audio engine error: \(message)"
+        case .failedToCreateFile:
+            "Failed to create recording file"
+        case .noRecordingAvailable:
+            "No recording available"
+        case .recordingTooShort:
+            "Recording is too short"
+        case .recordingTooLong:
+            "Recording exceeded maximum duration"
+        }
+    }
+}
 
 /// Protocol for audio recording functionality
 @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
@@ -23,7 +61,8 @@ public protocol AudioRecorderProtocol: Sendable {
     func resumeRecording() async
 }
 
-private let logger = Logger(subsystem: "com.tachikoma.audio", category: "AudioRecorder")
+#if canImport(AVFoundation)
+private let logger = Logger(label: "tachikoma.audio.recorder")
 
 /// Main audio recorder implementation using AVFoundation
 @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
@@ -339,42 +378,6 @@ private func installInputTapNonisolated(
     }
 }
 
-// MARK: - Recording Errors
-
-/// Error types for audio recording operations
-@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
-public enum AudioRecordingError: LocalizedError {
-    case alreadyRecording
-    case notRecording
-    case microphonePermissionDenied
-    case audioEngineError(String)
-    case failedToCreateFile
-    case noRecordingAvailable
-    case recordingTooShort
-    case recordingTooLong
-
-    public var errorDescription: String? {
-        switch self {
-        case .alreadyRecording:
-            "Already recording audio"
-        case .notRecording:
-            "Not currently recording"
-        case .microphonePermissionDenied:
-            "Microphone permission denied"
-        case let .audioEngineError(message):
-            "Audio engine error: \(message)"
-        case .failedToCreateFile:
-            "Failed to create recording file"
-        case .noRecordingAvailable:
-            "No recording available"
-        case .recordingTooShort:
-            "Recording is too short"
-        case .recordingTooLong:
-            "Recording exceeded maximum duration"
-        }
-    }
-}
-
 // MARK: - Platform-Specific Extensions
 
 #if os(iOS) || os(watchOS) || os(tvOS)
@@ -403,5 +406,32 @@ extension AudioRecorder {
     private func configureAudioSession() {
         // No-op on macOS where `AVAudioSession` is not used
     }
+}
+#endif
+#endif // canImport(AVFoundation)
+
+#if !canImport(AVFoundation)
+private let logger = Logger(label: "tachikoma.audio.recorder")
+
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
+@MainActor
+public final class AudioRecorder: AudioRecorderProtocol {
+    public init() {}
+
+    public var isRecording: Bool { false }
+    public var isAvailable: Bool { false }
+    public var recordingDuration: TimeInterval { 0 }
+
+    public func startRecording() async throws {
+        throw AudioRecordingError.audioEngineError("Audio recording is unavailable on this platform")
+    }
+
+    public func stopRecording() async throws -> AudioData {
+        throw AudioRecordingError.audioEngineError("Audio recording is unavailable on this platform")
+    }
+
+    public func cancelRecording() async {}
+    public func pauseRecording() async {}
+    public func resumeRecording() async {}
 }
 #endif
