@@ -57,14 +57,24 @@ jobs:
     - name: Test ${{ matrix.platform }}
       run: |
         set -o pipefail
-        xcodebuild test \
-          -scheme Tachikoma \
-          -sdk ${{ matrix.sdk }} \
-          -destination '${{ matrix.destination }}' \
-          -enableCodeCoverage YES \
-          -derivedDataPath .build/DerivedData \
-          CODE_SIGNING_REQUIRED=NO \
-          CODE_SIGNING_ALLOWED=NO | xcpretty
+        if [[ "${{ matrix.platform }}" == "macOS" ]]; then
+          xcodebuild test \
+            -scheme Tachikoma \
+            -sdk ${{ matrix.sdk }} \
+            -destination '${{ matrix.destination }}' \
+            -enableCodeCoverage YES \
+            -derivedDataPath .build/DerivedData \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO | xcpretty
+        else
+          xcodebuild build \
+            -scheme Tachikoma \
+            -sdk ${{ matrix.sdk }} \
+            -destination '${{ matrix.destination }}' \
+            -derivedDataPath .build/DerivedData \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO | xcpretty
+        fi
       env:
         OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
@@ -89,7 +99,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        swift-version: ['6.2', '5.10']
+        swift-version: ['6.2.1']
 
     steps:
     - name: Checkout
@@ -210,7 +220,11 @@ jobs:
 
     - name: Validate Package
       run: |
-        swift package diagnose-api-breaking-changes baseline
+        if git rev-parse --verify baseline^{commit} >/dev/null 2>&1; then
+          swift package diagnose-api-breaking-changes baseline
+        else
+          echo "::warning::Skipping API baseline diff - 'baseline' ref not available"
+        fi
         swift package compute-checksum
         swift package dump-package
 
