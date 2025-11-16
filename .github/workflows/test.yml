@@ -63,13 +63,6 @@ jobs:
         X_AI_API_KEY: ${{ secrets.X_AI_API_KEY }}
         XAI_API_KEY: ${{ secrets.X_AI_API_KEY }}
 
-    - name: Upload coverage reports
-      uses: codecov/codecov-action@v4
-      with:
-        token: ${{ secrets.CODECOV_TOKEN }}
-        xcode: true
-        xcode_archive_path: .build/DerivedData/Logs/Test/*.xcresult
-
   # Linux tests
   test-linux:
     name: Test Linux
