@@ -5,7 +5,7 @@ LMStudio is a cross-platform desktop application for running large language mode
 ## Overview
 
 LMStudio offers:
-- **Cross-platform support** (macOS, Windows, Linux)
+- **Cross-platform support** on macOS and Linux (Windows builds exist upstream but aren’t supported in Tachikoma)
 - **GUI for model management** with easy downloads
 - **OpenAI-compatible API** at `http://localhost:1234/v1`
 - **Hardware acceleration** (Metal, CUDA, ROCm)
@@ -21,9 +21,6 @@ Download from [https://lmstudio.ai](https://lmstudio.ai) or use Homebrew:
 ```bash
 # macOS
 brew install --cask lmstudio
-
-# Windows (via winget)
-winget install LMStudio.LMStudio
 
 # Linux (AppImage)
 wget https://releases.lmstudio.ai/linux/LMStudio.AppImage

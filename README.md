@@ -5,7 +5,7 @@
 
 <p align="center">
   <a href="https://swift.org"><img src="https://img.shields.io/badge/Swift-6.0+-FA7343?style=for-the-badge&logo=swift&logoColor=white" alt="Swift 6.0+"></a>
-  <a href="https://github.com/steipete/Tachikoma"><img src="https://img.shields.io/badge/platforms-macOS%20%7C%20iOS%20%7C%20tvOS%20%7C%20watchOS%20%7C%20visionOS%20%7C%20Linux%20%7C%20Windows%20%7C%20Android-blue?style=for-the-badge" alt="Platforms"></a>
+  <a href="https://github.com/steipete/Tachikoma"><img src="https://img.shields.io/badge/platforms-macOS%20%7C%20iOS%20%7C%20tvOS%20%7C%20watchOS%20%7C%20visionOS%20%7C%20Linux%20%7C%20Android-blue?style=for-the-badge" alt="Platforms"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-green?style=for-the-badge" alt="MIT License"></a>
   <a href="https://github.com/steipete/Tachikoma/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/steipete/Tachikoma/ci.yml?branch=main&style=for-the-badge&label=tests" alt="CI Status"></a>
 </p>
@@ -14,7 +14,7 @@
 
 Named after the spider-tank AI from Ghost in the Shell, **Tachikoma** provides an intelligent, adaptable interface for AI services with a completely modern Swift-native API.
 
-> CI runs across macOS, Linux, and Windows with Swiftly/WinGet-installed toolchains, plus xcodebuild jobs for iOS/tvOS/watchOS/visionOS destinations and `swift build --swift-sdk android` so Android artifacts stay healthy.
+> CI runs across macOS, Linux, Apple simulators (iOS/tvOS/watchOS/visionOS), and `swift build --swift-sdk android` so Android artifacts stay healthy. Windows builds are no longer promised or exercised.
 </div>
 
 ## Quick Start
@@ -1481,7 +1481,6 @@ See the following files for complete working examples:
   - watchOS 9.0+
   - tvOS 16.0+
   - Linux (Ubuntu 20.04+)
-  - Windows 10+
 - **Concurrency**: Full `@Sendable` compliance throughout
 - **Dependencies**: 
   - [swift-log](https://github.com/apple/swift-log) for logging
