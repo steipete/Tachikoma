@@ -364,6 +364,8 @@ struct AICLI {
             throw CLIError.unsupportedProvider("Third-party aggregators not yet implemented in CLI")
         case .openaiCompatible, .anthropicCompatible, .custom:
             throw CLIError.unsupportedProvider("Custom providers not yet implemented in CLI")
+        case .azureOpenAI:
+            break
         default:
             break
         }
@@ -379,6 +381,7 @@ struct AICLI {
         case .grok: .grok
         case .ollama: .ollama
         case .lmstudio: .lmstudio
+        case .azureOpenAI: .azureOpenAI
         case .openRouter, .together, .replicate,
              .openaiCompatible, .anthropicCompatible, .custom:
             .custom(model.providerName)
@@ -424,6 +427,11 @@ struct AICLI {
             print("brew install ollama")
             print("ollama serve")
             print("ollama pull llama3.3")
+        case .azureOpenAI:
+            print("Set your Azure OpenAI credentials:")
+            print("export AZURE_OPENAI_API_KEY='your-key-here'  # or AZURE_OPENAI_BEARER_TOKEN for Entra ID")
+            print("export AZURE_OPENAI_RESOURCE='my-aoai'       # or AZURE_OPENAI_ENDPOINT='https://my-aoai.openai.azure.com'")
+            print("export AZURE_OPENAI_API_VERSION='2025-04-01-preview'")
         default:
             print("This provider requires additional setup.")
         }
