@@ -73,41 +73,41 @@ private actor StdioTransportPTYState {
 
 #if canImport(Darwin)
 private func createPTYHandles() throws -> (FileHandle, FileHandle) {
-    var master: Int32 = 0
-    var slave: Int32 = 0
-    guard openpty(&master, &slave, nil, nil, nil) != -1 else {
+    var primaryFD: Int32 = 0
+    var replicaFD: Int32 = 0
+    guard openpty(&primaryFD, &replicaFD, nil, nil, nil) != -1 else {
         throw MCPError.connectionFailed("Failed to create PTY (openpty)")
     }
-    let primaryHandle = FileHandle(fileDescriptor: master, closeOnDealloc: true)
-    let secondaryHandle = FileHandle(fileDescriptor: slave, closeOnDealloc: true)
+    let primaryHandle = FileHandle(fileDescriptor: primaryFD, closeOnDealloc: true)
+    let secondaryHandle = FileHandle(fileDescriptor: replicaFD, closeOnDealloc: true)
     return (primaryHandle, secondaryHandle)
 }
 #else
 private func createPTYHandles() throws -> (FileHandle, FileHandle) {
-    let master = posix_openpt(O_RDWR | O_NOCTTY | O_CLOEXEC)
-    guard master >= 0 else {
-        throw MCPError.connectionFailed("Failed to open PTY master (errno: \(errno))")
+    let primaryFD = posix_openpt(O_RDWR | O_NOCTTY | O_CLOEXEC)
+    guard primaryFD >= 0 else {
+        throw MCPError.connectionFailed("Failed to open PTY primary endpoint (errno: \(errno))")
     }
-    if grantpt(master) != 0 {
-        close(master)
-        throw MCPError.connectionFailed("Failed to grant PTY slave (errno: \(errno))")
+    if grantpt(primaryFD) != 0 {
+        close(primaryFD)
+        throw MCPError.connectionFailed("Failed to grant PTY secondary endpoint (errno: \(errno))")
     }
-    if unlockpt(master) != 0 {
-        close(master)
-        throw MCPError.connectionFailed("Failed to unlock PTY slave (errno: \(errno))")
+    if unlockpt(primaryFD) != 0 {
+        close(primaryFD)
+        throw MCPError.connectionFailed("Failed to unlock PTY secondary endpoint (errno: \(errno))")
     }
-    guard let slaveNamePtr = ptsname(master) else {
-        close(master)
-        throw MCPError.connectionFailed("Failed to resolve PTY slave name (errno: \(errno))")
+    guard let secondaryNamePtr = ptsname(primaryFD) else {
+        close(primaryFD)
+        throw MCPError.connectionFailed("Failed to resolve PTY secondary endpoint name (errno: \(errno))")
     }
-    let slaveName = String(cString: slaveNamePtr)
-    let slave = open(slaveName, O_RDWR | O_NOCTTY)
-    guard slave >= 0 else {
-        close(master)
-        throw MCPError.connectionFailed("Failed to open PTY slave (errno: \(errno))")
+    let secondaryName = String(cString: secondaryNamePtr)
+    let secondaryFD = open(secondaryName, O_RDWR | O_NOCTTY)
+    guard secondaryFD >= 0 else {
+        close(primaryFD)
+        throw MCPError.connectionFailed("Failed to open PTY secondary endpoint (errno: \(errno))")
     }
-    let primaryHandle = FileHandle(fileDescriptor: master, closeOnDealloc: true)
-    let secondaryHandle = FileHandle(fileDescriptor: slave, closeOnDealloc: true)
+    let primaryHandle = FileHandle(fileDescriptor: primaryFD, closeOnDealloc: true)
+    let secondaryHandle = FileHandle(fileDescriptor: secondaryFD, closeOnDealloc: true)
     return (primaryHandle, secondaryHandle)
 }
 #endif
