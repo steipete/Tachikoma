@@ -1,3 +1,4 @@
+import Algorithms
 import Commander
 import Foundation
 import Tachikoma
@@ -427,7 +428,7 @@ struct AgentCLI: AsyncParsableCommand {
     private func showConversationHistory(_ messages: [ModelMessage], ui: StatusBarUI) {
         ui.showHeader("📜 Conversation History")
 
-        for (index, message) in messages.enumerated() {
+        for (index, message) in messages.indexed() {
             let roleStr: String
             let content: String
 

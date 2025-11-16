@@ -1,3 +1,4 @@
+import Algorithms
 import Foundation
 
 // MARK: - Enhanced Provider Protocol
@@ -225,24 +226,20 @@ public final class ProviderAdapter: EnhancedModelProvider {
     }
 
     private func ensureAlternatingRoles(_ messages: [ModelMessage]) -> [ModelMessage] {
-        var result: [ModelMessage] = []
-        var lastRole: ModelMessage.Role?
-
-        for message in messages {
-            // Skip consecutive same roles by merging content
-            if let last = lastRole, last == message.role, !result.isEmpty {
-                let lastMessage = result.removeLast()
-                // Combine content from both messages
-                var combinedContent = lastMessage.content
-                combinedContent.append(contentsOf: message.content)
-                result.append(ModelMessage(role: lastMessage.role, content: combinedContent))
-            } else {
-                result.append(message)
-                lastRole = message.role
+        messages
+            .chunked(by: { $0.role == $1.role })
+            .map { chunk in
+                guard let first = chunk.first else { return ModelMessage(role: .user, content: []) }
+                let combinedContent = chunk.flatMap(\.content)
+                return ModelMessage(
+                    id: first.id,
+                    role: first.role,
+                    content: combinedContent,
+                    timestamp: first.timestamp,
+                    channel: first.channel,
+                    metadata: first.metadata
+                )
             }
-        }
-
-        return result
     }
 
     private func validateVisionInputs(_ messages: [ModelMessage]) throws -> [ModelMessage] {
@@ -334,17 +331,13 @@ public final class ProviderAdapter: EnhancedModelProvider {
 extension String {
     fileprivate func split(by wordCount: Int) -> [String] {
         let words = self.split(separator: " ")
-        var chunks: [String] = []
+        let grouped = words
+            .chunks(ofCount: wordCount)
+            .map { $0.joined(separator: " ") }
 
-        for i in stride(from: 0, to: words.count, by: wordCount) {
-            let endIndex = min(i + wordCount, words.count)
-            let chunk = words[i..<endIndex].joined(separator: " ")
-            if !chunk.isEmpty {
-                chunks.append(chunk + (endIndex < words.count ? " " : ""))
-            }
+        return grouped.indexed().map { index, chunk in
+            index == grouped.count - 1 ? chunk : "\(chunk) "
         }
-
-        return chunks
     }
 }
 

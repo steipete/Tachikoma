@@ -1,3 +1,4 @@
+import Algorithms
 import Foundation
 
 // MARK: - Stop Conditions for Generation Control
@@ -274,13 +275,8 @@ public actor RepetitionStopCondition: StopCondition {
 
         // Check if the last chunk is exactly the same as any previous chunk
         let lastChunk = self.recentChunks.last!
-        var exactMatchCount = 0
-
-        for i in 0..<(self.recentChunks.count - 1) {
-            if self.recentChunks[i] == lastChunk {
-                exactMatchCount += 1
-            }
-        }
+        let priorChunks = self.recentChunks.dropLast()
+        let exactMatchCount = priorChunks.count(where: { $0 == lastChunk })
 
         // For exact repetition: if we see the same chunk twice in a row, it's repetition
         if exactMatchCount >= 1 {
@@ -288,15 +284,10 @@ public actor RepetitionStopCondition: StopCondition {
         }
 
         // Also check for high similarity with flexible threshold
-        var similarCount = 0
-        for i in 0..<(self.recentChunks.count - 1) {
-            if self.similarity(self.recentChunks[i], lastChunk) >= self.threshold {
-                similarCount += 1
-            }
-        }
+        let similarCount = priorChunks.count(where: { self.similarity($0, lastChunk) >= self.threshold })
 
         // Stop if more than half of recent chunks are similar
-        return self.recentChunks.count >= 3 && Double(similarCount) / Double(self.recentChunks.count - 1) > 0.5
+        return priorChunks.count >= 2 && Double(similarCount) / Double(priorChunks.count) > 0.5
     }
 
     private func similarity(_ s1: String, _ s2: String) -> Double {

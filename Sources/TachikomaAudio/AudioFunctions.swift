@@ -1,3 +1,4 @@
+import Algorithms
 import Foundation
 import Tachikoma // For TachikomaConfiguration and types
 
@@ -233,7 +234,7 @@ public func transcribeBatch(
     ) { group in
         let semaphore = AsyncSemaphore(value: concurrency)
 
-        for (index, url) in audioURLs.enumerated() {
+        for (index, url) in audioURLs.indexed() {
             group.addTask {
                 await semaphore.wait()
                 defer { Task { await semaphore.signal() } }
@@ -277,7 +278,7 @@ public func generateSpeechBatch(
     try await withThrowingTaskGroup(of: (Int, SpeechResult).self, returning: [SpeechResult].self) { group in
         let semaphore = AsyncSemaphore(value: concurrency)
 
-        for (index, text) in texts.enumerated() {
+        for (index, text) in texts.indexed() {
             group.addTask {
                 await semaphore.wait()
                 defer { Task { await semaphore.signal() } }

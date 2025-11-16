@@ -1,5 +1,6 @@
 #!/usr/bin/env swift
 
+import Algorithms
 import Foundation
 import Tachikoma
 
@@ -164,7 +165,7 @@ extension TachikomaExamples {
         print("  • Added messages: \(conversation.messages.count) total")
 
         // Display conversation
-        for (index, message) in conversation.messages.enumerated() {
+        for (index, message) in conversation.messages.indexed() {
             let roleIcon = message.role == .user ? "👤" : "🤖"
             print("    \(index + 1). \(roleIcon) \(message.role): \(message.content)")
         }

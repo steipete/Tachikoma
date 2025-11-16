@@ -57,7 +57,7 @@ public func generateEmbeddingsBatch(
         // Limit concurrent requests
         let semaphore = EmbeddingAsyncSemaphore(value: concurrency)
 
-        for (index, input) in inputs.enumerated() {
+        for (index, input) in inputs.indexed() {
             group.addTask {
                 await semaphore.wait()
                 defer { Task { await semaphore.signal() } }

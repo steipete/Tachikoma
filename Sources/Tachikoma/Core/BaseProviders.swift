@@ -214,7 +214,7 @@ public final class AnthropicProvider: ModelProvider {
             print("   System prompt: \(systemMessage?.prefix(100) ?? "none")...")
 
             // Debug: Log the actual messages being sent
-            for (idx, msg) in messages.enumerated() {
+            for (idx, msg) in messages.indexed() {
                 print("   Message \(idx): role=\(msg.role)")
                 for content in msg.content {
                     switch content {
