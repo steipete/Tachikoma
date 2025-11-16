@@ -49,7 +49,7 @@ private enum AutoConnectPolicy {
     }
 
     static func setOverride(_ value: Bool?) {
-        overrideLock.withLock { $0 = value }
+        self.overrideLock.withLock { $0 = value }
     }
 }
 
@@ -86,67 +86,67 @@ public final class TachikomaMCPClientManager {
     // MARK: Default registration
 
     public func registerDefaultServers(_ defaults: [String: MCPServerConfig]) {
-        defaultConfigs = defaults
+        self.defaultConfigs = defaults
     }
 
     // MARK: Initialization
 
     public func initializeFromProfile(connect: Bool = true) async {
-        let fileConfigs = loadFileConfigs()
-        let merged = merge(defaults: defaultConfigs, file: fileConfigs)
-        await apply(configs: merged, connect: connect && AutoConnectPolicy.shouldConnect)
+        let fileConfigs = self.loadFileConfigs()
+        let merged = self.merge(defaults: self.defaultConfigs, file: fileConfigs)
+        await self.apply(configs: merged, connect: connect && AutoConnectPolicy.shouldConnect)
     }
 
     public func initialize(with userConfigs: [String: MCPServerConfig], connect: Bool = true) async {
-        let merged = merge(defaults: defaultConfigs, file: userConfigs)
-        await apply(configs: merged, connect: connect && AutoConnectPolicy.shouldConnect)
+        let merged = self.merge(defaults: self.defaultConfigs, file: userConfigs)
+        await self.apply(configs: merged, connect: connect && AutoConnectPolicy.shouldConnect)
     }
 
     // MARK: Lifecycle
 
     public func addServer(name: String, config: MCPServerConfig) async throws {
-        effectiveConfigs[name] = config
-        if connections[name] == nil { connections[name] = MCPClient(name: name, config: config) }
+        self.effectiveConfigs[name] = config
+        if self.connections[name] == nil { self.connections[name] = MCPClient(name: name, config: config) }
         if config.enabled, AutoConnectPolicy.shouldConnect {
-            try await connections[name]?.connect()
+            try await self.connections[name]?.connect()
         }
     }
 
     public func removeServer(name: String) async {
         if let client = connections[name] {
             await client.disconnect()
-            connections.removeValue(forKey: name)
+            self.connections.removeValue(forKey: name)
         }
-        effectiveConfigs.removeValue(forKey: name)
+        self.effectiveConfigs.removeValue(forKey: name)
     }
 
     public func enableServer(name: String) async throws {
         guard var cfg = effectiveConfigs[name] else { return }
         cfg.enabled = true
-        effectiveConfigs[name] = cfg
-        if connections[name] == nil { connections[name] = MCPClient(name: name, config: cfg) }
+        self.effectiveConfigs[name] = cfg
+        if self.connections[name] == nil { self.connections[name] = MCPClient(name: name, config: cfg) }
         if AutoConnectPolicy.shouldConnect {
-            try await connections[name]?.connect()
+            try await self.connections[name]?.connect()
         }
     }
 
     public func disableServer(name: String) async {
         guard var cfg = effectiveConfigs[name] else { return }
         cfg.enabled = false
-        effectiveConfigs[name] = cfg
+        self.effectiveConfigs[name] = cfg
         if let client = connections[name] { await client.disconnect() }
     }
 
     public func listServerNames() -> [String] {
-        Array(effectiveConfigs.keys).sorted()
+        Array(self.effectiveConfigs.keys).sorted()
     }
 
     public func getServerConfig(name: String) -> MCPServerConfig? {
-        effectiveConfigs[name]
+        self.effectiveConfigs[name]
     }
 
     public func getAllServerConfigs() -> [String: MCPServerConfig] {
-        effectiveConfigs
+        self.effectiveConfigs
     }
 
     // MARK: Queries
@@ -163,7 +163,7 @@ public final class TachikomaMCPClientManager {
 
     public func getAllTools() async -> [Tool] {
         var all: [Tool] = []
-        for name in listServerNames() {
+        for name in self.listServerNames() {
             let tools = await getServerTools(name: name)
             if !tools.isEmpty { all.append(contentsOf: tools) }
         }
@@ -194,7 +194,7 @@ public final class TachikomaMCPClientManager {
     public func getExternalToolsByServer() async -> [String: [Tool]] {
         // Get external tools grouped by server name
         var result: [String: [Tool]] = [:]
-        for (name, client) in connections {
+        for (name, client) in self.connections {
             let tools = await client.tools
             if !tools.isEmpty { result[name] = tools }
         }
@@ -203,7 +203,7 @@ public final class TachikomaMCPClientManager {
 
     // MARK: Health/Info (lightweight)
 
-    public func getServerNames() -> [String] { Array(effectiveConfigs.keys).sorted() }
+    public func getServerNames() -> [String] { Array(self.effectiveConfigs.keys).sorted() }
 
     public func getServerInfo(name: String) async -> (config: MCPServerConfig, connected: Bool)? {
         guard let cfg = effectiveConfigs[name] else { return nil }
@@ -215,7 +215,7 @@ public final class TachikomaMCPClientManager {
     public func getAllAgentTools() async -> [AgentTool] {
         // Build Tachikoma AgentTools for all connected servers
         var all: [AgentTool] = []
-        for (_, client) in connections {
+        for (_, client) in self.connections {
             // Only attempt if connected
             if await client.isConnected {
                 let provider = MCPToolProvider(client: client)
@@ -333,13 +333,13 @@ public final class TachikomaMCPClientManager {
     /// Persist the current effectiveConfigs back to the profile config file under mcpClients.
     public func persist() throws {
         // Persist the current effectiveConfigs back to the profile config file under mcpClients.
-        var json = loadRawConfigJSON() ?? [:]
+        var json = self.loadRawConfigJSON() ?? [:]
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
 
         // Build mcpClients object
         var mcpDict: [String: Any] = [:]
-        for (name, cfg) in effectiveConfigs {
+        for (name, cfg) in self.effectiveConfigs {
             let obj: [String: Any?] = [
                 "transport": cfg.transport,
                 "command": cfg.command,
@@ -357,8 +357,8 @@ public final class TachikomaMCPClientManager {
 
         // Serialize back to JSON (comments will be lost for this section)
         let data = try JSONSerialization.data(withJSONObject: json, options: [.prettyPrinted, .sortedKeys])
-        let path = profileConfigPath()
-        try ensureProfileDirectoryExists()
+        let path = self.profileConfigPath()
+        try self.ensureProfileDirectoryExists()
         try data.write(to: URL(fileURLWithPath: path), options: .atomic)
     }
 
@@ -368,15 +368,15 @@ public final class TachikomaMCPClientManager {
         // Disconnect removed servers
         let toRemove = Set(connections.keys).subtracting(Set(configs.keys))
         for name in toRemove {
-            await connections[name]?.disconnect()
-            connections.removeValue(forKey: name)
+            await self.connections[name]?.disconnect()
+            self.connections.removeValue(forKey: name)
         }
 
         // Create/Update and connect enabled
-        effectiveConfigs = configs
+        self.effectiveConfigs = configs
         for (name, cfg) in configs {
-            if connections[name] == nil {
-                connections[name] = MCPClient(name: name, config: cfg)
+            if self.connections[name] == nil {
+                self.connections[name] = MCPClient(name: name, config: cfg)
             }
         }
 
@@ -457,7 +457,7 @@ public final class TachikomaMCPClientManager {
     }
 
     private func loadRawConfigJSON() -> [String: Any]? {
-        let path = profileConfigPath()
+        let path = self.profileConfigPath()
         guard FileManager.default.fileExists(atPath: path) else { return nil }
         do {
             let raw = try String(contentsOfFile: path)
@@ -467,27 +467,27 @@ public final class TachikomaMCPClientManager {
                 return try JSONSerialization.jsonObject(with: data) as? [String: Any]
             }
         } catch {
-            logger.error("Failed to load config.json: \(error.localizedDescription)")
+            self.logger.error("Failed to load config.json: \(error.localizedDescription)")
         }
         return nil
     }
 
     private func ensureProfileDirectoryExists() throws {
-        let dir = profileDirectoryPath()
+        let dir = self.profileDirectoryPath()
         try FileManager.default.createDirectory(atPath: dir, withIntermediateDirectories: true)
     }
 
     private func profileDirectoryPath() -> String {
         #if os(Windows)
-            let home = ProcessInfo.processInfo.environment["USERPROFILE"] ?? ""
+        let home = ProcessInfo.processInfo.environment["USERPROFILE"] ?? ""
         #else
-            let home = ProcessInfo.processInfo.environment["HOME"] ?? ""
+        let home = ProcessInfo.processInfo.environment["HOME"] ?? ""
         #endif
-        return "\(home)/\(profileDirectoryName)"
+        return "\(home)/\(self.profileDirectoryName)"
     }
 
     private func profileConfigPath() -> String {
-        "\(profileDirectoryPath())/config.json"
+        "\(self.profileDirectoryPath())/config.json"
     }
 
     // MARK: JSONC + ENV utilities (shared minimal)
@@ -571,9 +571,9 @@ public final class TachikomaMCPClientManager {
 }
 
 #if DEBUG
-    extension TachikomaMCPClientManager {
-        public static func _setAutoConnectOverrideForTesting(_ value: Bool?) {
-            AutoConnectPolicy.setOverride(value)
-        }
+extension TachikomaMCPClientManager {
+    public static func _setAutoConnectOverrideForTesting(_ value: Bool?) {
+        AutoConnectPolicy.setOverride(value)
     }
+}
 #endif
