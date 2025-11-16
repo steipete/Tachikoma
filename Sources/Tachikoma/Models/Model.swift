@@ -16,6 +16,7 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
     case grok(Grok)
     case ollama(Ollama)
     case lmstudio(LMStudio)
+    case azureOpenAI(deployment: String, resource: String? = nil, apiVersion: String? = nil, endpoint: String? = nil)
 
     // Third-party aggregators
     case openRouter(modelId: String)
@@ -653,33 +654,37 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
     public var description: String {
         switch self {
         case let .openai(model):
-            "OpenAI/\(model.modelId)"
+            return "OpenAI/\(model.modelId)"
         case let .anthropic(model):
-            "Anthropic/\(model.modelId)"
+            return "Anthropic/\(model.modelId)"
         case let .google(model):
-            "Google/\(model.rawValue)"
+            return "Google/\(model.rawValue)"
         case let .mistral(model):
-            "Mistral/\(model.rawValue)"
+            return "Mistral/\(model.rawValue)"
         case let .groq(model):
-            "Groq/\(model.rawValue)"
+            return "Groq/\(model.rawValue)"
         case let .grok(model):
-            "Grok/\(model.modelId)"
+            return "Grok/\(model.modelId)"
         case let .ollama(model):
-            "Ollama/\(model.modelId)"
+            return "Ollama/\(model.modelId)"
         case let .lmstudio(model):
-            "LMStudio/\(model.modelId)"
+            return "LMStudio/\(model.modelId)"
+        case let .azureOpenAI(deployment, resource, apiVersion, endpoint):
+            let host = endpoint ?? resource ?? "endpoint"
+            let version = apiVersion ?? "api-version-default"
+            return "AzureOpenAI/\(deployment)@\(host)?v=\(version)"
         case let .openRouter(modelId):
-            "OpenRouter/\(modelId)"
+            return "OpenRouter/\(modelId)"
         case let .together(modelId):
-            "Together/\(modelId)"
+            return "Together/\(modelId)"
         case let .replicate(modelId):
-            "Replicate/\(modelId)"
+            return "Replicate/\(modelId)"
         case let .openaiCompatible(modelId, baseURL):
-            "OpenAI-Compatible/\(modelId)@\(baseURL)"
+            return "OpenAI-Compatible/\(modelId)@\(baseURL)"
         case let .anthropicCompatible(modelId, baseURL):
-            "Anthropic-Compatible/\(modelId)@\(baseURL)"
+            return "Anthropic-Compatible/\(modelId)@\(baseURL)"
         case let .custom(provider):
-            "Custom/\(provider.modelId)"
+            return "Custom/\(provider.modelId)"
         }
     }
 
@@ -701,6 +706,8 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
             model.modelId
         case let .lmstudio(model):
             model.modelId
+        case let .azureOpenAI(deployment, _, _, _):
+            deployment
         case let .openRouter(modelId):
             modelId
         case let .together(modelId):
@@ -734,6 +741,8 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
             model.supportsVision
         case let .lmstudio(model):
             model.supportsVision
+        case .azureOpenAI:
+            true // Azure mirrors OpenAI models with vision support when available
         case .openRouter, .together, .replicate:
             false // Unknown, assume no vision support
         case .openaiCompatible, .anthropicCompatible:
@@ -761,6 +770,8 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
             model.supportsAudioInput
         case .lmstudio:
             false // LMStudio doesn't support audio input
+        case .azureOpenAI:
+            false // Azure chat endpoints currently omit audio input
         case .openRouter, .together, .replicate:
             false // Unknown, assume no audio input support
         case .openaiCompatible, .anthropicCompatible:
@@ -788,6 +799,8 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
             model.supportsAudioOutput
         case .lmstudio:
             false // LMStudio doesn't support audio output
+        case .azureOpenAI:
+            false // Azure chat endpoints currently omit audio output
         case .openRouter, .together, .replicate:
             false // Unknown, assume no audio output support
         case .openaiCompatible, .anthropicCompatible:
@@ -815,6 +828,8 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
             model.supportsTools
         case let .lmstudio(model):
             model.supportsTools
+        case .azureOpenAI:
+            true // Azure OpenAI mirrors OpenAI tool support
         case .openRouter, .together, .replicate:
             true // Most aggregator models support tools
         case .openaiCompatible, .anthropicCompatible:
@@ -842,6 +857,8 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
             model.contextLength
         case let .lmstudio(model):
             model.contextLength
+        case .azureOpenAI:
+            128_000 // conservative default matching OpenAI tier
         case .openRouter, .together, .replicate:
             128_000 // Common default
         case .openaiCompatible, .anthropicCompatible:
@@ -884,6 +901,8 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
             "OpenAI-Compatible"
         case .anthropicCompatible:
             "Anthropic-Compatible"
+        case .azureOpenAI:
+            "AzureOpenAI"
         case .custom:
             "Custom"
         }
@@ -954,6 +973,12 @@ extension LanguageModel {
             hasher.combine("anthropicCompatible")
             hasher.combine(modelId)
             hasher.combine(baseURL)
+        case let .azureOpenAI(deployment, resource, apiVersion, endpoint):
+            hasher.combine("azureOpenAI")
+            hasher.combine(deployment)
+            hasher.combine(resource)
+            hasher.combine(apiVersion)
+            hasher.combine(endpoint)
         case let .custom(provider):
             hasher.combine("custom")
             hasher.combine(provider.modelId)
@@ -989,6 +1014,12 @@ extension LanguageModel {
             lhsId == rhsId && lhsURL == rhsURL
         case let (.anthropicCompatible(lhsId, lhsURL), .anthropicCompatible(rhsId, rhsURL)):
             lhsId == rhsId && lhsURL == rhsURL
+        case let (.azureOpenAI(lhsDeployment, lhsResource, lhsAPIVersion, lhsEndpoint),
+                  .azureOpenAI(rhsDeployment, rhsResource, rhsAPIVersion, rhsEndpoint)):
+            lhsDeployment == rhsDeployment &&
+                lhsResource == rhsResource &&
+                lhsAPIVersion == rhsAPIVersion &&
+                lhsEndpoint == rhsEndpoint
         case let (.custom(lhsProvider), .custom(rhsProvider)):
             lhsProvider.modelId == rhsProvider.modelId && lhsProvider.baseURL == rhsProvider.baseURL
         default:

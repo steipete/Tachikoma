@@ -15,6 +15,7 @@ struct ProviderTests {
             #expect(Provider.mistral.identifier == "mistral")
             #expect(Provider.google.identifier == "google")
             #expect(Provider.ollama.identifier == "ollama")
+            #expect(Provider.azureOpenAI.identifier == "azure-openai")
         }
 
         @Test("Custom provider has correct identifier")
@@ -32,6 +33,7 @@ struct ProviderTests {
             #expect(Provider.mistral.displayName == "Mistral")
             #expect(Provider.google.displayName == "Google")
             #expect(Provider.ollama.displayName == "Ollama")
+            #expect(Provider.azureOpenAI.displayName == "Azure OpenAI")
             #expect(Provider.custom("test").displayName == "Test")
         }
 
@@ -44,6 +46,7 @@ struct ProviderTests {
             #expect(Provider.mistral.environmentVariable == "MISTRAL_API_KEY")
             #expect(Provider.google.environmentVariable == "GEMINI_API_KEY")
             #expect(Provider.ollama.environmentVariable == "OLLAMA_API_KEY")
+            #expect(Provider.azureOpenAI.environmentVariable == "AZURE_OPENAI_API_KEY")
             #expect(Provider.custom("test").environmentVariable.isEmpty)
         }
 
@@ -56,6 +59,10 @@ struct ProviderTests {
             ])
             #expect(Provider.openai.alternativeEnvironmentVariables.isEmpty)
             #expect(Provider.anthropic.alternativeEnvironmentVariables.isEmpty)
+            #expect(Provider.azureOpenAI.alternativeEnvironmentVariables == [
+                "AZURE_OPENAI_TOKEN",
+                "AZURE_OPENAI_BEARER_TOKEN",
+            ])
         }
 
         @Test("Default base URLs")
@@ -67,6 +74,7 @@ struct ProviderTests {
             #expect(Provider.mistral.defaultBaseURL == "https://api.mistral.ai/v1")
             #expect(Provider.google.defaultBaseURL == "https://generativelanguage.googleapis.com/v1beta")
             #expect(Provider.ollama.defaultBaseURL == "http://localhost:11434")
+            #expect(Provider.azureOpenAI.defaultBaseURL == nil)
             #expect(Provider.custom("test").defaultBaseURL == nil)
         }
 
@@ -79,6 +87,7 @@ struct ProviderTests {
             #expect(Provider.mistral.requiresAPIKey == true)
             #expect(Provider.google.requiresAPIKey == true)
             #expect(Provider.ollama.requiresAPIKey == false) // Ollama typically doesn't require API key
+            #expect(Provider.azureOpenAI.requiresAPIKey == true)
             #expect(Provider.custom("test").requiresAPIKey == true) // Assume custom providers need keys
         }
     }
@@ -94,6 +103,7 @@ struct ProviderTests {
             #expect(Provider.from(identifier: "mistral") == .mistral)
             #expect(Provider.from(identifier: "google") == .google)
             #expect(Provider.from(identifier: "ollama") == .ollama)
+            #expect(Provider.from(identifier: "azure-openai") == .azureOpenAI)
         }
 
         @Test("Create provider from identifier - case insensitive")
@@ -123,7 +133,16 @@ struct ProviderTests {
 
         @Test("Standard providers list")
         func standardProvidersList() {
-            let expected: [Provider] = [.openai, .anthropic, .grok, .groq, .mistral, .google, .ollama]
+            let expected: [Provider] = [
+                .openai,
+                .anthropic,
+                .grok,
+                .groq,
+                .mistral,
+                .google,
+                .ollama,
+                .azureOpenAI,
+            ]
             #expect(Provider.standardProviders == expected)
         }
     }

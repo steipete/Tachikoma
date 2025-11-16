@@ -48,6 +48,9 @@ public enum Provider: Sendable, Hashable, Codable {
     /// LMStudio provider (local model hosting with GUI)
     case lmstudio
 
+    /// Azure-hosted OpenAI service
+    case azureOpenAI
+
     /// Custom provider with user-defined identifier
     case custom(String)
 
@@ -62,6 +65,7 @@ public enum Provider: Sendable, Hashable, Codable {
         case .google: "google"
         case .ollama: "ollama"
         case .lmstudio: "lmstudio"
+        case .azureOpenAI: "azure-openai"
         case let .custom(id): id
         }
     }
@@ -77,6 +81,7 @@ public enum Provider: Sendable, Hashable, Codable {
         case .google: "Google"
         case .ollama: "Ollama"
         case .lmstudio: "LMStudio"
+        case .azureOpenAI: "Azure OpenAI"
         case let .custom(id): id.capitalized
         }
     }
@@ -92,6 +97,7 @@ public enum Provider: Sendable, Hashable, Codable {
         case .google: "GEMINI_API_KEY"
         case .ollama: "OLLAMA_API_KEY"
         case .lmstudio: "" // LMStudio doesn't need API keys
+        case .azureOpenAI: "AZURE_OPENAI_API_KEY"
         case .custom: "" // Custom providers manage their own env vars
         }
     }
@@ -101,6 +107,7 @@ public enum Provider: Sendable, Hashable, Codable {
         switch self {
         case .grok: ["XAI_API_KEY"] // Alternative Grok API key name
         case .google: ["GOOGLE_API_KEY", "GOOGLE_APPLICATION_CREDENTIALS"] // Backwards compatibility
+        case .azureOpenAI: ["AZURE_OPENAI_TOKEN", "AZURE_OPENAI_BEARER_TOKEN"]
         default: []
         }
     }
@@ -116,6 +123,7 @@ public enum Provider: Sendable, Hashable, Codable {
         case .google: "https://generativelanguage.googleapis.com/v1beta"
         case .ollama: "http://localhost:11434"
         case .lmstudio: "http://localhost:1234/v1"
+        case .azureOpenAI: nil // Requires resource or endpoint
         case .custom: nil
         }
     }
@@ -132,7 +140,7 @@ public enum Provider: Sendable, Hashable, Codable {
 
     /// All standard providers (excludes custom)
     public static var standardProviders: [Provider] {
-        [.openai, .anthropic, .grok, .groq, .mistral, .google, .ollama]
+        [.openai, .anthropic, .grok, .groq, .mistral, .google, .ollama, .azureOpenAI]
     }
 
     /// Create provider from string identifier
@@ -146,6 +154,7 @@ public enum Provider: Sendable, Hashable, Codable {
         case "mistral": .mistral
         case "google": .google
         case "ollama": .ollama
+        case "azure-openai", "azure_openai", "azureopenai": .azureOpenAI
         default: .custom(identifier)
         }
     }

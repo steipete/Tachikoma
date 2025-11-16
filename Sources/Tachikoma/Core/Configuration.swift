@@ -24,6 +24,7 @@ public final class TachikomaConfiguration: @unchecked Sendable {
     private let _loadFromEnvironment: Bool
     private var _verbose: Bool = false
     private var _providerFactoryOverride: ProviderFactoryOverride?
+    private var _azureOpenAIDefaultAPIVersion: String = "2025-04-01-preview"
 
     /// Thread-safe storage for the default configuration
     private static let defaultLock = NSLock()
@@ -259,6 +260,13 @@ public final class TachikomaConfiguration: @unchecked Sendable {
         }
     }
 
+    // MARK: - Azure OpenAI Defaults
+
+    public var azureOpenAIDefaultAPIVersion: String {
+        get { self.lock.withLock { self._azureOpenAIDefaultAPIVersion } }
+        set { self.lock.withLock { self._azureOpenAIDefaultAPIVersion = newValue } }
+    }
+
     // MARK: - Configuration Loading
 
     /// Load configuration from environment variables and credentials
@@ -282,12 +290,17 @@ public final class TachikomaConfiguration: @unchecked Sendable {
             .openai: "OPENAI_BASE_URL",
             .anthropic: "ANTHROPIC_BASE_URL",
             .ollama: "OLLAMA_BASE_URL",
+            .azureOpenAI: "AZURE_OPENAI_ENDPOINT",
         ]
 
         for (provider, envVar) in urlMappings {
             if let url = Provider.environmentValue(for: envVar), !url.isEmpty {
                 self.setBaseURL(url, for: provider)
             }
+        }
+
+        if let apiVersion = Provider.environmentValue(for: "AZURE_OPENAI_API_VERSION"), !apiVersion.isEmpty {
+            self.azureOpenAIDefaultAPIVersion = apiVersion
         }
     }
 

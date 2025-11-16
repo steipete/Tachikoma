@@ -216,6 +216,8 @@ public final class ModelCapabilityRegistry: @unchecked Sendable {
             "openai-compatible:\(endpoint):\(modelId)"
         case let .anthropicCompatible(endpoint, modelId):
             "anthropic-compatible:\(endpoint):\(modelId)"
+        case let .azureOpenAI(deployment, resource, apiVersion, endpoint):
+            "azure-openai:\(endpoint ?? resource ?? "resource"):\(deployment):\(apiVersion ?? "")"
         case let .custom(provider):
             "custom:\(provider.modelId)"
         }

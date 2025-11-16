@@ -75,6 +75,11 @@ public struct ProviderFactory {
         case let .anthropicCompatible(modelId, baseURL):
             return try AnthropicCompatibleProvider(modelId: modelId, baseURL: baseURL, configuration: configuration)
 
+        case let .azureOpenAI(deployment, resource, apiVersion, endpoint):
+            throw TachikomaError.unsupportedOperation(
+                "Azure OpenAI (\(deployment), resource: \(resource ?? "n/a")) not yet supported"
+            )
+
         case let .custom(provider):
             // If the custom provider is a dynamic selection string (providerId/model),
             // attempt to resolve via CustomProviderRegistry first.

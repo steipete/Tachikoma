@@ -474,6 +474,7 @@ Compile-time safety with provider-specific enums and full autocomplete support:
 .google(.gemini25Pro, .gemini25Flash)
 .mistral(.large2, .nemo)
 .groq(.llama3170b, .mixtral8x7b)
+.azureOpenAI(deployment: "gpt-4o", resource: "my-aoai")
 
 // Third-party aggregators
 .openRouter(modelId: "anthropic/claude-sonnet-4.5")
@@ -1034,6 +1035,12 @@ export MISTRAL_API_KEY="..."
 
 # Google AI
 export GEMINI_API_KEY="gk-..."   # Legacy GOOGLE_API_KEY or GOOGLE_APPLICATION_CREDENTIALS also accepted
+
+# Azure OpenAI
+export AZURE_OPENAI_API_KEY="az-..."
+export AZURE_OPENAI_RESOURCE="my-aoai"            # or AZURE_OPENAI_ENDPOINT="https://foo.openai.azure.com"
+export AZURE_OPENAI_API_VERSION="2025-04-01-preview"
+export AZURE_OPENAI_BEARER_TOKEN="optional-entra-token"  # overrides api-key when set
 
 # Ollama (runs locally)
 export OLLAMA_API_KEY="optional-token"  # Usually not needed

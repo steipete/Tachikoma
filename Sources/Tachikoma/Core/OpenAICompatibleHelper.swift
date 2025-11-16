@@ -14,15 +14,20 @@ struct OpenAICompatibleHelper {
         baseURL: String,
         apiKey: String,
         providerName: String,
+        path: String = "/chat/completions",
+        queryItems: [URLQueryItem] = [],
+        authHeaderName: String = "Authorization",
+        authHeaderValuePrefix: String = "Bearer ",
         additionalHeaders: [String: String] = [:],
         session: URLSession = .shared,
     ) async throws
         -> ProviderResponse
     {
-        let url = URL(string: "\(baseURL)/chat/completions")!
+        let url = try self.buildURL(baseURL: baseURL, path: path, queryItems: queryItems)
         var urlRequest = URLRequest(url: url)
         urlRequest.httpMethod = "POST"
-        urlRequest.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+        let headerValue = authHeaderValuePrefix.isEmpty ? apiKey : "\(authHeaderValuePrefix)\(apiKey)"
+        urlRequest.setValue(headerValue, forHTTPHeaderField: authHeaderName)
         urlRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
 
         // Add any additional headers (for specific providers)
@@ -146,15 +151,20 @@ struct OpenAICompatibleHelper {
         baseURL: String,
         apiKey: String,
         providerName: String,
+        path: String = "/chat/completions",
+        queryItems: [URLQueryItem] = [],
+        authHeaderName: String = "Authorization",
+        authHeaderValuePrefix: String = "Bearer ",
         additionalHeaders: [String: String] = [:],
         session: URLSession = .shared,
     ) async throws
         -> AsyncThrowingStream<TextStreamDelta, Error>
     {
-        let url = URL(string: "\(baseURL)/chat/completions")!
+        let url = try self.buildURL(baseURL: baseURL, path: path, queryItems: queryItems)
         var urlRequest = URLRequest(url: url)
         urlRequest.httpMethod = "POST"
-        urlRequest.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+        let headerValue = authHeaderValuePrefix.isEmpty ? apiKey : "\(authHeaderValuePrefix)\(apiKey)"
+        urlRequest.setValue(headerValue, forHTTPHeaderField: authHeaderName)
         urlRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
 
         // Add any additional headers (for specific providers)
@@ -664,5 +674,27 @@ struct OpenAICompatibleHelper {
                 parameters: parameters,
             ),
         )
+    }
+
+    // MARK: - URL Construction
+
+    private static func buildURL(baseURL: String, path: String, queryItems: [URLQueryItem]) throws -> URL {
+        guard var components = URLComponents(string: baseURL) else {
+            throw TachikomaError.invalidConfiguration("Invalid base URL: \(baseURL)")
+        }
+
+        let basePath = components.path
+        let normalizedPath = path.hasPrefix("/") ? path : "/\(path)"
+        let trimmedBase = basePath.hasSuffix("/") ? String(basePath.dropLast()) : basePath
+        components.path = trimmedBase + normalizedPath
+
+        var mergedQueryItems = components.queryItems ?? []
+        mergedQueryItems.append(contentsOf: queryItems)
+        components.queryItems = mergedQueryItems.isEmpty ? nil : mergedQueryItems
+
+        guard let finalURL = components.url else {
+            throw TachikomaError.invalidConfiguration("Failed to build URL from \(baseURL) and path \(path)")
+        }
+        return finalURL
     }
 }

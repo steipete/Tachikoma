@@ -561,7 +561,7 @@ public struct ModelCostCalculator: Sendable {
         case .ollama: (0.00, 0.00) // Local inference
         case .lmstudio: (0.00, 0.00) // Local inference
         case .openRouter, .together, .replicate: (1.00, 3.00) // Typical aggregator pricing
-        case .openaiCompatible, .anthropicCompatible: (2.00, 6.00)
+        case .openaiCompatible, .anthropicCompatible, .azureOpenAI: (2.00, 6.00)
         case .custom: (2.00, 6.00)
         }
     }
