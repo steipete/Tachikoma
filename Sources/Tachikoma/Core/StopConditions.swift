@@ -276,7 +276,7 @@ public actor RepetitionStopCondition: StopCondition {
         // Check if the last chunk is exactly the same as any previous chunk
         let lastChunk = self.recentChunks.last!
         let priorChunks = self.recentChunks.dropLast()
-        let exactMatchCount = priorChunks.count(where: { $0 == lastChunk })
+        let exactMatchCount = priorChunks.count { $0 == lastChunk }
 
         // For exact repetition: if we see the same chunk twice in a row, it's repetition
         if exactMatchCount >= 1 {
@@ -284,7 +284,7 @@ public actor RepetitionStopCondition: StopCondition {
         }
 
         // Also check for high similarity with flexible threshold
-        let similarCount = priorChunks.count(where: { self.similarity($0, lastChunk) >= self.threshold })
+        let similarCount = priorChunks.count { self.similarity($0, lastChunk) >= self.threshold }
 
         // Stop if more than half of recent chunks are similar
         return priorChunks.count >= 2 && Double(similarCount) / Double(priorChunks.count) > 0.5

@@ -227,7 +227,7 @@ public final class ProviderAdapter: EnhancedModelProvider {
 
     private func ensureAlternatingRoles(_ messages: [ModelMessage]) -> [ModelMessage] {
         messages
-            .chunked(by: { $0.role == $1.role })
+            .chunked { $0.role == $1.role }
             .map { chunk in
                 guard let first = chunk.first else { return ModelMessage(role: .user, content: []) }
                 let combinedContent = chunk.flatMap(\.content)
@@ -237,7 +237,7 @@ public final class ProviderAdapter: EnhancedModelProvider {
                     content: combinedContent,
                     timestamp: first.timestamp,
                     channel: first.channel,
-                    metadata: first.metadata
+                    metadata: first.metadata,
                 )
             }
     }
