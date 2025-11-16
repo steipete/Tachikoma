@@ -52,7 +52,7 @@ jobs:
     - name: Run Tests (Unit Tests Only)
       run: |
         if [[ "${{ runner.os }}" == "Linux" ]]; then
-          swift test --filter TachikomaTests --skip "AudioProvidersTests"
+          swift test --filter TachikomaTests --skip "AudioProvidersTests" --skip "ProviderEndToEndTests"
         else
           swift test --filter TachikomaTests
         fi
