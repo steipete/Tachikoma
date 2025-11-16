@@ -499,7 +499,6 @@ struct OpenAIResponsesProviderTests {
         )
     }
 }
-#endif
 
 private final class ResponsesTestURLProtocol: URLProtocol {
     typealias Handler = @Sendable (URLRequest) throws -> (HTTPURLResponse, Data)
@@ -548,3 +547,4 @@ struct TestSkipped: Error {
         self.message = message
     }
 }
+#endif

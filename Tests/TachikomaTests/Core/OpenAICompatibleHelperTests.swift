@@ -234,7 +234,6 @@ struct OpenAICompatibleHelperTests {
         return try! JSONSerialization.data(withJSONObject: dict)
     }
 }
-#endif
 
 extension Data {
     fileprivate func jsonObject() throws -> [String: Any] {
@@ -283,3 +282,4 @@ private final class OpenAIHelperURLProtocol: URLProtocol {
 
     override func stopLoading() {}
 }
+#endif
