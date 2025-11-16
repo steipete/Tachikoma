@@ -379,12 +379,11 @@ public final class StdioTransport: MCPTransport {
 
                     guard !chunk.isEmpty else { continue }
 
-                    if
-                        let message = String(data: chunk, encoding: .utf8)?
-                            .trimmingCharacters(in: .whitespacesAndNewlines),
-                            !message.isEmpty
-                    {
-                        self.logger.debug("[MCP stdio][stderr] \(message)")
+                    if let rawMessage = String(data: chunk, encoding: .utf8) {
+                        let message = rawMessage.trimmingCharacters(in: .whitespacesAndNewlines)
+                        if !message.isEmpty {
+                            self.logger.debug("[MCP stdio][stderr] \(message)")
+                        }
                     }
                 } catch {
                     if Task.isCancelled {
