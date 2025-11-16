@@ -60,7 +60,7 @@ public final class RealtimeSession {
         configuration: SessionConfiguration = SessionConfiguration(),
         transport: RealtimeTransport? = nil,
     ) {
-        id = UUID().uuidString
+        self.id = UUID().uuidString
         self.apiKey = apiKey
         self.baseURL = baseURL
         self.configuration = configuration
@@ -72,16 +72,16 @@ public final class RealtimeSession {
     /// Connect to the Realtime API
     public func connect() async throws {
         // Connect to the Realtime API
-        guard state == .disconnected || state == .error else {
+        guard self.state == .disconnected || self.state == .error else {
             throw TachikomaError.invalidConfiguration("Already connected or connecting")
         }
 
-        state = .connecting
+        self.state = .connecting
 
         // Build connection URL with model parameter
         var urlComponents = URLComponents(string: baseURL)!
         urlComponents.queryItems = [
-            URLQueryItem(name: "model", value: configuration.model),
+            URLQueryItem(name: "model", value: self.configuration.model),
         ]
 
         guard let url = urlComponents.url else {
@@ -96,18 +96,18 @@ public final class RealtimeSession {
 
         do {
             // Connect transport
-            try await transport.connect(url: url, headers: headers)
-            state = .connected
+            try await self.transport.connect(url: url, headers: headers)
+            self.state = .connected
 
             // Start receiving events
-            startReceiving()
+            self.startReceiving()
 
             // Send initial session update if configured
-            if hasNonDefaultConfiguration() {
-                try await update(configuration)
+            if self.hasNonDefaultConfiguration() {
+                try await self.update(self.configuration)
             }
         } catch {
-            state = .error
+            self.state = .error
             throw error
         }
     }
@@ -115,32 +115,32 @@ public final class RealtimeSession {
     /// Disconnect from the Realtime API
     public func disconnect() async {
         // Disconnect from the Realtime API
-        state = .disconnected
+        self.state = .disconnected
 
         // Cancel background tasks
-        receiveTask?.cancel()
-        heartbeatTask?.cancel()
+        self.receiveTask?.cancel()
+        self.heartbeatTask?.cancel()
 
         // Disconnect transport
-        await transport.disconnect()
+        await self.transport.disconnect()
 
         // Complete event stream
-        eventStreamContinuation?.finish()
-        eventStreamContinuation = nil
+        self.eventStreamContinuation?.finish()
+        self.eventStreamContinuation = nil
     }
 
     /// Update session configuration
     public func update(_ config: SessionConfiguration) async throws {
         // Update session configuration
-        guard state == .connected else {
+        guard self.state == .connected else {
             throw TachikomaError.invalidConfiguration("Not connected")
         }
 
         let event = RealtimeClientEvent.sessionUpdate(SessionUpdateEvent(session: RealtimeSessionConfig(from: config)))
-        try await sendEvent(event)
+        try await self.sendEvent(event)
 
         // Update local configuration
-        configuration = config
+        self.configuration = config
     }
 
     // MARK: - Audio Management
@@ -148,36 +148,36 @@ public final class RealtimeSession {
     /// Append audio data to the input buffer
     public func appendAudio(_ data: Data) async throws {
         // Append audio data to the input buffer
-        guard state == .connected else {
+        guard self.state == .connected else {
             throw TachikomaError.invalidConfiguration("Not connected")
         }
 
         let event = RealtimeClientEvent.inputAudioBufferAppend(
             InputAudioBufferAppendEvent(audio: data),
         )
-        try await sendEvent(event)
+        try await self.sendEvent(event)
     }
 
     /// Commit the audio buffer to create a user message
     public func commitAudio() async throws {
         // Commit the audio buffer to create a user message
-        guard state == .connected else {
+        guard self.state == .connected else {
             throw TachikomaError.invalidConfiguration("Not connected")
         }
 
         let event = RealtimeClientEvent.inputAudioBufferCommit
-        try await sendEvent(event)
+        try await self.sendEvent(event)
     }
 
     /// Clear the audio buffer
     public func clearAudioBuffer() async throws {
         // Clear the audio buffer
-        guard state == .connected else {
+        guard self.state == .connected else {
             throw TachikomaError.invalidConfiguration("Not connected")
         }
 
         let event = RealtimeClientEvent.inputAudioBufferClear
-        try await sendEvent(event)
+        try await self.sendEvent(event)
     }
 
     // MARK: - Conversation Management
@@ -185,33 +185,33 @@ public final class RealtimeSession {
     /// Create a conversation item
     public func createItem(_ item: ConversationItem) async throws {
         // Create a conversation item
-        guard state == .connected else {
+        guard self.state == .connected else {
             throw TachikomaError.invalidConfiguration("Not connected")
         }
 
         let event = RealtimeClientEvent.conversationItemCreate(
             ConversationItemCreateEvent(item: item),
         )
-        try await sendEvent(event)
+        try await self.sendEvent(event)
     }
 
     /// Delete a conversation item
     public func deleteItem(id: String) async throws {
         // Delete a conversation item
-        guard state == .connected else {
+        guard self.state == .connected else {
             throw TachikomaError.invalidConfiguration("Not connected")
         }
 
         let event = RealtimeClientEvent.conversationItemDelete(
             ConversationItemDeleteEvent(itemId: id),
         )
-        try await sendEvent(event)
+        try await self.sendEvent(event)
     }
 
     /// Truncate a conversation item
     public func truncateItem(id: String, contentIndex: Int, audioEndMs: Int) async throws {
         // Truncate a conversation item
-        guard state == .connected else {
+        guard self.state == .connected else {
             throw TachikomaError.invalidConfiguration("Not connected")
         }
 
@@ -222,7 +222,7 @@ public final class RealtimeSession {
                 audioEndMs: audioEndMs,
             ),
         )
-        try await sendEvent(event)
+        try await self.sendEvent(event)
     }
 
     // MARK: - Response Generation
@@ -230,23 +230,23 @@ public final class RealtimeSession {
     /// Create a response
     public func createResponse(_ config: ResponseCreateEvent? = nil) async throws {
         // Create a response
-        guard state == .connected else {
+        guard self.state == .connected else {
             throw TachikomaError.invalidConfiguration("Not connected")
         }
 
         let event = RealtimeClientEvent.responseCreate(config ?? ResponseCreateEvent())
-        try await sendEvent(event)
+        try await self.sendEvent(event)
     }
 
     /// Cancel the current response
     public func cancelResponse() async throws {
         // Cancel the current response
-        guard state == .connected else {
+        guard self.state == .connected else {
             throw TachikomaError.invalidConfiguration("Not connected")
         }
 
         let event = RealtimeClientEvent.responseCancel
-        try await sendEvent(event)
+        try await self.sendEvent(event)
     }
 
     // MARK: - Event Handling
@@ -254,10 +254,10 @@ public final class RealtimeSession {
     /// Subscribe to server events
     public func on(_ eventType: String, handler: @escaping (RealtimeServerEvent) -> Void) {
         // Subscribe to server events
-        if eventHandlers[eventType] == nil {
-            eventHandlers[eventType] = []
+        if self.eventHandlers[eventType] == nil {
+            self.eventHandlers[eventType] = []
         }
-        eventHandlers[eventType]?.append(handler)
+        self.eventHandlers[eventType]?.append(handler)
     }
 
     /// Get an async stream of server events
@@ -271,10 +271,10 @@ public final class RealtimeSession {
     // MARK: - Private Methods
 
     private func hasNonDefaultConfiguration() -> Bool {
-        configuration.instructions != nil ||
-            configuration.tools != nil ||
-            configuration.temperature != nil ||
-            configuration.turnDetection != nil
+        self.configuration.instructions != nil ||
+            self.configuration.tools != nil ||
+            self.configuration.temperature != nil ||
+            self.configuration.turnDetection != nil
     }
 
     private func sendEvent(_ event: RealtimeClientEvent) async throws {
@@ -291,11 +291,11 @@ public final class RealtimeSession {
         let data = try encoder.encode(wrapper)
 
         // Send via transport
-        try await transport.send(data)
+        try await self.transport.send(data)
     }
 
     private func startReceiving() {
-        receiveTask = Task {
+        self.receiveTask = Task {
             let stream = self.transport.receive()
 
             do {
@@ -435,17 +435,17 @@ private struct EventWrapper<T: Encodable>: Encodable {
     func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: DynamicCodingKey.self)
 
-        try container.encode(type, forKey: DynamicCodingKey(stringValue: "type")!)
+        try container.encode(self.type, forKey: DynamicCodingKey(stringValue: "type")!)
         if let eventId {
             try container.encode(eventId, forKey: DynamicCodingKey(stringValue: "event_id")!)
         }
 
         // Encode the event's properties directly into the container
-        let eventData = try JSONEncoder().encode(event)
+        let eventData = try JSONEncoder().encode(self.event)
         if let eventDict = try JSONSerialization.jsonObject(with: eventData) as? [String: Any] {
             for (key, value) in eventDict {
                 if let codingKey = DynamicCodingKey(stringValue: key) {
-                    try encodeAny(value, forKey: codingKey, container: &container)
+                    try self.encodeAny(value, forKey: codingKey, container: &container)
                 }
             }
         }
@@ -469,13 +469,13 @@ private struct EventWrapper<T: Encodable>: Encodable {
             var nestedContainer = container.nestedContainer(keyedBy: DynamicCodingKey.self, forKey: key)
             for (nestedKey, nestedValue) in dict {
                 if let nestedCodingKey = DynamicCodingKey(stringValue: nestedKey) {
-                    try encodeAny(nestedValue, forKey: nestedCodingKey, container: &nestedContainer)
+                    try self.encodeAny(nestedValue, forKey: nestedCodingKey, container: &nestedContainer)
                 }
             }
         case let array as [Any]:
             var nestedContainer = container.nestedUnkeyedContainer(forKey: key)
             for item in array {
-                try encodeAnyArray(item, container: &nestedContainer)
+                try self.encodeAnyArray(item, container: &nestedContainer)
             }
         default:
             // Skip unsupported types
@@ -537,7 +537,7 @@ private struct ResponseTextDeltaEventWrapper: Decodable {
         let contentIndex = try container.decode(Int.self, forKey: .contentIndex)
         let delta = try container.decode(String.self, forKey: .delta)
 
-        event = ResponseTextDeltaEvent(
+        self.event = ResponseTextDeltaEvent(
             responseId: responseId,
             itemId: itemId,
             outputIndex: outputIndex,
@@ -567,7 +567,7 @@ private struct ResponseTextDoneEventWrapper: Decodable {
         let contentIndex = try container.decode(Int.self, forKey: .contentIndex)
         let text = try container.decode(String.self, forKey: .text)
 
-        event = ResponseTextDoneEvent(
+        self.event = ResponseTextDoneEvent(
             responseId: responseId,
             itemId: itemId,
             outputIndex: outputIndex,
@@ -597,7 +597,7 @@ private struct ResponseAudioDeltaEventWrapper: Decodable {
         let contentIndex = try container.decode(Int.self, forKey: .contentIndex)
         let delta = try container.decode(String.self, forKey: .delta)
 
-        event = ResponseAudioDeltaEvent(
+        self.event = ResponseAudioDeltaEvent(
             responseId: responseId,
             itemId: itemId,
             outputIndex: outputIndex,
@@ -626,7 +626,7 @@ private struct ResponseAudioDoneEventWrapper: Decodable {
         let outputIndex = try container.decode(Int.self, forKey: .outputIndex)
         let contentIndex = try container.decode(Int.self, forKey: .contentIndex)
 
-        event = ResponseAudioDoneEvent(
+        self.event = ResponseAudioDoneEvent(
             responseId: responseId,
             itemId: itemId,
             outputIndex: outputIndex,
@@ -655,7 +655,7 @@ private struct ResponseFunctionCallArgumentsDoneEventWrapper: Decodable {
         let name = try container.decode(String.self, forKey: .name)
         let arguments = try container.decode(String.self, forKey: .arguments)
 
-        event = ResponseFunctionCallArgumentsDoneEvent(
+        self.event = ResponseFunctionCallArgumentsDoneEvent(
             responseId: responseId,
             itemId: itemId,
             outputIndex: outputIndex,

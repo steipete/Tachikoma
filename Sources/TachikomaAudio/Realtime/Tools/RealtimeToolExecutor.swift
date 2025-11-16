@@ -77,7 +77,7 @@ public actor RealtimeToolExecutor {
     public func register(_ tool: some RealtimeExecutableTool) {
         // Register a tool for execution
         let metadata = tool.metadata
-        tools[metadata.name] = RealtimeToolWrapper(
+        self.tools[metadata.name] = RealtimeToolWrapper(
             tool: tool,
             metadata: metadata,
         )
@@ -87,26 +87,26 @@ public actor RealtimeToolExecutor {
     public func registerTools(_ tools: [some RealtimeExecutableTool]) {
         // Register multiple tools
         for tool in tools {
-            register(tool)
+            self.register(tool)
         }
     }
 
     /// Unregister a tool
     public func unregister(toolName: String) {
         // Unregister a tool
-        tools.removeValue(forKey: toolName)
+        self.tools.removeValue(forKey: toolName)
     }
 
     /// Get all registered tools
     public func availableTools() -> [ToolMetadata] {
         // Get all registered tools
-        tools.values.map(\.metadata)
+        self.tools.values.map(\.metadata)
     }
 
     /// Get tool metadata
     public func getToolMetadata(name: String) -> ToolMetadata? {
         // Get tool metadata
-        tools[name]?.metadata
+        self.tools[name]?.metadata
     }
 
     // MARK: - Tool Execution
@@ -133,14 +133,14 @@ public actor RealtimeToolExecutor {
                 timestamp: startTime,
                 duration: Date().timeIntervalSince(startTime),
             )
-            addToHistory(execution)
+            self.addToHistory(execution)
             return execution
         }
 
         // Parse arguments
         let parsedArgs: RealtimeToolArguments
         do {
-            parsedArgs = try parseArguments(arguments, for: wrapper.metadata.parameters)
+            parsedArgs = try self.parseArguments(arguments, for: wrapper.metadata.parameters)
         } catch {
             let execution = ToolExecution(
                 id: executionId,
@@ -150,7 +150,7 @@ public actor RealtimeToolExecutor {
                 timestamp: startTime,
                 duration: Date().timeIntervalSince(startTime),
             )
-            addToHistory(execution)
+            self.addToHistory(execution)
             return execution
         }
 
@@ -184,7 +184,7 @@ public actor RealtimeToolExecutor {
                 timestamp: startTime,
                 duration: Date().timeIntervalSince(startTime),
             )
-            addToHistory(execution)
+            self.addToHistory(execution)
             return execution
         }
 
@@ -197,7 +197,7 @@ public actor RealtimeToolExecutor {
             timestamp: startTime,
             duration: Date().timeIntervalSince(startTime),
         )
-        addToHistory(execution)
+        self.addToHistory(execution)
         return execution
     }
 
@@ -232,23 +232,23 @@ public actor RealtimeToolExecutor {
     public func getHistory(limit: Int? = nil) -> [ToolExecution] {
         // Get execution history
         if let limit {
-            return Array(executionHistory.suffix(limit))
+            return Array(self.executionHistory.suffix(limit))
         }
-        return executionHistory
+        return self.executionHistory
     }
 
     /// Clear execution history
     public func clearHistory() {
         // Clear execution history
-        executionHistory.removeAll()
+        self.executionHistory.removeAll()
     }
 
     private func addToHistory(_ execution: ToolExecution) {
-        executionHistory.append(execution)
+        self.executionHistory.append(execution)
 
         // Trim history if needed
-        if executionHistory.count > maxHistorySize {
-            executionHistory.removeFirst(executionHistory.count - maxHistorySize)
+        if self.executionHistory.count > self.maxHistorySize {
+            self.executionHistory.removeFirst(self.executionHistory.count - self.maxHistorySize)
         }
     }
 

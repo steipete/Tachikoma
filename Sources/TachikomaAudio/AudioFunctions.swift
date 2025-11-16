@@ -383,8 +383,8 @@ actor AsyncSemaphore {
     }
 
     func wait() async {
-        if value > 0 {
-            value -= 1
+        if self.value > 0 {
+            self.value -= 1
             return
         }
 
@@ -394,10 +394,10 @@ actor AsyncSemaphore {
     }
 
     func signal() {
-        if waiters.isEmpty {
-            value += 1
+        if self.waiters.isEmpty {
+            self.value += 1
         } else {
-            let waiter = waiters.removeFirst()
+            let waiter = self.waiters.removeFirst()
             waiter.resume()
         }
     }

@@ -10,9 +10,9 @@ public struct AgentToolWrapper: RealtimeExecutableTool {
 
     public var metadata: RealtimeToolExecutor.ToolMetadata {
         RealtimeToolExecutor.ToolMetadata(
-            name: tool.name,
-            description: tool.description,
-            parameters: tool.parameters,
+            name: self.tool.name,
+            description: self.tool.description,
+            parameters: self.tool.parameters,
         )
     }
 
@@ -55,7 +55,7 @@ public struct AgentToolWrapper: RealtimeExecutableTool {
                             // Convert to nested AnyAgentToolValue structure
                             var objectArgs: [String: AnyAgentToolValue] = [:]
                             for (k, v) in dict {
-                                objectArgs[k] = convertAnyToToolArgument(v)
+                                objectArgs[k] = self.convertAnyToToolArgument(v)
                             }
                             convertedArgs[key] = AnyAgentToolValue(object: objectArgs)
                         } else {
@@ -90,7 +90,7 @@ public struct AgentToolWrapper: RealtimeExecutableTool {
                 // Convert object to JSON string
                 var jsonDict: [String: Any] = [:]
                 for (k, v) in dict {
-                    jsonDict[k] = convertToolArgumentToAny(v)
+                    jsonDict[k] = self.convertToolArgumentToAny(v)
                 }
                 if
                     let data = try? JSONSerialization.data(withJSONObject: jsonDict, options: .prettyPrinted),
