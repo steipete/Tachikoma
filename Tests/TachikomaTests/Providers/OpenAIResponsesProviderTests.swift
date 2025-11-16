@@ -1,6 +1,14 @@
 import Foundation
+#if canImport(FoundationNetworking)
+import FoundationNetworking
+#endif
 import Testing
 @testable import Tachikoma
+
+#if os(Linux)
+@Suite("OpenAI Responses API Tests", .disabled("URLProtocol mocking unavailable on Linux"))
+struct OpenAIResponsesProviderTests {}
+#else
 
 @Suite("OpenAI Responses API Tests", .serialized)
 struct OpenAIResponsesProviderTests {
@@ -491,6 +499,7 @@ struct OpenAIResponsesProviderTests {
         )
     }
 }
+#endif
 
 private final class ResponsesTestURLProtocol: URLProtocol {
     typealias Handler = @Sendable (URLRequest) throws -> (HTTPURLResponse, Data)

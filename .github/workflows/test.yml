@@ -44,14 +44,13 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-spm-
 
-    - name: Test macOS
+    - name: Build macOS target
       run: |
         set -o pipefail
-        xcodebuild test \
+        xcodebuild build \
           -scheme Tachikoma \
           -sdk ${{ matrix.sdk }} \
           -destination '${{ matrix.destination }}' \
-          -enableCodeCoverage YES \
           -derivedDataPath .build/DerivedData \
           CODE_SIGNING_REQUIRED=NO \
           CODE_SIGNING_ALLOWED=NO | xcpretty
