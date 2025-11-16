@@ -115,15 +115,15 @@ extension String {
 
 // Main entry point
 #if os(macOS) || os(iOS)
-    if #available(macOS 14.0, iOS 17.0, *) {
-        Task {
-            do {
-                try await testRealtimeConfiguration()
-            } catch {
-                print("❌ Error: \(error)")
-            }
-            exit(0)
+if #available(macOS 14.0, iOS 17.0, *) {
+    Task {
+        do {
+            try await testRealtimeConfiguration()
+        } catch {
+            print("❌ Error: \(error)")
         }
-        RunLoop.main.run()
+        exit(0)
     }
+    RunLoop.main.run()
+}
 #endif
