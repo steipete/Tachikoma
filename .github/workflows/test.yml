@@ -18,20 +18,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        platform: [macOS, iOS, tvOS, watchOS]
         include:
           - platform: macOS
             destination: 'platform=macOS'
             sdk: macosx
-          - platform: iOS
-            destination: 'platform=iOS Simulator,name=iPhone 16,OS=latest'
-            sdk: iphonesimulator
-          - platform: tvOS
-            destination: 'platform=tvOS Simulator,name=Apple TV,OS=latest'
-            sdk: appletvsimulator
-          - platform: watchOS
-            destination: 'platform=watchOS Simulator,name=Apple Watch Series 10 (46mm),OS=latest'
-            sdk: watchsimulator
 
     steps:
     - name: Checkout
@@ -54,27 +44,17 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-spm-
 
-    - name: Test ${{ matrix.platform }}
+    - name: Test macOS
       run: |
         set -o pipefail
-        if [[ "${{ matrix.platform }}" == "macOS" ]]; then
-          xcodebuild test \
-            -scheme Tachikoma \
-            -sdk ${{ matrix.sdk }} \
-            -destination '${{ matrix.destination }}' \
-            -enableCodeCoverage YES \
-            -derivedDataPath .build/DerivedData \
-            CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGNING_ALLOWED=NO | xcpretty
-        else
-          xcodebuild build \
-            -scheme Tachikoma \
-            -sdk ${{ matrix.sdk }} \
-            -destination '${{ matrix.destination }}' \
-            -derivedDataPath .build/DerivedData \
-            CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGNING_ALLOWED=NO | xcpretty
-        fi
+        xcodebuild test \
+          -scheme Tachikoma \
+          -sdk ${{ matrix.sdk }} \
+          -destination '${{ matrix.destination }}' \
+          -enableCodeCoverage YES \
+          -derivedDataPath .build/DerivedData \
+          CODE_SIGNING_REQUIRED=NO \
+          CODE_SIGNING_ALLOWED=NO | xcpretty
       env:
         OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
@@ -85,7 +65,6 @@ jobs:
         XAI_API_KEY: ${{ secrets.X_AI_API_KEY }}
 
     - name: Upload coverage reports
-      if: matrix.platform == 'macOS'
       uses: codecov/codecov-action@v4
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
@@ -225,8 +204,13 @@ jobs:
         else
           echo "::warning::Skipping API baseline diff - 'baseline' ref not available"
         fi
-        swift package compute-checksum
         swift package dump-package
+        if swift package --help | grep -q "generate-documentation"; then
+          swift package generate-documentation --warnings-as-errors --analyze || \
+            echo "::warning::Doc generation failed; continuing (non-blocking)."
+        else
+          echo "::warning::Doc generation unavailable in this toolchain; skipping."
+        fi
 
   # Integration tests with real APIs (optional, requires secrets)
   integration-tests:

@@ -1,4 +1,7 @@
 import Foundation
+#if canImport(FoundationNetworking)
+import FoundationNetworking
+#endif
 import Testing
 @testable import Tachikoma
 
@@ -7,6 +10,11 @@ import Darwin
 #elseif canImport(Glibc)
 import Glibc
 #endif
+
+#if os(Linux)
+@Suite("Provider Network E2E Tests", .disabled("URLProtocol mocking unavailable on Linux"))
+struct ProviderEndToEndTests {}
+#else
 
 @Suite("Provider Network E2E Tests", .serialized, .enabled(if: !_isLiveSuite))
 struct ProviderEndToEndTests {
@@ -407,6 +415,7 @@ struct ProviderEndToEndTests {
         self.expectPath(request, endsWithAny: [suffix], allowAudioTranscriptions: allowAudioTranscriptions)
     }
 }
+#endif
 
 private let _isLiveSuite: Bool = {
     #if LIVE_PROVIDER_TESTS
