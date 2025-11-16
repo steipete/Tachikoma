@@ -29,7 +29,13 @@ jobs:
         run: swift build
       
       - name: Run tests
-        run: swift test
+        run: |
+          SKIP_FLAGS=""
+          if [[ -z "$OPENAI_API_KEY" ]]; then
+            echo "OPENAI_API_KEY missing; skipping AudioProvidersTests"
+            SKIP_FLAGS='--skip AudioProvidersTests'
+          fi
+          swift test $SKIP_FLAGS
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
@@ -55,7 +61,13 @@ jobs:
         run: swift build
       
       - name: Run tests
-        run: swift test
+        run: |
+          SKIP_FLAGS=""
+          if [[ -z "$OPENAI_API_KEY" ]]; then
+            echo "OPENAI_API_KEY missing; skipping AudioProvidersTests"
+            SKIP_FLAGS='--skip AudioProvidersTests'
+          fi
+          swift test $SKIP_FLAGS
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
