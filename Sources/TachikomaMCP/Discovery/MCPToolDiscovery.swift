@@ -115,7 +115,7 @@ public enum MCPToolDiscovery {
                 env: ["GITHUB_PERSONAL_ACCESS_TOKEN": ProcessInfo.processInfo.environment["GITHUB_TOKEN"] ?? ""],
                 description: "GitHub API access",
             ),
-            "chrome-devtools": Self.defaultChromeDevToolsConfig(),
+            "chrome-devtools": defaultChromeDevToolsConfig(),
             "postgres": MCPServerConfig(
                 transport: "stdio",
                 command: "npx",
@@ -181,33 +181,33 @@ extension MCPToolDiscovery {
     }
 }
 
-private extension MCPToolDiscovery {
-    static func defaultChromeDevToolsConfig() -> MCPServerConfig {
+extension MCPToolDiscovery {
+    fileprivate static func defaultChromeDevToolsConfig() -> MCPServerConfig {
         if let local = self.localBinaryPath() {
-            return MCPServerConfig(
+            MCPServerConfig(
                 transport: "stdio",
                 command: local,
                 args: ["--isolated"],
-                description: "Chrome DevTools automation"
+                description: "Chrome DevTools automation",
             )
         } else if self.hasExecutable(named: "pnpm") {
-            return MCPServerConfig(
+            MCPServerConfig(
                 transport: "stdio",
                 command: "pnpm",
                 args: ["dlx", "chrome-devtools-mcp@latest", "--", "--isolated"],
-                description: "Chrome DevTools automation"
+                description: "Chrome DevTools automation",
             )
         } else {
-            return MCPServerConfig(
+            MCPServerConfig(
                 transport: "stdio",
                 command: "npx",
                 args: ["-y", "chrome-devtools-mcp@latest", "--", "--isolated"],
-                description: "Chrome DevTools automation"
+                description: "Chrome DevTools automation",
             )
         }
     }
 
-    static func hasExecutable(named name: String) -> Bool {
+    fileprivate static func hasExecutable(named name: String) -> Bool {
         let process = Process()
         process.launchPath = "/usr/bin/which"
         process.arguments = [name]
@@ -220,7 +220,7 @@ private extension MCPToolDiscovery {
         }
     }
 
-    static func localBinaryPath() -> String? {
+    fileprivate static func localBinaryPath() -> String? {
         let cwd = FileManager.default.currentDirectoryPath
         let path = URL(fileURLWithPath: cwd)
             .appendingPathComponent("node_modules/.bin/chrome-devtools-mcp")

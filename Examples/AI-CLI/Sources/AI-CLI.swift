@@ -430,7 +430,9 @@ struct AICLI {
         case .azureOpenAI:
             print("Set your Azure OpenAI credentials:")
             print("export AZURE_OPENAI_API_KEY='your-key-here'  # or AZURE_OPENAI_BEARER_TOKEN for Entra ID")
-            print("export AZURE_OPENAI_RESOURCE='my-aoai'       # or AZURE_OPENAI_ENDPOINT='https://my-aoai.openai.azure.com'")
+            print(
+                "export AZURE_OPENAI_RESOURCE='my-aoai'       # or AZURE_OPENAI_ENDPOINT='https://my-aoai.openai.azure.com'",
+            )
             print("export AZURE_OPENAI_API_VERSION='2025-04-01-preview'")
         default:
             print("This provider requires additional setup.")

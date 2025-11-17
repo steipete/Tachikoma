@@ -20,7 +20,7 @@ public final class AzureOpenAIProvider: ModelProvider {
         resource: String?,
         apiVersion: String?,
         endpoint: String?,
-        configuration: TachikomaConfiguration
+        configuration: TachikomaConfiguration,
     ) throws {
         self.modelId = deploymentId
         self.configuration = configuration
@@ -29,15 +29,16 @@ public final class AzureOpenAIProvider: ModelProvider {
         let envEndpoint = Provider.environmentValue(for: "AZURE_OPENAI_ENDPOINT")
         let envResource = Provider.environmentValue(for: "AZURE_OPENAI_RESOURCE")
 
-        if let explicitEndpoint = endpoint ?? configuration.getBaseURL(for: .azureOpenAI) ?? envEndpoint,
-           !explicitEndpoint.isEmpty
+        if
+            let explicitEndpoint = endpoint ?? configuration.getBaseURL(for: .azureOpenAI) ?? envEndpoint,
+            !explicitEndpoint.isEmpty
         {
             self.resolvedBaseURL = explicitEndpoint
         } else if let resourceName = resource ?? envResource, !resourceName.isEmpty {
             self.resolvedBaseURL = "https://\(resourceName).openai.azure.com"
         } else {
             throw TachikomaError.invalidConfiguration(
-                "Azure OpenAI requires either endpoint or resource (set AZURE_OPENAI_ENDPOINT or AZURE_OPENAI_RESOURCE)."
+                "Azure OpenAI requires either endpoint or resource (set AZURE_OPENAI_ENDPOINT or AZURE_OPENAI_RESOURCE).",
             )
         }
 
@@ -72,7 +73,7 @@ public final class AzureOpenAIProvider: ModelProvider {
             supportsTools: true,
             supportsStreaming: true,
             contextLength: 128_000,
-            maxOutputTokens: 4096
+            maxOutputTokens: 4096,
         )
     }
 
@@ -86,7 +87,7 @@ public final class AzureOpenAIProvider: ModelProvider {
             path: "/openai/deployments/\(self.modelId)/chat/completions",
             queryItems: [URLQueryItem(name: "api-version", value: self.apiVersion)],
             authHeaderName: self.authHeaderName,
-            authHeaderValuePrefix: self.authHeaderValuePrefix
+            authHeaderValuePrefix: self.authHeaderValuePrefix,
         )
     }
 
@@ -100,7 +101,7 @@ public final class AzureOpenAIProvider: ModelProvider {
             path: "/openai/deployments/\(self.modelId)/chat/completions",
             queryItems: [URLQueryItem(name: "api-version", value: self.apiVersion)],
             authHeaderName: self.authHeaderName,
-            authHeaderValuePrefix: self.authHeaderValuePrefix
+            authHeaderValuePrefix: self.authHeaderValuePrefix,
         )
     }
 }

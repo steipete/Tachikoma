@@ -1014,8 +1014,10 @@ extension LanguageModel {
             lhsId == rhsId && lhsURL == rhsURL
         case let (.anthropicCompatible(lhsId, lhsURL), .anthropicCompatible(rhsId, rhsURL)):
             lhsId == rhsId && lhsURL == rhsURL
-        case let (.azureOpenAI(lhsDeployment, lhsResource, lhsAPIVersion, lhsEndpoint),
-                  .azureOpenAI(rhsDeployment, rhsResource, rhsAPIVersion, rhsEndpoint)):
+        case let (
+            .azureOpenAI(lhsDeployment, lhsResource, lhsAPIVersion, lhsEndpoint),
+            .azureOpenAI(rhsDeployment, rhsResource, rhsAPIVersion, rhsEndpoint),
+        ):
             lhsDeployment == rhsDeployment &&
                 lhsResource == rhsResource &&
                 lhsAPIVersion == rhsAPIVersion &&

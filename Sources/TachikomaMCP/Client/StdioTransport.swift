@@ -86,6 +86,7 @@ public final class StdioTransport: MCPTransport {
     private static let _sigpipeHandlerInstalled: Void = {
         signal(SIGPIPE, SIG_IGN)
     }()
+
     private let debugStdoutHandle: FileHandle?
     private let debugStderrHandle: FileHandle?
     private let debugQueue = DispatchQueue(label: "tachikoma.mcp.stdio.debug")
@@ -240,7 +241,8 @@ public final class StdioTransport: MCPTransport {
                     try? await Task.sleep(nanoseconds: ns)
                     if let pending = await state.removePendingRequest(id: id) {
                         logger.error("MCP stdio request timed out: method=\(method), id=\(id)")
-                        pending.resume(throwing: MCPError.executionFailed("Request timed out after \(ns / 1_000_000)ms"))
+                        pending
+                            .resume(throwing: MCPError.executionFailed("Request timed out after \(ns / 1_000_000)ms"))
                     }
                 }
                 await state.addTimeoutTask(id: id, task: timeoutTask)
@@ -383,9 +385,10 @@ public final class StdioTransport: MCPTransport {
         }
         let line = buffer[..<newlineIndex]
         var removeEnd = buffer.index(after: newlineIndex)
-        if buffer[newlineIndex] == 0x0D,
-           removeEnd < buffer.endIndex,
-           buffer[removeEnd] == 0x0A
+        if
+            buffer[newlineIndex] == 0x0D,
+            removeEnd < buffer.endIndex,
+            buffer[removeEnd] == 0x0A
         {
             removeEnd = buffer.index(after: removeEnd)
         }
@@ -394,8 +397,10 @@ public final class StdioTransport: MCPTransport {
     }
 
     private static func extractFramedMessageBytes(from buffer: inout Data) -> Data? {
-        guard let headerEndRange = buffer.range(of: Data([13, 10, 13, 10])) ??
-            buffer.range(of: Data([10, 10])) else {
+        guard
+            let headerEndRange = buffer.range(of: Data([13, 10, 13, 10])) ??
+            buffer.range(of: Data([10, 10])) else
+        {
             return nil
         }
 
@@ -537,7 +542,6 @@ public final class StdioTransport: MCPTransport {
         try? self.debugStdoutHandle?.close()
         try? self.debugStderrHandle?.close()
     }
-
 }
 
 // MARK: - JSON-RPC Types
