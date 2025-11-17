@@ -1,4 +1,5 @@
 import Foundation
+#if !os(Linux)
 import Testing
 @testable import Tachikoma
 
@@ -135,3 +136,4 @@ struct AzureOpenAIProviderTests {
         )
     }
 }
+#endif
