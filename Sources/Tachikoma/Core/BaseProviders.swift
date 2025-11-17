@@ -14,22 +14,22 @@ public final class AnthropicProvider: ModelProvider {
     public let capabilities: ModelCapabilities
 
     private let model: LanguageModel.Anthropic
-    private let auth: Auth
+    private let auth: TKAuthValue
 
     public init(model: LanguageModel.Anthropic, configuration: TachikomaConfiguration) throws {
         self.model = model
         self.modelId = model.modelId
         self.baseURL = configuration.getBaseURL(for: .anthropic) ?? "https://api.anthropic.com"
 
-        if let access = configuration.credentialValue(for: "ANTHROPIC_ACCESS_TOKEN") {
-            let beta = configuration.credentialValue(for: "ANTHROPIC_BETA_HEADER")
-            self.auth = .oauth(access: access, beta: beta)
-            self.apiKey = access
-        } else if let key = configuration.getAPIKey(for: .anthropic) {
-            self.auth = .apiKey(key)
-            self.apiKey = key
-        } else {
+        guard let auth = TKAuthManager.shared.resolveAuth(for: .anthropic) else {
             throw TachikomaError.authenticationFailed("ANTHROPIC_API_KEY not found")
+        }
+        self.auth = auth
+        switch auth {
+        case let .apiKey(key):
+            self.apiKey = key
+        case let .bearer(token, _):
+            self.apiKey = token
         }
 
         self.capabilities = ModelCapabilities(
@@ -177,17 +177,12 @@ public final class AnthropicProvider: ModelProvider {
         switch self.auth {
         case let .apiKey(key):
             request.setValue(key, forHTTPHeaderField: "x-api-key")
-        case let .oauth(access, beta):
+        case let .bearer(access, beta):
             request.setValue("Bearer " + access, forHTTPHeaderField: "Authorization")
             if let beta {
                 request.setValue(beta, forHTTPHeaderField: "anthropic-beta")
             }
         }
-    }
-
-    private enum Auth {
-        case apiKey(String)
-        case oauth(access: String, beta: String?)
     }
 
     public func streamText(request: ProviderRequest) async throws -> AsyncThrowingStream<TextStreamDelta, Error> {

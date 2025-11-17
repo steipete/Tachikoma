@@ -13,7 +13,7 @@ public final class OpenAIProvider: ModelProvider {
 
     private let model: LanguageModel.OpenAI
     private let session: URLSession
-    private let auth: Auth
+    private let auth: TKAuthValue
 
     public init(
         model: LanguageModel.OpenAI,
@@ -25,14 +25,15 @@ public final class OpenAIProvider: ModelProvider {
         self.baseURL = configuration.getBaseURL(for: .openai) ?? "https://api.openai.com/v1"
         self.session = session
 
-        if let access = configuration.credentialValue(for: "OPENAI_ACCESS_TOKEN") {
-            self.auth = .oauth(access: access)
-            self.apiKey = access
-        } else if let key = configuration.getAPIKey(for: .openai) {
-            self.auth = .apiKey(key)
-            self.apiKey = key
-        } else {
+        guard let auth = TKAuthManager.shared.resolveAuth(for: .openai) else {
             throw TachikomaError.authenticationFailed("OPENAI_API_KEY not found")
+        }
+        self.auth = auth
+        switch auth {
+        case let .apiKey(key):
+            self.apiKey = key
+        case let .bearer(token, _):
+            self.apiKey = token
         }
 
         self.capabilities = ModelCapabilities(
@@ -51,13 +52,16 @@ public final class OpenAIProvider: ModelProvider {
             additionalHeaders["OpenAI-Organization"] = orgId
         }
 
+        let (authHeaderName, prefix, secret) = self.authHeader()
         // Use shared OpenAI-compatible implementation
         return try await OpenAICompatibleHelper.generateText(
             request: request,
             modelId: self.modelId,
             baseURL: self.baseURL!,
-            apiKey: self.apiKey!,
+            apiKey: secret,
             providerName: "OpenAI",
+            authHeaderName: authHeaderName,
+            authHeaderValuePrefix: prefix,
             additionalHeaders: additionalHeaders,
             session: self.session,
         )
@@ -70,20 +74,27 @@ public final class OpenAIProvider: ModelProvider {
             additionalHeaders["OpenAI-Organization"] = orgId
         }
 
+        let (authHeaderName, prefix, secret) = self.authHeader()
         // Use shared OpenAI-compatible implementation
         return try await OpenAICompatibleHelper.streamText(
             request: request,
             modelId: self.modelId,
             baseURL: self.baseURL!,
-            apiKey: self.apiKey!,
+            apiKey: secret,
             providerName: "OpenAI",
+            authHeaderName: authHeaderName,
+            authHeaderValuePrefix: prefix,
             additionalHeaders: additionalHeaders,
             session: self.session,
         )
     }
-}
 
-private enum Auth {
-    case apiKey(String)
-    case oauth(access: String)
+    private func authHeader() -> (String, String, String) {
+        switch self.auth {
+        case let .apiKey(key):
+            return ("Authorization", "Bearer ", key)
+        case let .bearer(token, _):
+            return ("Authorization", "Bearer ", token)
+        }
+    }
 }

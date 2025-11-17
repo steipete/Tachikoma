@@ -180,6 +180,11 @@ public final class TachikomaConfiguration: @unchecked Sendable {
         }
     }
 
+    /// Retrieve a credential from the shared Tachikoma auth manager (includes env + credentials file).
+    public func credentialValue(for key: String) -> String? {
+        TKAuthManager.shared.credentialValue(for: key)
+    }
+
     /// Get the base URL for a provider (type-safe)
     /// Returns configured URL or default URL for standard providers
     public func getBaseURL(for provider: Provider) -> String? {
