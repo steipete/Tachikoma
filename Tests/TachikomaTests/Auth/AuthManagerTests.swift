@@ -3,19 +3,13 @@ import XCTest
 @testable import Tachikoma
 
 final class AuthManagerTests: XCTestCase {
-    override func setUp() {
-        super.setUp()
-        TachikomaConfiguration.profileDirectoryName = ".tachikoma-test-\(UUID().uuidString)"
-    }
-
-    func testResolvePrefersEnvOverCredentials() throws {
+    func testEnvPreferredOverCreds() throws {
         setenv("OPENAI_API_KEY", "env-key", 1)
         defer { unsetenv("OPENAI_API_KEY") }
         try TKAuthManager.shared.setCredential(key: "OPENAI_API_KEY", value: "cred-key")
-
         let auth = TKAuthManager.shared.resolveAuth(for: .openai)
         switch auth {
-        case let .bearer(token, _)?:
+        case let .bearer(token, _):
             XCTAssertEqual(token, "env-key")
         default:
             XCTFail("Expected bearer from env")
@@ -25,27 +19,26 @@ final class AuthManagerTests: XCTestCase {
     func testGrokAliasEnv() {
         setenv("X_AI_API_KEY", "alias-key", 1)
         defer { unsetenv("X_AI_API_KEY") }
-
         let auth = TKAuthManager.shared.resolveAuth(for: .grok)
         switch auth {
-        case let .bearer(token, _)?:
+        case let .bearer(token, _):
             XCTAssertEqual(token, "alias-key")
         default:
             XCTFail("Expected bearer from alias env")
         }
     }
 
-    func testValidatorSuccess() async throws {
+    func testValidateSuccessMock() async {
         let session = URLSession.mock(status: 200)
         let req = URLRequest(url: URL(string: "https://api.openai.com/v1/models")!)
         let result = await HTTP.perform(request: req, timeoutSeconds: 5, session: session)
         switch result {
         case .success: break
-        default: XCTFail("Expected success, got \(result)")
+        default: XCTFail("Expected success")
         }
     }
 
-    func testValidatorFailure() async throws {
+    func testValidateFailureMock() async {
         let session = URLSession.mock(status: 401)
         let req = URLRequest(url: URL(string: "https://api.openai.com/v1/models")!)
         let result = await HTTP.perform(request: req, timeoutSeconds: 5, session: session)
@@ -56,14 +49,12 @@ final class AuthManagerTests: XCTestCase {
             XCTFail("Expected failure")
         }
     }
-
 }
 
 // MARK: - URLSession mocking
 
-private final class MockURLProtocol: URLProtocol {
+private final class AuthMockURLProtocol: URLProtocol {
     static var statusCode: Int = 200
-    static var responseBody: Data? = nil
 
     override class func canInit(with request: URLRequest) -> Bool { true }
     override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
@@ -74,7 +65,7 @@ private final class MockURLProtocol: URLProtocol {
             httpVersion: nil,
             headerFields: nil)!
         self.client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
-        self.client?.urlProtocol(self, didLoad: Self.responseBody ?? Data())
+        self.client?.urlProtocol(self, didLoad: Data())
         self.client?.urlProtocolDidFinishLoading(self)
     }
     override func stopLoading() {}
@@ -82,10 +73,9 @@ private final class MockURLProtocol: URLProtocol {
 
 private extension URLSession {
     static func mock(status: Int) -> URLSession {
-        MockURLProtocol.statusCode = status
-        MockURLProtocol.responseBody = nil
+        AuthMockURLProtocol.statusCode = status
         let config = URLSessionConfiguration.ephemeral
-        config.protocolClasses = [MockURLProtocol.self]
+        config.protocolClasses = [AuthMockURLProtocol.self]
         return URLSession(configuration: config)
     }
 }
