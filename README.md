@@ -48,6 +48,15 @@ let nextResponse = try await conversation.continue()
 // Uses same model as previous call
 ```
 
+### Credentials & OAuth (new)
+
+- `TKAuthManager` now owns credential resolution for OpenAI, Anthropic, Grok/xAI, and Gemini. It prefers environment variables, then the shared credentials file at `~/<profile>/credentials`.
+- Use the bundled CLI `tk-config` to manage credentials without re-implementing logic:
+  - `tk-config add <provider> <secret> [--timeout <sec>]`
+  - `tk-config login <provider> [--timeout <sec>] [--no-browser]` (OpenAI/Codex, Anthropic Max)
+  - `tk-config status [--timeout <sec>]`
+- Hosts can override the storage root with `TachikomaConfiguration.profileDirectoryName` (e.g., Peekaboo sets it to `.peekaboo` and delegates its `config add/login/status` flows to this shared manager).
+
 ### OpenAI Realtime API (Voice Conversations) 🎙️
 
 **COMPLETE: Full implementation of OpenAI's Realtime API for ultra-low-latency voice conversations!**
