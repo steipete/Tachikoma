@@ -4,7 +4,7 @@ import CryptoKit
 import AppKit
 #endif
 
-public enum TKProviderId: String, CaseIterable {
+public enum TKProviderId: String, CaseIterable, Sendable {
     case openai
     case anthropic
     case grok
@@ -39,12 +39,12 @@ public enum TKProviderId: String, CaseIterable {
     }
 }
 
-public enum TKAuthValue {
+public enum TKAuthValue: Sendable {
     case apiKey(String)
     case bearer(String, betaHeader: String?)
 }
 
-public enum TKValidationResult {
+public enum TKValidationResult: Sendable {
     case success
     case failure(String)
     case timeout(Double)
@@ -98,6 +98,7 @@ public struct TKCredentialStore {
     }
 }
 
+@MainActor
 public final class TKAuthManager {
     public static let shared = TKAuthManager()
 
@@ -170,8 +171,8 @@ public final class TKAuthManager {
 
     // MARK: OAuth
 
-    public func oauthLogin(provider: TKProviderId, timeout: Double = 30, noBrowser: Bool = false) async -> Result<Void, String> {
-        guard provider.supportsOAuth else { return .failure("Provider does not support OAuth") }
+    public func oauthLogin(provider: TKProviderId, timeout: Double = 30, noBrowser: Bool = false) async -> Result<Void, TKAuthError> {
+        guard provider.supportsOAuth else { return .failure(.unsupported) }
         let pkce = PKCE()
         let config = self.oauthConfig(for: provider, pkce: pkce)
         guard let authorizeURL = config.authorizeURL else { return .failure("Bad authorize URL") }
@@ -183,10 +184,10 @@ public final class TKAuthManager {
         print("Open this URL in a browser if it did not open automatically:\n  \(authorizeURL.absoluteString)\n")
         print("After authorizing, paste the resulting code (full callback URL or code parameter) here:")
         guard let input = readLine(), !input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-            return .failure("No code entered")
+            return .failure(.general("No code entered"))
         }
         let code = Self.parseCode(from: input)
-        guard !code.isEmpty else { return .failure("Could not extract code") }
+        guard !code.isEmpty else { return .failure(.general("Could not extract code")) }
 
         let tokenResult = await OAuthTokenExchanger.exchange(
             config: config,
@@ -194,22 +195,7 @@ public final class TKAuthManager {
             pkce: pkce,
             timeout: timeout
         )
-        switch tokenResult {
-        case let .success(token):
-            do {
-                try self.setCredential(key: "\(config.prefix)_ACCESS_TOKEN", value: token.access)
-                try self.setCredential(key: "\(config.prefix)_REFRESH_TOKEN", value: token.refresh)
-                try self.setCredential(key: "\(config.prefix)_ACCESS_EXPIRES", value: String(Int(token.expires.timeIntervalSince1970)))
-                if let beta = config.betaHeader {
-                    try self.setCredential(key: "\(config.prefix)_BETA_HEADER", value: beta)
-                }
-                return .success(())
-            } catch {
-                return .failure("Failed to store tokens: \(error)")
-            }
-        case let .failure(reason):
-            return .failure(reason)
-        }
+        return self.persistOAuthResult(tokenResult, config: config)
     }
 
     private func oauthConfig(for provider: TKProviderId, pkce: PKCE) -> OAuthConfig {
@@ -293,19 +279,29 @@ public final class TKAuthManager {
         )
         switch tokenResult {
         case let .success(token):
-            do {
-                try self.setCredential(key: "\(prefix)_ACCESS_TOKEN", value: token.access)
-                try self.setCredential(key: "\(prefix)_REFRESH_TOKEN", value: token.refresh)
-                try self.setCredential(key: "\(prefix)_ACCESS_EXPIRES", value: String(Int(token.expires.timeIntervalSince1970)))
-                if let beta = config.betaHeader {
-                    try self.setCredential(key: "\(prefix)_BETA_HEADER", value: beta)
-                }
-                return .bearer(token.access, betaHeader: config.betaHeader)
-            } catch {
-                return nil
-            }
+            _ = self.persistOAuthResult(tokenResult, config: config)
+            return .bearer(token.access, betaHeader: config.betaHeader)
         case .failure:
             return nil
+        }
+    }
+
+    private func persistOAuthResult(_ result: OAuthTokenResult, config: OAuthConfig) -> Result<Void, TKAuthError> {
+        switch result {
+        case let .success(token):
+            do {
+                try self.setCredential(key: "\(config.prefix)_ACCESS_TOKEN", value: token.access)
+                try self.setCredential(key: "\(config.prefix)_REFRESH_TOKEN", value: token.refresh)
+                try self.setCredential(key: "\(config.prefix)_ACCESS_EXPIRES", value: String(Int(token.expires.timeIntervalSince1970)))
+                if let beta = config.betaHeader {
+                    try self.setCredential(key: "\(config.prefix)_BETA_HEADER", value: beta)
+                }
+                return .success(())
+            } catch {
+                return .failure(.general("Failed to store tokens: \(error)"))
+            }
+        case let .failure(reason):
+            return .failure(.general(reason))
         }
     }
 }
@@ -412,6 +408,11 @@ enum OAuthTokenExchanger {
     }
 }
 
+public enum TKAuthError: Error, Sendable {
+    case unsupported
+    case general(String)
+}
+
 struct TKProviderValidator {
     let timeoutSeconds: Double
 
@@ -466,13 +467,9 @@ enum HTTP {
     static func perform(
         request: URLRequest,
         timeoutSeconds: Double,
-        session: URLSession = URLSession(configuration: {
-            let config = URLSessionConfiguration.ephemeral
-            config.timeoutIntervalForRequest = timeoutSeconds
-            config.timeoutIntervalForResource = timeoutSeconds
-            return config
-        }())
+        session: URLSession? = nil
     ) async -> TKValidationResult {
+        let session = session ?? Self.makeSession(timeoutSeconds: timeoutSeconds)
         do {
             let (_, response) = try await session.data(for: request)
             guard let http = response as? HTTPURLResponse else { return .failure("invalid response") }
@@ -490,13 +487,9 @@ enum HTTP {
         request: URLRequest,
         body: [String: Any],
         timeoutSeconds: Double,
-        session: URLSession = URLSession(configuration: {
-            let config = URLSessionConfiguration.ephemeral
-            config.timeoutIntervalForRequest = timeoutSeconds
-            config.timeoutIntervalForResource = timeoutSeconds
-            return config
-        }())
+        session: URLSession? = nil
     ) async -> TKValidationResultJSON {
+        let session = session ?? Self.makeSession(timeoutSeconds: timeoutSeconds)
         var req = request
         req.httpBody = try? JSONSerialization.data(withJSONObject: body)
         return await self.performJSON(request: req, timeoutSeconds: timeoutSeconds, session: session)
@@ -505,13 +498,9 @@ enum HTTP {
     static func performJSON(
         request: URLRequest,
         timeoutSeconds: Double,
-        session: URLSession = URLSession(configuration: {
-            let config = URLSessionConfiguration.ephemeral
-            config.timeoutIntervalForRequest = timeoutSeconds
-            config.timeoutIntervalForResource = timeoutSeconds
-            return config
-        }())
+        session: URLSession? = nil
     ) async -> TKValidationResultJSON {
+        let session = session ?? Self.makeSession(timeoutSeconds: timeoutSeconds)
         do {
             let (data, response) = try await session.data(for: request)
             guard let http = response as? HTTPURLResponse else { return .failure("invalid response") }
@@ -535,6 +524,15 @@ enum TKValidationResultJSON {
     case success([String: Any])
     case failure(String)
     case timeout(Double)
+}
+
+private extension HTTP {
+    static func makeSession(timeoutSeconds: Double) -> URLSession {
+        let config = URLSessionConfiguration.ephemeral
+        config.timeoutIntervalForRequest = timeoutSeconds
+        config.timeoutIntervalForResource = timeoutSeconds
+        return URLSession(configuration: config)
+    }
 }
 
 private extension URL {

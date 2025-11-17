@@ -107,6 +107,7 @@ private final class MockURLProtocol: URLProtocol {
 private extension URLSession {
     static func mock(status: Int) -> URLSession {
         MockURLProtocol.statusCode = status
+        MockURLProtocol.responseBody = nil
         let config = URLSessionConfiguration.ephemeral
         config.protocolClasses = [MockURLProtocol.self]
         return URLSession(configuration: config)
