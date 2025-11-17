@@ -41,6 +41,11 @@ let package = Package(
         .executable(
             name: "ai-cli",
             targets: ["AICLI"]),
+
+        // Config/auth helper CLI
+        .executable(
+            name: "tk-config",
+            targets: ["TachikomaConfigCLI"]),
     ],
     dependencies: [
         .package(path: "../Commander"),
@@ -147,6 +152,16 @@ let package = Package(
                 "README.md",
             ],
             sources: ["Sources/AI-CLI.swift"],
+            swiftSettings: tachikomaSwiftSettings),
+
+        // Config/auth helper CLI target
+        .executableTarget(
+            name: "TachikomaConfigCLI",
+            dependencies: [
+                "Tachikoma",
+                .product(name: "Commander", package: "Commander")
+            ],
+            path: "Sources/TachikomaConfigCLI",
             swiftSettings: tachikomaSwiftSettings),
     ],
     swiftLanguageModes: [.v6])
