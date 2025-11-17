@@ -98,21 +98,26 @@ public struct TKCredentialStore {
     }
 }
 
-public final class TKAuthManager: @unchecked Sendable {
-    public nonisolated static let shared = TKAuthManager()
+public final class TKAuthManager {
+    public nonisolated(unsafe) static let shared = TKAuthManager()
 
     private let store = TKCredentialStore()
+    private let lock = NSLock()
 
     private init() {}
 
     public func credentialValue(for key: String) -> String? {
+        self.lock.lock()
         let creds = self.store.load()
+        self.lock.unlock()
         if let env = ProcessInfo.processInfo.environment[key], !env.isEmpty { return env }
         return creds[key]
     }
 
     public func resolveAuth(for provider: TKProviderId) -> TKAuthValue? {
+        self.lock.lock()
         let creds = self.store.load()
+        self.lock.unlock()
         switch provider {
         case .openai:
             if let env = ProcessInfo.processInfo.environment["OPENAI_API_KEY"], !env.isEmpty {
@@ -153,9 +158,11 @@ public final class TKAuthManager: @unchecked Sendable {
     }
 
     public func setCredential(key: String, value: String) throws {
+        self.lock.lock()
         var creds = self.store.load()
         creds[key] = value
         try self.store.save(creds)
+        self.lock.unlock()
     }
 
     // MARK: Validation
