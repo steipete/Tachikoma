@@ -1,7 +1,4 @@
 import Foundation
-#if canImport(CryptoKit)
-import CryptoKit
-#endif
 #if os(iOS) || os(tvOS) || os(watchOS)
 import UIKit
 #endif
