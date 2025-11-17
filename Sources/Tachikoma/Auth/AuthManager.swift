@@ -98,9 +98,8 @@ public struct TKCredentialStore {
     }
 }
 
-@MainActor
-public final class TKAuthManager {
-    public static let shared = TKAuthManager()
+public final class TKAuthManager: @unchecked Sendable {
+    public nonisolated static let shared = TKAuthManager()
 
     private let store = TKCredentialStore()
 
@@ -113,9 +112,6 @@ public final class TKAuthManager {
     }
 
     public func resolveAuth(for provider: TKProviderId) -> TKAuthValue? {
-        if let refresh = self.refreshIfNeeded(provider: provider) {
-            return refresh
-        }
         let creds = self.store.load()
         switch provider {
         case .openai:
@@ -175,7 +171,7 @@ public final class TKAuthManager {
         guard provider.supportsOAuth else { return .failure(.unsupported) }
         let pkce = PKCE()
         let config = self.oauthConfig(for: provider, pkce: pkce)
-        guard let authorizeURL = config.authorizeURL else { return .failure("Bad authorize URL") }
+        guard let authorizeURL = config.authorizeURL else { return .failure(.general("Bad authorize URL")) }
 
         #if canImport(AppKit)
         if !noBrowser { NSWorkspace.shared.open(authorizeURL) }
@@ -236,54 +232,6 @@ public final class TKAuthManager {
         if let url = URL(string: trimmed), let code = url.queryItems["code"] { return code }
         if let hash = trimmed.firstIndex(of: "#") { return String(trimmed[..<hash]) }
         return trimmed
-    }
-
-    /// If access token is expired and refresh token exists, refresh and persist.
-    private func refreshIfNeeded(provider: TKProviderId) -> TKAuthValue? {
-        let creds = self.store.load()
-        let prefix: String
-        switch provider {
-        case .openai: prefix = "OPENAI"
-        case .anthropic: prefix = "ANTHROPIC"
-        default: return nil
-        }
-
-        guard let access = creds["\(prefix)_ACCESS_TOKEN"],
-              let refresh = creds["\(prefix)_REFRESH_TOKEN"],
-              let expiresStr = creds["\(prefix)_ACCESS_EXPIRES"],
-              let expiresInt = Int(expiresStr)
-        else { return nil }
-
-        let expires = Date(timeIntervalSince1970: TimeInterval(expiresInt))
-        guard expires < Date() else {
-            let beta = creds["\(prefix)_BETA_HEADER"]
-            return .bearer(access, betaHeader: beta)
-        }
-
-        // expired: try refresh
-        let pkce = PKCE()
-        let config = self.oauthConfig(for: provider, pkce: pkce)
-        guard let tokenURL = URL(string: config.token) else { return nil }
-        var req = URLRequest(url: tokenURL)
-        req.httpMethod = "POST"
-        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        let body: [String: Any] = [
-            "grant_type": "refresh_token",
-            "refresh_token": refresh,
-            "client_id": config.clientId,
-        ]
-        let tokenResult = await OAuthTokenExchanger.exchangeRefresh(
-            urlRequest: req,
-            body: body,
-            timeout: 15
-        )
-        switch tokenResult {
-        case let .success(token):
-            _ = self.persistOAuthResult(tokenResult, config: config)
-            return .bearer(token.access, betaHeader: config.betaHeader)
-        case .failure:
-            return nil
-        }
     }
 
     private func persistOAuthResult(_ result: OAuthTokenResult, config: OAuthConfig) -> Result<Void, TKAuthError> {

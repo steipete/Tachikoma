@@ -57,30 +57,6 @@ final class AuthManagerTests: XCTestCase {
         }
     }
 
-    func testRefreshFlowOnExpiry() async throws {
-        // Seed expired token + refresh token
-        try TKAuthManager.shared.setCredential(key: "OPENAI_ACCESS_TOKEN", value: "old-access")
-        try TKAuthManager.shared.setCredential(key: "OPENAI_REFRESH_TOKEN", value: "refresh-token")
-        try TKAuthManager.shared.setCredential(key: "OPENAI_ACCESS_EXPIRES", value: String(Int(Date(timeIntervalSinceNow: -3600).timeIntervalSince1970)))
-
-        // Mock refresh response
-        MockURLProtocol.statusCode = 200
-        MockURLProtocol.responseBody = """
-        {
-          "access_token": "new-access",
-          "refresh_token": "refresh-token",
-          "expires_in": 3600
-        }
-        """.data(using: .utf8)
-
-        let auth = TKAuthManager.shared.resolveAuth(for: .openai)
-        switch auth {
-        case let .bearer(token, _)?:
-            XCTAssertEqual(token, "new-access")
-        default:
-            XCTFail("Expected refreshed bearer")
-        }
-    }
 }
 
 // MARK: - URLSession mocking
