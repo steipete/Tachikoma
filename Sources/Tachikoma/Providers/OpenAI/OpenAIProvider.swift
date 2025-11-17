@@ -13,6 +13,7 @@ public final class OpenAIProvider: ModelProvider {
 
     private let model: LanguageModel.OpenAI
     private let session: URLSession
+    private let auth: Auth
 
     public init(
         model: LanguageModel.OpenAI,
@@ -24,8 +25,11 @@ public final class OpenAIProvider: ModelProvider {
         self.baseURL = configuration.getBaseURL(for: .openai) ?? "https://api.openai.com/v1"
         self.session = session
 
-        // Get API key from configuration system (environment or credentials)
-        if let key = configuration.getAPIKey(for: .openai) {
+        if let access = configuration.credentialValue(for: "OPENAI_ACCESS_TOKEN") {
+            self.auth = .oauth(access: access)
+            self.apiKey = access
+        } else if let key = configuration.getAPIKey(for: .openai) {
+            self.auth = .apiKey(key)
             self.apiKey = key
         } else {
             throw TachikomaError.authenticationFailed("OPENAI_API_KEY not found")
@@ -77,4 +81,9 @@ public final class OpenAIProvider: ModelProvider {
             session: self.session,
         )
     }
+}
+
+private enum Auth {
+    case apiKey(String)
+    case oauth(access: String)
 }

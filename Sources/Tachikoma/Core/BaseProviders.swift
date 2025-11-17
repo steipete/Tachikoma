@@ -14,14 +14,19 @@ public final class AnthropicProvider: ModelProvider {
     public let capabilities: ModelCapabilities
 
     private let model: LanguageModel.Anthropic
+    private let auth: Auth
 
     public init(model: LanguageModel.Anthropic, configuration: TachikomaConfiguration) throws {
         self.model = model
         self.modelId = model.modelId
         self.baseURL = configuration.getBaseURL(for: .anthropic) ?? "https://api.anthropic.com"
 
-        // Get API key from configuration system (environment or credentials)
-        if let key = configuration.getAPIKey(for: .anthropic) {
+        if let access = configuration.credentialValue(for: "ANTHROPIC_ACCESS_TOKEN") {
+            let beta = configuration.credentialValue(for: "ANTHROPIC_BETA_HEADER")
+            self.auth = .oauth(access: access, beta: beta)
+            self.apiKey = access
+        } else if let key = configuration.getAPIKey(for: .anthropic) {
+            self.auth = .apiKey(key)
             self.apiKey = key
         } else {
             throw TachikomaError.authenticationFailed("ANTHROPIC_API_KEY not found")
@@ -46,7 +51,7 @@ public final class AnthropicProvider: ModelProvider {
         let url = URL(string: "https://api.anthropic.com/v1/messages")!
         var urlRequest = URLRequest(url: url)
         urlRequest.httpMethod = "POST"
-        urlRequest.setValue(apiKey, forHTTPHeaderField: "x-api-key")
+        self.applyAuth(to: &urlRequest, secret: apiKey)
         urlRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
         urlRequest.setValue("2023-06-01", forHTTPHeaderField: "anthropic-version")
 
@@ -168,6 +173,23 @@ public final class AnthropicProvider: ModelProvider {
         )
     }
 
+    private func applyAuth(to request: inout URLRequest, secret: String) {
+        switch self.auth {
+        case let .apiKey(key):
+            request.setValue(key, forHTTPHeaderField: "x-api-key")
+        case let .oauth(access, beta):
+            request.setValue("Bearer " + access, forHTTPHeaderField: "Authorization")
+            if let beta {
+                request.setValue(beta, forHTTPHeaderField: "anthropic-beta")
+            }
+        }
+    }
+
+    private enum Auth {
+        case apiKey(String)
+        case oauth(access: String, beta: String?)
+    }
+
     public func streamText(request: ProviderRequest) async throws -> AsyncThrowingStream<TextStreamDelta, Error> {
         guard let apiKey else {
             throw TachikomaError.authenticationFailed("Anthropic API key not found")
@@ -176,7 +198,7 @@ public final class AnthropicProvider: ModelProvider {
         let url = URL(string: "https://api.anthropic.com/v1/messages")!
         var urlRequest = URLRequest(url: url)
         urlRequest.httpMethod = "POST"
-        urlRequest.setValue(apiKey, forHTTPHeaderField: "x-api-key")
+        self.applyAuth(to: &urlRequest, secret: apiKey)
         urlRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
         urlRequest.setValue("2023-06-01", forHTTPHeaderField: "anthropic-version")
 
