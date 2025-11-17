@@ -389,11 +389,16 @@ struct TKProviderValidator {
 }
 
 enum HTTP {
-    static func perform(request: URLRequest, timeoutSeconds: Double) async -> TKValidationResult {
-        let config = URLSessionConfiguration.ephemeral
-        config.timeoutIntervalForRequest = timeoutSeconds
-        config.timeoutIntervalForResource = timeoutSeconds
-        let session = URLSession(configuration: config)
+    static func perform(
+        request: URLRequest,
+        timeoutSeconds: Double,
+        session: URLSession = URLSession(configuration: {
+            let config = URLSessionConfiguration.ephemeral
+            config.timeoutIntervalForRequest = timeoutSeconds
+            config.timeoutIntervalForResource = timeoutSeconds
+            return config
+        }())
+    ) async -> TKValidationResult {
         do {
             let (_, response) = try await session.data(for: request)
             guard let http = response as? HTTPURLResponse else { return .failure("invalid response") }
@@ -407,20 +412,34 @@ enum HTTP {
         }
     }
 
-    static func postJSON(request: URLRequest, body: [String: Any], timeoutSeconds: Double) async -> TKValidationResultJSON {
+    static func postJSON(
+        request: URLRequest,
+        body: [String: Any],
+        timeoutSeconds: Double,
+        session: URLSession = URLSession(configuration: {
+            let config = URLSessionConfiguration.ephemeral
+            config.timeoutIntervalForRequest = timeoutSeconds
+            config.timeoutIntervalForResource = timeoutSeconds
+            return config
+        }())
+    ) async -> TKValidationResultJSON {
         var req = request
         req.httpBody = try? JSONSerialization.data(withJSONObject: body)
-        return await self.performJSON(request: req, timeoutSeconds: timeoutSeconds)
+        return await self.performJSON(request: req, timeoutSeconds: timeoutSeconds, session: session)
     }
 
-    static func performJSON(request: URLRequest, timeoutSeconds: Double) async -> TKValidationResultJSON {
-        var req = request
-        let config = URLSessionConfiguration.ephemeral
-        config.timeoutIntervalForRequest = timeoutSeconds
-        config.timeoutIntervalForResource = timeoutSeconds
-        let session = URLSession(configuration: config)
+    static func performJSON(
+        request: URLRequest,
+        timeoutSeconds: Double,
+        session: URLSession = URLSession(configuration: {
+            let config = URLSessionConfiguration.ephemeral
+            config.timeoutIntervalForRequest = timeoutSeconds
+            config.timeoutIntervalForResource = timeoutSeconds
+            return config
+        }())
+    ) async -> TKValidationResultJSON {
         do {
-            let (data, response) = try await session.data(for: req)
+            let (data, response) = try await session.data(for: request)
             guard let http = response as? HTTPURLResponse else { return .failure("invalid response") }
             if (200...299).contains(http.statusCode) {
                 if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
