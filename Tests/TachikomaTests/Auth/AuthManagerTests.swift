@@ -56,12 +56,38 @@ final class AuthManagerTests: XCTestCase {
             XCTFail("Expected failure")
         }
     }
+
+    func testRefreshFlowOnExpiry() async throws {
+        // Seed expired token + refresh token
+        try TKAuthManager.shared.setCredential(key: "OPENAI_ACCESS_TOKEN", value: "old-access")
+        try TKAuthManager.shared.setCredential(key: "OPENAI_REFRESH_TOKEN", value: "refresh-token")
+        try TKAuthManager.shared.setCredential(key: "OPENAI_ACCESS_EXPIRES", value: String(Int(Date(timeIntervalSinceNow: -3600).timeIntervalSince1970)))
+
+        // Mock refresh response
+        MockURLProtocol.statusCode = 200
+        MockURLProtocol.responseBody = """
+        {
+          "access_token": "new-access",
+          "refresh_token": "refresh-token",
+          "expires_in": 3600
+        }
+        """.data(using: .utf8)
+
+        let auth = TKAuthManager.shared.resolveAuth(for: .openai)
+        switch auth {
+        case let .bearer(token, _)?:
+            XCTAssertEqual(token, "new-access")
+        default:
+            XCTFail("Expected refreshed bearer")
+        }
+    }
 }
 
 // MARK: - URLSession mocking
 
 private final class MockURLProtocol: URLProtocol {
     static var statusCode: Int = 200
+    static var responseBody: Data? = nil
 
     override class func canInit(with request: URLRequest) -> Bool { true }
     override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
@@ -72,7 +98,7 @@ private final class MockURLProtocol: URLProtocol {
             httpVersion: nil,
             headerFields: nil)!
         self.client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
-        self.client?.urlProtocol(self, didLoad: Data())
+        self.client?.urlProtocol(self, didLoad: Self.responseBody ?? Data())
         self.client?.urlProtocolDidFinishLoading(self)
     }
     override func stopLoading() {}

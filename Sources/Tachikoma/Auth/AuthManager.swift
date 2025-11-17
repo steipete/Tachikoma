@@ -112,12 +112,15 @@ public final class TKAuthManager {
     }
 
     public func resolveAuth(for provider: TKProviderId) -> TKAuthValue? {
+        if let refresh = self.refreshIfNeeded(provider: provider) {
+            return refresh
+        }
+        let creds = self.store.load()
         switch provider {
         case .openai:
             if let env = ProcessInfo.processInfo.environment["OPENAI_API_KEY"], !env.isEmpty {
                 return .bearer(env, betaHeader: nil)
             }
-            let creds = self.store.load()
             if let access = creds["OPENAI_ACCESS_TOKEN"], !access.isEmpty {
                 return .bearer(access, betaHeader: nil)
             }
@@ -128,7 +131,6 @@ public final class TKAuthManager {
             if let env = ProcessInfo.processInfo.environment["ANTHROPIC_API_KEY"], !env.isEmpty {
                 return .apiKey(env)
             }
-            let creds = self.store.load()
             if let access = creds["ANTHROPIC_ACCESS_TOKEN"], !access.isEmpty {
                 let beta = creds["ANTHROPIC_BETA_HEADER"]
                 return .bearer(access, betaHeader: beta)
@@ -141,7 +143,6 @@ public final class TKAuthManager {
             for k in envOrder {
                 if let env = ProcessInfo.processInfo.environment[k], !env.isEmpty { return .bearer(env, betaHeader: nil) }
             }
-            let creds = self.store.load()
             for k in envOrder {
                 if let val = creds[k], !val.isEmpty { return .bearer(val, betaHeader: nil) }
             }
@@ -149,7 +150,6 @@ public final class TKAuthManager {
             if let env = ProcessInfo.processInfo.environment["GEMINI_API_KEY"], !env.isEmpty {
                 return .apiKey(env)
             }
-            let creds = self.store.load()
             if let val = creds["GEMINI_API_KEY"], !val.isEmpty { return .apiKey(val) }
         }
         return nil
@@ -251,6 +251,63 @@ public final class TKAuthManager {
         if let hash = trimmed.firstIndex(of: "#") { return String(trimmed[..<hash]) }
         return trimmed
     }
+
+    /// If access token is expired and refresh token exists, refresh and persist.
+    private func refreshIfNeeded(provider: TKProviderId) -> TKAuthValue? {
+        let creds = self.store.load()
+        let prefix: String
+        switch provider {
+        case .openai: prefix = "OPENAI"
+        case .anthropic: prefix = "ANTHROPIC"
+        default: return nil
+        }
+
+        guard let access = creds["\(prefix)_ACCESS_TOKEN"],
+              let refresh = creds["\(prefix)_REFRESH_TOKEN"],
+              let expiresStr = creds["\(prefix)_ACCESS_EXPIRES"],
+              let expiresInt = Int(expiresStr)
+        else { return nil }
+
+        let expires = Date(timeIntervalSince1970: TimeInterval(expiresInt))
+        guard expires < Date() else {
+            let beta = creds["\(prefix)_BETA_HEADER"]
+            return .bearer(access, betaHeader: beta)
+        }
+
+        // expired: try refresh
+        let pkce = PKCE()
+        let config = self.oauthConfig(for: provider, pkce: pkce)
+        guard let tokenURL = URL(string: config.token) else { return nil }
+        var req = URLRequest(url: tokenURL)
+        req.httpMethod = "POST"
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        let body: [String: Any] = [
+            "grant_type": "refresh_token",
+            "refresh_token": refresh,
+            "client_id": config.clientId,
+        ]
+        let tokenResult = await OAuthTokenExchanger.exchangeRefresh(
+            urlRequest: req,
+            body: body,
+            timeout: 15
+        )
+        switch tokenResult {
+        case let .success(token):
+            do {
+                try self.setCredential(key: "\(prefix)_ACCESS_TOKEN", value: token.access)
+                try self.setCredential(key: "\(prefix)_REFRESH_TOKEN", value: token.refresh)
+                try self.setCredential(key: "\(prefix)_ACCESS_EXPIRES", value: String(Int(token.expires.timeIntervalSince1970)))
+                if let beta = config.betaHeader {
+                    try self.setCredential(key: "\(prefix)_BETA_HEADER", value: beta)
+                }
+                return .bearer(token.access, betaHeader: config.betaHeader)
+            } catch {
+                return nil
+            }
+        case .failure:
+            return nil
+        }
+    }
 }
 
 // MARK: - Helpers
@@ -322,6 +379,23 @@ enum OAuthTokenExchanger {
         config.extraToken.forEach { body[$0.key] = $0.value }
 
         switch await HTTP.postJSON(request: req, body: body, timeoutSeconds: timeout) {
+        case let .success(json):
+            guard
+                let access = json["access_token"] as? String,
+                let refresh = json["refresh_token"] as? String,
+                let expiresIn = json["expires_in"] as? Double
+            else { return .failure("Invalid token response") }
+            let expires = Date().addingTimeInterval(expiresIn)
+            return .success(OAuthToken(access: access, refresh: refresh, expires: expires))
+        case let .failure(reason):
+            return .failure(reason)
+        case let .timeout(seconds):
+            return .failure("timed out after \(Int(seconds))s")
+        }
+    }
+
+    static func exchangeRefresh(urlRequest: URLRequest, body: [String: Any], timeout: Double) async -> OAuthTokenResult {
+        switch await HTTP.postJSON(request: urlRequest, body: body, timeoutSeconds: timeout) {
         case let .success(json):
             guard
                 let access = json["access_token"] as? String,
