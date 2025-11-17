@@ -310,8 +310,8 @@ public final class StdioTransport: MCPTransport {
 
         let queue = isStderr ? self.stderrQueue : self.stdoutQueue
         let source = DispatchSource.makeReadSource(fileDescriptor: fd, queue: queue)
-        source.setEventHandler { [weak self, weak source] in
-            guard let self, let source else { return }
+        source.setEventHandler { [weak self] in
+            guard let self else { return }
             var buffer = [UInt8](repeating: 0, count: 8192)
             while true {
                 let count = read(fd, &buffer, buffer.count)
