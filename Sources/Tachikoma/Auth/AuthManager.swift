@@ -1,5 +1,5 @@
-import Foundation
 import CryptoKit
+import Foundation
 #if canImport(AppKit)
 import AppKit
 #endif
@@ -28,7 +28,13 @@ public enum TKProviderId: String, CaseIterable, Sendable {
     public var credentialKeys: [String] {
         switch self {
         case .openai: ["OPENAI_API_KEY", "OPENAI_ACCESS_TOKEN"]
-        case .anthropic: ["ANTHROPIC_API_KEY", "ANTHROPIC_ACCESS_TOKEN", "ANTHROPIC_BETA_HEADER", "ANTHROPIC_REFRESH_TOKEN", "ANTHROPIC_ACCESS_EXPIRES"]
+        case .anthropic: [
+                "ANTHROPIC_API_KEY",
+                "ANTHROPIC_ACCESS_TOKEN",
+                "ANTHROPIC_BETA_HEADER",
+                "ANTHROPIC_REFRESH_TOKEN",
+                "ANTHROPIC_ACCESS_EXPIRES",
+            ]
         case .grok: ["X_AI_API_KEY", "XAI_API_KEY", "GROK_API_KEY"]
         case .gemini: ["GEMINI_API_KEY"]
         }
@@ -84,12 +90,13 @@ public struct TKCredentialStore {
         try FileManager.default.createDirectory(
             atPath: self.baseDir,
             withIntermediateDirectories: true,
-            attributes: [.posixPermissions: 0o700])
+            attributes: [.posixPermissions: 0o700],
+        )
 
         let header = [
             "# Tachikoma credentials file",
             "# Sensitive; keep permissions strict",
-            ""
+            "",
         ]
         let body = credentials.sorted(by: { $0.key < $1.key }).map { "\($0.key)=\($0.value)" }
         let content = (header + body).joined(separator: "\n")
@@ -153,7 +160,10 @@ public final class TKAuthManager {
         case .grok:
             let envOrder = ["X_AI_API_KEY", "XAI_API_KEY", "GROK_API_KEY"]
             for k in envOrder {
-                if !self.ignoreEnv, let env = ProcessInfo.processInfo.environment[k], !env.isEmpty { return .bearer(env, betaHeader: nil) }
+                if !self.ignoreEnv, let env = ProcessInfo.processInfo.environment[k], !env.isEmpty { return .bearer(
+                    env,
+                    betaHeader: nil,
+                ) }
             }
             for k in envOrder {
                 if let val = creds[k], !val.isEmpty { return .bearer(val, betaHeader: nil) }
@@ -184,7 +194,12 @@ public final class TKAuthManager {
 
     // MARK: OAuth
 
-    public func oauthLogin(provider: TKProviderId, timeout: Double = 30, noBrowser: Bool = false) async -> Result<Void, TKAuthError> {
+    public func oauthLogin(
+        provider: TKProviderId,
+        timeout: Double = 30,
+        noBrowser: Bool = false,
+    ) async
+    -> Result<Void, TKAuthError> {
         guard provider.supportsOAuth else { return .failure(.unsupported) }
         let pkce = PKCE()
         let config = self.oauthConfig(for: provider, pkce: pkce)
@@ -206,7 +221,7 @@ public final class TKAuthManager {
             config: config,
             code: code,
             pkce: pkce,
-            timeout: timeout
+            timeout: timeout,
         )
         return self.persistOAuthResult(tokenResult, config: config)
     }
@@ -214,7 +229,7 @@ public final class TKAuthManager {
     private func oauthConfig(for provider: TKProviderId, pkce: PKCE) -> OAuthConfig {
         switch provider {
         case .openai:
-            return OAuthConfig(
+            OAuthConfig(
                 prefix: "OPENAI",
                 authorize: "https://auth.openai.com/oauth/authorize",
                 token: "https://auth.openai.com/oauth/token",
@@ -224,10 +239,10 @@ public final class TKAuthManager {
                 extraAuthorize: [:],
                 extraToken: [:],
                 betaHeader: nil,
-                pkce: pkce
+                pkce: pkce,
             )
         case .anthropic:
-            return OAuthConfig(
+            OAuthConfig(
                 prefix: "ANTHROPIC",
                 authorize: "https://claude.ai/oauth/authorize",
                 token: "https://console.anthropic.com/v1/oauth/token",
@@ -237,10 +252,21 @@ public final class TKAuthManager {
                 extraAuthorize: ["code": "true"],
                 extraToken: [:],
                 betaHeader: "oauth-2025-04-20,claude-code-20250219,interleaved-thinking-2025-05-14,fine-grained-tool-streaming-2025-05-14",
-                pkce: pkce
+                pkce: pkce,
             )
         case .grok, .gemini:
-            return OAuthConfig(prefix: "", authorize: "", token: "", clientId: "", scope: "", redirect: "", extraAuthorize: [:], extraToken: [:], betaHeader: nil, pkce: pkce)
+            OAuthConfig(
+                prefix: "",
+                authorize: "",
+                token: "",
+                clientId: "",
+                scope: "",
+                redirect: "",
+                extraAuthorize: [:],
+                extraToken: [:],
+                betaHeader: nil,
+                pkce: pkce,
+            )
         }
     }
 
@@ -257,7 +283,10 @@ public final class TKAuthManager {
             do {
                 try self.setCredential(key: "\(config.prefix)_ACCESS_TOKEN", value: token.access)
                 try self.setCredential(key: "\(config.prefix)_REFRESH_TOKEN", value: token.refresh)
-                try self.setCredential(key: "\(config.prefix)_ACCESS_EXPIRES", value: String(Int(token.expires.timeIntervalSince1970)))
+                try self.setCredential(
+                    key: "\(config.prefix)_ACCESS_EXPIRES",
+                    value: String(Int(token.expires.timeIntervalSince1970)),
+                )
                 if let beta = config.betaHeader {
                     try self.setCredential(key: "\(config.prefix)_BETA_HEADER", value: beta)
                 }
@@ -280,7 +309,7 @@ struct PKCE {
     init() {
         let data = Data((0..<32).map { _ in UInt8.random(in: 0...255) })
         self.verifier = data.urlSafeBase64()
-        self.challenge = Data(SHA256.hash(data: verifier.data(using: .utf8)!)).urlSafeBase64()
+        self.challenge = Data(SHA256.hash(data: self.verifier.data(using: .utf8)!)).urlSafeBase64()
     }
 }
 
@@ -344,8 +373,7 @@ enum OAuthTokenExchanger {
             guard
                 let access = json["access_token"] as? String,
                 let refresh = json["refresh_token"] as? String,
-                let expiresIn = json["expires_in"] as? Double
-            else { return .failure("Invalid token response") }
+                let expiresIn = json["expires_in"] as? Double else { return .failure("Invalid token response") }
             let expires = Date().addingTimeInterval(expiresIn)
             return .success(OAuthToken(access: access, refresh: refresh, expires: expires))
         case let .failure(reason):
@@ -355,14 +383,18 @@ enum OAuthTokenExchanger {
         }
     }
 
-    static func exchangeRefresh(urlRequest: URLRequest, body: [String: Any], timeout: Double) async -> OAuthTokenResult {
+    static func exchangeRefresh(
+        urlRequest: URLRequest,
+        body: [String: Any],
+        timeout: Double,
+    ) async
+    -> OAuthTokenResult {
         switch await HTTP.postJSON(request: urlRequest, body: body, timeoutSeconds: timeout) {
         case let .success(json):
             guard
                 let access = json["access_token"] as? String,
                 let refresh = json["refresh_token"] as? String,
-                let expiresIn = json["expires_in"] as? Double
-            else { return .failure("Invalid token response") }
+                let expiresIn = json["expires_in"] as? Double else { return .failure("Invalid token response") }
             let expires = Date().addingTimeInterval(expiresIn)
             return .success(OAuthToken(access: access, refresh: refresh, expires: expires))
         case let .failure(reason):
@@ -388,7 +420,7 @@ struct TKProviderValidator {
                 url: "https://api.openai.com/v1/models",
                 secret: secret,
                 header: "Authorization",
-                valuePrefix: "Bearer "
+                valuePrefix: "Bearer ",
             )
         case .anthropic:
             var request = URLRequest(url: URL(string: "https://api.anthropic.com/v1/messages")!)
@@ -400,7 +432,7 @@ struct TKProviderValidator {
                 "model": "claude-3-haiku-20241022",
                 "max_tokens": 1,
                 "messages": [
-                    ["role": "user", "content": "ping"]
+                    ["role": "user", "content": "ping"],
                 ],
             ])
             return await HTTP.perform(request: request, timeoutSeconds: self.timeoutSeconds)
@@ -409,7 +441,7 @@ struct TKProviderValidator {
                 url: "https://api.x.ai/v1/models",
                 secret: secret,
                 header: "Authorization",
-                valuePrefix: "Bearer "
+                valuePrefix: "Bearer ",
             )
         case .gemini:
             let url = "https://generativelanguage.googleapis.com/v1beta/models?key=\(secret)"
@@ -419,7 +451,13 @@ struct TKProviderValidator {
         }
     }
 
-    private func validateBearer(url: String, secret: String, header: String, valuePrefix: String) async -> TKValidationResult {
+    private func validateBearer(
+        url: String,
+        secret: String,
+        header: String,
+        valuePrefix: String,
+    ) async
+    -> TKValidationResult {
         var request = URLRequest(url: URL(string: url)!)
         request.httpMethod = "GET"
         request.setValue(valuePrefix + secret, forHTTPHeaderField: header)
@@ -432,8 +470,9 @@ enum HTTP {
     static func perform(
         request: URLRequest,
         timeoutSeconds: Double,
-        session: URLSession? = nil
-    ) async -> TKValidationResult {
+        session: URLSession? = nil,
+    ) async
+    -> TKValidationResult {
         let session = session ?? Self.makeSession(timeoutSeconds: timeoutSeconds)
         do {
             let (_, response) = try await session.data(for: request)
@@ -452,8 +491,9 @@ enum HTTP {
         request: URLRequest,
         body: [String: Any],
         timeoutSeconds: Double,
-        session: URLSession? = nil
-    ) async -> TKValidationResultJSON {
+        session: URLSession? = nil,
+    ) async
+    -> TKValidationResultJSON {
         let session = session ?? Self.makeSession(timeoutSeconds: timeoutSeconds)
         var req = request
         req.httpBody = try? JSONSerialization.data(withJSONObject: body)
@@ -463,8 +503,9 @@ enum HTTP {
     static func performJSON(
         request: URLRequest,
         timeoutSeconds: Double,
-        session: URLSession? = nil
-    ) async -> TKValidationResultJSON {
+        session: URLSession? = nil,
+    ) async
+    -> TKValidationResultJSON {
         let session = session ?? Self.makeSession(timeoutSeconds: timeoutSeconds)
         do {
             let (data, response) = try await session.data(for: request)
@@ -491,8 +532,8 @@ enum TKValidationResultJSON {
     case timeout(Double)
 }
 
-private extension HTTP {
-    static func makeSession(timeoutSeconds: Double) -> URLSession {
+extension HTTP {
+    fileprivate static func makeSession(timeoutSeconds: Double) -> URLSession {
         let config = URLSessionConfiguration.ephemeral
         config.timeoutIntervalForRequest = timeoutSeconds
         config.timeoutIntervalForResource = timeoutSeconds
@@ -500,16 +541,16 @@ private extension HTTP {
     }
 }
 
-private extension URL {
-    var queryItems: [String: String] {
+extension URL {
+    fileprivate var queryItems: [String: String] {
         URLComponents(url: self, resolvingAgainstBaseURL: false)?
             .queryItems?
             .reduce(into: [String: String]()) { $0[$1.name] = $1.value } ?? [:]
     }
 }
 
-private extension Data {
-    func urlSafeBase64() -> String {
+extension Data {
+    fileprivate func urlSafeBase64() -> String {
         self.base64EncodedString()
             .replacingOccurrences(of: "+", with: "-")
             .replacingOccurrences(of: "/", with: "_")

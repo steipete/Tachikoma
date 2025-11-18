@@ -22,7 +22,7 @@ public final class AzureOpenAIProvider: ModelProvider {
         apiVersion: String?,
         endpoint: String?,
         configuration: TachikomaConfiguration,
-        session: URLSession = .shared
+        session: URLSession = .shared,
     ) throws {
         self.modelId = deploymentId
         self.configuration = configuration
@@ -95,7 +95,7 @@ public final class AzureOpenAIProvider: ModelProvider {
             queryItems: [URLQueryItem(name: "api-version", value: self.apiVersion)],
             authHeaderName: self.authHeaderName,
             authHeaderValuePrefix: self.authHeaderValuePrefix,
-            session: self.session
+            session: self.session,
         )
     }
 
@@ -110,7 +110,7 @@ public final class AzureOpenAIProvider: ModelProvider {
             queryItems: [URLQueryItem(name: "api-version", value: self.apiVersion)],
             authHeaderName: self.authHeaderName,
             authHeaderValuePrefix: self.authHeaderValuePrefix,
-            session: self.session
+            session: self.session,
         )
     }
 }

@@ -21,6 +21,7 @@
 --commas always
 --semicolons never
 --ranges no-space
+--voidtype void
 --trimwhitespace always
 
 # Wrapping

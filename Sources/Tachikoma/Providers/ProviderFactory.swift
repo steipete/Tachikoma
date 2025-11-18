@@ -81,7 +81,8 @@ public struct ProviderFactory {
                 resource: resource,
                 apiVersion: apiVersion,
                 endpoint: endpoint,
-                configuration: configuration)
+                configuration: configuration,
+            )
 
         case let .custom(provider):
             // If the custom provider is a dynamic selection string (providerId/model),

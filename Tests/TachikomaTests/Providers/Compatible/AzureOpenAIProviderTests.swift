@@ -85,7 +85,7 @@ struct AzureOpenAIProviderTests {
             apiVersion: "2025-04-01-preview",
             endpoint: nil,
             configuration: config,
-            session: self.makeSession()
+            session: self.makeSession(),
         )
 
         let request = ProviderRequest(messages: [ModelMessage(role: .user, content: [.text("hi")])])
@@ -122,7 +122,7 @@ struct AzureOpenAIProviderTests {
             apiVersion: "2025-04-01-preview",
             endpoint: nil,
             configuration: TachikomaConfiguration(loadFromEnvironment: true),
-            session: self.makeSession()
+            session: self.makeSession(),
         )
 
         let request = ProviderRequest(messages: [ModelMessage(role: .user, content: [.text("hi")])])

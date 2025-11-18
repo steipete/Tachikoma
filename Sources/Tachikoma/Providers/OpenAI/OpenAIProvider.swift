@@ -97,9 +97,9 @@ public final class OpenAIProvider: ModelProvider {
     private func authHeader() -> (String, String, String) {
         switch self.auth {
         case let .apiKey(key):
-            return ("Authorization", "Bearer ", key)
+            ("Authorization", "Bearer ", key)
         case let .bearer(token, _):
-            return ("Authorization", "Bearer ", token)
+            ("Authorization", "Bearer ", token)
         }
     }
 }

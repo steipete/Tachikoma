@@ -14,7 +14,7 @@ struct OpenAIAudioProviderTests {
             try await TestHelpers.withTestConfiguration(apiKeys: ["openai": "test-api-key"]) { config in
                 let provider = try TranscriptionProviderFactory.createProvider(
                     for: .openai(.whisper1),
-                    configuration: config
+                    configuration: config,
                 )
 
                 #expect(provider.modelId == "whisper-1")
@@ -40,7 +40,7 @@ struct OpenAIAudioProviderTests {
             try await TestHelpers.withTestConfiguration(apiKeys: ["openai": "test-key"]) { config in
                 let whisperProvider = try TranscriptionProviderFactory.createProvider(
                     for: .openai(.whisper1),
-                    configuration: config
+                    configuration: config,
                 )
 
                 // Test model ID
@@ -57,7 +57,7 @@ struct OpenAIAudioProviderTests {
             try await TestHelpers.withTestConfiguration(apiKeys: ["openai": "test-key"]) { config in
                 let provider = try TranscriptionProviderFactory.createProvider(
                     for: .openai(.whisper1),
-                    configuration: config
+                    configuration: config,
                 )
 
                 let supportedFormats = provider.capabilities.supportedFormats

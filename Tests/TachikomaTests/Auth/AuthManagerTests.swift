@@ -77,17 +77,19 @@ private final class AuthMockURLProtocol: URLProtocol {
             url: self.request.url!,
             statusCode: Self.statusCode,
             httpVersion: nil,
-            headerFields: nil)!
+            headerFields: nil,
+        )!
         self.client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
         self.client?.urlProtocol(self, didLoad: Data())
         self.client?.urlProtocolDidFinishLoading(self)
     }
+
     override func stopLoading() {}
 }
 
-private extension URLSession {
+extension URLSession {
     @MainActor
-    static func mock(status: Int) -> URLSession {
+    fileprivate static func mock(status: Int) -> URLSession {
         AuthMockURLProtocol.statusCode = status
         let config = URLSessionConfiguration.ephemeral
         config.protocolClasses = [AuthMockURLProtocol.self]

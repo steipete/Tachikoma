@@ -18,13 +18,13 @@ struct TKConfigCLI {
 
         switch cmd {
         case "add":
-            await handleAdd(Array(args.dropFirst()))
+            await self.handleAdd(Array(args.dropFirst()))
         case "login":
-            await handleLogin(Array(args.dropFirst()))
+            await self.handleLogin(Array(args.dropFirst()))
         case "status", "show":
-            await handleStatus(Array(args.dropFirst()))
+            await self.handleStatus(Array(args.dropFirst()))
         case "init":
-            handleInit()
+            self.handleInit()
         default:
             print("Unknown command \(cmd)")
             self.printUsage()
@@ -60,7 +60,7 @@ struct TKConfigCLI {
         }
         let provider = mutable.removeFirst()
         let secret = mutable.removeFirst()
-        let timeout = parseTimeout(&mutable)
+        let timeout = self.parseTimeout(&mutable)
 
         guard let pid = TKProviderId.normalize(provider) else {
             print("Unsupported provider. Use openai|anthropic|grok|xai|gemini")
@@ -89,7 +89,7 @@ struct TKConfigCLI {
             exit(1)
         }
         mutable.removeFirst()
-        let timeout = parseTimeout(&mutable)
+        let timeout = self.parseTimeout(&mutable)
         let noBrowser = mutable.contains("--no-browser")
         guard let pid = TKProviderId.normalize(provider), pid.supportsOAuth else {
             print("OAuth supported providers: openai, anthropic")
@@ -105,13 +105,16 @@ struct TKConfigCLI {
     }
 
     private static func handleInit() {
-        let lines = TKConfigMessages.initGuidance.map { $0.replacingOccurrences(of: "{path}", with: "~/.tachikoma/config.json") }
+        let lines = TKConfigMessages.initGuidance.map { $0.replacingOccurrences(
+            of: "{path}",
+            with: "~/.tachikoma/config.json",
+        ) }
         print(lines.joined(separator: "\n"))
     }
 
     private static func handleStatus(_ raw: [String]) async {
         var mutable = raw
-        let timeout = parseTimeout(&mutable)
+        let timeout = self.parseTimeout(&mutable)
         print("Providers:")
         for pid in [TKProviderId.openai, .anthropic, .grok, .gemini] {
             let status = await TKConfigCLI.status(for: pid, timeout: timeout)
@@ -123,13 +126,13 @@ struct TKConfigCLI {
         let env = ProcessInfo.processInfo.environment
         if let source = envSource(pid: pid, env: env) {
             let validation = await TKAuthManager.shared.validate(provider: pid, secret: source.value, timeout: timeout)
-            return describe(source: "env \(source.key)", validation: validation)
+            return self.describe(source: "env \(source.key)", validation: validation)
         }
-        let credsSource = credentialSource(pid: pid)
+        let credsSource = self.credentialSource(pid: pid)
         switch credsSource {
         case let .some(source):
             let validation = await TKAuthManager.shared.validate(provider: pid, secret: source.value, timeout: timeout)
-            return describe(source: "credentials \(source.key)", validation: validation)
+            return self.describe(source: "credentials \(source.key)", validation: validation)
         case .none:
             return "missing"
         }
@@ -173,11 +176,11 @@ struct TKConfigCLI {
     private static func describe(source: String, validation: TKValidationResult) -> String {
         switch validation {
         case .success:
-            return "ready (\(source), validated)"
+            "ready (\(source), validated)"
         case let .failure(reason):
-            return "stored (\(source), validation failed: \(reason))"
+            "stored (\(source), validation failed: \(reason))"
         case let .timeout(sec):
-            return "stored (\(source), validation timed out after \(Int(sec))s)"
+            "stored (\(source), validation timed out after \(Int(sec))s)"
         }
     }
 }

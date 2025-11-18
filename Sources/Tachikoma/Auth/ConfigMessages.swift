@@ -15,6 +15,6 @@ public enum TKConfigMessages {
         "  peekaboo config login anthropic",
         "",
         "Use 'peekaboo config show --effective' to see detected env/creds,",
-        "and 'peekaboo config edit' to tweak the JSONC file if needed."
+        "and 'peekaboo config edit' to tweak the JSONC file if needed.",
     ]
 }
