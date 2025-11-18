@@ -73,6 +73,15 @@ struct ProviderSystemTests {
             // Test the actual provider constructors directly since ProviderFactory
             // uses MockProvider in test mode to avoid hitting real APIs
 
+            let previousOpenAI = getenv("OPENAI_API_KEY").flatMap { String(cString: $0) }
+            let previousAnthropic = getenv("ANTHROPIC_API_KEY").flatMap { String(cString: $0) }
+            unsetenv("OPENAI_API_KEY")
+            unsetenv("ANTHROPIC_API_KEY")
+            defer {
+                if let previousOpenAI { setenv("OPENAI_API_KEY", previousOpenAI, 1) }
+                if let previousAnthropic { setenv("ANTHROPIC_API_KEY", previousAnthropic, 1) }
+            }
+
             #expect(throws: TachikomaError.self) {
                 try OpenAIProvider(model: .gpt4o, configuration: config)
             }

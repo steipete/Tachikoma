@@ -29,7 +29,7 @@ public enum TKProviderId: String, CaseIterable, Sendable {
         switch self {
         case .openai: ["OPENAI_API_KEY", "OPENAI_ACCESS_TOKEN"]
         case .anthropic: ["ANTHROPIC_API_KEY", "ANTHROPIC_ACCESS_TOKEN", "ANTHROPIC_BETA_HEADER", "ANTHROPIC_REFRESH_TOKEN", "ANTHROPIC_ACCESS_EXPIRES"]
-        case .grok: ["GROK_API_KEY", "X_AI_API_KEY", "XAI_API_KEY"]
+        case .grok: ["X_AI_API_KEY", "XAI_API_KEY", "GROK_API_KEY"]
         case .gemini: ["GEMINI_API_KEY"]
         }
     }
@@ -103,14 +103,24 @@ public final class TKAuthManager {
 
     private let store = TKCredentialStore()
     private let lock = NSLock()
+    private var ignoreEnv = false
 
     private init() {}
+
+    @discardableResult
+    public func setIgnoreEnvironment(_ value: Bool) -> Bool {
+        self.lock.lock()
+        let previous = self.ignoreEnv
+        self.ignoreEnv = value
+        self.lock.unlock()
+        return previous
+    }
 
     public func credentialValue(for key: String) -> String? {
         self.lock.lock()
         let creds = self.store.load()
         self.lock.unlock()
-        if let env = ProcessInfo.processInfo.environment[key], !env.isEmpty { return env }
+        if !self.ignoreEnv, let env = ProcessInfo.processInfo.environment[key], !env.isEmpty { return env }
         return creds[key]
     }
 
@@ -120,7 +130,7 @@ public final class TKAuthManager {
         self.lock.unlock()
         switch provider {
         case .openai:
-            if let env = ProcessInfo.processInfo.environment["OPENAI_API_KEY"], !env.isEmpty {
+            if !self.ignoreEnv, let env = ProcessInfo.processInfo.environment["OPENAI_API_KEY"], !env.isEmpty {
                 return .bearer(env, betaHeader: nil)
             }
             if let access = creds["OPENAI_ACCESS_TOKEN"], !access.isEmpty {
@@ -130,7 +140,7 @@ public final class TKAuthManager {
                 return .apiKey(key)
             }
         case .anthropic:
-            if let env = ProcessInfo.processInfo.environment["ANTHROPIC_API_KEY"], !env.isEmpty {
+            if !self.ignoreEnv, let env = ProcessInfo.processInfo.environment["ANTHROPIC_API_KEY"], !env.isEmpty {
                 return .apiKey(env)
             }
             if let access = creds["ANTHROPIC_ACCESS_TOKEN"], !access.isEmpty {
@@ -141,15 +151,15 @@ public final class TKAuthManager {
                 return .apiKey(key)
             }
         case .grok:
-            let envOrder = ["GROK_API_KEY", "X_AI_API_KEY", "XAI_API_KEY"]
+            let envOrder = ["X_AI_API_KEY", "XAI_API_KEY", "GROK_API_KEY"]
             for k in envOrder {
-                if let env = ProcessInfo.processInfo.environment[k], !env.isEmpty { return .bearer(env, betaHeader: nil) }
+                if !self.ignoreEnv, let env = ProcessInfo.processInfo.environment[k], !env.isEmpty { return .bearer(env, betaHeader: nil) }
             }
             for k in envOrder {
                 if let val = creds[k], !val.isEmpty { return .bearer(val, betaHeader: nil) }
             }
         case .gemini:
-            if let env = ProcessInfo.processInfo.environment["GEMINI_API_KEY"], !env.isEmpty {
+            if !self.ignoreEnv, let env = ProcessInfo.processInfo.environment["GEMINI_API_KEY"], !env.isEmpty {
                 return .apiKey(env)
             }
             if let val = creds["GEMINI_API_KEY"], !val.isEmpty { return .apiKey(val) }

@@ -172,6 +172,9 @@ public func generateSpeech(
 ) async throws
     -> AudioData
 {
+    guard !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+        throw TachikomaError.invalidInput("Text must not be empty for text-to-speech.")
+    }
     let result = try await generateSpeech(
         text,
         using: .default,

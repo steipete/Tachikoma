@@ -14,11 +14,8 @@ struct AudioFunctionsTests {
             try await TestHelpers.withMockProviderEnvironment {
                 try await TestHelpers.withTestConfiguration(apiKeys: ["openai": "test-key"]) { config in
                     let audioData = TestHelpers.sampleAudioData(configuration: config)
-
-                    // Test convenience function that returns just text
                     let text = try await transcribe(audioData, language: "en", configuration: config)
-
-                    #expect(!text.isEmpty)
+                    #expect(text == "mock transcription")
                 }
             }
         }
@@ -37,7 +34,7 @@ struct AudioFunctionsTests {
                         configuration: config,
                     )
 
-                    #expect(!result.text.isEmpty)
+                    #expect(result.text == "mock transcription")
                     if let language = result.language?.lowercased() {
                         #expect(["en", "english"].contains(language))
                     }
@@ -63,7 +60,7 @@ struct AudioFunctionsTests {
                         configuration: config,
                     )
 
-                    #expect(!text.isEmpty)
+                    #expect(text == "mock transcription")
 
                     // Clean up
                     try? FileManager.default.removeItem(at: audioFile)

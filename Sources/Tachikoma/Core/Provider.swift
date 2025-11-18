@@ -91,7 +91,7 @@ public enum Provider: Sendable, Hashable, Codable {
         switch self {
         case .openai: "OPENAI_API_KEY"
         case .anthropic: "ANTHROPIC_API_KEY"
-        case .grok: "GROK_API_KEY"
+        case .grok: "X_AI_API_KEY"
         case .groq: "GROQ_API_KEY"
         case .mistral: "MISTRAL_API_KEY"
         case .google: "GEMINI_API_KEY"
@@ -105,7 +105,7 @@ public enum Provider: Sendable, Hashable, Codable {
     /// Alternative environment variable names (for compatibility)
     public var alternativeEnvironmentVariables: [String] {
         switch self {
-        case .grok: ["X_AI_API_KEY", "XAI_API_KEY"] // Alternative Grok API key names
+        case .grok: ["XAI_API_KEY"] // Additional Grok alias
         case .google: ["GOOGLE_API_KEY", "GOOGLE_APPLICATION_CREDENTIALS"] // Backwards compatibility
         case .azureOpenAI: ["AZURE_OPENAI_TOKEN", "AZURE_OPENAI_BEARER_TOKEN"]
         default: []
@@ -149,7 +149,7 @@ public enum Provider: Sendable, Hashable, Codable {
         switch identifier.lowercased() {
         case "openai": .openai
         case "anthropic": .anthropic
-        case "grok": .grok
+        case "grok", "xai": .grok
         case "groq": .groq
         case "mistral": .mistral
         case "google": .google

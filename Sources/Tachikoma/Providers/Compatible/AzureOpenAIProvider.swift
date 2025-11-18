@@ -14,6 +14,7 @@ public final class AzureOpenAIProvider: ModelProvider {
     private let resolvedAPIKey: String
     private let resolvedBaseURL: String
     private let configuration: TachikomaConfiguration
+    private let session: URLSession
 
     public init(
         deploymentId: String,
@@ -21,9 +22,11 @@ public final class AzureOpenAIProvider: ModelProvider {
         apiVersion: String?,
         endpoint: String?,
         configuration: TachikomaConfiguration,
+        session: URLSession = .shared
     ) throws {
         self.modelId = deploymentId
         self.configuration = configuration
+        self.session = session
 
         // Base URL resolution: explicit endpoint > configured base > env endpoint > resource name
         let envEndpoint = Provider.environmentValue(for: "AZURE_OPENAI_ENDPOINT")
@@ -33,7 +36,11 @@ public final class AzureOpenAIProvider: ModelProvider {
             let explicitEndpoint = endpoint ?? configuration.getBaseURL(for: .azureOpenAI) ?? envEndpoint,
             !explicitEndpoint.isEmpty
         {
-            self.resolvedBaseURL = explicitEndpoint
+            if explicitEndpoint.contains("://") {
+                self.resolvedBaseURL = explicitEndpoint
+            } else {
+                self.resolvedBaseURL = "https://\(explicitEndpoint)"
+            }
         } else if let resourceName = resource ?? envResource, !resourceName.isEmpty {
             self.resolvedBaseURL = "https://\(resourceName).openai.azure.com"
         } else {
@@ -88,6 +95,7 @@ public final class AzureOpenAIProvider: ModelProvider {
             queryItems: [URLQueryItem(name: "api-version", value: self.apiVersion)],
             authHeaderName: self.authHeaderName,
             authHeaderValuePrefix: self.authHeaderValuePrefix,
+            session: self.session
         )
     }
 
@@ -102,6 +110,7 @@ public final class AzureOpenAIProvider: ModelProvider {
             queryItems: [URLQueryItem(name: "api-version", value: self.apiVersion)],
             authHeaderName: self.authHeaderName,
             authHeaderValuePrefix: self.authHeaderValuePrefix,
+            session: self.session
         )
     }
 }

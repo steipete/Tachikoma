@@ -729,7 +729,7 @@ public final class MockTranscriptionProvider: TranscriptionProvider {
         // Check for abort signal again after delay
         try request.abortSignal?.throwIfCancelled()
 
-        let mockText = "Mock transcription result for audio file."
+        let mockText = "mock transcription"
         let mockDuration = request.audio.duration ?? 2.0
 
         // Create segments if timestamps are requested
@@ -741,9 +741,8 @@ public final class MockTranscriptionProvider: TranscriptionProvider {
                     start: 0.0,
                     end: mockDuration,
                     words: request.timestampGranularities.contains(.word) ? [
-                        TranscriptionWord(word: "Mock", start: 0.0, end: 0.5),
-                        TranscriptionWord(word: "transcription", start: 0.5, end: 1.5),
-                        TranscriptionWord(word: "result", start: 1.5, end: mockDuration),
+                        TranscriptionWord(word: "mock", start: 0.0, end: mockDuration / 2),
+                        TranscriptionWord(word: "transcription", start: mockDuration / 2, end: mockDuration),
                     ] : nil,
                 ),
             ]

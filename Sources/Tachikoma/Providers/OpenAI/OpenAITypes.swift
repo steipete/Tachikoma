@@ -228,7 +228,7 @@ struct OpenAITool: Codable {
 
 struct OpenAIChatResponse: Codable {
     let id: String
-    let choices: [Choice]
+    let choices: [Choice]?
     let usage: Usage?
 
     struct Choice: Codable {
@@ -265,9 +265,9 @@ struct OpenAIChatResponse: Codable {
     }
 
     struct Usage: Codable {
-        let promptTokens: Int
-        let completionTokens: Int
-        let totalTokens: Int
+        let promptTokens: Int?
+        let completionTokens: Int?
+        let totalTokens: Int?
 
         enum CodingKeys: String, CodingKey {
             case promptTokens = "prompt_tokens"

@@ -441,7 +441,7 @@ struct ResponsesTool: Codable {
 @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 struct OpenAIResponsesResponse: Codable, Sendable {
     let id: String
-    let object: String
+    let object: String?
     let createdAt: Int? // GPT-5 uses created_at
     let created: Int? // O3 uses created
     let status: String?

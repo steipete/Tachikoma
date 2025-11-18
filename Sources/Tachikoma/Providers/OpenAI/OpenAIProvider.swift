@@ -25,15 +25,20 @@ public final class OpenAIProvider: ModelProvider {
         self.baseURL = configuration.getBaseURL(for: .openai) ?? "https://api.openai.com/v1"
         self.session = session
 
-        guard let auth = TKAuthManager.shared.resolveAuth(for: .openai) else {
-            throw TachikomaError.authenticationFailed("OPENAI_API_KEY not found")
-        }
-        self.auth = auth
-        switch auth {
-        case let .apiKey(key):
+        // Prefer configuration-provided key first (test configs use this)
+        if let key = configuration.getAPIKey(for: .openai) {
+            self.auth = .bearer(key, betaHeader: nil)
             self.apiKey = key
-        case let .bearer(token, _):
-            self.apiKey = token
+        } else if let auth = TKAuthManager.shared.resolveAuth(for: .openai) {
+            self.auth = auth
+            switch auth {
+            case let .apiKey(key):
+                self.apiKey = key
+            case let .bearer(token, _):
+                self.apiKey = token
+            }
+        } else {
+            throw TachikomaError.authenticationFailed("OPENAI_API_KEY not found")
         }
 
         self.capabilities = ModelCapabilities(

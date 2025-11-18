@@ -11,6 +11,12 @@ enum TestHelpers {
     )
         -> TachikomaConfiguration
     {
+        // For tests that rely on profile fixtures, keep a deterministic dir unless empty config
+        if apiKeys.isEmpty {
+            TachikomaConfiguration.profileDirectoryName = ".tachikoma-tests-\(UUID().uuidString)"
+        } else {
+            // leave profileDirectoryName as-is so registry tests can load fixtures
+        }
         let config = TachikomaConfiguration(loadFromEnvironment: false)
         for (provider, key) in apiKeys {
             let resolved = self.resolve(provider: provider, provided: key)
@@ -52,6 +58,8 @@ enum TestHelpers {
     ) async rethrows
         -> T
     {
+        let previousIgnore = TKAuthManager.shared.setIgnoreEnvironment(false)
+        defer { TKAuthManager.shared.setIgnoreEnvironment(previousIgnore) }
         let config = self.createTestConfiguration(apiKeys: apiKeys)
         return try await body(config)
     }
@@ -74,6 +82,29 @@ enum TestHelpers {
     ) async rethrows
         -> T
     {
+        let previousIgnore = TKAuthManager.shared.setIgnoreEnvironment(true)
+        defer { TKAuthManager.shared.setIgnoreEnvironment(previousIgnore) }
+
+        let envKeys = [
+            "OPENAI_API_KEY",
+            "ANTHROPIC_API_KEY",
+            "XAI_API_KEY",
+            "X_AI_API_KEY",
+            "GROK_API_KEY",
+            "GEMINI_API_KEY",
+        ]
+        let saved = envKeys.map { key in (key, getenv(key).flatMap { String(cString: $0) }) }
+        envKeys.forEach { unsetenv($0) }
+        defer {
+            for (key, value) in saved {
+                if let value {
+                    setenv(key, value, 1)
+                } else {
+                    unsetenv(key)
+                }
+            }
+        }
+
         let config = self.createEmptyTestConfiguration()
         return try await body(config)
     }
@@ -165,7 +196,7 @@ enum TestHelpers {
         case "anthropic":
             ["ANTHROPIC_API_KEY"]
         case "grok":
-            ["XAI_API_KEY", "X_AI_API_KEY"]
+            ["XAI_API_KEY", "X_AI_API_KEY", "GROK_API_KEY"]
         case "groq":
             ["GROQ_API_KEY"]
         case "mistral":

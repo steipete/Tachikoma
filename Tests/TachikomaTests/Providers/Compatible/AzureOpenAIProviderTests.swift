@@ -28,7 +28,7 @@ private final class AzureTestURLProtocol: URLProtocol {
           "finish_reason": "stop"
         }
       ],
-      "usage": { "prompt_tokens": 1, "completion_tokens": 2, "total_tokens": 3 }
+      "usage": { "object": "list", "prompt_tokens": 1, "completion_tokens": 2, "total_tokens": 3 }
     }
     """.utf8Data()
 
@@ -67,14 +67,17 @@ private final class AzureTestURLProtocol: URLProtocol {
 
 @Suite("Azure OpenAI Provider", .serialized)
 struct AzureOpenAIProviderTests {
+    private func makeSession() -> URLSession {
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.protocolClasses = [AzureTestURLProtocol.self]
+        return URLSession(configuration: configuration)
+    }
+
     @Test("Builds Azure chat URL with api-version and api-key header")
     func buildsAzureURLAndHeaders() async throws {
         let config = TachikomaConfiguration(loadFromEnvironment: false)
         config.setAPIKey("test-key", for: .azureOpenAI)
         await AzureTestURLProtocol.reset()
-
-        URLProtocol.registerClass(AzureTestURLProtocol.self)
-        defer { URLProtocol.unregisterClass(AzureTestURLProtocol.self) }
 
         let provider = try AzureOpenAIProvider(
             deploymentId: "gpt-4o",
@@ -82,6 +85,7 @@ struct AzureOpenAIProviderTests {
             apiVersion: "2025-04-01-preview",
             endpoint: nil,
             configuration: config,
+            session: self.makeSession()
         )
 
         let request = ProviderRequest(messages: [ModelMessage(role: .user, content: [.text("hi")])])
@@ -112,15 +116,13 @@ struct AzureOpenAIProviderTests {
         }
         await AzureTestURLProtocol.reset()
 
-        URLProtocol.registerClass(AzureTestURLProtocol.self)
-        defer { URLProtocol.unregisterClass(AzureTestURLProtocol.self) }
-
         let provider = try AzureOpenAIProvider(
             deploymentId: "gpt-4o-mini",
             resource: nil,
             apiVersion: "2025-04-01-preview",
             endpoint: nil,
             configuration: TachikomaConfiguration(loadFromEnvironment: true),
+            session: self.makeSession()
         )
 
         let request = ProviderRequest(messages: [ModelMessage(role: .user, content: [.text("hi")])])

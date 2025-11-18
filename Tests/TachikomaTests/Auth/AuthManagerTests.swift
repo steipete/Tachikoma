@@ -3,6 +3,15 @@ import XCTest
 @testable import Tachikoma
 
 final class AuthManagerTests: XCTestCase {
+    override func setUp() {
+        super.setUp()
+        unsetenv("XAI_API_KEY")
+        unsetenv("X_AI_API_KEY")
+        unsetenv("GROK_API_KEY")
+        unsetenv("OPENAI_API_KEY")
+        unsetenv("ANTHROPIC_API_KEY")
+    }
+
     func testEnvPreferredOverCreds() throws {
         setenv("OPENAI_API_KEY", "env-key", 1)
         defer { unsetenv("OPENAI_API_KEY") }
@@ -18,6 +27,8 @@ final class AuthManagerTests: XCTestCase {
 
     func testGrokAliasEnv() {
         setenv("X_AI_API_KEY", "alias-key", 1)
+        unsetenv("XAI_API_KEY")
+        unsetenv("GROK_API_KEY")
         defer { unsetenv("X_AI_API_KEY") }
         let auth = TKAuthManager.shared.resolveAuth(for: .grok)
         switch auth {
@@ -28,6 +39,7 @@ final class AuthManagerTests: XCTestCase {
         }
     }
 
+    @MainActor
     func testValidateSuccessMock() async {
         let session = URLSession.mock(status: 200)
         let req = URLRequest(url: URL(string: "https://api.openai.com/v1/models")!)
@@ -38,6 +50,7 @@ final class AuthManagerTests: XCTestCase {
         }
     }
 
+    @MainActor
     func testValidateFailureMock() async {
         let session = URLSession.mock(status: 401)
         let req = URLRequest(url: URL(string: "https://api.openai.com/v1/models")!)
@@ -53,6 +66,7 @@ final class AuthManagerTests: XCTestCase {
 
 // MARK: - URLSession mocking
 
+@MainActor
 private final class AuthMockURLProtocol: URLProtocol {
     static var statusCode: Int = 200
 
@@ -72,6 +86,7 @@ private final class AuthMockURLProtocol: URLProtocol {
 }
 
 private extension URLSession {
+    @MainActor
     static func mock(status: Int) -> URLSession {
         AuthMockURLProtocol.statusCode = status
         let config = URLSessionConfiguration.ephemeral

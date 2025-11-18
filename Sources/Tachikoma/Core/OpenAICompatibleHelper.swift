@@ -92,13 +92,13 @@ struct OpenAICompatibleHelper {
         let decoder = JSONDecoder()
         let openAIResponse = try decoder.decode(OpenAIChatResponse.self, from: data)
 
-        guard let choice = openAIResponse.choices.first else {
+        guard let choice = openAIResponse.choices?.first else {
             throw TachikomaError.apiError("\(providerName) returned no choices")
         }
 
         let text = choice.message.content ?? ""
         let usage = openAIResponse.usage.map {
-            Usage(inputTokens: $0.promptTokens, outputTokens: $0.completionTokens)
+            Usage(inputTokens: $0.promptTokens ?? 0, outputTokens: $0.completionTokens ?? 0)
         }
 
         let finishReason: FinishReason? = switch choice.finishReason {
@@ -113,7 +113,7 @@ struct OpenAICompatibleHelper {
         let toolCalls = choice.message.toolCalls?.compactMap { openAIToolCall -> AgentToolCall? in
             // Parse JSON string to dictionary and convert to AnyAgentToolValue format
             guard
-                let data = openAIToolCall.function.arguments.data(using: .utf8),
+                let data = openAIToolCall.function.arguments.data(using: String.Encoding.utf8),
                 let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else
             {
                 return nil

@@ -21,15 +21,19 @@ public final class AnthropicProvider: ModelProvider {
         self.modelId = model.modelId
         self.baseURL = configuration.getBaseURL(for: .anthropic) ?? "https://api.anthropic.com"
 
-        guard let auth = TKAuthManager.shared.resolveAuth(for: .anthropic) else {
-            throw TachikomaError.authenticationFailed("ANTHROPIC_API_KEY not found")
-        }
-        self.auth = auth
-        switch auth {
-        case let .apiKey(key):
+        if let key = configuration.getAPIKey(for: .anthropic) {
+            self.auth = .apiKey(key)
             self.apiKey = key
-        case let .bearer(token, _):
-            self.apiKey = token
+        } else if let auth = TKAuthManager.shared.resolveAuth(for: .anthropic) {
+            self.auth = auth
+            switch auth {
+            case let .apiKey(key):
+                self.apiKey = key
+            case let .bearer(token, _):
+                self.apiKey = token
+            }
+        } else {
+            throw TachikomaError.authenticationFailed("ANTHROPIC_API_KEY not found")
         }
 
         self.capabilities = ModelCapabilities(
