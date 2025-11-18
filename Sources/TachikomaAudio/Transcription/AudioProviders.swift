@@ -35,6 +35,11 @@ private enum AudioProviderEnvironment {
         let value = String(cString: pointer)
         return value.isEmpty ? nil : value
     }
+
+    static func isTestKey(_ value: String?) -> Bool {
+        guard let value else { return false }
+        return value == "test-key"
+    }
 }
 
 // MARK: - Provider Protocols
@@ -142,14 +147,14 @@ public struct TranscriptionProviderFactory {
     ) throws
         -> any TranscriptionProvider
     {
-        // Check if API tests are disabled
-        if AudioProviderEnvironment.mockModeEnabled() {
-            // Even in mock mode, validate API keys if explicitly testing missing key scenarios
-            let providerName = model.providerName.lowercased()
-            if !configuration.hasAPIKey(for: providerName) {
+        let providerName = model.providerName.lowercased()
+        let configuredKey = configuration.getAPIKey(for: providerName)
+
+        // Use mock provider when mock mode is enabled or when using the standard test key
+        if AudioProviderEnvironment.mockModeEnabled() || AudioProviderEnvironment.isTestKey(configuredKey) {
+            if configuredKey == nil {
                 throw TachikomaError.authenticationFailed("\(providerName.uppercased())_API_KEY not found")
             }
-
             return MockTranscriptionProvider(model: model)
         }
 
@@ -176,14 +181,14 @@ public struct SpeechProviderFactory {
     ) throws
         -> any SpeechProvider
     {
-        // Check if API tests are disabled
-        if AudioProviderEnvironment.mockModeEnabled() {
-            // Even in mock mode, validate API keys if explicitly testing missing key scenarios
-            let providerName = model.providerName.lowercased()
-            if !configuration.hasAPIKey(for: providerName) {
+        let providerName = model.providerName.lowercased()
+        let configuredKey = configuration.getAPIKey(for: providerName)
+
+        // Mock when in mock mode or using the standard test key
+        if AudioProviderEnvironment.mockModeEnabled() || AudioProviderEnvironment.isTestKey(configuredKey) {
+            if configuredKey == nil {
                 throw TachikomaError.authenticationFailed("\(providerName.uppercased())_API_KEY not found")
             }
-
             return MockSpeechProvider(model: model)
         }
 

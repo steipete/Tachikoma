@@ -92,6 +92,9 @@ public func generateSpeech(
 ) async throws
     -> SpeechResult
 {
+    guard !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+        throw TachikomaError.invalidInput("Text must not be empty for text-to-speech.")
+    }
     let provider = try SpeechProviderFactory.createProvider(for: model, configuration: configuration)
 
     let request = SpeechRequest(
