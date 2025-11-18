@@ -46,10 +46,6 @@ let package = Package(
         .executable(
             name: "tachikoma",
             targets: ["TachikomaConfigCLI"]),
-        // Back-compat alias for existing scripts; will be removed later.
-        .executable(
-            name: "tk-config",
-            targets: ["TachikomaConfigCLI"]),
     ],
     dependencies: [
         .package(path: "../Commander"),
