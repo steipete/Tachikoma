@@ -105,21 +105,8 @@ struct TKConfigCLI {
     }
 
     private static func handleInit() {
-        print("""
-        Nothing configured yet.
-
-        To add an API key:
-          tachikoma config add openai sk-...
-          tachikoma config add anthropic sk-ant-...
-          tachikoma config add grok gsk-...   (aliases: xai)
-          tachikoma config add gemini ya29...
-
-        To use OAuth (no API key stored):
-          tachikoma config login openai
-          tachikoma config login anthropic
-
-        We never copy environment variables into the credentials file; we only store what you add or login.
-        """)
+        let lines = TKConfigMessages.initGuidance.map { $0.replacingOccurrences(of: "{path}", with: "~/.tachikoma/config.json") }
+        print(lines.joined(separator: "\n"))
     }
 
     private static func handleStatus(_ raw: [String]) async {
