@@ -52,7 +52,7 @@ let nextResponse = try await conversation.continue()
 
 - `TKAuthManager` owns credential resolution for OpenAI, Anthropic, xAI/Grok, and Gemini. Precedence: explicit config key → env (`OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `X_AI_API_KEY` with aliases `XAI_API_KEY`/`GROK_API_KEY`, `GEMINI_API_KEY`) → credentials file at `~/<profile>/credentials`.
 - OAuth (PKCE) is supported for OpenAI/Codex and Anthropic Max; tokens (not API keys) are stored and refreshed automatically. Anthropic sends the Max beta header by default.
-- Planned CLI surface (hosted in Tachikoma): `config add <provider> <secret> [--timeout]`, `config login <provider> [--timeout] [--no-browser]`, `config show/init` with live validation and no naggy prompts. Hosts can re-export these commands instead of re-implementing them.
+- CLI: `tachikoma config add <provider> <secret> [--timeout]`, `tachikoma config login <provider> [--timeout] [--no-browser]`, `tachikoma config status|show [--timeout]`, `tachikoma config init`. Legacy binary name `tk-config` remains as an alias.
 - Hosts override the storage root via `TachikomaConfiguration.profileDirectoryName` (Peekaboo uses `.peekaboo` so it reuses the same credentials file).
 
 ### OpenAI Realtime API (Voice Conversations) 🎙️

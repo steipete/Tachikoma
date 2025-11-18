@@ -44,6 +44,10 @@ let package = Package(
 
         // Config/auth helper CLI
         .executable(
+            name: "tachikoma",
+            targets: ["TachikomaConfigCLI"]),
+        // Back-compat alias for existing scripts; will be removed later.
+        .executable(
             name: "tk-config",
             targets: ["TachikomaConfigCLI"]),
     ],

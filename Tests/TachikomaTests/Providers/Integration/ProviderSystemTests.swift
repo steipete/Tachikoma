@@ -73,6 +73,12 @@ struct ProviderSystemTests {
             // Test the actual provider constructors directly since ProviderFactory
             // uses MockProvider in test mode to avoid hitting real APIs
 
+            // Ensure no credentials leak in from prior tests
+            let profile = ".tachikoma-tests-missing-\(UUID().uuidString)"
+            TachikomaConfiguration.profileDirectoryName = profile
+            let credentialsPath = NSString(string: "~/\(profile)/credentials").expandingTildeInPath
+            try? FileManager.default.removeItem(atPath: credentialsPath)
+
             let previousOpenAI = getenv("OPENAI_API_KEY").flatMap { String(cString: $0) }
             let previousAnthropic = getenv("ANTHROPIC_API_KEY").flatMap { String(cString: $0) }
             unsetenv("OPENAI_API_KEY")

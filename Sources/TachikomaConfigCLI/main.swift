@@ -4,14 +4,15 @@ import Tachikoma
 @main
 struct TKConfigCLI {
     static func main() async {
-        let args = Array(CommandLine.arguments.dropFirst())
+        var args = Array(CommandLine.arguments.dropFirst())
+
+        // Top-level command namespace so we can add more in the future.
+        if let first = args.first, first == "config" {
+            args.removeFirst()
+        }
+
         guard let cmd = args.first else {
-            print("""
-            tk-config commands:
-              add <provider> <secret> [--timeout <sec>]
-              login <provider> [--timeout <sec>] [--no-browser]
-              status [--timeout <sec>]
-            """)
+            self.printUsage()
             exit(0)
         }
 
@@ -20,12 +21,27 @@ struct TKConfigCLI {
             await handleAdd(Array(args.dropFirst()))
         case "login":
             await handleLogin(Array(args.dropFirst()))
-        case "status":
+        case "status", "show":
             await handleStatus(Array(args.dropFirst()))
+        case "init":
+            handleInit()
         default:
             print("Unknown command \(cmd)")
+            self.printUsage()
             exit(1)
         }
+    }
+
+    private static func printUsage() {
+        print("""
+        tachikoma config commands:
+          config add <provider> <secret> [--timeout <sec>]
+          config login <provider> [--timeout <sec>] [--no-browser]
+          config status [--timeout <sec>]   # alias: show
+          config init                       # prints guidance, does not write by default
+
+        Providers: openai | anthropic | grok | xai | gemini
+        """)
     }
 
     private static func parseTimeout(_ args: inout [String], default value: Double = 30) -> Double {
@@ -86,6 +102,24 @@ struct TKConfigCLI {
             print("[error] \(reason)")
             exit(1)
         }
+    }
+
+    private static func handleInit() {
+        print("""
+        Nothing configured yet.
+
+        To add an API key:
+          tachikoma config add openai sk-...
+          tachikoma config add anthropic sk-ant-...
+          tachikoma config add grok gsk-...   (aliases: xai)
+          tachikoma config add gemini ya29...
+
+        To use OAuth (no API key stored):
+          tachikoma config login openai
+          tachikoma config login anthropic
+
+        We never copy environment variables into the credentials file; we only store what you add or login.
+        """)
     }
 
     private static func handleStatus(_ raw: [String]) async {

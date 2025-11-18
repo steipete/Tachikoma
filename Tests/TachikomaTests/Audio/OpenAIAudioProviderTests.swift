@@ -11,8 +11,11 @@ struct OpenAIAudioProviderTests {
     struct OpenAITranscriptionProviderTests {
         @Test("OpenAI transcription provider initialization")
         func openAITranscriptionProviderInit() async throws {
-            try await TestHelpers.withTestConfiguration(apiKeys: ["openai": "test-api-key"]) { _ in
-                let provider = try TranscriptionProviderFactory.createProvider(for: .openai(.whisper1))
+            try await TestHelpers.withTestConfiguration(apiKeys: ["openai": "test-api-key"]) { config in
+                let provider = try TranscriptionProviderFactory.createProvider(
+                    for: .openai(.whisper1),
+                    configuration: config
+                )
 
                 #expect(provider.modelId == "whisper-1")
                 #expect(provider.capabilities.supportsTimestamps == true)
@@ -34,8 +37,11 @@ struct OpenAIAudioProviderTests {
 
         @Test("OpenAI transcription provider different models")
         func openAITranscriptionProviderDifferentModels() async throws {
-            try await TestHelpers.withTestConfiguration(apiKeys: ["openai": "test-key"]) { _ in
-                let whisperProvider = try TranscriptionProviderFactory.createProvider(for: .openai(.whisper1))
+            try await TestHelpers.withTestConfiguration(apiKeys: ["openai": "test-key"]) { config in
+                let whisperProvider = try TranscriptionProviderFactory.createProvider(
+                    for: .openai(.whisper1),
+                    configuration: config
+                )
 
                 // Test model ID
                 #expect(whisperProvider.modelId == "whisper-1")
@@ -48,8 +54,11 @@ struct OpenAIAudioProviderTests {
 
         @Test("OpenAI transcription provider supported formats")
         func openAITranscriptionProviderSupportedFormats() async throws {
-            try await TestHelpers.withTestConfiguration(apiKeys: ["openai": "test-key"]) { _ in
-                let provider = try TranscriptionProviderFactory.createProvider(for: .openai(.whisper1))
+            try await TestHelpers.withTestConfiguration(apiKeys: ["openai": "test-key"]) { config in
+                let provider = try TranscriptionProviderFactory.createProvider(
+                    for: .openai(.whisper1),
+                    configuration: config
+                )
 
                 let supportedFormats = provider.capabilities.supportedFormats
                 let expectedFormats: [AudioFormat] = [.flac, .m4a, .mp3, .opus, .wav, .pcm]
