@@ -128,12 +128,8 @@ jobs:
     - name: Fetch Commander dependency
       shell: bash
       run: git clone --depth 1 https://github.com/steipete/Commander.git ../Commander
-    - name: Select Xcode (Swift 6.2)
-      run: sudo xcode-select -s /Applications/Xcode_26.1.app || sudo xcode-select -s /Applications/Xcode_26.0.app || sudo xcode-select -s /Applications/Xcode_16.4.app || sudo xcode-select -s /Applications/Xcode_16.3.app || sudo xcode-select -s /Applications/Xcode_16.2.app || sudo xcode-select -s /Applications/Xcode_16.1.app || sudo xcode-select -s /Applications/Xcode_16.0.app || sudo xcode-select -s /Applications/Xcode.app
-    - name: Install Swift 6.2 toolchain
-      uses: SwiftyLab/setup-swift@v1
-      with:
-        swift-version: '6.2.1'
+    - name: Select Xcode (pin 16.4)
+      run: sudo xcode-select -s /Applications/Xcode_16.4.app || sudo xcode-select -s /Applications/Xcode_16.3.app || sudo xcode-select -s /Applications/Xcode_16.2.app || sudo xcode-select -s /Applications/Xcode_16.1.app || sudo xcode-select -s /Applications/Xcode_16.0.app || sudo xcode-select -s /Applications/Xcode.app
     - name: Install simulator runtime for ${{ matrix.platform }}
       run: |
         case "${{ matrix.platform }}" in
@@ -155,8 +151,6 @@ jobs:
         echo "Failed to download $RUNTIME simulator runtime after retries"
         exit 1
     - name: Build for ${{ matrix.platform }}
-      env:
-        TOOLCHAINS: swift
       run: |
         xcodebuild \
           -scheme Tachikoma-Package \
