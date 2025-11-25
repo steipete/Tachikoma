@@ -334,7 +334,7 @@ struct OpenAIAudioProviderTests {
             try await TestHelpers.withTestConfiguration(apiKeys: ["openai": "test-key"]) { config in
                 let provider = try SpeechProviderFactory.createProvider(
                     for: .openai(.tts1),
-                    configuration: config
+                    configuration: config,
                 )
 
                 // Test empty text
@@ -366,7 +366,7 @@ struct OpenAIAudioProviderTests {
             try await TestHelpers.withTestConfiguration(apiKeys: ["openai": "test-key"]) { config in
                 let provider = try SpeechProviderFactory.createProvider(
                     for: .openai(.tts1),
-                    configuration: config
+                    configuration: config,
                 )
                 let formats: [AudioFormat] = [.mp3, .opus, .aac, .flac, .wav, .pcm]
 
@@ -394,7 +394,7 @@ struct OpenAIAudioProviderTests {
             try await TestHelpers.withTestConfiguration(apiKeys: ["openai": "env-test-key"]) { config in
                 let provider = try TranscriptionProviderFactory.createProvider(
                     for: .openai(.whisper1),
-                    configuration: config
+                    configuration: config,
                 )
                 // Mock provider doesn't expose apiKey, just test that it was created successfully
                 #expect(provider.modelId == "whisper-1")
@@ -410,7 +410,7 @@ struct OpenAIAudioProviderTests {
 
                 let provider = try TranscriptionProviderFactory.createProvider(
                     for: .openai(.whisper1),
-                    configuration: config
+                    configuration: config,
                 )
 
                 // Provider should be created successfully with custom base URL
@@ -427,7 +427,7 @@ struct OpenAIAudioProviderTests {
 
                 let provider = try TranscriptionProviderFactory.createProvider(
                     for: .openai(.whisper1),
-                    configuration: config
+                    configuration: config,
                 )
 
                 // Provider should be created successfully with organization ID
@@ -470,7 +470,7 @@ struct OpenAIAudioProviderTests {
             try await TestHelpers.withTestConfiguration(apiKeys: ["openai": "invalid-key"]) { config in
                 let provider = try TranscriptionProviderFactory.createProvider(
                     for: .openai(.whisper1),
-                    configuration: config
+                    configuration: config,
                 )
                 let audioData = AudioData(data: Data([0x01, 0x02]), format: .wav)
                 let request = TranscriptionRequest(audio: audioData)
