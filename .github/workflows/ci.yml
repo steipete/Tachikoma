@@ -164,46 +164,6 @@ jobs:
           BUILD_LIBRARY_FOR_DISTRIBUTION=YES \
           build
 
-  android:
-    name: Android (aarch64)
-    runs-on: ubuntu-22.04
-    if: ${{ false }} # temporarily disabled: swift-android toolchain missing SwiftAndroid module; unblock CI
-    needs: test
-    steps:
-    - name: Checkout
-      uses: actions/checkout@v4
-
-    - name: Fetch Commander dependency
-      shell: bash
-      run: git clone --depth 1 https://github.com/steipete/Commander.git ../Commander
-
-    - name: Install Swift 6.2.1 toolchain
-      uses: SwiftyLab/setup-swift@v1
-      with:
-        swift-version: '6.2.1'
-
-    - name: Install Android Swift SDK (aarch64 API 24)
-      env:
-        ANDROID_SDK_URL: https://github.com/finagolfin/swift-android-sdk/releases/download/6.2/swift-6.2-RELEASE-android-24-0.1.artifactbundle.tar.gz
-        ANDROID_SDK_CHECKSUM: c26ebfd4e32c0ca1beabcc45729b62042da57ee76d7d043f63f2235da90dc491
-      run: |
-        # Avoid older NDK environment leaking into the SDK installer
-        unset ANDROID_NDK_HOME ANDROID_NDK_ROOT
-        swift sdk install "$ANDROID_SDK_URL" --checksum "$ANDROID_SDK_CHECKSUM"
-        swift sdk list
-
-    - name: Build Android artifacts
-      env:
-        SWIFT_SDK: swift-6.2-RELEASE-android-24-0.1
-        SWIFT_ANDROID_TRIPLE: aarch64-unknown-linux-android24
-      run: |
-        swift build \
-          --swift-sdk "$SWIFT_SDK" \
-          --triple ${SWIFT_ANDROID_TRIPLE} \
-          --build-path .build-android \
-          -Xcc -fPIC \
-          -Xcxx -fPIC
-
   lint:
     name: SwiftLint
     runs-on: macos-15
