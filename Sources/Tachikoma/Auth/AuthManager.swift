@@ -1,4 +1,10 @@
+#if canImport(CryptoKit)
 import CryptoKit
+private typealias TKHasher = CryptoKit.SHA256
+#else
+import Crypto
+private typealias TKHasher = Crypto.SHA256
+#endif
 import Foundation
 #if canImport(AppKit)
 import AppKit
@@ -309,7 +315,7 @@ struct PKCE {
     init() {
         let data = Data((0..<32).map { _ in UInt8.random(in: 0...255) })
         self.verifier = data.urlSafeBase64()
-        self.challenge = Data(SHA256.hash(data: self.verifier.data(using: .utf8)!)).urlSafeBase64()
+        self.challenge = Data(TKHasher.hash(data: self.verifier.data(using: .utf8)!)).urlSafeBase64()
     }
 }
 

@@ -53,6 +53,7 @@ let package = Package(
         .package(url: "https://github.com/modelcontextprotocol/swift-sdk.git", from: "0.10.2"),
         .package(url: "https://github.com/apple/swift-configuration", .upToNextMinor(from: "0.2.0")),
         .package(url: "https://github.com/apple/swift-algorithms", from: "1.2.1"),
+        .package(url: "https://github.com/apple/swift-crypto.git", from: "4.2.0"),
     ],
     targets: [
         // Core Tachikoma module (no MCP dependencies)
@@ -62,6 +63,7 @@ let package = Package(
                 .product(name: "Logging", package: "swift-log"),
                 .product(name: "Configuration", package: "swift-configuration"),
                 .product(name: "Algorithms", package: "swift-algorithms"),
+                .product(name: "Crypto", package: "swift-crypto"),
             ],
             path: "Sources/Tachikoma",
             swiftSettings: tachikomaSwiftSettings),
