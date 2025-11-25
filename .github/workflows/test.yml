@@ -14,7 +14,7 @@ jobs:
   # macOS tests with all Apple platforms
   test-apple-platforms:
     name: Test Apple Platforms
-    runs-on: macos-15
+    runs-on: macos-latest
     strategy:
       fail-fast: false
       matrix:
@@ -31,10 +31,10 @@ jobs:
       shell: bash
       run: git clone --depth 1 https://github.com/steipete/Commander.git ../Commander
 
-    - name: Setup Xcode
+    - name: Setup Xcode 26.1
       uses: maxim-lobanov/setup-xcode@v1
       with:
-        xcode-version: latest-stable
+        xcode-version: '26.1'
 
     - name: Cache Swift Package Manager
       uses: actions/cache@v4
@@ -117,7 +117,7 @@ jobs:
   # Package validation
   validate-package:
     name: Validate Swift Package
-    runs-on: macos-15
+    runs-on: macos-latest
     steps:
     - name: Checkout
       uses: actions/checkout@v4
@@ -126,10 +126,10 @@ jobs:
       shell: bash
       run: git clone --depth 1 https://github.com/steipete/Commander.git ../Commander
 
-    - name: Setup Xcode
+    - name: Setup Xcode 26.1
       uses: maxim-lobanov/setup-xcode@v1
       with:
-        xcode-version: latest-stable
+        xcode-version: '26.1'
 
     - name: Validate Package
       run: |
@@ -149,7 +149,7 @@ jobs:
   # Integration tests with real APIs (optional, requires secrets)
   integration-tests:
     name: Integration Tests
-    runs-on: macos-15
+    runs-on: macos-latest
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     steps:
     - name: Checkout
@@ -159,10 +159,10 @@ jobs:
       shell: bash
       run: git clone --depth 1 https://github.com/steipete/Commander.git ../Commander
 
-    - name: Setup Xcode
+    - name: Setup Xcode 26.1
       uses: maxim-lobanov/setup-xcode@v1
       with:
-        xcode-version: latest-stable
+        xcode-version: '26.1'
 
     - name: Run Integration Tests
       env:

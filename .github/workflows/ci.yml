@@ -16,7 +16,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [macos-15, ubuntu-22.04]
+        os: [macos-latest, ubuntu-22.04]
     steps:
     - name: Checkout
       uses: actions/checkout@v4
@@ -26,9 +26,9 @@ jobs:
       shell: bash
       run: git clone --depth 1 https://github.com/steipete/Commander.git ../Commander
 
-    - name: Select Xcode (Swift 6.2)
+    - name: Select Xcode 26.1
       if: runner.os == 'macOS'
-      run: sudo xcode-select -s /Applications/Xcode_26.1.app || sudo xcode-select -s /Applications/Xcode_26.0.app || sudo xcode-select -s /Applications/Xcode_16.4.app || sudo xcode-select -s /Applications/Xcode_16.3.app || sudo xcode-select -s /Applications/Xcode_16.2.app || sudo xcode-select -s /Applications/Xcode_16.1.app || sudo xcode-select -s /Applications/Xcode_16.0.app || sudo xcode-select -s /Applications/Xcode.app
+      run: sudo xcode-select -s /Applications/Xcode_26.1.app || sudo xcode-select -s /Applications/Xcode_26.0.app || sudo xcode-select -s /Applications/Xcode.app
 
     - name: Install Swift toolchain (macOS/Linux)
       if: runner.os != 'Windows'
@@ -78,7 +78,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [macos-15]
+        os: [macos-latest]
     steps:
     - name: Checkout
       uses: actions/checkout@v4
@@ -87,9 +87,9 @@ jobs:
       shell: bash
       run: git clone --depth 1 https://github.com/steipete/Commander.git ../Commander
 
-    - name: Select Xcode (Swift 6.2)
+    - name: Select Xcode 26.1
       if: runner.os == 'macOS'
-      run: sudo xcode-select -s /Applications/Xcode_26.1.app || sudo xcode-select -s /Applications/Xcode_26.0.app || sudo xcode-select -s /Applications/Xcode_16.4.app || sudo xcode-select -s /Applications/Xcode_16.3.app || sudo xcode-select -s /Applications/Xcode_16.2.app || sudo xcode-select -s /Applications/Xcode_16.1.app || sudo xcode-select -s /Applications/Xcode_16.0.app || sudo xcode-select -s /Applications/Xcode.app
+      run: sudo xcode-select -s /Applications/Xcode_26.1.app || sudo xcode-select -s /Applications/Xcode_26.0.app || sudo xcode-select -s /Applications/Xcode.app
 
     - name: Install Swift toolchain (macOS/Linux)
       if: runner.os != 'Windows'
@@ -112,7 +112,7 @@ jobs:
 
   apple-simulators:
     name: Apple Platforms (${{ matrix.platform }})
-    runs-on: macos-15
+    runs-on: macos-latest
     needs: test
     strategy:
       matrix:
@@ -128,8 +128,8 @@ jobs:
     - name: Fetch Commander dependency
       shell: bash
       run: git clone --depth 1 https://github.com/steipete/Commander.git ../Commander
-    - name: Select Xcode (pin 16.4)
-      run: sudo xcode-select -s /Applications/Xcode_16.4.app || sudo xcode-select -s /Applications/Xcode_16.3.app || sudo xcode-select -s /Applications/Xcode_16.2.app || sudo xcode-select -s /Applications/Xcode_16.1.app || sudo xcode-select -s /Applications/Xcode_16.0.app || sudo xcode-select -s /Applications/Xcode.app
+    - name: Select Xcode 26.1
+      run: sudo xcode-select -s /Applications/Xcode_26.1.app || sudo xcode-select -s /Applications/Xcode_26.0.app || sudo xcode-select -s /Applications/Xcode.app
     - name: Install simulator runtime for ${{ matrix.platform }}
       run: |
         case "${{ matrix.platform }}" in
@@ -160,7 +160,7 @@ jobs:
 
   lint:
     name: SwiftLint
-    runs-on: macos-15
+    runs-on: macos-latest
     # SwiftLint only runs on macOS
     
     steps:
