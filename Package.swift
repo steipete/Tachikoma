@@ -7,9 +7,10 @@ let package = Package(
     name: "Tachikoma",
     platforms: [
         .macOS(.v14),
-        .iOS(.v16),
-        .watchOS(.v9),
-        .tvOS(.v16),
+        .iOS(.v17),
+        .tvOS(.v17),
+        .watchOS(.v10),
+        .visionOS(.v1),
     ],
     products: [
         // Core Tachikoma library (lightweight, no MCP or Agent)
