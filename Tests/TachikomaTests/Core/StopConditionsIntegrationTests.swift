@@ -9,7 +9,7 @@ struct StopConditionsIntegrationTests {
     @Test("Stop conditions passed to OpenAI as native stop sequences")
     func openAIProviderStopSequences() async throws {
         // Create a mock provider that can verify the request
-        let mockProvider = MockOpenAIProvider()
+        _ = MockOpenAIProvider()
 
         // Configure with string stop conditions
         let settings = GenerationSettings(
@@ -19,7 +19,7 @@ struct StopConditionsIntegrationTests {
             ]),
         )
 
-        let request = ProviderRequest(
+        _ = ProviderRequest(
             messages: [.user("Test")],
             tools: nil,
             settings: settings,

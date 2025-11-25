@@ -202,7 +202,7 @@ struct GenerationTests {
 
     @Test("Generate Function - Invalid Configuration")
     func generateFunctionInvalidConfig() async throws {
-        try await TestHelpers.withTestConfiguration(apiKeys: ["openai": "test-key"]) { config in
+        await TestHelpers.withTestConfiguration(apiKeys: ["openai": "test-key"]) { config in
             // Test with invalid base URL format
             config.setBaseURL("not-a-url", for: .openai)
 

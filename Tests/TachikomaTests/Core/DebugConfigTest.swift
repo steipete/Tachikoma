@@ -28,7 +28,7 @@ struct DebugConfigTests {
         print("=== Back to original config ===")
         print("openai key: \(config.getAPIKey(for: .openai) ?? "nil")")
 
-        #expect(true) // Just to complete the test
+        #expect(Bool(true)) // Just to complete the test
     }
 
     @Test("Multiple configurations isolation")

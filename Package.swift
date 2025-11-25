@@ -110,6 +110,10 @@ let package = Package(
                 .product(name: "Logging", package: "swift-log"),
             ],
             path: "Tests/TachikomaTests",
+            resources: [
+                .process("CLITests/__snapshots__/config_init.txt"),
+                .process("CLITests/README.md"),
+            ],
             swiftSettings: tachikomaSwiftSettings),
 
         // MCP tests

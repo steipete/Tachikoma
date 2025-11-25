@@ -90,8 +90,8 @@ struct AudioFunctionsTests {
 
         @Test("transcribe() with abort signal")
         func transcribeWithAbortSignal() async throws {
-            try await TestHelpers.withMockProviderEnvironment {
-                try await TestHelpers.withTestConfiguration(apiKeys: ["openai": "test-key"]) { config in
+            await TestHelpers.withMockProviderEnvironment {
+                await TestHelpers.withTestConfiguration(apiKeys: ["openai": "test-key"]) { config in
                     let audioData = TestHelpers.sampleAudioData(configuration: config)
                     let abortSignal = AbortSignal()
 
@@ -182,8 +182,8 @@ struct AudioFunctionsTests {
 
         @Test("generateSpeech() with abort signal")
         func generateSpeechWithAbortSignal() async throws {
-            try await TestHelpers.withMockProviderEnvironment {
-                try await TestHelpers.withTestConfiguration(apiKeys: ["openai": "test-key"]) { config in
+            await TestHelpers.withMockProviderEnvironment {
+                await TestHelpers.withTestConfiguration(apiKeys: ["openai": "test-key"]) { config in
                     let abortSignal = AbortSignal()
 
                     // Cancel immediately to test abort functionality

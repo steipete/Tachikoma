@@ -139,7 +139,7 @@ struct StopConditionsTests {
     func stopConditionsInGenerateText() async throws {
         // Create a mock provider that returns text with a stop marker
         let mockText = "This is the response. STOP HERE. This should be truncated."
-        let mockProvider = createMockProvider(responseText: mockText)
+        _ = createMockProvider(responseText: mockText)
 
         // Configure with stop condition
         let settings = GenerationSettings(

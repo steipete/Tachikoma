@@ -68,7 +68,7 @@ final class AuthManagerTests: XCTestCase {
 
 @MainActor
 private final class AuthMockURLProtocol: URLProtocol {
-    static var statusCode: Int = 200
+    nonisolated(unsafe) static var statusCode: Int = 200
 
     override class func canInit(with request: URLRequest) -> Bool { true }
     override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }

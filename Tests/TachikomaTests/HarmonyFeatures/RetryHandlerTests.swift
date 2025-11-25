@@ -271,6 +271,6 @@ struct RetryHandlerTests {
         _ = nilHandler // Just verify it creates successfully
 
         // Test passes if all handlers created without errors
-        #expect(true)
+        #expect(Bool(true))
     }
 }

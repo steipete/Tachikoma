@@ -89,7 +89,7 @@ struct ConfigurationArchitectureTests {
         _ = Conversation() // Uses default
         _ = Conversation(configuration: TachikomaConfiguration())
 
-        #expect(true, "All README examples compile successfully")
+        #expect(Bool(true), "All README examples compile successfully")
 
         // Clean up
         TachikomaConfiguration.default = nil

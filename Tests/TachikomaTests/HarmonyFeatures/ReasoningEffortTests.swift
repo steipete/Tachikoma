@@ -62,7 +62,7 @@ struct ReasoningEffortTests {
         _ = nilHandler
 
         // Test passes if all handlers created without errors
-        #expect(true)
+        #expect(Bool(true))
     }
 
     @Test("Codable conformance for ReasoningEffort")
