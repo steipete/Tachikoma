@@ -241,10 +241,10 @@ struct OpenAIResponsesProviderTests {
             let body = try #require(Self.bodyData(from: request))
             let json = try JSONSerialization.jsonObject(with: body) as? [String: Any]
             let input = json?["input"] as? [[String: Any]]
-            let message = input?.first?["message"] as? [String: Any]
+            let message = input?.first
             let content = message?["content"] as? [[String: Any]]
             let image = content?.first(where: { $0["type"] as? String == "input_image" })
-            let imageURL = image?["image_url"] as? String
+            let imageURL = try #require(image?["image_url"] as? String)
             #expect(imageURL == "data:image/png;base64,BASE64DATA")
 
             return NetworkMocking.jsonResponse(for: request, data: Self.responsesPayload(text: "vision ok"))
