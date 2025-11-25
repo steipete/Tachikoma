@@ -254,9 +254,10 @@ struct OpenAIResponsesProviderTests {
                 messages: [
                     ModelMessage.user(
                         text: "What do you see?",
-                        images: [ModelMessage.ContentPart.ImageContent(data: "BASE64DATA", mimeType: "image/png")]),
+                        images: [ModelMessage.ContentPart.ImageContent(data: "BASE64DATA", mimeType: "image/png")],
+                    ),
                 ],
-                settings: .init(maxTokens: 32)
+                settings: .init(maxTokens: 32),
             )
 
             let response = try await provider.generateText(request: request)

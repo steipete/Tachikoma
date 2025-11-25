@@ -39,13 +39,15 @@ public enum TKProviderId: String, CaseIterable, Sendable {
     public var credentialKeys: [String] {
         switch self {
         case .openai: ["OPENAI_API_KEY", "OPENAI_ACCESS_TOKEN"]
+        // swiftformat:disable indent
         case .anthropic: [
-                "ANTHROPIC_API_KEY",
-                "ANTHROPIC_ACCESS_TOKEN",
-                "ANTHROPIC_BETA_HEADER",
-                "ANTHROPIC_REFRESH_TOKEN",
-                "ANTHROPIC_ACCESS_EXPIRES",
-            ]
+            "ANTHROPIC_API_KEY",
+            "ANTHROPIC_ACCESS_TOKEN",
+            "ANTHROPIC_BETA_HEADER",
+            "ANTHROPIC_REFRESH_TOKEN",
+            "ANTHROPIC_ACCESS_EXPIRES",
+        ]
+        // swiftformat:enable indent
         case .grok: ["X_AI_API_KEY", "XAI_API_KEY", "GROK_API_KEY"]
         case .gemini: ["GEMINI_API_KEY"]
         }
