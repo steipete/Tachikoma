@@ -1,7 +1,7 @@
 <div align="center">
   <img src="assets/logo.png" width="200" alt="Tachikoma Logo">
   
-  # Tachikoma - Modern Swift AI SDK
+  # Tachikoma 🕸️ - Modern Swift AI SDK
 
 <p align="center">
   <a href="https://swift.org"><img src="https://img.shields.io/badge/Swift-6.0+-FA7343?style=for-the-badge&logo=swift&logoColor=white" alt="Swift 6.0+"></a>
