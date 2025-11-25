@@ -59,8 +59,13 @@ enum TestHelpers {
         -> T
     {
         let previousIgnore = TKAuthManager.shared.setIgnoreEnvironment(false)
-        defer { TKAuthManager.shared.setIgnoreEnvironment(previousIgnore) }
+        let previousDefaultConfig = TachikomaConfiguration.default
+        defer {
+            TKAuthManager.shared.setIgnoreEnvironment(previousIgnore)
+            TachikomaConfiguration.default = previousDefaultConfig
+        }
         let config = self.createTestConfiguration(apiKeys: apiKeys)
+        TachikomaConfiguration.default = config
         return try await body(config)
     }
 
