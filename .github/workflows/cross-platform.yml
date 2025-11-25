@@ -32,8 +32,8 @@ jobs:
         run: |
           SKIP_FLAGS=""
           if [[ -z "$OPENAI_API_KEY" ]]; then
-            echo "OPENAI_API_KEY missing; skipping AudioProvidersTests"
-            SKIP_FLAGS='--skip AudioProvidersTests'
+            echo "OPENAI_API_KEY missing; using mock key for macOS tests"
+            export OPENAI_API_KEY="test-key"
           fi
           swift test $SKIP_FLAGS
         env:
@@ -64,8 +64,8 @@ jobs:
         run: |
           SKIP_FLAGS=""
           if [[ -z "$OPENAI_API_KEY" ]]; then
-            echo "OPENAI_API_KEY missing; skipping AudioProvidersTests"
-            SKIP_FLAGS='--skip AudioProvidersTests'
+            echo "OPENAI_API_KEY missing; using mock key for macOS tests"
+            export OPENAI_API_KEY="test-key"
           fi
           swift test $SKIP_FLAGS
         env:
