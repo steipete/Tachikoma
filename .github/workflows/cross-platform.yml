@@ -96,6 +96,8 @@ jobs:
           OPENAI_API_KEY: test-key
           ANTHROPIC_API_KEY: test-key
         run: |
+          export OPENAI_API_KEY="${OPENAI_API_KEY:-test-key}"
+          export ANTHROPIC_API_KEY="${ANTHROPIC_API_KEY:-test-key}"
           SKIP_FLAGS="--skip ProviderEndToEndTests"
           swift test $SKIP_FLAGS
 
@@ -122,6 +124,8 @@ jobs:
           OPENAI_API_KEY: test-key
           ANTHROPIC_API_KEY: test-key
         run: |
+          export OPENAI_API_KEY="${OPENAI_API_KEY:-test-key}"
+          export ANTHROPIC_API_KEY="${ANTHROPIC_API_KEY:-test-key}"
           SKIP_FLAGS="--skip ProviderEndToEndTests"
           swift test $SKIP_FLAGS
 
