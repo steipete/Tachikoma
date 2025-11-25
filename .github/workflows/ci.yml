@@ -134,14 +134,26 @@ jobs:
       uses: SwiftyLab/setup-swift@v1
       with:
         swift-version: '6.2.1'
-    - name: Install iOS simulator runtime
-      run: sudo xcodebuild -downloadPlatform iOS
-    - name: Install tvOS simulator runtime
-      run: sudo xcodebuild -downloadPlatform tvOS
-    - name: Install watchOS simulator runtime
-      run: sudo xcodebuild -downloadPlatform watchOS
-    - name: Install visionOS simulator runtime
-      run: sudo xcodebuild -downloadPlatform visionOS
+    - name: Install simulator runtime for ${{ matrix.platform }}
+      run: |
+        case "${{ matrix.platform }}" in
+          "iOS Simulator") RUNTIME="iOS" ;;
+          "tvOS Simulator") RUNTIME="tvOS" ;;
+          "watchOS Simulator") RUNTIME="watchOS" ;;
+          "visionOS Simulator") RUNTIME="visionOS" ;;
+          *) echo "Unknown platform: ${{ matrix.platform }}" && exit 1 ;;
+        esac
+
+        # Transient network flakiness is common for runtime downloads; retry a few times.
+        for attempt in 1 2 3; do
+          if sudo xcodebuild -downloadPlatform "$RUNTIME"; then
+            exit 0
+          fi
+          echo "downloadPlatform $RUNTIME failed (attempt $attempt); retrying in 30s..."
+          sleep 30
+        done
+        echo "Failed to download $RUNTIME simulator runtime after retries"
+        exit 1
     - name: Build for ${{ matrix.platform }}
       env:
         TOOLCHAINS: swift
@@ -164,18 +176,19 @@ jobs:
       shell: bash
       run: git clone --depth 1 https://github.com/steipete/Commander.git ../Commander
 
-    - name: Install Swift 6.2 toolchain
+    - name: Install Swift 6.2.1 toolchain
       uses: SwiftyLab/setup-swift@v1
       with:
-        swift-version: '6.2'
+        swift-version: '6.2.1'
 
     - name: Install Android Swift SDK (aarch64 API 24)
       env:
         ANDROID_SDK_URL: https://github.com/finagolfin/swift-android-sdk/releases/download/6.2/swift-6.2-RELEASE-android-24-0.1.artifactbundle.tar.gz
+        ANDROID_SDK_CHECKSUM: c26ebfd4e32c0ca1beabcc45729b62042da57ee76d7d043f63f2235da90dc491
       run: |
         # Avoid older NDK environment leaking into the SDK installer
         unset ANDROID_NDK_HOME ANDROID_NDK_ROOT
-        swift sdk install "$ANDROID_SDK_URL"
+        swift sdk install "$ANDROID_SDK_URL" --checksum "$ANDROID_SDK_CHECKSUM"
         swift sdk list
 
     - name: Build Android artifacts
