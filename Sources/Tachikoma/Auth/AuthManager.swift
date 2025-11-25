@@ -212,7 +212,8 @@ public final class TKAuthManager {
         timeout: Double = 30,
         noBrowser: Bool = false,
     ) async
-    -> Result<Void, TKAuthError> {
+        -> Result<Void, TKAuthError>
+    {
         guard provider.supportsOAuth else { return .failure(.unsupported) }
         let pkce = PKCE()
         let config = self.oauthConfig(for: provider, pkce: pkce)
@@ -401,7 +402,8 @@ enum OAuthTokenExchanger {
         body: [String: Any],
         timeout: Double,
     ) async
-    -> OAuthTokenResult {
+        -> OAuthTokenResult
+    {
         switch await HTTP.postJSON(request: urlRequest, body: body, timeoutSeconds: timeout) {
         case let .success(json):
             guard
@@ -470,7 +472,8 @@ struct TKProviderValidator {
         header: String,
         valuePrefix: String,
     ) async
-    -> TKValidationResult {
+        -> TKValidationResult
+    {
         var request = URLRequest(url: URL(string: url)!)
         request.httpMethod = "GET"
         request.setValue(valuePrefix + secret, forHTTPHeaderField: header)
@@ -485,7 +488,8 @@ enum HTTP {
         timeoutSeconds: Double,
         session: URLSession? = nil,
     ) async
-    -> TKValidationResult {
+        -> TKValidationResult
+    {
         let session = session ?? Self.makeSession(timeoutSeconds: timeoutSeconds)
         do {
             let (_, response) = try await session.data(for: request)
@@ -506,7 +510,8 @@ enum HTTP {
         timeoutSeconds: Double,
         session: URLSession? = nil,
     ) async
-    -> TKValidationResultJSON {
+        -> TKValidationResultJSON
+    {
         let session = session ?? Self.makeSession(timeoutSeconds: timeoutSeconds)
         var req = request
         req.httpBody = try? JSONSerialization.data(withJSONObject: body)
@@ -518,7 +523,8 @@ enum HTTP {
         timeoutSeconds: Double,
         session: URLSession? = nil,
     ) async
-    -> TKValidationResultJSON {
+        -> TKValidationResultJSON
+    {
         let session = session ?? Self.makeSession(timeoutSeconds: timeoutSeconds)
         do {
             let (data, response) = try await session.data(for: request)
