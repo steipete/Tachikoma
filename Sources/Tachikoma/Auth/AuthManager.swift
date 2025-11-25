@@ -6,6 +6,9 @@ import Crypto
 private typealias TKHasher = Crypto.SHA256
 #endif
 import Foundation
+#if canImport(FoundationNetworking)
+import FoundationNetworking
+#endif
 #if canImport(AppKit)
 import AppKit
 #endif
