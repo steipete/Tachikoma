@@ -200,7 +200,8 @@ jobs:
           --swift-sdk "$SWIFT_SDK" \
           --triple ${SWIFT_ANDROID_TRIPLE} \
           --build-path .build-android \
-          --cxx-flags "-fPIC"
+          -Xcc -fPIC \
+          -Xcxx -fPIC
 
   lint:
     name: SwiftLint
