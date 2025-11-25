@@ -134,6 +134,14 @@ jobs:
       uses: SwiftyLab/setup-swift@v1
       with:
         swift-version: '6.2.1'
+    - name: Install iOS simulator runtime
+      run: sudo xcodebuild -downloadPlatform iOS
+    - name: Install tvOS simulator runtime
+      run: sudo xcodebuild -downloadPlatform tvOS
+    - name: Install watchOS simulator runtime
+      run: sudo xcodebuild -downloadPlatform watchOS
+    - name: Install visionOS simulator runtime
+      run: sudo xcodebuild -downloadPlatform visionOS
     - name: Build for ${{ matrix.platform }}
       env:
         TOOLCHAINS: swift
