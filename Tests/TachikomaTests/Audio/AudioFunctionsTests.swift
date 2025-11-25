@@ -77,13 +77,15 @@ struct AudioFunctionsTests {
                     // In some headless environments the mock transcription provider can fall back to
                     // a lightweight JSON stub that omits verbose fields; treat that as a skip rather
                     // than failing the whole release gate.
-                    guard let result = try? await transcribe(
-                        audioData,
-                        using: .openai(.whisper1),
-                        timestampGranularities: [.word, .segment],
-                        responseFormat: .verbose,
-                        configuration: config,
-                    ) else {
+                    guard
+                        let result = try? await transcribe(
+                            audioData,
+                            using: .openai(.whisper1),
+                            timestampGranularities: [.word, .segment],
+                            responseFormat: .verbose,
+                            configuration: config,
+                        ) else
+                    {
                         return
                     }
 
@@ -372,21 +374,25 @@ struct AudioFunctionsTests {
                 let audioData = TestHelpers.sampleAudioData(configuration: config)
 
                 // Test different transcription providers
-                guard let openaiResult = try? await transcribe(
-                    audioData,
-                    using: .openai(.whisper1),
-                    configuration: config
-                ) else {
+                guard
+                    let openaiResult = try? await transcribe(
+                        audioData,
+                        using: .openai(.whisper1),
+                        configuration: config,
+                    ) else
+                {
                     return
                 }
                 #expect(!openaiResult.text.isEmpty)
 
                 if !TestHelpers.isMockAPIKey(config.getAPIKey(for: .groq)) {
-                    guard let groqResult = try? await transcribe(
-                        audioData,
-                        using: .groq(.whisperLargeV3Turbo),
-                        configuration: config,
-                    ) else {
+                    guard
+                        let groqResult = try? await transcribe(
+                            audioData,
+                            using: .groq(.whisperLargeV3Turbo),
+                            configuration: config,
+                        ) else
+                    {
                         return
                     }
                     #expect(!groqResult.text.isEmpty)
