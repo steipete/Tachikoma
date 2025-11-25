@@ -233,6 +233,56 @@ struct OpenAIResponsesProviderTests {
         }
     }
 
+    @Test("Responses payload uses data URL string for images")
+    func openAIResponsesImageDataURL() async throws {
+        let config = self.openAIConfig()
+
+        try await self.withMockedSession { request in
+            let body = try #require(Self.bodyData(from: request))
+            let json = try JSONSerialization.jsonObject(with: body) as? [String: Any]
+            let input = json?["input"] as? [[String: Any]]
+            let message = input?.first?["message"] as? [String: Any]
+            let content = message?["content"] as? [[String: Any]]
+            let image = content?.first(where: { $0["type"] as? String == "input_image" })
+            let imageURL = image?["image_url"] as? String
+            #expect(imageURL == "data:image/png;base64,BASE64DATA")
+
+            return NetworkMocking.jsonResponse(for: request, data: Self.responsesPayload(text: "vision ok"))
+        } operation: { session in
+            let provider = try OpenAIResponsesProvider(model: .gpt5Mini, configuration: config, session: session)
+            let request = ProviderRequest(
+                messages: [
+                    ModelMessage.user(
+                        text: "What do you see?",
+                        images: [ModelMessage.ContentPart.ImageContent(data: "BASE64DATA", mimeType: "image/png")]),
+                ],
+                settings: .init(maxTokens: 32)
+            )
+
+            let response = try await provider.generateText(request: request)
+            #expect(response.text.contains("vision ok"))
+        }
+    }
+
+    @Test("Responses image_url accepts legacy object and normalizes to string")
+    func openAIResponsesLegacyImageObject() async throws {
+        // Craft a legacy-style payload (image_url object) and ensure decoder tolerates it.
+        let legacyJSON: [String: Any] = [
+            "type": "input_image",
+            "image_url": ["url": "data:image/png;base64,LEGACY", "detail": "auto"],
+        ]
+
+        let data = try JSONSerialization.data(withJSONObject: legacyJSON)
+        let part = try JSONDecoder().decode(ResponsesContentPart.self, from: data)
+        #expect(part.imageUrl?.url == "data:image/png;base64,LEGACY")
+        #expect(part.imageUrl?.detail == "auto")
+
+        // And when we re-encode, it should collapse to the string form.
+        let encoded = try JSONEncoder().encode(part)
+        let encodedJSON = try JSONSerialization.jsonObject(with: encoded) as? [String: Any]
+        #expect(encodedJSON?["image_url"] as? String == "data:image/png;base64,LEGACY")
+    }
+
     @Test("Responses provider emits tool schemas with parameters")
     func openAIResponsesIncludesToolSchemas() async throws {
         let config = self.openAIConfig()

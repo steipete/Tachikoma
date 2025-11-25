@@ -221,7 +221,15 @@ struct ResponsesMessage: Codable, Sendable {
 struct ResponsesContentPart: Codable, Sendable {
     let type: String
     let text: String?
+    /// OpenAI Responses API (GPT‑5.x) accepts `image_url` only as a string (URL or data URL).
+    /// We still parse legacy `{ url, detail }` objects, but always encode back to a string to
+    /// avoid 400s ("expected an image URL, but got an object instead").
     let imageUrl: ImageURL?
+
+    struct ImageURL: Codable, Sendable {
+        let url: String
+        let detail: String?
+    }
 
     enum CodingKeys: String, CodingKey {
         case type
@@ -229,9 +237,35 @@ struct ResponsesContentPart: Codable, Sendable {
         case imageUrl = "image_url"
     }
 
-    struct ImageURL: Codable, Sendable {
-        let url: String
-        let detail: String?
+    init(type: String, text: String?, imageUrl: ImageURL?) {
+        self.type = type
+        self.text = text
+        self.imageUrl = imageUrl
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.type = try container.decode(String.self, forKey: .type)
+        self.text = try container.decodeIfPresent(String.self, forKey: .text)
+
+        // Accept either the current string form or the legacy object form.
+        if let urlString = try? container.decode(String.self, forKey: .imageUrl) {
+            self.imageUrl = ImageURL(url: urlString, detail: nil)
+        } else if let object = try? container.decode(ImageURL.self, forKey: .imageUrl) {
+            self.imageUrl = object
+        } else {
+            self.imageUrl = nil
+        }
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(self.type, forKey: .type)
+        try container.encodeIfPresent(self.text, forKey: .text)
+        if let imageUrl {
+            // Force the string form per Responses API schema, drop legacy detail.
+            try container.encode(imageUrl.url, forKey: .imageUrl)
+        }
     }
 }
 

@@ -566,8 +566,9 @@ public final class OpenAIResponsesProvider: ModelProvider {
                     parts.append(ResponsesContentPart(type: type, text: text, imageUrl: nil))
                 case let .image(image):
                     let dataURL = "data:\(image.mimeType);base64,\(image.data)"
-                    let imageReference = ResponsesContentPart.ImageURL(url: dataURL, detail: "auto")
-                    parts.append(ResponsesContentPart(type: "input_image", text: nil, imageUrl: imageReference))
+                    // Keep detail locally for compatibility, but encode as string-only.
+                    let imageRef = ResponsesContentPart.ImageURL(url: dataURL, detail: "auto")
+                    parts.append(ResponsesContentPart(type: "input_image", text: nil, imageUrl: imageRef))
                 case let .toolResult(result):
                     let rendered = self.convertToolResultToString(result.result)
                     if !rendered.isEmpty {
