@@ -92,16 +92,12 @@ jobs:
         run: swift build
       
       - name: Run tests
+        env:
+          OPENAI_API_KEY: test-key
+          ANTHROPIC_API_KEY: test-key
         run: |
           SKIP_FLAGS="--skip ProviderEndToEndTests"
-          if [[ -z "$OPENAI_API_KEY" ]]; then
-            echo "OPENAI_API_KEY missing; using mock key for Linux tests"
-            export OPENAI_API_KEY="test-key"
-          fi
           swift test $SKIP_FLAGS
-        env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
 
   test-linux-ubuntu-24:
     runs-on: ubuntu-24.04
@@ -122,16 +118,12 @@ jobs:
         run: swift build
       
       - name: Run tests
+        env:
+          OPENAI_API_KEY: test-key
+          ANTHROPIC_API_KEY: test-key
         run: |
           SKIP_FLAGS="--skip ProviderEndToEndTests"
-          if [[ -z "$OPENAI_API_KEY" ]]; then
-            echo "OPENAI_API_KEY missing; using mock key for Linux tests"
-            export OPENAI_API_KEY="test-key"
-          fi
           swift test $SKIP_FLAGS
-        env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
 
   # Optional: Build release artifacts
   build-release:
