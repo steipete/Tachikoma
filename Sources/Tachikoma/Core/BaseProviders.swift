@@ -179,10 +179,10 @@ public final class AnthropicProvider: ModelProvider {
 
     private func applyAuth(to request: inout URLRequest, secret: String) {
         switch self.auth {
-        case let .apiKey(key):
-            request.setValue(key, forHTTPHeaderField: "x-api-key")
-        case let .bearer(access, beta):
-            request.setValue("Bearer " + access, forHTTPHeaderField: "Authorization")
+        case .apiKey:
+            request.setValue(secret, forHTTPHeaderField: "x-api-key")
+        case let .bearer(_, beta):
+            request.setValue("Bearer " + secret, forHTTPHeaderField: "Authorization")
             if let beta {
                 request.setValue(beta, forHTTPHeaderField: "anthropic-beta")
             }

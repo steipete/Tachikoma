@@ -32,7 +32,7 @@ private final class AzureTestURLProtocol: URLProtocol {
     }
     """.utf8Data()
 
-    override class func canInit(with request: URLRequest) -> Bool { true }
+    override class func canInit(with _: URLRequest) -> Bool { true }
     override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
 
     override func startLoading() {
