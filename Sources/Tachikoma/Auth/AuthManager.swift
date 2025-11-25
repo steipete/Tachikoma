@@ -29,12 +29,12 @@ public enum TKProviderId: String, CaseIterable, Sendable {
         switch self {
         case .openai: ["OPENAI_API_KEY", "OPENAI_ACCESS_TOKEN"]
         case .anthropic: [
-                "ANTHROPIC_API_KEY",
-                "ANTHROPIC_ACCESS_TOKEN",
-                "ANTHROPIC_BETA_HEADER",
-                "ANTHROPIC_REFRESH_TOKEN",
-                "ANTHROPIC_ACCESS_EXPIRES",
-            ]
+            "ANTHROPIC_API_KEY",
+            "ANTHROPIC_ACCESS_TOKEN",
+            "ANTHROPIC_BETA_HEADER",
+            "ANTHROPIC_REFRESH_TOKEN",
+            "ANTHROPIC_ACCESS_EXPIRES",
+        ]
         case .grok: ["X_AI_API_KEY", "XAI_API_KEY", "GROK_API_KEY"]
         case .gemini: ["GEMINI_API_KEY"]
         }
@@ -98,7 +98,7 @@ public struct TKCredentialStore {
             "# Sensitive; keep permissions strict",
             "",
         ]
-        let body = credentials.sorted(by: { $0.key < $1.key }).map { "\($0.key)=\($0.value)" }
+        let body = credentials.sorted { $0.key < $1.key }.map { "\($0.key)=\($0.value)" }
         let content = (header + body).joined(separator: "\n")
         try content.write(to: URL(fileURLWithPath: self.credentialsPath), atomically: true, encoding: .utf8)
         try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: self.credentialsPath)
