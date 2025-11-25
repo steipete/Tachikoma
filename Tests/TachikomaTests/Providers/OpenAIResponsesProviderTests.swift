@@ -243,7 +243,7 @@ struct OpenAIResponsesProviderTests {
             let input = json?["input"] as? [[String: Any]]
             let message = input?.first
             let content = message?["content"] as? [[String: Any]]
-            let image = content?.first(where: { $0["type"] as? String == "input_image" })
+            let image = content?.first { $0["type"] as? String == "input_image" }
             let imageURL = try #require(image?["image_url"] as? String)
             #expect(imageURL == "data:image/png;base64,BASE64DATA")
 
