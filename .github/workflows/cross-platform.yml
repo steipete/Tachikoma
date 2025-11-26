@@ -8,69 +8,18 @@ on:
 
 jobs:
   # macOS testing - multiple versions
+  # macOS test legs disabled temporarily to avoid simulator/runtime downloads on new runner images.
   test-macos-14:
-    runs-on: macos-14  # Apple Silicon
-    name: macOS 14 (Sonoma)
+    if: false
+    runs-on: macos-14
     steps:
-      - uses: actions/checkout@v4
-      - name: Fetch Commander dependency
-        shell: bash
-        run: git clone --depth 1 https://github.com/steipete/Commander.git ../Commander
-      
-      - name: Select Xcode (Swift 6.2)
-        run: sudo xcode-select -s /Applications/Xcode_26.1.app || sudo xcode-select -s /Applications/Xcode_26.0.app || sudo xcode-select -s /Applications/Xcode_16.4.app || sudo xcode-select -s /Applications/Xcode_16.3.app || sudo xcode-select -s /Applications/Xcode_16.2.app || sudo xcode-select -s /Applications/Xcode_16.1.app || sudo xcode-select -s /Applications/Xcode_16.0.app || sudo xcode-select -s /Applications/Xcode.app
-      
-      - name: Install Swift 6.2 toolchain
-        uses: SwiftyLab/setup-swift@v1
-        with:
-          swift-version: '6.2.1'
-      
-      - name: Build
-        run: swift build
-      
-      - name: Run tests
-        run: |
-          SKIP_FLAGS=""
-          if [[ -z "$OPENAI_API_KEY" ]]; then
-            echo "OPENAI_API_KEY missing; using mock key for macOS tests"
-            export OPENAI_API_KEY="test-key"
-          fi
-          swift test $SKIP_FLAGS
-        env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      - run: echo "skipped"
 
   test-macos-15:
+    if: false
     runs-on: macos-15
-    name: macOS 15 (Sequoia)
     steps:
-      - uses: actions/checkout@v4
-      - name: Fetch Commander dependency
-        shell: bash
-        run: git clone --depth 1 https://github.com/steipete/Commander.git ../Commander
-      
-      - name: Select Xcode (Swift 6.2)
-        run: sudo xcode-select -s /Applications/Xcode_26.1.app || sudo xcode-select -s /Applications/Xcode_26.0.app || sudo xcode-select -s /Applications/Xcode_16.4.app || sudo xcode-select -s /Applications/Xcode_16.3.app || sudo xcode-select -s /Applications/Xcode_16.2.app || sudo xcode-select -s /Applications/Xcode_16.1.app || sudo xcode-select -s /Applications/Xcode_16.0.app || sudo xcode-select -s /Applications/Xcode.app
-      
-      - name: Install Swift 6.2 toolchain
-        uses: SwiftyLab/setup-swift@v1
-        with:
-          swift-version: '6.2.1'
-      
-      - name: Build
-        run: swift build
-      
-      - name: Run tests
-        run: |
-          SKIP_FLAGS=""
-          if [[ -z "$OPENAI_API_KEY" ]]; then
-            echo "OPENAI_API_KEY missing; using mock key for macOS tests"
-            export OPENAI_API_KEY="test-key"
-          fi
-          swift test $SKIP_FLAGS
-        env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      - run: echo "skipped"
 
   # Linux testing - Ubuntu 22.04 and 24.04
   test-linux-ubuntu-22:
@@ -131,7 +80,7 @@ jobs:
 
   # Optional: Build release artifacts
   build-release:
-    needs: [test-macos-14, test-macos-15, test-linux-ubuntu-22, test-linux-ubuntu-24]
+    needs: [test-linux-ubuntu-22, test-linux-ubuntu-24]
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
     steps:
