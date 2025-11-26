@@ -99,16 +99,21 @@ jobs:
 
     - name: Build Examples
       run: |
-        RELEASE_BIN=$(swift build --package-path . -c release --show-bin-path)
-        INCLUDE_FLAGS="-I $RELEASE_BIN"
-        DEBUG_BIN="${RELEASE_BIN%/release}/debug"
-        if [ -d "$DEBUG_BIN" ]; then
-          INCLUDE_FLAGS="$INCLUDE_FLAGS -I $DEBUG_BIN"
+        # Build once in debug to ensure module artifacts land in the standard
+        # .build/<triple>/debug location, which we can point swiftc at.
+        DEBUG_BIN=$(swift build --package-path . --show-bin-path)
+        INCLUDE_FLAGS="-I $DEBUG_BIN"
+
+        # If a release build already exists, add it too so we pick up any
+        # optimized module outputs from caches.
+        RELEASE_BIN=${DEBUG_BIN%/debug}/release
+        if [ -d "$RELEASE_BIN" ]; then
+          INCLUDE_FLAGS="$INCLUDE_FLAGS -I $RELEASE_BIN"
         fi
 
-        find . -name "*.swift" -path "./Examples/*" -exec swiftc $INCLUDE_FLAGS -typecheck {} \;
-        find . -name "*_demo.swift" -exec swiftc $INCLUDE_FLAGS -typecheck {} \;
-        find . -name "*_examples.swift" -exec swiftc $INCLUDE_FLAGS -typecheck {} \;
+        find Examples -name "*.swift" -exec swiftc $INCLUDE_FLAGS -typecheck {} \;
+        find Examples -name "*_demo.swift" -exec swiftc $INCLUDE_FLAGS -typecheck {} \;
+        find Examples -name "*_examples.swift" -exec swiftc $INCLUDE_FLAGS -typecheck {} \;
 
   apple-simulators:
     name: Apple Platforms (${{ matrix.platform }})
@@ -130,26 +135,8 @@ jobs:
       run: git clone --depth 1 https://github.com/steipete/Commander.git ../Commander
     - name: Select Xcode 26.1
       run: sudo xcode-select -s /Applications/Xcode_26.1.app || sudo xcode-select -s /Applications/Xcode_26.0.app || sudo xcode-select -s /Applications/Xcode.app
-    - name: Install simulator runtime for ${{ matrix.platform }}
-      run: |
-        case "${{ matrix.platform }}" in
-          "iOS Simulator") RUNTIME="iOS" ;;
-          "tvOS Simulator") RUNTIME="tvOS" ;;
-          "watchOS Simulator") RUNTIME="watchOS" ;;
-          "visionOS Simulator") RUNTIME="visionOS" ;;
-          *) echo "Unknown platform: ${{ matrix.platform }}" && exit 1 ;;
-        esac
-
-        # Transient network flakiness is common for runtime downloads; retry a few times.
-        for attempt in 1 2 3; do
-          if sudo xcodebuild -downloadPlatform "$RUNTIME"; then
-            exit 0
-          fi
-          echo "downloadPlatform $RUNTIME failed (attempt $attempt); retrying in 30s..."
-          sleep 30
-        done
-        echo "Failed to download $RUNTIME simulator runtime after retries"
-        exit 1
+    # Xcode 26.1 already bundles current platform SDKs; avoid downloading
+    # multi-GB simulator runtimes during CI to keep runtimes fast/stable.
     - name: Build for ${{ matrix.platform }}
       run: |
         xcodebuild \
