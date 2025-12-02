@@ -368,12 +368,17 @@ enum OAuthTokenResult {
 }
 
 enum OAuthTokenExchanger {
-    static func exchange(config: OAuthConfig, code: String, pkce: PKCE, timeout: Double) async -> OAuthTokenResult {
+    static func exchange(
+        config: OAuthConfig,
+        code: String,
+        pkce: PKCE,
+        timeout: Double,
+        session: URLSession? = nil
+    ) async -> OAuthTokenResult {
         guard let url = URL(string: config.token) else { return .failure("Bad token URL") }
         var req = URLRequest(url: url)
         req.httpMethod = "POST"
-        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        var body: [String: Any] = [
+        var body: [String: String] = [
             "grant_type": "authorization_code",
             "client_id": config.clientId,
             "code": code,
@@ -382,7 +387,7 @@ enum OAuthTokenExchanger {
         ]
         config.extraToken.forEach { body[$0.key] = $0.value }
 
-        switch await HTTP.postJSON(request: req, body: body, timeoutSeconds: timeout) {
+        switch await HTTP.postForm(request: req, body: body, timeoutSeconds: timeout, session: session) {
         case let .success(json):
             guard
                 let access = json["access_token"] as? String,
@@ -404,7 +409,13 @@ enum OAuthTokenExchanger {
     ) async
         -> OAuthTokenResult
     {
-        switch await HTTP.postJSON(request: urlRequest, body: body, timeoutSeconds: timeout) {
+        // We continue to accept a loosely typed body here (used by existing refresh flows),
+        // but the request is now encoded as standard form data for OAuth token endpoints.
+        let stringBody = body.reduce(into: [String: String]()) { result, pair in
+            result[pair.key] = String(describing: pair.value)
+        }
+
+        switch await HTTP.postForm(request: urlRequest, body: stringBody, timeoutSeconds: timeout) {
         case let .success(json):
             guard
                 let access = json["access_token"] as? String,
@@ -483,6 +494,22 @@ struct TKProviderValidator {
 }
 
 enum HTTP {
+    static func postForm(
+        request: URLRequest,
+        body: [String: String],
+        timeoutSeconds: Double,
+        session: URLSession? = nil
+    ) async -> TKValidationResultJSON {
+        let session = session ?? Self.makeSession(timeoutSeconds: timeoutSeconds)
+        var req = request
+        req.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
+        req.setValue("application/json", forHTTPHeaderField: "Accept")
+        var components = URLComponents()
+        components.queryItems = body.map { URLQueryItem(name: $0.key, value: $0.value) }
+        req.httpBody = components.percentEncodedQuery?.data(using: .utf8)
+        return await self.performJSON(request: req, timeoutSeconds: timeoutSeconds, session: session)
+    }
+
     static func perform(
         request: URLRequest,
         timeoutSeconds: Double,

@@ -65,6 +65,51 @@ final class AuthManagerTests: XCTestCase {
             XCTFail("Expected failure")
         }
     }
+
+    @MainActor
+    func testOAuthTokenExchangeUsesFormEncoding() async {
+        OAuthMockURLProtocol.reset()
+        let config = OAuthConfig(
+            prefix: "TEST",
+            authorize: "https://example.com/auth",
+            token: "https://example.com/token",
+            clientId: "client-id",
+            scope: "scope",
+            redirect: "https://example.com/callback",
+            extraAuthorize: [:],
+            extraToken: [:],
+            betaHeader: nil,
+            pkce: PKCE()
+        )
+        let result = await OAuthTokenExchanger.exchange(
+            config: config,
+            code: "abc123",
+            pkce: config.pkce,
+            timeout: 5,
+            session: .oauthMock()
+        )
+        guard case .success = result else {
+            XCTFail("Expected success but got \(result)")
+            return
+        }
+
+        guard let request = OAuthMockURLProtocol.lastRequest else {
+            XCTFail("No request captured")
+            return
+        }
+
+        XCTAssertEqual(request.value(forHTTPHeaderField: "Content-Type"), "application/x-www-form-urlencoded")
+
+        let bodyString = String(data: OAuthMockURLProtocol.lastBody ?? Data(), encoding: .utf8) ?? ""
+        let items = URLComponents(string: "https://example.com?\(bodyString)")?.queryItems ?? []
+        let params = Dictionary(uniqueKeysWithValues: items.map { ($0.name, $0.value ?? "") })
+
+        XCTAssertEqual(params["grant_type"], "authorization_code")
+        XCTAssertEqual(params["client_id"], "client-id")
+        XCTAssertEqual(params["code"], "abc123")
+        XCTAssertEqual(params["redirect_uri"], "https://example.com/callback")
+        XCTAssertEqual(params["code_verifier"], config.pkce.verifier)
+    }
 }
 
 // MARK: - URLSession mocking
@@ -98,4 +143,62 @@ extension URLSession {
         config.protocolClasses = [AuthMockURLProtocol.self]
         return URLSession(configuration: config)
     }
+
+    @MainActor
+    fileprivate static func oauthMock() -> URLSession {
+        let config = URLSessionConfiguration.ephemeral
+        config.protocolClasses = [OAuthMockURLProtocol.self]
+        return URLSession(configuration: config)
+    }
+}
+
+@MainActor
+private final class OAuthMockURLProtocol: URLProtocol {
+    nonisolated(unsafe) static var lastRequest: URLRequest?
+    nonisolated(unsafe) static var lastBody: Data?
+
+    static func reset() {
+        self.lastRequest = nil
+        self.lastBody = nil
+    }
+
+    override class func canInit(with _: URLRequest) -> Bool { true }
+    override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
+
+    override func startLoading() {
+        OAuthMockURLProtocol.lastRequest = self.request
+        if let body = self.request.httpBody {
+            OAuthMockURLProtocol.lastBody = body
+        } else if let stream = self.request.httpBodyStream {
+            stream.open()
+            defer { stream.close() }
+            var data = Data()
+            let bufferSize = 1024
+            var buffer = [UInt8](repeating: 0, count: bufferSize)
+            while stream.hasBytesAvailable {
+                let read = stream.read(&buffer, maxLength: bufferSize)
+                if read > 0 {
+                    data.append(buffer, count: read)
+                } else { break }
+            }
+            OAuthMockURLProtocol.lastBody = data
+        }
+        let body: [String: Any] = [
+            "access_token": "access",
+            "refresh_token": "refresh",
+            "expires_in": 3600,
+        ]
+        let data = try! JSONSerialization.data(withJSONObject: body)
+        let response = HTTPURLResponse(
+            url: self.request.url!,
+            statusCode: 200,
+            httpVersion: nil,
+            headerFields: ["Content-Type": "application/json"]
+        )!
+        self.client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
+        self.client?.urlProtocol(self, didLoad: data)
+        self.client?.urlProtocolDidFinishLoading(self)
+    }
+
+    override func stopLoading() {}
 }
