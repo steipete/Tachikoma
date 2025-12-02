@@ -373,8 +373,9 @@ enum OAuthTokenExchanger {
         code: String,
         pkce: PKCE,
         timeout: Double,
-        session: URLSession? = nil
-    ) async -> OAuthTokenResult {
+        session: URLSession? = nil,
+    ) async
+    -> OAuthTokenResult {
         guard let url = URL(string: config.token) else { return .failure("Bad token URL") }
         var req = URLRequest(url: url)
         req.httpMethod = "POST"
@@ -498,8 +499,9 @@ enum HTTP {
         request: URLRequest,
         body: [String: String],
         timeoutSeconds: Double,
-        session: URLSession? = nil
-    ) async -> TKValidationResultJSON {
+        session: URLSession? = nil,
+    ) async
+    -> TKValidationResultJSON {
         let session = session ?? Self.makeSession(timeoutSeconds: timeoutSeconds)
         var req = request
         req.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")

@@ -79,14 +79,14 @@ final class AuthManagerTests: XCTestCase {
             extraAuthorize: [:],
             extraToken: [:],
             betaHeader: nil,
-            pkce: PKCE()
+            pkce: PKCE(),
         )
         let result = await OAuthTokenExchanger.exchange(
             config: config,
             code: "abc123",
             pkce: config.pkce,
             timeout: 5,
-            session: .oauthMock()
+            session: .oauthMock(),
         )
         guard case .success = result else {
             XCTFail("Expected success but got \(result)")
@@ -193,7 +193,7 @@ private final class OAuthMockURLProtocol: URLProtocol {
             url: self.request.url!,
             statusCode: 200,
             httpVersion: nil,
-            headerFields: ["Content-Type": "application/json"]
+            headerFields: ["Content-Type": "application/json"],
         )!
         self.client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
         self.client?.urlProtocol(self, didLoad: data)

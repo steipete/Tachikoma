@@ -232,7 +232,7 @@ extension Provider {
     public static func environmentValue(for key: String, isSecret: Bool = false) -> String? {
         // Read an environment value using the shared configuration reader.
         if #available(macOS 15.0, iOS 18.0, watchOS 11.0, tvOS 18.0, *) {
-            if let value = Self.environmentReader.string(forKey: key, isSecret: isSecret), !value.isEmpty {
+            if let value = environmentReader.string(forKey: key, isSecret: isSecret), !value.isEmpty {
                 return value
             }
         }
