@@ -165,17 +165,9 @@ public enum Provider: Sendable, Hashable, Codable {
 @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 extension Provider {
     @available(macOS 15.0, iOS 18.0, watchOS 11.0, tvOS 18.0, *)
-    private struct IdentityKeyDecoder: ConfigKeyDecoder {
-        func decode(_ string: String, context: [String: ConfigContextValue]) -> ConfigKey {
-            ConfigKey([string], context: context)
-        }
-    }
-
-    @available(macOS 15.0, iOS 18.0, watchOS 11.0, tvOS 18.0, *)
     private static var environmentReader: ConfigReader {
         enum Holder {
             static let reader = ConfigReader(
-                keyDecoder: IdentityKeyDecoder(),
                 provider: EnvironmentVariablesProvider(
                     secretsSpecifier: .dynamic { key, _ in
                         let lowercased = key.lowercased()
@@ -196,7 +188,10 @@ extension Provider {
         if !self.environmentVariable.isEmpty {
             if #available(macOS 15.0, iOS 18.0, watchOS 11.0, tvOS 18.0, *) {
                 if
-                    let key = Self.environmentReader.string(forKey: self.environmentVariable, isSecret: true),
+                    let key = Self.environmentReader.string(
+                        forKey: ConfigKey(self.environmentVariable),
+                        isSecret: true,
+                    ),
                     !key.isEmpty
                 {
                     return key
@@ -212,7 +207,10 @@ extension Provider {
         // Check alternative environment variables
         for altVar in self.alternativeEnvironmentVariables {
             if #available(macOS 15.0, iOS 18.0, watchOS 11.0, tvOS 18.0, *) {
-                if let key = Self.environmentReader.string(forKey: altVar, isSecret: true), !key.isEmpty {
+                if
+                    let key = Self.environmentReader.string(forKey: ConfigKey(altVar), isSecret: true),
+                    !key.isEmpty
+                {
                     return key
                 }
             } else if let key = ProcessInfo.processInfo.environment[altVar], !key.isEmpty {
@@ -232,7 +230,10 @@ extension Provider {
     public static func environmentValue(for key: String, isSecret: Bool = false) -> String? {
         // Read an environment value using the shared configuration reader.
         if #available(macOS 15.0, iOS 18.0, watchOS 11.0, tvOS 18.0, *) {
-            if let value = environmentReader.string(forKey: key, isSecret: isSecret), !value.isEmpty {
+            if
+                let value = environmentReader.string(forKey: ConfigKey(key), isSecret: isSecret),
+                !value.isEmpty
+            {
                 return value
             }
         }
