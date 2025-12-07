@@ -258,12 +258,16 @@ public final class TKAuthManager {
         guard let input = readLine(), !input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             return .failure(.general("No code entered"))
         }
-        let code = Self.parseCode(from: input)
+        // Parse code and state from input (format: code#state)
+        let parts = input.trimmingCharacters(in: .whitespacesAndNewlines).split(separator: "#", maxSplits: 1)
+        let code = String(parts[0])
+        let state = parts.count > 1 ? String(parts[1]) : ""
         guard !code.isEmpty else { return .failure(.general("Could not extract code")) }
 
         let tokenResult = await OAuthTokenExchanger.exchange(
             config: config,
             code: code,
+            state: state,
             pkce: pkce,
             timeout: timeout,
         )
@@ -349,11 +353,16 @@ public final class TKAuthManager {
 struct PKCE {
     let verifier: String
     let challenge: String
+    let state: String
 
     init() {
         let data = Data((0..<32).map { _ in UInt8.random(in: 0...255) })
         self.verifier = data.urlSafeBase64()
         self.challenge = Data(TKHasher.hash(data: self.verifier.data(using: .utf8)!)).urlSafeBase64()
+
+        // Separate random state for CSRF protection
+        let stateData = Data((0..<32).map { _ in UInt8.random(in: 0...255) })
+        self.state = stateData.urlSafeBase64()
     }
 }
 
@@ -378,7 +387,7 @@ struct OAuthConfig {
             .init(name: "scope", value: self.scope),
             .init(name: "code_challenge", value: self.pkce.challenge),
             .init(name: "code_challenge_method", value: "S256"),
-            .init(name: "state", value: self.pkce.verifier),
+            .init(name: "state", value: self.pkce.state),
         ]
         items.append(contentsOf: self.extraAuthorize.map { URLQueryItem(name: $0.key, value: $0.value) })
         components?.queryItems = items
@@ -401,6 +410,7 @@ enum OAuthTokenExchanger {
     static func exchange(
         config: OAuthConfig,
         code: String,
+        state: String,
         pkce: PKCE,
         timeout: Double,
         session: URLSession? = nil,
@@ -414,12 +424,18 @@ enum OAuthTokenExchanger {
             "grant_type": "authorization_code",
             "client_id": config.clientId,
             "code": code,
+            "state": state,
             "redirect_uri": config.redirect,
             "code_verifier": pkce.verifier,
         ]
         config.extraToken.forEach { body[$0.key] = $0.value }
 
-        switch await HTTP.postForm(request: req, body: body, timeoutSeconds: timeout, session: session) {
+        // Use JSON for Anthropic OAuth token exchange
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        req.setValue("application/json", forHTTPHeaderField: "Accept")
+        req.httpBody = try? JSONSerialization.data(withJSONObject: body)
+
+        switch await HTTP.performJSON(request: req, timeoutSeconds: timeout, session: session) {
         case let .success(json):
             guard
                 let access = json["access_token"] as? String,
