@@ -189,7 +189,7 @@ extension Provider {
             if #available(macOS 15.0, iOS 18.0, watchOS 11.0, tvOS 18.0, *) {
                 if
                     let key = Self.environmentReader.string(
-                        forKey: ConfigKey(self.environmentVariable),
+                        forKey: ConfigKey([self.environmentVariable]),
                         isSecret: true,
                     ),
                     !key.isEmpty
@@ -208,7 +208,7 @@ extension Provider {
         for altVar in self.alternativeEnvironmentVariables {
             if #available(macOS 15.0, iOS 18.0, watchOS 11.0, tvOS 18.0, *) {
                 if
-                    let key = Self.environmentReader.string(forKey: ConfigKey(altVar), isSecret: true),
+                    let key = Self.environmentReader.string(forKey: ConfigKey([altVar]), isSecret: true),
                     !key.isEmpty
                 {
                     return key
@@ -231,7 +231,7 @@ extension Provider {
         // Read an environment value using the shared configuration reader.
         if #available(macOS 15.0, iOS 18.0, watchOS 11.0, tvOS 18.0, *) {
             if
-                let value = environmentReader.string(forKey: ConfigKey(key), isSecret: isSecret),
+                let value = environmentReader.string(forKey: ConfigKey([key]), isSecret: isSecret),
                 !value.isEmpty
             {
                 return value
