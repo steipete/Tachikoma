@@ -5,7 +5,8 @@ import FoundationNetworking
 import Testing
 @testable import Tachikoma
 
-@Suite(.serialized) struct AuthManagerTests {
+@Suite(.serialized)
+struct AuthManagerTests {
     private func resetAuthEnv() {
         unsetenv("XAI_API_KEY")
         unsetenv("X_AI_API_KEY")
@@ -14,7 +15,8 @@ import Testing
         unsetenv("ANTHROPIC_API_KEY")
     }
 
-    @Test func envPreferredOverCreds() throws {
+    @Test
+    func envPreferredOverCreds() throws {
         self.resetAuthEnv()
         setenv("OPENAI_API_KEY", "env-key", 1)
         defer { unsetenv("OPENAI_API_KEY") }
@@ -27,7 +29,8 @@ import Testing
         #expect(token == "env-key")
     }
 
-    @Test func grokAliasEnv() {
+    @Test
+    func grokAliasEnv() {
         self.resetAuthEnv()
         setenv("X_AI_API_KEY", "alias-key", 1)
         unsetenv("XAI_API_KEY")
@@ -41,7 +44,8 @@ import Testing
         #expect(token == "alias-key")
     }
 
-    @Test @MainActor func validateSuccessMock() async {
+    @Test @MainActor
+    func validateSuccessMock() async {
         let session = URLSession.mock(status: 200)
         let req = URLRequest(url: URL(string: "https://api.openai.com/v1/models")!)
         let result = await HTTP.perform(request: req, timeoutSeconds: 5, session: session)
@@ -51,7 +55,8 @@ import Testing
         }
     }
 
-    @Test @MainActor func validateFailureMock() async {
+    @Test @MainActor
+    func validateFailureMock() async {
         let session = URLSession.mock(status: 401)
         let req = URLRequest(url: URL(string: "https://api.openai.com/v1/models")!)
         let result = await HTTP.perform(request: req, timeoutSeconds: 5, session: session)
@@ -63,7 +68,8 @@ import Testing
         }
     }
 
-    @Test @MainActor func oAuthTokenExchangeUsesFormEncoding() async throws {
+    @Test @MainActor
+    func oAuthTokenExchangeUsesFormEncoding() async throws {
         OAuthMockURLProtocol.reset()
         let config = OAuthConfig(
             prefix: "TEST",
