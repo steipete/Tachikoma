@@ -82,9 +82,10 @@ public struct TKCredentialStore {
     }
 
     public func load() -> [String: String] {
-        guard FileManager.default.fileExists(atPath: self.credentialsPath) else { return [:] }
+        let credentialsPath = self.credentialsPath
+        guard FileManager.default.fileExists(atPath: credentialsPath) else { return [:] }
         do {
-            let content = try String(contentsOfFile: self.credentialsPath)
+            let content = try String(contentsOfFile: credentialsPath)
             var result: [String: String] = [:]
             for line in content.components(separatedBy: .newlines) {
                 let trimmed = line.trimmingCharacters(in: .whitespaces)
@@ -100,8 +101,11 @@ public struct TKCredentialStore {
     }
 
     public func save(_ credentials: [String: String]) throws {
+        let baseDir = self.baseDir
+        let credentialsPath = "\(baseDir)/credentials"
+
         try FileManager.default.createDirectory(
-            atPath: self.baseDir,
+            atPath: baseDir,
             withIntermediateDirectories: true,
             attributes: [.posixPermissions: 0o700],
         )
@@ -113,8 +117,8 @@ public struct TKCredentialStore {
         ]
         let body = credentials.sorted { $0.key < $1.key }.map { "\($0.key)=\($0.value)" }
         let content = (header + body).joined(separator: "\n")
-        try content.write(to: URL(fileURLWithPath: self.credentialsPath), atomically: true, encoding: .utf8)
-        try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: self.credentialsPath)
+        try content.write(to: URL(fileURLWithPath: credentialsPath), atomically: true, encoding: .utf8)
+        try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: credentialsPath)
     }
 }
 
