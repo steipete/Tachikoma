@@ -115,7 +115,7 @@ let package = Package(
                 .process("CLITests/__snapshots__/config_init.txt"),
                 .process("CLITests/README.md"),
             ],
-            swiftSettings: tachikomaSwiftSettings),
+            swiftSettings: tachikomaTestSwiftSettings),
 
         // MCP tests
         .testTarget(
@@ -125,7 +125,7 @@ let package = Package(
                 .product(name: "Logging", package: "swift-log"),
             ],
             path: "Tests/TachikomaMCPTests",
-            swiftSettings: tachikomaSwiftSettings),
+            swiftSettings: tachikomaTestSwiftSettings),
         
         // GPT-5 CLI executable target
         .executableTarget(
@@ -181,3 +181,6 @@ let commonSwiftSettings: [SwiftSetting] = [
 ]
 
 let tachikomaSwiftSettings = commonSwiftSettings
+let tachikomaTestSwiftSettings = tachikomaSwiftSettings + [
+    .enableExperimentalFeature("SwiftTesting"),
+]

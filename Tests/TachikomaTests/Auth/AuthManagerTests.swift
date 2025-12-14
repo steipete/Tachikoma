@@ -2,12 +2,11 @@ import Foundation
 #if canImport(FoundationNetworking)
 import FoundationNetworking
 #endif
-import XCTest
+import Testing
 @testable import Tachikoma
 
-final class AuthManagerTests: XCTestCase {
-    override func setUp() {
-        super.setUp()
+@Suite(.serialized) struct AuthManagerTests {
+    private func resetAuthEnv() {
         unsetenv("XAI_API_KEY")
         unsetenv("X_AI_API_KEY")
         unsetenv("GROK_API_KEY")
@@ -15,59 +14,56 @@ final class AuthManagerTests: XCTestCase {
         unsetenv("ANTHROPIC_API_KEY")
     }
 
-    func testEnvPreferredOverCreds() throws {
+    @Test func envPreferredOverCreds() throws {
+        self.resetAuthEnv()
         setenv("OPENAI_API_KEY", "env-key", 1)
         defer { unsetenv("OPENAI_API_KEY") }
         try TKAuthManager.shared.setCredential(key: "OPENAI_API_KEY", value: "cred-key")
         let auth = TKAuthManager.shared.resolveAuth(for: .openai)
-        switch auth {
-        case let .bearer(token, _):
-            XCTAssertEqual(token, "env-key")
-        default:
-            XCTFail("Expected bearer from env")
+        guard case let .bearer(token, _) = auth else {
+            Issue.record("Expected bearer from env")
+            return
         }
+        #expect(token == "env-key")
     }
 
-    func testGrokAliasEnv() {
+    @Test func grokAliasEnv() {
+        self.resetAuthEnv()
         setenv("X_AI_API_KEY", "alias-key", 1)
         unsetenv("XAI_API_KEY")
         unsetenv("GROK_API_KEY")
         defer { unsetenv("X_AI_API_KEY") }
         let auth = TKAuthManager.shared.resolveAuth(for: .grok)
-        switch auth {
-        case let .bearer(token, _):
-            XCTAssertEqual(token, "alias-key")
-        default:
-            XCTFail("Expected bearer from alias env")
+        guard case let .bearer(token, _) = auth else {
+            Issue.record("Expected bearer from alias env")
+            return
         }
+        #expect(token == "alias-key")
     }
 
-    @MainActor
-    func testValidateSuccessMock() async {
+    @Test @MainActor func validateSuccessMock() async {
         let session = URLSession.mock(status: 200)
         let req = URLRequest(url: URL(string: "https://api.openai.com/v1/models")!)
         let result = await HTTP.perform(request: req, timeoutSeconds: 5, session: session)
         switch result {
         case .success: break
-        default: XCTFail("Expected success")
+        default: Issue.record("Expected success")
         }
     }
 
-    @MainActor
-    func testValidateFailureMock() async {
+    @Test @MainActor func validateFailureMock() async {
         let session = URLSession.mock(status: 401)
         let req = URLRequest(url: URL(string: "https://api.openai.com/v1/models")!)
         let result = await HTTP.perform(request: req, timeoutSeconds: 5, session: session)
         switch result {
         case let .failure(reason):
-            XCTAssertTrue(reason.contains("401"))
+            #expect(reason.contains("401"))
         default:
-            XCTFail("Expected failure")
+            Issue.record("Expected failure")
         }
     }
 
-    @MainActor
-    func testOAuthTokenExchangeUsesFormEncoding() async {
+    @Test @MainActor func oAuthTokenExchangeUsesFormEncoding() async throws {
         OAuthMockURLProtocol.reset()
         let config = OAuthConfig(
             prefix: "TEST",
@@ -89,26 +85,23 @@ final class AuthManagerTests: XCTestCase {
             session: .oauthMock(),
         )
         guard case .success = result else {
-            XCTFail("Expected success but got \(result)")
+            Issue.record("Expected success but got \(result)")
             return
         }
 
-        guard let request = OAuthMockURLProtocol.lastRequest else {
-            XCTFail("No request captured")
-            return
-        }
+        let request = try #require(OAuthMockURLProtocol.lastRequest, "No request captured")
 
-        XCTAssertEqual(request.value(forHTTPHeaderField: "Content-Type"), "application/x-www-form-urlencoded")
+        #expect(request.value(forHTTPHeaderField: "Content-Type") == "application/x-www-form-urlencoded")
 
         let bodyString = String(data: OAuthMockURLProtocol.lastBody ?? Data(), encoding: .utf8) ?? ""
         let items = URLComponents(string: "https://example.com?\(bodyString)")?.queryItems ?? []
         let params = Dictionary(uniqueKeysWithValues: items.map { ($0.name, $0.value ?? "") })
 
-        XCTAssertEqual(params["grant_type"], "authorization_code")
-        XCTAssertEqual(params["client_id"], "client-id")
-        XCTAssertEqual(params["code"], "abc123")
-        XCTAssertEqual(params["redirect_uri"], "https://example.com/callback")
-        XCTAssertEqual(params["code_verifier"], config.pkce.verifier)
+        #expect(params["grant_type"] == "authorization_code")
+        #expect(params["client_id"] == "client-id")
+        #expect(params["code"] == "abc123")
+        #expect(params["redirect_uri"] == "https://example.com/callback")
+        #expect(params["code_verifier"] == config.pkce.verifier)
     }
 }
 
