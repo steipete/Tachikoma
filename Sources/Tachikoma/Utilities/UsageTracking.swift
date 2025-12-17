@@ -541,6 +541,7 @@ public struct ModelCostCalculator: Sendable {
         // Anthropic Pricing (as of 2025)
         case let .anthropic(anthropicModel):
             switch anthropicModel {
+            case .opus45: (5.00, 25.00)
             case .opus4, .opus4Thinking: (15.00, 75.00)
             case .sonnet4, .sonnet4Thinking: (3.00, 15.00)
             case .sonnet45: (4.00, 18.00)

@@ -287,6 +287,7 @@ public final class ModelCapabilityRegistry: @unchecked Sendable {
             ),
         )
 
+        self.capabilities["anthropic:claude-opus-4-5"] = claude4Capabilities
         self.capabilities["anthropic:claude-opus-4-1-20250805"] = claude4Capabilities
         self.capabilities["anthropic:claude-sonnet-4-20250514"] = claude4Capabilities
         self.capabilities["anthropic:claude-sonnet-4-5-20250929"] = claude4Capabilities

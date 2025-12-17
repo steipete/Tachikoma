@@ -124,6 +124,8 @@ public struct ModelSelector {
             return .opus4
         case "claude-opus-4-20250514-thinking":
             return .opus4Thinking
+        case "claude-opus-4-5", "claude-opus-4.5", "opus-4-5", "opus-4.5", "opus45":
+            return .opus45
         case "claude-sonnet-4-20250514":
             return .sonnet4
         case "claude-sonnet-4-20250514-thinking":
@@ -134,13 +136,13 @@ public struct ModelSelector {
         case "claude":
             return .sonnet45 // Default plain Claude alias to latest Sonnet
         case "claude-opus", "opus":
-            return .opus4
+            return .opus45
         case "claude-sonnet", "sonnet":
             return .sonnet4
         case "claude-haiku", "haiku":
             return .haiku45
         case "anthropic":
-            return .opus4 // Default Anthropic model
+            return .opus45 // Default Anthropic model
         default:
             // Check if it's a Claude model ID
             if input.hasPrefix("claude") {

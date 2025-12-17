@@ -70,7 +70,7 @@ struct LanguageModelCoverageTests {
     func languageModelDescriptions() {
         let baseModels: [LanguageModel] = [
             .openai(.gpt51),
-            .anthropic(.opus4),
+            .anthropic(.opus45),
             .google(.gemini25Flash),
             .mistral(.large2),
             .groq(.mixtral8x7b),

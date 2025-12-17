@@ -218,6 +218,8 @@ public enum ProviderParser {
 
     private static func parseAnthropicModel(_ modelString: String) -> LanguageModel? {
         switch modelString.lowercased() {
+        case "claude-opus-4-5", "claude-opus-4.5", "claude-opus-4-5-latest", "opus-4-5", "opus-4.5", "opus45":
+            .anthropic(.opus45)
         case "claude-opus-4-1-20250805", "claude-opus-4-20250514", "claude-opus-4", "opus-4": .anthropic(.opus4)
         case "claude-opus-4-1-20250805-thinking", "claude-opus-4-20250514-thinking", "claude-opus-4-thinking",
              "opus-4-thinking": .anthropic(.opus4Thinking)

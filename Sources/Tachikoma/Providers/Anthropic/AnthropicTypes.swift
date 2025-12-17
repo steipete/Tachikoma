@@ -88,11 +88,22 @@ struct AnthropicMessageRequest: Codable {
     let system: String?
     let messages: [AnthropicMessage]
     let tools: [AnthropicTool]?
+    let thinking: AnthropicThinking?
     let stream: Bool?
 
     enum CodingKeys: String, CodingKey {
-        case model, temperature, system, messages, tools, stream
+        case model, temperature, system, messages, tools, thinking, stream
         case maxTokens = "max_tokens"
+    }
+}
+
+struct AnthropicThinking: Codable {
+    let type: String
+    let budgetTokens: Int?
+
+    enum CodingKeys: String, CodingKey {
+        case type
+        case budgetTokens = "budget_tokens"
     }
 }
 
@@ -600,12 +611,13 @@ struct AnthropicStreamContentBlock: Codable {
 struct AnthropicStreamDelta: Codable {
     let type: String
     let text: String?
+    let thinking: String?
     let partialJson: String?
     let stopReason: String?
     let stopSequence: String?
 
     enum CodingKeys: String, CodingKey {
-        case type, text
+        case type, text, thinking
         case partialJson = "partial_json"
         case stopReason = "stop_reason"
         case stopSequence = "stop_sequence"

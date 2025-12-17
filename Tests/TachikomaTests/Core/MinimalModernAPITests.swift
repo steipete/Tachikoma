@@ -11,7 +11,7 @@ struct MinimalModernAPITests {
     func modelEnumConstruction() {
         // Test that model enums can be constructed
         let openaiModel = Model.openai(.gpt4o)
-        let anthropicModel = Model.anthropic(.opus4)
+        let anthropicModel = Model.anthropic(.opus45)
         _ = Model.grok(.grok4)
         _ = Model.ollama(.llama33)
 
@@ -36,10 +36,10 @@ struct MinimalModernAPITests {
         let defaultModel = Model.default
         // Should compile without errors
         switch defaultModel {
-        case .anthropic(.opus4):
+        case .anthropic(.opus45):
             break // Expected default
         default:
-            Issue.record("Expected default to be Anthropic Opus 4")
+            Issue.record("Expected default to be Anthropic Opus 4.5")
         }
     }
 

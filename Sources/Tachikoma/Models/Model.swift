@@ -176,7 +176,8 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
     }
 
     public enum Anthropic: Sendable, Hashable, CaseIterable {
-        // Claude 4.x Series (2025)
+        // Claude 4.x / 4.5 Series (2025)
+        case opus45
         case opus4
         case opus4Thinking
         case sonnet4
@@ -189,6 +190,7 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
 
         public static var allCases: [Anthropic] {
             [
+                .opus45,
                 .opus4,
                 .opus4Thinking,
                 .sonnet4,
@@ -201,6 +203,7 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
         public var modelId: String {
             switch self {
             case let .custom(id): id
+            case .opus45: "claude-opus-4-5"
             case .opus4: "claude-opus-4-1-20250805"
             case .opus4Thinking: "claude-opus-4-1-20250805-thinking"
             case .sonnet4: "claude-sonnet-4-20250514"
@@ -212,7 +215,7 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
 
         public var supportsVision: Bool {
             switch self {
-            case .opus4, .opus4Thinking, .sonnet4, .sonnet4Thinking, .sonnet45, .haiku45: true
+            case .opus45, .opus4, .opus4Thinking, .sonnet4, .sonnet4Thinking, .sonnet45, .haiku45: true
             case .custom: true // Assume custom models support vision
             }
         }
@@ -231,7 +234,7 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
 
         public var contextLength: Int {
             switch self {
-            case .opus4, .opus4Thinking, .sonnet4, .sonnet4Thinking, .sonnet45, .haiku45: 500_000
+            case .opus45, .opus4, .opus4Thinking, .sonnet4, .sonnet4Thinking, .sonnet45, .haiku45: 500_000
             case .custom: 200_000 // Default assumption
             }
         }
@@ -924,12 +927,12 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
 
     // MARK: - Default Model
 
-    public static let `default`: LanguageModel = .anthropic(.opus4)
+    public static let `default`: LanguageModel = .anthropic(.opus45)
 
     // MARK: - Convenience Static Properties
 
-    /// Default Claude model (opus4)
-    public static let claude: LanguageModel = .anthropic(.opus4)
+    /// Default Claude model (opus45)
+    public static let claude: LanguageModel = .anthropic(.opus45)
 
     /// Default GPT-4o model
     public static let gpt4o: LanguageModel = .openai(.gpt4o)
@@ -1146,6 +1149,17 @@ extension LanguageModel {
         }
 
         // MARK: Anthropic models
+
+        if
+            dotted.contains("claude-opus-4-5") ||
+            dotted.contains("claude-opus-4.5") ||
+            compact.contains("claudeopus45") ||
+            dotted.contains("opus-4-5") ||
+            dotted.contains("opus-4.5") ||
+            compact.contains("opus45")
+        {
+            return .anthropic(.opus45)
+        }
 
         if dotted.contains("claude-opus-4") || compact.contains("claudeopus4") || dotted.contains("opus-4") {
             if dotted.contains("thinking") {

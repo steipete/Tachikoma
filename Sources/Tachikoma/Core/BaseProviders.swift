@@ -15,6 +15,12 @@ public final class AnthropicProvider: ModelProvider {
 
     private let model: LanguageModel.Anthropic
     private let auth: TKAuthValue
+    private let betaHeader: String
+
+    private static let requiredBetaFlags: [String] = [
+        "interleaved-thinking-2025-05-14",
+        "fine-grained-tool-streaming-2025-05-14",
+    ]
 
     public init(model: LanguageModel.Anthropic, configuration: TachikomaConfiguration) throws {
         self.model = model
@@ -36,6 +42,8 @@ public final class AnthropicProvider: ModelProvider {
             throw TachikomaError.authenticationFailed("ANTHROPIC_API_KEY not found")
         }
 
+        self.betaHeader = Self.mergedBetaHeader(configuration: configuration, auth: self.auth)
+
         self.capabilities = ModelCapabilities(
             supportsVision: model.supportsVision,
             supportsTools: model.supportsTools,
@@ -45,6 +53,48 @@ public final class AnthropicProvider: ModelProvider {
             contextLength: model.contextLength,
             maxOutputTokens: 4096,
         )
+    }
+
+    private static func mergedBetaHeader(configuration: TachikomaConfiguration, auth: TKAuthValue) -> String {
+        var existing: String?
+        if case let .bearer(_, betaHeader) = auth {
+            existing = betaHeader
+        }
+
+        if existing?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty != false {
+            existing = configuration.credentialValue(for: "ANTHROPIC_BETA_HEADER")
+        }
+
+        var merged: [String] = []
+        var seen = Set<String>()
+
+        let existingParts = (existing ?? "")
+            .split(separator: ",")
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+
+        for part in existingParts where seen.insert(part).inserted {
+            merged.append(part)
+        }
+        for required in Self.requiredBetaFlags where seen.insert(required).inserted {
+            merged.append(required)
+        }
+
+        if merged.isEmpty {
+            merged = Self.requiredBetaFlags
+        }
+
+        return merged.joined(separator: ",")
+    }
+
+    private func anthropicThinking(from mode: AnthropicOptions.ThinkingMode?) -> AnthropicThinking? {
+        guard let mode else { return nil }
+        switch mode {
+        case .disabled:
+            return nil
+        case let .enabled(budgetTokens):
+            return AnthropicThinking(type: "enabled", budgetTokens: budgetTokens)
+        }
     }
 
     public func generateText(request: ProviderRequest) async throws -> ProviderResponse {
@@ -69,6 +119,7 @@ public final class AnthropicProvider: ModelProvider {
             system: systemMessage,
             messages: messages,
             tools: request.tools?.map { try self.convertToolToAnthropic($0) },
+            thinking: self.anthropicThinking(from: request.settings.providerOptions.anthropic?.thinking),
             stream: false,
         )
 
@@ -181,12 +232,10 @@ public final class AnthropicProvider: ModelProvider {
         switch self.auth {
         case .apiKey:
             request.setValue(secret, forHTTPHeaderField: "x-api-key")
-        case let .bearer(_, beta):
+        case .bearer:
             request.setValue("Bearer " + secret, forHTTPHeaderField: "Authorization")
-            if let beta {
-                request.setValue(beta, forHTTPHeaderField: "anthropic-beta")
-            }
         }
+        request.setValue(self.betaHeader, forHTTPHeaderField: "anthropic-beta")
     }
 
     public func streamText(request: ProviderRequest) async throws -> AsyncThrowingStream<TextStreamDelta, Error> {
@@ -211,6 +260,7 @@ public final class AnthropicProvider: ModelProvider {
             system: systemMessage,
             messages: messages,
             tools: request.tools?.map { try self.convertToolToAnthropic($0) },
+            thinking: self.anthropicThinking(from: request.settings.providerOptions.anthropic?.thinking),
             stream: true,
         )
 
@@ -313,6 +363,7 @@ public final class AnthropicProvider: ModelProvider {
             Task {
                 var currentToolCall: (id: String, name: String, partialInput: String)?
                 var accumulatedText = ""
+                var accumulatedReasoning = ""
 
                 do {
                     for try await line in bytes.lines {
@@ -334,6 +385,10 @@ public final class AnthropicProvider: ModelProvider {
                                 if !accumulatedText.isEmpty {
                                     continuation.yield(TextStreamDelta.text(accumulatedText))
                                     accumulatedText = ""
+                                }
+                                if !accumulatedReasoning.isEmpty {
+                                    continuation.yield(TextStreamDelta.reasoning(accumulatedReasoning))
+                                    accumulatedReasoning = ""
                                 }
                                 continuation.yield(TextStreamDelta.done())
                                 break
@@ -361,6 +416,9 @@ public final class AnthropicProvider: ModelProvider {
                                         } else if block.type == "text" {
                                             // Text block starting
                                             continue
+                                        } else if block.type == "thinking" {
+                                            // Reasoning block starting
+                                            continue
                                         }
                                     }
 
@@ -373,6 +431,12 @@ public final class AnthropicProvider: ModelProvider {
                                             if accumulatedText.count >= 20 {
                                                 continuation.yield(TextStreamDelta.text(accumulatedText))
                                                 accumulatedText = ""
+                                            }
+                                        } else if delta.type == "thinking_delta", let thinking = delta.thinking {
+                                            accumulatedReasoning += thinking
+                                            if accumulatedReasoning.count >= 20 {
+                                                continuation.yield(TextStreamDelta.reasoning(accumulatedReasoning))
+                                                accumulatedReasoning = ""
                                             }
                                         } else if
                                             delta.type == "input_json_delta",
@@ -391,6 +455,10 @@ public final class AnthropicProvider: ModelProvider {
                                     if !accumulatedText.isEmpty {
                                         continuation.yield(TextStreamDelta.text(accumulatedText))
                                         accumulatedText = ""
+                                    }
+                                    if !accumulatedReasoning.isEmpty {
+                                        continuation.yield(TextStreamDelta.reasoning(accumulatedReasoning))
+                                        accumulatedReasoning = ""
                                     }
 
                                     // Complete tool call if we have one
@@ -434,6 +502,10 @@ public final class AnthropicProvider: ModelProvider {
                                         continuation.yield(TextStreamDelta.text(accumulatedText))
                                         accumulatedText = ""
                                     }
+                                    if !accumulatedReasoning.isEmpty {
+                                        continuation.yield(TextStreamDelta.reasoning(accumulatedReasoning))
+                                        accumulatedReasoning = ""
+                                    }
                                     continuation.yield(TextStreamDelta.done())
 
                                 default:
@@ -467,6 +539,7 @@ public final class AnthropicProvider: ModelProvider {
             Task {
                 var currentToolCall: (id: String, name: String, partialInput: String)?
                 var accumulatedText = ""
+                var accumulatedReasoning = ""
 
                 do {
                     for line in lines {
@@ -486,6 +559,9 @@ public final class AnthropicProvider: ModelProvider {
                                 if !accumulatedText.isEmpty {
                                     continuation.yield(TextStreamDelta.text(accumulatedText))
                                 }
+                                if !accumulatedReasoning.isEmpty {
+                                    continuation.yield(TextStreamDelta.reasoning(accumulatedReasoning))
+                                }
                                 continuation.yield(TextStreamDelta.done())
                                 break
                             }
@@ -501,11 +577,16 @@ public final class AnthropicProvider: ModelProvider {
                                     if let delta = event.delta {
                                         if let text = delta.text {
                                             accumulatedText += text
+                                        } else if let thinking = delta.thinking {
+                                            accumulatedReasoning += thinking
                                         }
                                     }
                                 case "message_stop":
                                     if !accumulatedText.isEmpty {
                                         continuation.yield(TextStreamDelta.text(accumulatedText))
+                                    }
+                                    if !accumulatedReasoning.isEmpty {
+                                        continuation.yield(TextStreamDelta.reasoning(accumulatedReasoning))
                                     }
                                     continuation.yield(TextStreamDelta.done())
                                 default:
