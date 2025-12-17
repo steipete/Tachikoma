@@ -238,6 +238,7 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
     }
 
     public enum Google: String, Sendable, Hashable, CaseIterable {
+        case gemini3Flash = "gemini-3-flash"
         case gemini25Pro = "gemini-2.5-pro"
         case gemini25Flash = "gemini-2.5-flash"
         case gemini25FlashLite = "gemini-2.5-flash-lite"
@@ -247,7 +248,7 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
 
         public var supportsAudioInput: Bool {
             switch self {
-            case .gemini25Pro, .gemini25Flash:
+            case .gemini3Flash, .gemini25Pro, .gemini25Flash:
                 true
             case .gemini25FlashLite:
                 false
@@ -258,7 +259,7 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
 
         public var contextLength: Int {
             switch self {
-            case .gemini25Pro, .gemini25Flash:
+            case .gemini3Flash, .gemini25Pro, .gemini25Flash:
                 1_048_576
             case .gemini25FlashLite:
                 524_288
@@ -1176,6 +1177,42 @@ extension LanguageModel {
         let canonicalForms = [normalized, dashed, compact]
         if canonicalForms.contains(where: { genericClaudeIdentifiers.contains($0) }) {
             return .anthropic(.sonnet45)
+        }
+
+        // MARK: Google models
+
+        if dashed.contains("gemini-3-flash") || compact.contains("gemini3flash") {
+            return .google(.gemini3Flash)
+        }
+
+        if dashed.contains("gemini-2.5-pro") || dotted.contains("gemini-2-5-pro") || compact.contains("gemini25pro") {
+            return .google(.gemini25Pro)
+        }
+
+        if
+            dashed.contains("gemini-2.5-flash-lite") || dotted.contains("gemini-2-5-flash-lite") || compact
+                .contains("gemini25flashlite")
+        {
+            return .google(.gemini25FlashLite)
+        }
+
+        if
+            dashed.contains("gemini-2.5-flash") || dotted.contains("gemini-2-5-flash") || compact
+                .contains("gemini25flash")
+        {
+            return .google(.gemini25Flash)
+        }
+
+        let genericGeminiIdentifiers: Set<String> = [
+            "gemini",
+            "geminiflash",
+            "gemini-flash",
+            "gemini_flash",
+            "google",
+        ]
+
+        if canonicalForms.contains(where: { genericGeminiIdentifiers.contains($0) }) {
+            return .google(.gemini3Flash)
         }
 
         // MARK: Grok models

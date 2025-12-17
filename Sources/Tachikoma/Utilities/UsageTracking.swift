@@ -550,6 +550,7 @@ public struct ModelCostCalculator: Sendable {
         // Google Pricing (estimates)
         case let .google(googleModel):
             switch googleModel {
+            case .gemini3Flash: (0.50, 3.00)
             case .gemini25Pro: (1.25, 10.00)
             case .gemini25Flash: (0.30, 2.50)
             case .gemini25FlashLite: (0.10, 0.40)

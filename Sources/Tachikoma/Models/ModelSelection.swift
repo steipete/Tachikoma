@@ -152,6 +152,8 @@ public struct ModelSelector {
 
     private static func parseGoogleModel(_ input: String) -> Model.Google? {
         switch input {
+        case "gemini-3-flash", "gemini3flash", "gemini-3flash":
+            .gemini3Flash
         case "gemini-2.5-pro", "gemini25pro", "gemini2.5pro":
             .gemini25Pro
         case "gemini-2.5-flash", "gemini25flash":
@@ -159,7 +161,7 @@ public struct ModelSelector {
         case "gemini-2.5-flash-lite", "gemini25flashlite", "gemini-2.5-flashlite":
             .gemini25FlashLite
         case "gemini":
-            .gemini25Flash
+            .gemini3Flash
         case "google":
             .gemini25Pro
         default:
@@ -379,7 +381,7 @@ public func getAllAvailableModels() -> String {
     output += "\nShortcuts:\n"
     output += "  • claude, claude-opus, opus → claude-opus-4-20250514\n"
     output += "  • gpt, gpt4 → gpt-4.1\n"
-    output += "  • gemini → gemini-2.5-flash\n"
+    output += "  • gemini → gemini-3-flash\n"
     output += "  • grok → grok-4-fast-reasoning\n"
     output += "  • llama, llama3 → llama3.3\n"
 
@@ -414,13 +416,13 @@ extension ModelSelector {
         case .coding:
             [.claude, .gpt4o, .google(.gemini25Pro)]
         case .vision:
-            [.claude, .gpt4o, .google(.gemini25Flash)]
+            [.claude, .gpt4o, .google(.gemini3Flash)]
         case .reasoning:
             [.openai(.gpt51Mini), .claude, .google(.gemini25Pro)]
         case .local:
             [.llama, .ollama(.mistralNemo), .ollama(.commandRPlus)]
         case .general:
-            [.claude, .gpt4o, .google(.gemini25Flash), .grok(.grok4FastReasoning), .llama]
+            [.claude, .gpt4o, .google(.gemini3Flash), .grok(.grok4FastReasoning), .llama]
         }
     }
 }
