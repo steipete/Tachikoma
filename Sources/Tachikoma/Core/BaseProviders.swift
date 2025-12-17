@@ -55,16 +55,7 @@ public final class AnthropicProvider: ModelProvider {
         )
     }
 
-    private static func mergedBetaHeader(configuration: TachikomaConfiguration, auth: TKAuthValue) -> String {
-        var existing: String?
-        if case let .bearer(_, betaHeader) = auth {
-            existing = betaHeader
-        }
-
-        if existing?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty != false {
-            existing = configuration.credentialValue(for: "ANTHROPIC_BETA_HEADER")
-        }
-
+    static func mergedBetaHeader(existing: String?) -> String {
         var merged: [String] = []
         var seen = Set<String>()
 
@@ -87,6 +78,19 @@ public final class AnthropicProvider: ModelProvider {
         return merged.joined(separator: ",")
     }
 
+    private static func mergedBetaHeader(configuration: TachikomaConfiguration, auth: TKAuthValue) -> String {
+        var existing: String?
+        if case let .bearer(_, betaHeader) = auth {
+            existing = betaHeader
+        }
+
+        if existing?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty != false {
+            existing = configuration.credentialValue(for: "ANTHROPIC_BETA_HEADER")
+        }
+
+        return Self.mergedBetaHeader(existing: existing)
+    }
+
     private func anthropicThinking(from mode: AnthropicOptions.ThinkingMode?) -> AnthropicThinking? {
         guard let mode else { return nil }
         switch mode {
@@ -97,7 +101,7 @@ public final class AnthropicProvider: ModelProvider {
         }
     }
 
-    public func generateText(request: ProviderRequest) async throws -> ProviderResponse {
+    func makeURLRequest(for request: ProviderRequest, stream: Bool) throws -> URLRequest {
         guard let apiKey else {
             throw TachikomaError.authenticationFailed("Anthropic API key not found")
         }
@@ -109,9 +113,7 @@ public final class AnthropicProvider: ModelProvider {
         urlRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
         urlRequest.setValue("2023-06-01", forHTTPHeaderField: "anthropic-version")
 
-        // Convert messages to Anthropic format
         let (systemMessage, messages) = try convertMessagesToAnthropic(request.messages)
-
         let anthropicRequest = try AnthropicMessageRequest(
             model: modelId,
             maxTokens: request.settings.maxTokens ?? 1024,
@@ -120,19 +122,26 @@ public final class AnthropicProvider: ModelProvider {
             messages: messages,
             tools: request.tools?.map { try self.convertToolToAnthropic($0) },
             thinking: self.anthropicThinking(from: request.settings.providerOptions.anthropic?.thinking),
-            stream: false,
+            stream: stream,
         )
 
         let encoder = JSONEncoder()
         encoder.outputFormatting = .prettyPrinted // For debugging
-        let requestData = try encoder.encode(anthropicRequest)
-        urlRequest.httpBody = requestData
+        urlRequest.httpBody = try encoder.encode(anthropicRequest)
+        return urlRequest
+    }
+
+    public func generateText(request: ProviderRequest) async throws -> ProviderResponse {
+        let urlRequest = try self.makeURLRequest(for: request, stream: false)
 
         // Debug logging only when explicitly enabled
         let tachikomaConfig = TachikomaConfiguration.current
         if ProcessInfo.processInfo.environment["DEBUG_ANTHROPIC"] != nil || tachikomaConfig.verbose {
-            if let jsonString = String(data: requestData, encoding: .utf8) {
-                print("DEBUG AnthropicProvider: Request JSON (tools count: \(anthropicRequest.tools?.count ?? 0)):")
+            if
+                let requestData = urlRequest.httpBody,
+                let jsonString = String(data: requestData, encoding: .utf8)
+            {
+                print("DEBUG AnthropicProvider: Request JSON (tools count: \(request.tools?.count ?? 0)):")
                 // Only print the first part to avoid flooding
                 let preview = String(jsonString.prefix(2000))
                 print(preview)
@@ -239,35 +248,7 @@ public final class AnthropicProvider: ModelProvider {
     }
 
     public func streamText(request: ProviderRequest) async throws -> AsyncThrowingStream<TextStreamDelta, Error> {
-        guard let apiKey else {
-            throw TachikomaError.authenticationFailed("Anthropic API key not found")
-        }
-
-        let url = URL(string: "https://api.anthropic.com/v1/messages")!
-        var urlRequest = URLRequest(url: url)
-        urlRequest.httpMethod = "POST"
-        self.applyAuth(to: &urlRequest, secret: apiKey)
-        urlRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        urlRequest.setValue("2023-06-01", forHTTPHeaderField: "anthropic-version")
-
-        // Convert messages to Anthropic format
-        let (systemMessage, messages) = try convertMessagesToAnthropic(request.messages)
-
-        let anthropicRequest = try AnthropicMessageRequest(
-            model: modelId,
-            maxTokens: request.settings.maxTokens ?? 1024,
-            temperature: request.settings.temperature,
-            system: systemMessage,
-            messages: messages,
-            tools: request.tools?.map { try self.convertToolToAnthropic($0) },
-            thinking: self.anthropicThinking(from: request.settings.providerOptions.anthropic?.thinking),
-            stream: true,
-        )
-
-        let encoder = JSONEncoder()
-        encoder.outputFormatting = .prettyPrinted // For debugging
-        let requestData = try encoder.encode(anthropicRequest)
-        urlRequest.httpBody = requestData
+        let urlRequest = try self.makeURLRequest(for: request, stream: true)
 
         // Debug logging only when explicitly enabled
         let config = TachikomaConfiguration.current
@@ -277,24 +258,23 @@ public final class AnthropicProvider: ModelProvider {
         {
             print("\n🔴 DEBUG AnthropicProvider.streamText called with:")
             print("   Model: \(self.modelId)")
-            print("   Tools count: \(anthropicRequest.tools?.count ?? 0)")
-            if let tools = anthropicRequest.tools {
+            print("   Tools count: \(request.tools?.count ?? 0)")
+            if let tools = request.tools {
                 print("   Tool names: \(tools.map(\.name).joined(separator: ", "))")
             }
-            print("   Messages: \(messages.count)")
-            print("   System prompt: \(systemMessage?.prefix(100) ?? "none")...")
+            print("   Messages: \(request.messages.count)")
 
             // Debug: Log the actual messages being sent
-            for (idx, msg) in messages.indexed() {
+            for (idx, msg) in request.messages.enumerated() {
                 print("   Message \(idx): role=\(msg.role)")
                 for content in msg.content {
                     switch content {
                     case let .text(text):
-                        print("     - text: \(text.text.prefix(100))...")
-                    case let .toolUse(tool):
-                        print("     - tool_use: id=\(tool.id), name=\(tool.name)")
+                        print("     - text: \(text.prefix(100))...")
+                    case let .toolCall(call):
+                        print("     - tool_call: id=\(call.id), name=\(call.name)")
                     case let .toolResult(result):
-                        print("     - tool_result: tool_use_id=\(result.toolUseId)")
+                        print("     - tool_result: tool_call_id=\(result.toolCallId)")
                     default:
                         print("     - other content")
                     }
@@ -302,7 +282,10 @@ public final class AnthropicProvider: ModelProvider {
             }
 
             // Debug: Show first 2000 chars of JSON request
-            if let jsonString = String(data: requestData, encoding: .utf8) {
+            if
+                let requestData = urlRequest.httpBody,
+                let jsonString = String(data: requestData, encoding: .utf8)
+            {
                 print("\n🔴 Anthropic Request JSON (first 2000 chars):")
                 print(jsonString.prefix(2000))
             }
