@@ -113,7 +113,28 @@ public final class AnthropicProvider: ModelProvider {
         urlRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
         urlRequest.setValue("2023-06-01", forHTTPHeaderField: "anthropic-version")
 
-        let (systemMessage, messages) = try convertMessagesToAnthropic(request.messages)
+        let requestedThinking = self.anthropicThinking(from: request.settings.providerOptions.anthropic?.thinking)
+        var thinking: AnthropicThinking?
+        let systemMessage: String?
+        let messages: [AnthropicMessage]
+        do {
+            thinking = requestedThinking
+            (systemMessage, messages) = try self.convertMessagesToAnthropic(
+                request.messages,
+                thinkingEnabled: requestedThinking != nil,
+            )
+        } catch {
+            // If we can't provide signed thinking blocks for a cached/history session, fall back to non-thinking mode.
+            if requestedThinking != nil {
+                thinking = nil
+                (systemMessage, messages) = try self.convertMessagesToAnthropic(
+                    request.messages,
+                    thinkingEnabled: false,
+                )
+            } else {
+                throw error
+            }
+        }
         let anthropicRequest = try AnthropicMessageRequest(
             model: modelId,
             maxTokens: request.settings.maxTokens ?? 1024,
@@ -121,7 +142,7 @@ public final class AnthropicProvider: ModelProvider {
             system: systemMessage,
             messages: messages,
             tools: request.tools?.map { try self.convertToolToAnthropic($0) },
-            thinking: self.anthropicThinking(from: request.settings.providerOptions.anthropic?.thinking),
+            thinking: thinking,
             stream: stream,
         )
 
@@ -347,6 +368,9 @@ public final class AnthropicProvider: ModelProvider {
                 var currentToolCall: (id: String, name: String, partialInput: String)?
                 var accumulatedText = ""
                 var accumulatedReasoning = ""
+                var currentReasoningSignature: String?
+                var currentReasoningType: String?
+                var reasoningSignatureEmitted = false
 
                 do {
                     for try await line in bytes.lines {
@@ -370,8 +394,15 @@ public final class AnthropicProvider: ModelProvider {
                                     accumulatedText = ""
                                 }
                                 if !accumulatedReasoning.isEmpty {
-                                    continuation.yield(TextStreamDelta.reasoning(accumulatedReasoning))
+                                    continuation.yield(TextStreamDelta.reasoning(
+                                        accumulatedReasoning,
+                                        signature: reasoningSignatureEmitted ? nil : currentReasoningSignature,
+                                        type: currentReasoningType,
+                                    ))
                                     accumulatedReasoning = ""
+                                    currentReasoningSignature = nil
+                                    currentReasoningType = nil
+                                    reasoningSignatureEmitted = false
                                 }
                                 continuation.yield(TextStreamDelta.done())
                                 break
@@ -399,8 +430,11 @@ public final class AnthropicProvider: ModelProvider {
                                         } else if block.type == "text" {
                                             // Text block starting
                                             continue
-                                        } else if block.type == "thinking" {
+                                        } else if block.type == "thinking" || block.type == "redacted_thinking" {
                                             // Reasoning block starting
+                                            currentReasoningSignature = nil
+                                            currentReasoningType = block.type
+                                            reasoningSignatureEmitted = false
                                             continue
                                         }
                                     }
@@ -418,8 +452,29 @@ public final class AnthropicProvider: ModelProvider {
                                         } else if delta.type == "thinking_delta", let thinking = delta.thinking {
                                             accumulatedReasoning += thinking
                                             if accumulatedReasoning.count >= 20 {
-                                                continuation.yield(TextStreamDelta.reasoning(accumulatedReasoning))
+                                                let signatureToSend = reasoningSignatureEmitted ? nil :
+                                                    currentReasoningSignature
+                                                continuation.yield(TextStreamDelta.reasoning(
+                                                    accumulatedReasoning,
+                                                    signature: signatureToSend,
+                                                    type: currentReasoningType,
+                                                ))
                                                 accumulatedReasoning = ""
+                                                if signatureToSend != nil {
+                                                    reasoningSignatureEmitted = true
+                                                }
+                                            }
+                                        } else if delta.type == "signature_delta", let signature = delta.signature,
+                                            !signature.isEmpty
+                                        {
+                                            currentReasoningSignature = signature
+                                            if !reasoningSignatureEmitted {
+                                                continuation.yield(TextStreamDelta.reasoning(
+                                                    "",
+                                                    signature: signature,
+                                                    type: currentReasoningType,
+                                                ))
+                                                reasoningSignatureEmitted = true
                                             }
                                         } else if
                                             delta.type == "input_json_delta",
@@ -440,8 +495,15 @@ public final class AnthropicProvider: ModelProvider {
                                         accumulatedText = ""
                                     }
                                     if !accumulatedReasoning.isEmpty {
-                                        continuation.yield(TextStreamDelta.reasoning(accumulatedReasoning))
+                                        continuation.yield(TextStreamDelta.reasoning(
+                                            accumulatedReasoning,
+                                            signature: reasoningSignatureEmitted ? nil : currentReasoningSignature,
+                                            type: currentReasoningType,
+                                        ))
                                         accumulatedReasoning = ""
+                                        currentReasoningSignature = nil
+                                        currentReasoningType = nil
+                                        reasoningSignatureEmitted = false
                                     }
 
                                     // Complete tool call if we have one
@@ -486,8 +548,15 @@ public final class AnthropicProvider: ModelProvider {
                                         accumulatedText = ""
                                     }
                                     if !accumulatedReasoning.isEmpty {
-                                        continuation.yield(TextStreamDelta.reasoning(accumulatedReasoning))
+                                        continuation.yield(TextStreamDelta.reasoning(
+                                            accumulatedReasoning,
+                                            signature: reasoningSignatureEmitted ? nil : currentReasoningSignature,
+                                            type: currentReasoningType,
+                                        ))
                                         accumulatedReasoning = ""
+                                        currentReasoningSignature = nil
+                                        currentReasoningType = nil
+                                        reasoningSignatureEmitted = false
                                     }
                                     continuation.yield(TextStreamDelta.done())
 
@@ -523,6 +592,9 @@ public final class AnthropicProvider: ModelProvider {
                 var currentToolCall: (id: String, name: String, partialInput: String)?
                 var accumulatedText = ""
                 var accumulatedReasoning = ""
+                var currentReasoningSignature: String?
+                var currentReasoningType: String?
+                var reasoningSignatureEmitted = false
 
                 do {
                     for line in lines {
@@ -543,7 +615,11 @@ public final class AnthropicProvider: ModelProvider {
                                     continuation.yield(TextStreamDelta.text(accumulatedText))
                                 }
                                 if !accumulatedReasoning.isEmpty {
-                                    continuation.yield(TextStreamDelta.reasoning(accumulatedReasoning))
+                                    continuation.yield(TextStreamDelta.reasoning(
+                                        accumulatedReasoning,
+                                        signature: reasoningSignatureEmitted ? nil : currentReasoningSignature,
+                                        type: currentReasoningType,
+                                    ))
                                 }
                                 continuation.yield(TextStreamDelta.done())
                                 break
@@ -556,9 +632,30 @@ public final class AnthropicProvider: ModelProvider {
 
                                 // Process events similar to macOS implementation
                                 switch event.type {
+                                case "content_block_start":
+                                    if
+                                        let block = event.contentBlock,
+                                        block.type == "thinking" || block.type == "redacted_thinking"
+                                    {
+                                        currentReasoningSignature = nil
+                                        currentReasoningType = block.type
+                                        reasoningSignatureEmitted = false
+                                    }
                                 case "content_block_delta":
                                     if let delta = event.delta {
-                                        if let text = delta.text {
+                                        if delta.type == "signature_delta", let signature = delta.signature,
+                                            !signature.isEmpty
+                                        {
+                                            currentReasoningSignature = signature
+                                            if !reasoningSignatureEmitted {
+                                                continuation.yield(TextStreamDelta.reasoning(
+                                                    "",
+                                                    signature: signature,
+                                                    type: currentReasoningType,
+                                                ))
+                                                reasoningSignatureEmitted = true
+                                            }
+                                        } else if let text = delta.text {
                                             accumulatedText += text
                                         } else if let thinking = delta.thinking {
                                             accumulatedReasoning += thinking
@@ -569,7 +666,11 @@ public final class AnthropicProvider: ModelProvider {
                                         continuation.yield(TextStreamDelta.text(accumulatedText))
                                     }
                                     if !accumulatedReasoning.isEmpty {
-                                        continuation.yield(TextStreamDelta.reasoning(accumulatedReasoning))
+                                        continuation.yield(TextStreamDelta.reasoning(
+                                            accumulatedReasoning,
+                                            signature: reasoningSignatureEmitted ? nil : currentReasoningSignature,
+                                            type: currentReasoningType,
+                                        ))
                                     }
                                     continuation.yield(TextStreamDelta.done())
                                 default:
@@ -593,9 +694,16 @@ public final class AnthropicProvider: ModelProvider {
 
     // MARK: - Helper Methods
 
-    private func convertMessagesToAnthropic(_ messages: [ModelMessage]) throws -> (String?, [AnthropicMessage]) {
+    private func convertMessagesToAnthropic(
+        _ messages: [ModelMessage],
+        thinkingEnabled: Bool,
+    ) throws
+    -> (String?, [AnthropicMessage]) {
         var systemMessage: String?
         var anthropicMessages: [AnthropicMessage] = []
+        var pendingSignedThinking: (text: String, signature: String, type: String)?
+        let thinkingSignatureKey = "anthropic.thinking.signature"
+        let thinkingTypeKey = "anthropic.thinking.type"
 
         for message in messages {
             switch message.role {
@@ -625,7 +733,37 @@ public final class AnthropicProvider: ModelProvider {
                 }
                 anthropicMessages.append(AnthropicMessage(role: "user", content: content))
             case .assistant:
+                if message.channel == .thinking {
+                    let text = message.content.compactMap { part -> String? in
+                        if case let .text(text) = part { return text }
+                        return nil
+                    }.joined()
+                    let signature = message.metadata?.customData?[thinkingSignatureKey]
+                    let type = message.metadata?.customData?[thinkingTypeKey] ?? "thinking"
+                    if let signature, !signature.isEmpty {
+                        pendingSignedThinking = (text: text, signature: signature, type: type)
+                    }
+                    continue
+                }
+
                 var content: [AnthropicContent] = []
+
+                if thinkingEnabled, let pending = pendingSignedThinking {
+                    if pending.type == "redacted_thinking" {
+                        content.append(.redactedThinking(.init(
+                            type: "redacted_thinking",
+                            redactedThinking: pending.text,
+                            signature: pending.signature,
+                        )))
+                    } else {
+                        content.append(.thinking(.init(
+                            type: "thinking",
+                            thinking: pending.text,
+                            signature: pending.signature,
+                        )))
+                    }
+                    pendingSignedThinking = nil
+                }
 
                 // Process each content part
                 for part in message.content {
@@ -691,6 +829,23 @@ public final class AnthropicProvider: ModelProvider {
                     anthropicMessages.append(AnthropicMessage(role: "user", content: content))
                 }
             }
+        }
+
+        if thinkingEnabled, let pending = pendingSignedThinking {
+            let thinkingContent: AnthropicContent = if pending.type == "redacted_thinking" {
+                .redactedThinking(.init(
+                    type: "redacted_thinking",
+                    redactedThinking: pending.text,
+                    signature: pending.signature,
+                ))
+            } else {
+                .thinking(.init(
+                    type: "thinking",
+                    thinking: pending.text,
+                    signature: pending.signature,
+                ))
+            }
+            anthropicMessages.append(AnthropicMessage(role: "assistant", content: [thinkingContent]))
         }
 
         return (systemMessage, anthropicMessages)

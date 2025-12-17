@@ -471,6 +471,8 @@ public struct TextStreamDelta: Sendable {
     public let type: StreamEventType
     public let content: String?
     public let channel: ResponseChannel?
+    public let reasoningSignature: String?
+    public let reasoningType: String?
     public let toolCall: AgentToolCall?
     public let toolResult: AgentToolResult?
     public let usage: Usage?
@@ -488,6 +490,8 @@ public struct TextStreamDelta: Sendable {
         type: StreamEventType,
         content: String? = nil,
         channel: ResponseChannel? = nil,
+        reasoningSignature: String? = nil,
+        reasoningType: String? = nil,
         toolCall: AgentToolCall? = nil,
         toolResult: AgentToolResult? = nil,
         usage: Usage? = nil,
@@ -496,6 +500,8 @@ public struct TextStreamDelta: Sendable {
         self.type = type
         self.content = content
         self.channel = channel
+        self.reasoningSignature = reasoningSignature
+        self.reasoningType = reasoningType
         self.toolCall = toolCall
         self.toolResult = toolResult
         self.usage = usage
@@ -507,8 +513,14 @@ public struct TextStreamDelta: Sendable {
         TextStreamDelta(type: .textDelta, content: content, channel: channel)
     }
 
-    public static func reasoning(_ content: String) -> TextStreamDelta {
-        TextStreamDelta(type: .reasoning, content: content, channel: .thinking)
+    public static func reasoning(_ content: String, signature: String? = nil, type: String? = nil) -> TextStreamDelta {
+        TextStreamDelta(
+            type: .reasoning,
+            content: content,
+            channel: .thinking,
+            reasoningSignature: signature,
+            reasoningType: type,
+        )
     }
 
     public static func tool(_ call: AgentToolCall) -> TextStreamDelta {
