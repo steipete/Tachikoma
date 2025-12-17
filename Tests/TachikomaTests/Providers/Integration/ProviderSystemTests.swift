@@ -2,7 +2,7 @@ import Foundation
 import Testing
 @testable import Tachikoma
 
-@Suite("Provider System Tests")
+@Suite("Provider System Tests", .serialized)
 struct ProviderSystemTests {
     // MARK: - Provider Factory Tests
 

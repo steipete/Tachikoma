@@ -128,6 +128,7 @@ public final class TKAuthManager {
     private let store = TKCredentialStore()
     private let lock = NSLock()
     private var ignoreEnv = false
+    private var ignoreStore = false
 
     private init() {}
 
@@ -140,9 +141,18 @@ public final class TKAuthManager {
         return previous
     }
 
+    @discardableResult
+    public func setIgnoreCredentialStore(_ value: Bool) -> Bool {
+        self.lock.lock()
+        let previous = self.ignoreStore
+        self.ignoreStore = value
+        self.lock.unlock()
+        return previous
+    }
+
     public func credentialValue(for key: String) -> String? {
         self.lock.lock()
-        let creds = self.store.load()
+        let creds = self.ignoreStore ? [:] : self.store.load()
         self.lock.unlock()
         if !self.ignoreEnv, let env = ProcessInfo.processInfo.environment[key], !env.isEmpty { return env }
         return creds[key]
@@ -150,7 +160,7 @@ public final class TKAuthManager {
 
     public func resolveAuth(for provider: TKProviderId) -> TKAuthValue? {
         self.lock.lock()
-        let creds = self.store.load()
+        let creds = self.ignoreStore ? [:] : self.store.load()
         self.lock.unlock()
         switch provider {
         case .openai:

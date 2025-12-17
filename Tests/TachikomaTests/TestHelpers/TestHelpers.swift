@@ -83,7 +83,11 @@ enum TestHelpers {
         -> T
     {
         let previousIgnore = TKAuthManager.shared.setIgnoreEnvironment(true)
-        defer { TKAuthManager.shared.setIgnoreEnvironment(previousIgnore) }
+        let previousIgnoreStore = TKAuthManager.shared.setIgnoreCredentialStore(true)
+        defer {
+            TKAuthManager.shared.setIgnoreEnvironment(previousIgnore)
+            TKAuthManager.shared.setIgnoreCredentialStore(previousIgnoreStore)
+        }
 
         let envKeys = [
             "OPENAI_API_KEY",

@@ -2,7 +2,7 @@ import Foundation
 import Testing
 @testable import Tachikoma
 
-@Suite("Test Helpers Tests")
+@Suite("Test Helpers Tests", .serialized)
 struct TestHelpersTests {
     @Test("Test helper create configuration")
     func helperCreateConfiguration() {
