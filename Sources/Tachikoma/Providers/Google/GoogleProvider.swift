@@ -149,7 +149,13 @@ public final class GoogleProvider: ModelProvider {
             if message.role == .system {
                 for contentPart in message.content {
                     guard case let .text(text) = contentPart else { continue }
-                    systemParts.append(.init(text: text, inlineData: nil, functionCall: nil, functionResponse: nil, thoughtSignature: nil))
+                    systemParts.append(.init(
+                        text: text,
+                        inlineData: nil,
+                        functionCall: nil,
+                        functionResponse: nil,
+                        thoughtSignature: nil,
+                    ))
                 }
                 continue
             }
@@ -157,39 +163,57 @@ public final class GoogleProvider: ModelProvider {
             for contentPart in message.content {
                 switch contentPart {
                 case let .text(text):
-                    parts.append(.init(text: text, inlineData: nil, functionCall: nil, functionResponse: nil, thoughtSignature: nil))
+                    parts.append(.init(
+                        text: text,
+                        inlineData: nil,
+                        functionCall: nil,
+                        functionResponse: nil,
+                        thoughtSignature: nil,
+                    ))
                 case let .image(imageContent):
                     let inline = GoogleGenerateRequest.Content.InlineData(
                         mimeType: imageContent.mimeType,
                         data: imageContent.data,
                     )
-                    parts.append(.init(text: nil, inlineData: inline, functionCall: nil, functionResponse: nil, thoughtSignature: nil))
+                    parts.append(.init(
+                        text: nil,
+                        inlineData: inline,
+                        functionCall: nil,
+                        functionResponse: nil,
+                        thoughtSignature: nil,
+                    ))
                 case let .toolCall(toolCall):
-                    let call = GoogleGenerateRequest.Content.FunctionCall(
+                    let call = try GoogleGenerateRequest.Content.FunctionCall(
                         id: toolCall.id,
                         name: toolCall.name,
-                        args: try Self.convertToolArguments(toolCall.arguments),
+                        args: Self.convertToolArguments(toolCall.arguments),
                     )
                     parts.append(.init(
                         text: nil,
                         inlineData: nil,
                         functionCall: call,
                         functionResponse: nil,
-                        thoughtSignature: toolCall.recipient
+                        thoughtSignature: toolCall.recipient,
                     ))
                 case let .toolResult(toolResult):
                     guard let name = toolCallNameById[toolResult.toolCallId] else { continue }
-                    let response = GoogleGenerateRequest.Content.FunctionResponse(
+                    let response = try GoogleGenerateRequest.Content.FunctionResponse(
                         id: toolResult.toolCallId,
                         name: name,
-                        response: try Self.convertToolResult(toolResult),
+                        response: Self.convertToolResult(toolResult),
                     )
-                    parts.append(.init(text: nil, inlineData: nil, functionCall: nil, functionResponse: response, thoughtSignature: nil))
+                    parts.append(.init(
+                        text: nil,
+                        inlineData: nil,
+                        functionCall: nil,
+                        functionResponse: response,
+                        thoughtSignature: nil,
+                    ))
                 }
             }
 
             guard !parts.isEmpty else { continue }
-            let role: String = switch message.role {
+            let role = switch message.role {
             case .assistant:
                 "model"
             case .tool:
@@ -362,7 +386,7 @@ private struct GoogleSSEParser {
 
     init(
         onText: @escaping (String) -> Void,
-        onToolCall: @escaping (AgentToolCall) -> Void
+        onToolCall: @escaping (AgentToolCall) -> Void,
     ) {
         self.onText = onText
         self.onToolCall = onToolCall
@@ -429,10 +453,12 @@ private struct GoogleSSEParser {
 
     private static func convertToolCall(
         _ functionCall: GoogleStreamChunk.Candidate.Content.Part.FunctionCall,
-        thoughtSignature: String?
-    ) -> AgentToolCall? {
+        thoughtSignature: String?,
+    )
+        -> AgentToolCall?
+    {
         var arguments: [String: AnyAgentToolValue] = [:]
-        for (key, value) in (functionCall.args ?? [:]) {
+        for (key, value) in functionCall.args ?? [:] {
             do {
                 arguments[key] = try AnyAgentToolValue.fromJSON(value.value)
             } catch {
@@ -446,7 +472,7 @@ private struct GoogleSSEParser {
             name: functionCall.name,
             arguments: arguments,
             namespace: nil,
-            recipient: thoughtSignature
+            recipient: thoughtSignature,
         )
     }
 }

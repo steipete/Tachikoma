@@ -769,6 +769,67 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
         }
     }
 
+    public var supportsStreaming: Bool {
+        // All models support streaming by default
+        true
+    }
+
+    public var providerName: String {
+        switch self {
+        case .openai:
+            "OpenAI"
+        case .anthropic:
+            "Anthropic"
+        case .google:
+            "Google"
+        case .mistral:
+            "Mistral"
+        case .groq:
+            "Groq"
+        case .grok:
+            "Grok"
+        case .ollama:
+            "Ollama"
+        case .lmstudio:
+            "LMStudio"
+        case .openRouter:
+            "OpenRouter"
+        case .together:
+            "Together"
+        case .replicate:
+            "Replicate"
+        case .openaiCompatible:
+            "OpenAI-Compatible"
+        case .anthropicCompatible:
+            "Anthropic-Compatible"
+        case .azureOpenAI:
+            "AzureOpenAI"
+        case .custom:
+            "Custom"
+        }
+    }
+
+    // MARK: - Default Model
+
+    public static let `default`: LanguageModel = .anthropic(.opus45)
+
+    // MARK: - Convenience Static Properties
+
+    /// Default Claude model (opus45)
+    public static let claude: LanguageModel = .anthropic(.opus45)
+
+    /// Default GPT-4o model
+    public static let gpt4o: LanguageModel = .openai(.gpt4o)
+
+    /// Default Grok model (Grok-4-0709)
+    public static let grok4: LanguageModel = .grok(.grok4)
+
+    /// Default Llama model
+    public static let llama: LanguageModel = .ollama(.llama33)
+}
+
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
+extension LanguageModel {
     public var supportsAudioInput: Bool {
         switch self {
         case let .openai(model):
@@ -884,64 +945,6 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
             provider.capabilities.contextLength
         }
     }
-
-    public var supportsStreaming: Bool {
-        // All models support streaming by default
-        true
-    }
-
-    public var providerName: String {
-        switch self {
-        case .openai:
-            "OpenAI"
-        case .anthropic:
-            "Anthropic"
-        case .google:
-            "Google"
-        case .mistral:
-            "Mistral"
-        case .groq:
-            "Groq"
-        case .grok:
-            "Grok"
-        case .ollama:
-            "Ollama"
-        case .lmstudio:
-            "LMStudio"
-        case .openRouter:
-            "OpenRouter"
-        case .together:
-            "Together"
-        case .replicate:
-            "Replicate"
-        case .openaiCompatible:
-            "OpenAI-Compatible"
-        case .anthropicCompatible:
-            "Anthropic-Compatible"
-        case .azureOpenAI:
-            "AzureOpenAI"
-        case .custom:
-            "Custom"
-        }
-    }
-
-    // MARK: - Default Model
-
-    public static let `default`: LanguageModel = .anthropic(.opus45)
-
-    // MARK: - Convenience Static Properties
-
-    /// Default Claude model (opus45)
-    public static let claude: LanguageModel = .anthropic(.opus45)
-
-    /// Default GPT-4o model
-    public static let gpt4o: LanguageModel = .openai(.gpt4o)
-
-    /// Default Grok model (Grok-4-0709)
-    public static let grok4: LanguageModel = .grok(.grok4)
-
-    /// Default Llama model
-    public static let llama: LanguageModel = .ollama(.llama33)
 }
 
 // MARK: - Hashable Conformance

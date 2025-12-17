@@ -44,7 +44,8 @@ struct AuthManagerTests {
         #expect(token == "alias-key")
     }
 
-    @Test @MainActor
+    @Test
+    @MainActor
     func validateSuccessMock() async {
         let session = URLSession.mock(status: 200)
         let req = URLRequest(url: URL(string: "https://api.openai.com/v1/models")!)
@@ -55,7 +56,8 @@ struct AuthManagerTests {
         }
     }
 
-    @Test @MainActor
+    @Test
+    @MainActor
     func validateFailureMock() async {
         let session = URLSession.mock(status: 401)
         let req = URLRequest(url: URL(string: "https://api.openai.com/v1/models")!)
@@ -68,7 +70,8 @@ struct AuthManagerTests {
         }
     }
 
-    @Test @MainActor
+    @Test
+    @MainActor
     func oAuthTokenExchangeUsesFormEncoding() async throws {
         OAuthMockURLProtocol.reset()
         let config = OAuthConfig(

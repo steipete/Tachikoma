@@ -144,7 +144,7 @@ struct AnthropicInterleavedDefaultsTests {
 
         let assistant = try #require(messages[1]["content"] as? [[String: Any]])
         #expect(assistant.first?["type"] as? String == "redacted_thinking")
-        #expect(assistant.first?["redacted_thinking"] as? String == "")
+        #expect((assistant.first?["redacted_thinking"] as? String)?.isEmpty == true)
         #expect(assistant.first?["signature"] as? String == "sig-redacted")
     }
 
