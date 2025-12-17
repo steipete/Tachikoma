@@ -152,7 +152,7 @@ public struct ModelSelector {
 
     private static func parseGoogleModel(_ input: String) -> Model.Google? {
         switch input {
-        case "gemini-3-flash", "gemini3flash", "gemini-3flash":
+        case "gemini-3-flash", "gemini-3-flash-preview", "gemini3flash", "gemini-3flash":
             .gemini3Flash
         case "gemini-2.5-pro", "gemini25pro", "gemini2.5pro":
             .gemini25Pro
@@ -292,7 +292,7 @@ public struct ModelSelector {
                 return $0.modelId
             }
         case "google", "gemini":
-            return Model.Google.allCases.map(\.rawValue)
+            return Model.Google.allCases.map(\.userFacingModelId)
         case "ollama":
             return Model.Ollama.allCases.compactMap {
                 if case .custom = $0 { return nil }

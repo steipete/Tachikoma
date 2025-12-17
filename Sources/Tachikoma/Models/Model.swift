@@ -238,10 +238,23 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
     }
 
     public enum Google: String, Sendable, Hashable, CaseIterable {
-        case gemini3Flash = "gemini-3-flash"
+        // NOTE: As of 2025-12-17, ListModels exposes Gemini 3 Flash as `gemini-3-flash-preview` on v1beta.
+        // We keep the user-facing identifier as `gemini-3-flash` and map it to the preview model id for API calls.
+        case gemini3Flash = "gemini-3-flash-preview"
         case gemini25Pro = "gemini-2.5-pro"
         case gemini25Flash = "gemini-2.5-flash"
         case gemini25FlashLite = "gemini-2.5-flash-lite"
+
+        public var apiModelId: String { self.rawValue }
+
+        public var userFacingModelId: String {
+            switch self {
+            case .gemini3Flash:
+                "gemini-3-flash"
+            default:
+                self.rawValue
+            }
+        }
 
         public var supportsVision: Bool { true }
         public var supportsTools: Bool { true }
@@ -659,7 +672,7 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
         case let .anthropic(model):
             return "Anthropic/\(model.modelId)"
         case let .google(model):
-            return "Google/\(model.rawValue)"
+            return "Google/\(model.userFacingModelId)"
         case let .mistral(model):
             return "Mistral/\(model.rawValue)"
         case let .groq(model):
@@ -696,7 +709,7 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
         case let .anthropic(model):
             model.modelId
         case let .google(model):
-            model.rawValue
+            model.userFacingModelId
         case let .mistral(model):
             model.rawValue
         case let .groq(model):

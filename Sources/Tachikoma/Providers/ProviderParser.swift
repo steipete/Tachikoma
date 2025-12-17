@@ -232,7 +232,7 @@ public enum ProviderParser {
 
     private static func parseGoogleModel(_ modelString: String) -> LanguageModel? {
         switch modelString.lowercased() {
-        case "gemini-3-flash", "gemini3flash", "gemini-3flash":
+        case "gemini-3-flash", "gemini-3-flash-preview", "gemini3flash", "gemini-3flash":
             .google(.gemini3Flash)
         case "gemini-2.5-pro", "gemini25pro", "gemini2.5pro":
             .google(.gemini25Pro)

@@ -32,4 +32,16 @@ struct ModelParsingTests {
         let parsed = LanguageModel.parse(from: "claude")
         #expect(parsed == .anthropic(.sonnet45))
     }
+
+    @Test("parse Gemini 3 Flash model id")
+    func parseGemini3Flash() {
+        let parsed = LanguageModel.parse(from: "gemini-3-flash")
+        #expect(parsed == .google(.gemini3Flash))
+    }
+
+    @Test("parse shorthand Gemini alias")
+    func parseGeminiAlias() {
+        let parsed = LanguageModel.parse(from: "gemini")
+        #expect(parsed == .google(.gemini3Flash))
+    }
 }
