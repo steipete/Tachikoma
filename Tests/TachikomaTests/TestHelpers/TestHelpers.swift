@@ -77,40 +77,42 @@ enum TestHelpers {
 
     /// Execute a test with no API keys (for testing missing key scenarios)
     @discardableResult
-    static func withEmptyTestConfiguration<T>(
-        _ body: (TachikomaConfiguration) async throws -> T,
+    static func withEmptyTestConfiguration<T: Sendable>(
+        _ body: @Sendable (TachikomaConfiguration) async throws -> T,
     ) async rethrows
         -> T
     {
-        let previousIgnore = TKAuthManager.shared.setIgnoreEnvironment(true)
-        let previousIgnoreStore = TKAuthManager.shared.setIgnoreCredentialStore(true)
-        defer {
-            TKAuthManager.shared.setIgnoreEnvironment(previousIgnore)
-            TKAuthManager.shared.setIgnoreCredentialStore(previousIgnoreStore)
-        }
+        try await TestEnvironmentMutex.shared.withLock {
+            let previousIgnore = TKAuthManager.shared.setIgnoreEnvironment(true)
+            let previousIgnoreStore = TKAuthManager.shared.setIgnoreCredentialStore(true)
+            defer {
+                TKAuthManager.shared.setIgnoreEnvironment(previousIgnore)
+                TKAuthManager.shared.setIgnoreCredentialStore(previousIgnoreStore)
+            }
 
-        let envKeys = [
-            "OPENAI_API_KEY",
-            "ANTHROPIC_API_KEY",
-            "XAI_API_KEY",
-            "X_AI_API_KEY",
-            "GROK_API_KEY",
-            "GEMINI_API_KEY",
-        ]
-        let saved = envKeys.map { key in (key, getenv(key).flatMap { String(cString: $0) }) }
-        envKeys.forEach { unsetenv($0) }
-        defer {
-            for (key, value) in saved {
-                if let value {
-                    setenv(key, value, 1)
-                } else {
-                    unsetenv(key)
+            let envKeys = [
+                "OPENAI_API_KEY",
+                "ANTHROPIC_API_KEY",
+                "XAI_API_KEY",
+                "X_AI_API_KEY",
+                "GROK_API_KEY",
+                "GEMINI_API_KEY",
+            ]
+            let saved = envKeys.map { key in (key, getenv(key).flatMap { String(cString: $0) }) }
+            envKeys.forEach { unsetenv($0) }
+            defer {
+                for (key, value) in saved {
+                    if let value {
+                        setenv(key, value, 1)
+                    } else {
+                        unsetenv(key)
+                    }
                 }
             }
-        }
 
-        let config = self.createEmptyTestConfiguration()
-        return try await body(config)
+            let config = self.createEmptyTestConfiguration()
+            return try await body(config)
+        }
     }
 
     /// Execute a test with specific API keys present and others missing

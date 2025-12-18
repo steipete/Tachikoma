@@ -16,32 +16,36 @@ struct AuthManagerTests {
     }
 
     @Test
-    func envPreferredOverCreds() throws {
-        self.resetAuthEnv()
-        setenv("OPENAI_API_KEY", "env-key", 1)
-        defer { unsetenv("OPENAI_API_KEY") }
-        try TKAuthManager.shared.setCredential(key: "OPENAI_API_KEY", value: "cred-key")
-        let auth = TKAuthManager.shared.resolveAuth(for: .openai)
-        guard case let .bearer(token, _) = auth else {
-            Issue.record("Expected bearer from env")
-            return
+    func envPreferredOverCreds() async throws {
+        try await TestEnvironmentMutex.shared.withLock {
+            self.resetAuthEnv()
+            setenv("OPENAI_API_KEY", "env-key", 1)
+            defer { unsetenv("OPENAI_API_KEY") }
+            try TKAuthManager.shared.setCredential(key: "OPENAI_API_KEY", value: "cred-key")
+            let auth = TKAuthManager.shared.resolveAuth(for: .openai)
+            guard case let .bearer(token, _) = auth else {
+                Issue.record("Expected bearer from env")
+                return
+            }
+            #expect(token == "env-key")
         }
-        #expect(token == "env-key")
     }
 
     @Test
-    func grokAliasEnv() {
-        self.resetAuthEnv()
-        setenv("X_AI_API_KEY", "alias-key", 1)
-        unsetenv("XAI_API_KEY")
-        unsetenv("GROK_API_KEY")
-        defer { unsetenv("X_AI_API_KEY") }
-        let auth = TKAuthManager.shared.resolveAuth(for: .grok)
-        guard case let .bearer(token, _) = auth else {
-            Issue.record("Expected bearer from alias env")
-            return
+    func grokAliasEnv() async {
+        await TestEnvironmentMutex.shared.withLock {
+            self.resetAuthEnv()
+            setenv("X_AI_API_KEY", "alias-key", 1)
+            unsetenv("XAI_API_KEY")
+            unsetenv("GROK_API_KEY")
+            defer { unsetenv("X_AI_API_KEY") }
+            let auth = TKAuthManager.shared.resolveAuth(for: .grok)
+            guard case let .bearer(token, _) = auth else {
+                Issue.record("Expected bearer from alias env")
+                return
+            }
+            #expect(token == "alias-key")
         }
-        #expect(token == "alias-key")
     }
 
     @Test
