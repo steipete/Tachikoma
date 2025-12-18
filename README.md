@@ -104,7 +104,7 @@ Common picks:
 - Grok: `grok-4-fast-reasoning`
 - Local: `ollama/llama3.3`
 
-Full catalog (including enum case names + provider notes): `docs/models.md`.
+Full catalog (including enum case names + provider notes): [`docs/models.md`](docs/models.md).
 
 ## Credentials
 
@@ -119,14 +119,14 @@ Hosts can change the credential storage root:
 
 ## Documentation
 
-- Model catalog: `docs/models.md`
-- Modern API overview: `docs/modern-api.md`
-- Realtime voice + Harmony patterns: `docs/openai-harmony.md`
-- Architecture: `docs/ARCHITECTURE.md`
-- Local models: `docs/lmstudio.md`, `docs/gpt-oss.md`
-- Azure notes: `docs/azure.md`
-- Vercel AI SDK reference snapshot: `docs/ai-sdk.md`
-- Contributing/dev setup: `docs/contributing.md`
+- Model catalog: [`docs/models.md`](docs/models.md)
+- Modern API overview: [`docs/modern-api.md`](docs/modern-api.md)
+- Realtime voice + Harmony patterns: [`docs/openai-harmony.md`](docs/openai-harmony.md)
+- Architecture: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)
+- Local models: [`docs/lmstudio.md`](docs/lmstudio.md), [`docs/gpt-oss.md`](docs/gpt-oss.md)
+- Azure notes: [`docs/azure.md`](docs/azure.md)
+- Vercel AI SDK reference snapshot: [`docs/ai-sdk.md`](docs/ai-sdk.md)
+- Contributing/dev setup: [`docs/contributing.md`](docs/contributing.md)
 
 ## License
 
