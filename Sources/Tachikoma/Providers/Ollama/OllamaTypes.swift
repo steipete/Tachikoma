@@ -25,16 +25,18 @@ struct OllamaChatRequest: Codable {
 struct OllamaChatMessage: Codable {
     let role: String
     let content: String
+    let images: [String]?
     let toolCalls: [OllamaToolCall]?
 
     enum CodingKeys: String, CodingKey {
-        case role, content
+        case role, content, images
         case toolCalls = "tool_calls"
     }
 
-    init(role: String, content: String, toolCalls: [OllamaToolCall]? = nil) {
+    init(role: String, content: String, images: [String]? = nil, toolCalls: [OllamaToolCall]? = nil) {
         self.role = role
         self.content = content
+        self.images = images
         self.toolCalls = toolCalls
     }
 }
@@ -96,8 +98,35 @@ struct OllamaToolCall: Codable {
             var container = encoder.container(keyedBy: CodingKeys.self)
             try container.encode(self.name, forKey: .name)
 
-            let data = try JSONSerialization.data(withJSONObject: self.arguments)
-            try container.encode(data, forKey: .arguments)
+            // Encode arguments as a JSON object (not base64 Data)
+            var argsContainer = container.nestedContainer(keyedBy: AnyCodingKey.self, forKey: .arguments)
+            try Self.encodeAnyDictionary(self.arguments, to: &argsContainer)
+        }
+
+        private static func encodeAnyDictionary(
+            _ dict: [String: Any],
+            to container: inout KeyedEncodingContainer<AnyCodingKey>,
+        ) throws {
+            for (key, value) in dict {
+                guard let codingKey = AnyCodingKey(stringValue: key) else { continue }
+                switch value {
+                case let stringValue as String:
+                    try container.encode(stringValue, forKey: codingKey)
+                case let intValue as Int:
+                    try container.encode(intValue, forKey: codingKey)
+                case let doubleValue as Double:
+                    try container.encode(doubleValue, forKey: codingKey)
+                case let boolValue as Bool:
+                    try container.encode(boolValue, forKey: codingKey)
+                case let arrayValue as [Any]:
+                    try container.encode(arrayValue.map { String(describing: $0) }, forKey: codingKey)
+                case let dictValue as [String: Any]:
+                    var nestedContainer = container.nestedContainer(keyedBy: AnyCodingKey.self, forKey: codingKey)
+                    try Self.encodeAnyDictionary(dictValue, to: &nestedContainer)
+                default:
+                    try container.encode(String(describing: value), forKey: codingKey)
+                }
+            }
         }
     }
 }

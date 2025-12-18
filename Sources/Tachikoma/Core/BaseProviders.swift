@@ -803,12 +803,17 @@ public final class OllamaProvider: ModelProvider {
 
         // Convert messages to Ollama format
         let messages = request.messages.map { message in
-            OllamaChatMessage(
+            let images = message.content.compactMap { part in
+                if case let .image(image) = part { return image.data }
+                return nil
+            }
+            return OllamaChatMessage(
                 role: message.role.rawValue,
                 content: message.content.compactMap { part in
                     if case let .text(text) = part { return text }
                     return nil
                 }.joined(),
+                images: images.isEmpty ? nil : images,
             )
         }
 
@@ -942,12 +947,17 @@ public final class OllamaProvider: ModelProvider {
 
         // Convert messages to Ollama format
         let messages = request.messages.map { message in
-            OllamaChatMessage(
+            let images = message.content.compactMap { part in
+                if case let .image(image) = part { return image.data }
+                return nil
+            }
+            return OllamaChatMessage(
                 role: message.role.rawValue,
                 content: message.content.compactMap { part in
                     if case let .text(text) = part { return text }
                     return nil
                 }.joined(),
+                images: images.isEmpty ? nil : images,
             )
         }
 

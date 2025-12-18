@@ -138,6 +138,46 @@ struct ProviderEndToEndTests {
         }
     }
 
+    @Test("Ollama provider encodes vision images as messages[].images")
+    func ollamaProviderEncodesImages() async throws {
+        let imageBase64 = Data("test-image".utf8).base64EncodedString()
+        let image = ModelMessage.ContentPart.ImageContent(data: imageBase64, mimeType: "image/png")
+
+        let request = ProviderRequest(
+            messages: [
+                ModelMessage.user(text: "What's in this image?", images: [image]),
+            ],
+            tools: nil,
+            settings: GenerationSettings(maxTokens: 64, temperature: 0.0),
+        )
+
+        try await NetworkMocking.withMockedNetwork { urlRequest in
+            self.expectPath(urlRequest, endsWith: "/api/chat")
+
+            let body = self.bodyData(from: urlRequest)
+            #expect(body != nil)
+            if let body {
+                let decoded = try JSONDecoder().decode(OllamaChatRequest.self, from: body)
+                #expect(decoded.model == "qwen2.5vl:latest")
+                #expect(decoded.stream == false)
+                #expect(decoded.messages.count == 1)
+                #expect(decoded.messages.first?.role == "user")
+                #expect(decoded.messages.first?.content == "What's in this image?")
+                #expect(decoded.messages.first?.images == [imageBase64])
+            }
+
+            return NetworkMocking.jsonResponse(for: urlRequest, data: Self.ollamaPayload(text: "Vision ok"))
+        } operation: {
+            let config = Self.makeConfiguration { config in
+                config.setBaseURL("http://localhost:11434", for: .ollama)
+            }
+
+            let provider = try OllamaProvider(model: .custom("qwen2.5vl:latest"), configuration: config)
+            let response = try await provider.generateText(request: request)
+            #expect(response.text == "Vision ok")
+        }
+    }
+
     // MARK: - LMStudio
 
     @Test("LMStudio provider maps OpenAI-style responses")
@@ -391,6 +431,33 @@ struct ProviderEndToEndTests {
         classes.insert(MockURLProtocol.self, at: 0)
         config.protocolClasses = classes
         return config
+    }
+
+    private func bodyData(from request: URLRequest) -> Data? {
+        if let body = request.httpBody {
+            return body
+        }
+
+        guard let stream = request.httpBodyStream else {
+            return nil
+        }
+
+        stream.open()
+        defer { stream.close() }
+
+        var data = Data()
+        var buffer = [UInt8](repeating: 0, count: 1024)
+
+        while stream.hasBytesAvailable {
+            let read = stream.read(&buffer, maxLength: buffer.count)
+            if read > 0 {
+                data.append(buffer, count: read)
+            } else {
+                break
+            }
+        }
+
+        return data
     }
 
     private func expectPath(

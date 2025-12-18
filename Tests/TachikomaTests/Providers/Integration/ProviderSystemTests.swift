@@ -116,6 +116,7 @@ struct ProviderSystemTests {
 
         #expect(Model.ollama(.llava).supportsVision == true)
         #expect(Model.ollama(.llama33).supportsVision == false)
+        #expect(Model.ollama(.custom("qwen2.5vl:latest")).supportsVision == true)
     }
 
     @Test("Model Capabilities - Tool Support")
@@ -130,6 +131,7 @@ struct ProviderSystemTests {
 
         #expect(Model.ollama(.llama33).supportsTools == true)
         #expect(Model.ollama(.llava).supportsTools == false) // Vision models don't support tools
+        #expect(Model.ollama(.custom("qwen2.5vl:latest")).supportsTools == false)
     }
 
     @Test("Model Capabilities - Streaming Support")

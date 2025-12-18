@@ -543,22 +543,47 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
         public var supportsVision: Bool {
             switch self {
             case .llava, .bakllava, .llama32Vision11b, .llama32Vision90b,
-                 .qwen25vl7b, .qwen25vl32b: true
-            default: false
+                 .qwen25vl7b, .qwen25vl32b:
+                return true
+            case let .custom(id):
+                let lower = id.lowercased()
+                // Heuristic: many Ollama vision models include "vision", "vl", or well-known model names.
+                // Keep this permissive so `ollama/<anything-vision>` works from config strings.
+                if lower.contains("llava") || lower.contains("bakllava") { return true }
+                if lower.contains("vision") { return true }
+                if lower.contains("qwen2.5vl") || lower.contains("qwen25vl") { return true }
+                if lower.contains("vl:") || lower.contains("-vl") || lower.contains("_vl") { return true }
+                return false
+            default:
+                return false
             }
         }
 
         public var supportsTools: Bool {
             switch self {
-            case .gptOSS120B, .gptOSS20B: true // GPT-OSS supports tools
+            case .gptOSS120B, .gptOSS20B:
+                return true // GPT-OSS supports tools
             case .llava, .bakllava, .llama32Vision11b, .llama32Vision90b,
-                 .qwen25vl7b, .qwen25vl32b: false // Vision models don't support tools
-            case .llama33, .llama32, .llama31, .mistralNemo: true
-            case .codellama, .qwen25, .deepseekR1, .commandRPlus: true
-            case .llama2, .llama4, .mistral, .mixtral, .neuralChat, .gemma: true
-            case .deepseekR18b, .deepseekR1671b, .firefunction, .commandR: true
-            case .devstral: false // DevStral doesn't support tools
-            case .custom: true // Assume tools support
+                 .qwen25vl7b, .qwen25vl32b:
+                return false // Vision models don't support tools
+            case .llama33, .llama32, .llama31, .mistralNemo:
+                return true
+            case .codellama, .qwen25, .deepseekR1, .commandRPlus:
+                return true
+            case .llama2, .llama4, .mistral, .mixtral, .neuralChat, .gemma:
+                return true
+            case .deepseekR18b, .deepseekR1671b, .firefunction, .commandR:
+                return true
+            case .devstral:
+                return false // DevStral doesn't support tools
+            case let .custom(id):
+                // Heuristic: treat likely-vision models as tool-less unless explicitly modeled.
+                let lower = id.lowercased()
+                if lower.contains("llava") || lower.contains("bakllava") { return false }
+                if lower.contains("vision") { return false }
+                if lower.contains("qwen2.5vl") || lower.contains("qwen25vl") { return false }
+                if lower.contains("vl:") || lower.contains("-vl") || lower.contains("_vl") { return false }
+                return true
             }
         }
 
