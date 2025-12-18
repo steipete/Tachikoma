@@ -101,12 +101,27 @@ public final class AnthropicProvider: ModelProvider {
         }
     }
 
+    private func messagesEndpointURL() throws -> URL {
+        guard let baseURL = self.baseURL, let url = URL(string: baseURL) else {
+            throw TachikomaError.invalidConfiguration("Invalid Anthropic base URL: \(self.baseURL ?? "<nil>")")
+        }
+
+        let trimmedPath = url.path.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+        if trimmedPath.hasSuffix("v1/messages") {
+            return url
+        }
+        if trimmedPath.hasSuffix("v1") {
+            return url.appendingPathComponent("messages")
+        }
+        return url.appendingPathComponent("v1").appendingPathComponent("messages")
+    }
+
     func makeURLRequest(for request: ProviderRequest, stream: Bool) throws -> URLRequest {
         guard let apiKey else {
             throw TachikomaError.authenticationFailed("Anthropic API key not found")
         }
 
-        let url = URL(string: "https://api.anthropic.com/v1/messages")!
+        let url = try self.messagesEndpointURL()
         var urlRequest = URLRequest(url: url)
         urlRequest.httpMethod = "POST"
         self.applyAuth(to: &urlRequest, secret: apiKey)

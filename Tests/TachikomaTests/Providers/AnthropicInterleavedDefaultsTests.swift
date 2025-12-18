@@ -58,6 +58,19 @@ struct AnthropicInterleavedDefaultsTests {
         #expect(thinking["budget_tokens"] as? Int == 12000)
     }
 
+    @Test("Provider respects custom baseURL")
+    func providerRespectsCustomBaseURL() throws {
+        let config = TachikomaConfiguration(
+            apiKeys: ["anthropic": "test-key"],
+            baseURLs: ["anthropic": "https://entropic.example/v1"],
+        )
+        let provider = try AnthropicProvider(model: .opus45, configuration: config)
+
+        let request = ProviderRequest(messages: [.user("hi")])
+        let urlRequest = try provider.makeURLRequest(for: request, stream: false)
+        #expect(urlRequest.url?.absoluteString == "https://entropic.example/v1/messages")
+    }
+
     @Test("Stream delta decodes thinking_delta payload")
     func streamDeltaDecodesThinkingDeltaPayload() throws {
         let data = try #require("{\"type\":\"thinking_delta\",\"thinking\":\"ok\"}".data(using: .utf8))
