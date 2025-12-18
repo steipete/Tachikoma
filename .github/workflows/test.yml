@@ -47,11 +47,12 @@ jobs:
     - name: Build macOS target
       run: |
         set -o pipefail
+        rm -rf .derivedData || true
         xcodebuild build \
           -scheme Tachikoma \
           -sdk ${{ matrix.sdk }} \
           -destination '${{ matrix.destination }}' \
-          -derivedDataPath .build/DerivedData \
+          -derivedDataPath .derivedData \
           CODE_SIGNING_REQUIRED=NO \
           CODE_SIGNING_ALLOWED=NO | xcpretty
       env:
