@@ -66,6 +66,13 @@ public struct ModelSelector {
 
     private static func parseOpenAIModel(_ input: String) -> Model.OpenAI? {
         switch input {
+        // GPT-5.2 models
+        case "gpt-5.2", "gpt5.2", "gpt-5-2", "gpt5-2", "gpt52":
+            return .gpt52
+        case "gpt-5.2-mini", "gpt5.2-mini", "gpt52-mini", "gpt52mini", "gpt-5-2-mini", "gpt5-2-mini":
+            return .gpt52Mini
+        case "gpt-5.2-nano", "gpt5.2-nano", "gpt52-nano", "gpt52nano", "gpt-5-2-nano", "gpt5-2-nano":
+            return .gpt52Nano
         // GPT-5.1 models (latest)
         case "gpt-5.1", "gpt5.1", "gpt-5-1", "gpt5-1", "gpt51":
             return .gpt51

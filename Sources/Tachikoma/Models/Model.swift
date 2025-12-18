@@ -34,6 +34,11 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
         // Latest models (2025)
         case o4Mini
 
+        // GPT-5.2 Series
+        case gpt52 // Flagship GPT-5.2
+        case gpt52Mini // Cost-optimized GPT-5.2
+        case gpt52Nano // Ultra-low latency GPT-5.2
+
         // GPT-5.1 Series (November 2025)
         case gpt51 // Flagship GPT-5.1
         case gpt51Mini // Cost-optimized GPT-5.1
@@ -68,6 +73,9 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
         public static var allCases: [OpenAI] {
             [
                 .o4Mini,
+                .gpt52,
+                .gpt52Mini,
+                .gpt52Nano,
                 .gpt51,
                 .gpt51Mini,
                 .gpt51Nano,
@@ -93,6 +101,9 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
             switch self {
             case let .custom(id): id
             case .o4Mini: "o4-mini"
+            case .gpt52: "gpt-5.2"
+            case .gpt52Mini: "gpt-5.2-mini"
+            case .gpt52Nano: "gpt-5.2-nano"
             case .gpt51: "gpt-5.1"
             case .gpt51Mini: "gpt-5.1-mini"
             case .gpt51Nano: "gpt-5.1-nano"
@@ -116,7 +127,8 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
 
         public var supportsVision: Bool {
             switch self {
-            case .gpt51, .gpt51Mini, .gpt51Nano,
+            case .gpt52, .gpt52Mini, .gpt52Nano,
+                 .gpt51, .gpt51Mini, .gpt51Nano,
                  .gpt5, .gpt5Pro, .gpt5Mini, .gpt5Nano, .gpt5Thinking, .gpt5ThinkingMini, .gpt5ThinkingNano,
                  .gpt5ChatLatest: true // GPT-5+ supports multimodal
             case .gpt4o, .gpt4oMini, .gpt4oRealtime: true
@@ -127,7 +139,8 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
         public var supportsTools: Bool {
             switch self {
             case .o4Mini: true
-            case .gpt51, .gpt51Mini, .gpt51Nano,
+            case .gpt52, .gpt52Mini, .gpt52Nano,
+                 .gpt51, .gpt51Mini, .gpt51Nano,
                  .gpt5, .gpt5Pro, .gpt5Mini, .gpt5Nano, .gpt5Thinking, .gpt5ThinkingMini, .gpt5ThinkingNano,
                  .gpt5ChatLatest: true // GPT-5+ excels at tool calling
             case .gpt41, .gpt41Mini, .gpt4o, .gpt4oMini, .gpt4oRealtime, .gpt4Turbo: true
@@ -138,7 +151,8 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
 
         public var supportsAudioInput: Bool {
             switch self {
-            case .gpt51, .gpt51Mini, .gpt51Nano,
+            case .gpt52, .gpt52Mini, .gpt52Nano,
+                 .gpt51, .gpt51Mini, .gpt51Nano,
                  .gpt5, .gpt5Pro, .gpt5Mini, .gpt5Nano, .gpt5Thinking, .gpt5ThinkingMini, .gpt5ThinkingNano,
                  .gpt5ChatLatest: true // GPT-5+ is fully multimodal
             case .gpt4o, .gpt4oMini, .gpt4oRealtime: true // GPT-4o models support native audio input
@@ -163,7 +177,8 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
         public var contextLength: Int {
             switch self {
             case .o4Mini: 128_000
-            case .gpt51, .gpt51Mini, .gpt51Nano,
+            case .gpt52, .gpt52Mini, .gpt52Nano,
+                 .gpt51, .gpt51Mini, .gpt51Nano,
                  .gpt5, .gpt5Pro, .gpt5Mini, .gpt5Nano, .gpt5Thinking, .gpt5ThinkingMini, .gpt5ThinkingNano,
                  .gpt5ChatLatest: 400_000 // 272k input + 128k output
             case .gpt41, .gpt41Mini: 1_000_000
@@ -1091,6 +1106,16 @@ extension LanguageModel {
                 return .openai(.gpt5ThinkingMini)
             }
             return .openai(.gpt5Thinking)
+        }
+
+        if dotted.contains("gpt-5-2") || compact.contains("gpt52") {
+            if dotted.contains("nano") || compact.contains("nano") {
+                return .openai(.gpt52Nano)
+            }
+            if dotted.contains("mini") || compact.contains("mini") {
+                return .openai(.gpt52Mini)
+            }
+            return .openai(.gpt52)
         }
 
         if dotted.contains("gpt-5-1") || compact.contains("gpt51") {

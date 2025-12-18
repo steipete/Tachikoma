@@ -909,7 +909,10 @@ public final class OpenAIResponsesProvider: ModelProvider {
 
     private static func isGPT5Model(_ model: LanguageModel.OpenAI) -> Bool {
         switch model {
-        case .gpt51,
+        case .gpt52,
+             .gpt52Mini,
+             .gpt52Nano,
+             .gpt51,
              .gpt51Mini,
              .gpt51Nano,
              .gpt5,

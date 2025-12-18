@@ -9,6 +9,9 @@ struct ModelCapabilitiesTests {
         @Test("GPT-5 models exclude temperature and topP")
         func gPT5ExcludesTemperature() {
             let models: [LanguageModel] = [
+                .openai(.gpt52),
+                .openai(.gpt52Mini),
+                .openai(.gpt52Nano),
                 .openai(.gpt51),
                 .openai(.gpt51Mini),
                 .openai(.gpt51Nano),
@@ -27,6 +30,14 @@ struct ModelCapabilitiesTests {
                 #expect(capabilities.supportedProviderOptions.supportsVerbosity)
                 #expect(capabilities.supportedProviderOptions.supportsPreviousResponseId)
             }
+        }
+
+        @Test("Gemini 3 Flash supports thinking config options")
+        func gemini3FlashThinkingConfig() {
+            let capabilities = ModelCapabilityRegistry.shared.capabilities(for: .google(.gemini3Flash))
+            #expect(capabilities.supportsTopK)
+            #expect(capabilities.supportedProviderOptions.supportsThinkingConfig)
+            #expect(capabilities.supportedProviderOptions.supportsSafetySettings)
         }
 
         @Test("Reasoning models have forced temperature")

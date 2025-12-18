@@ -17,7 +17,17 @@ struct OpenAIResponsesProviderTests {
         // Test that GPT-5 models use the OpenAIResponsesProvider
         let config = self.openAIConfig()
 
-        let gpt5Models: [LanguageModel.OpenAI] = [.gpt51, .gpt51Mini, .gpt51Nano, .gpt5, .gpt5Mini, .gpt5Nano]
+        let gpt5Models: [LanguageModel.OpenAI] = [
+            .gpt52,
+            .gpt52Mini,
+            .gpt52Nano,
+            .gpt51,
+            .gpt51Mini,
+            .gpt51Nano,
+            .gpt5,
+            .gpt5Mini,
+            .gpt5Nano,
+        ]
 
         for model in gpt5Models {
             let provider = try ProviderFactory.createProvider(
@@ -70,6 +80,8 @@ struct OpenAIResponsesProviderTests {
 
         let reasoningModels: [LanguageModel.OpenAI] = [
             .o4Mini,
+            .gpt52,
+            .gpt52Mini,
             .gpt51,
             .gpt51Mini,
             .gpt5,

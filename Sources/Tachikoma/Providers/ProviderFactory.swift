@@ -18,6 +18,9 @@ public struct ProviderFactory {
             // Use Responses API for reasoning models (o4) and GPT-5 family
             switch openaiModel {
             case .o4Mini,
+                 .gpt52,
+                 .gpt52Mini,
+                 .gpt52Nano,
                  .gpt51,
                  .gpt51Mini,
                  .gpt51Nano,
