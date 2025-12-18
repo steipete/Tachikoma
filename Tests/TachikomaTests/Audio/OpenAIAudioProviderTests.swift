@@ -135,8 +135,11 @@ struct OpenAIAudioProviderTests {
 
         @Test("OpenAI transcription provider request validation")
         func openAITranscriptionProviderRequestValidation() async throws {
-            try await TestHelpers.withTestConfiguration(apiKeys: ["openai": "test-key"]) { _ in
-                let provider = try TranscriptionProviderFactory.createProvider(for: .openai(.whisper1))
+            try await TestHelpers.withTestConfiguration(apiKeys: ["openai": "test-key"]) { config in
+                let provider = try TranscriptionProviderFactory.createProvider(
+                    for: .openai(.whisper1),
+                    configuration: config,
+                )
 
                 // Test empty audio data
                 let emptyAudioData = AudioData(data: Data(), format: .wav)
@@ -164,8 +167,8 @@ struct OpenAIAudioProviderTests {
     struct OpenAISpeechProviderTests {
         @Test("OpenAI speech provider initialization")
         func openAISpeechProviderInit() async throws {
-            try await TestHelpers.withTestConfiguration(apiKeys: ["openai": "test-api-key"]) { _ in
-                let provider = try SpeechProviderFactory.createProvider(for: .openai(.tts1))
+            try await TestHelpers.withTestConfiguration(apiKeys: ["openai": "test-api-key"]) { config in
+                let provider = try SpeechProviderFactory.createProvider(for: .openai(.tts1), configuration: config)
 
                 #expect(provider.modelId == "tts-1")
                 #expect(provider.capabilities.supportsSpeedControl == true)
@@ -186,9 +189,12 @@ struct OpenAIAudioProviderTests {
 
         @Test("OpenAI speech provider different models")
         func openAISpeechProviderDifferentModels() async throws {
-            try await TestHelpers.withTestConfiguration(apiKeys: ["openai": "test-key"]) { _ in
-                let tts1Provider = try SpeechProviderFactory.createProvider(for: .openai(.tts1))
-                let tts1HDProvider = try SpeechProviderFactory.createProvider(for: .openai(.tts1HD))
+            try await TestHelpers.withTestConfiguration(apiKeys: ["openai": "test-key"]) { config in
+                let tts1Provider = try SpeechProviderFactory.createProvider(for: .openai(.tts1), configuration: config)
+                let tts1HDProvider = try SpeechProviderFactory.createProvider(
+                    for: .openai(.tts1HD),
+                    configuration: config,
+                )
 
                 // Test model IDs
                 #expect(tts1Provider.modelId == "tts-1")
