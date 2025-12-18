@@ -29,10 +29,57 @@ let answer = try await generate("What is 2+2?", using: .openai(.gpt4o))
 print(answer) // "4"
 
 // With different models
-let response1 = try await generate("Hello", using: .anthropic(.opus4))
+let response1 = try await generate("Hello", using: .anthropic(.opus45))
 let response2 = try await generate("Hello", using: .grok(.grok4FastReasoning))
 let response3 = try await generate("Hello", using: .ollama(.llama33))
 ```
+
+### Supported Models
+
+Tachikoma ships with a built-in model catalog (enums are `CaseIterable`) plus support for arbitrary model ids via `.custom(...)` and compatible/custom endpoints.
+
+**Default**
+- `LanguageModel.default`: `claude-opus-4-5`
+
+**OpenAI (`LanguageModel.OpenAI`)**
+- `o4-mini`
+- `gpt-5.2`, `gpt-5.1`
+- `gpt-5`, `gpt-5-pro`, `gpt-5-mini`, `gpt-5-nano`
+- `gpt-5-thinking`, `gpt-5-thinking-mini`, `gpt-5-thinking-nano`
+- `gpt-5-chat-latest`
+- `gpt-4.1`, `gpt-4.1-mini`
+- `gpt-4o`, `gpt-4o-mini`, `gpt-4o-realtime-preview`
+- `gpt-4-turbo`, `gpt-3.5-turbo`
+- Note: **mini/nano variants exist only for GPT‑5** (not for GPT‑5.1 / GPT‑5.2)
+
+**Anthropic (`LanguageModel.Anthropic`)**
+- `claude-opus-4-5`
+- `claude-opus-4-1-20250805`, `claude-opus-4-1-20250805-thinking`
+- `claude-sonnet-4-20250514`, `claude-sonnet-4-20250514-thinking`
+- `claude-sonnet-4-5-20250929`
+- `claude-haiku-4.5`
+
+**Google (`LanguageModel.Google`)**
+- `gemini-3-flash` (API id currently maps to `gemini-3-flash-preview`)
+- `gemini-2.5-pro`, `gemini-2.5-flash`, `gemini-2.5-flash-lite`
+
+**xAI Grok (`LanguageModel.Grok`)**
+- `grok-4-0709`, `grok-4-fast-reasoning`, `grok-4-fast-non-reasoning`, `grok-code-fast-1`
+- `grok-3`, `grok-3-mini`
+- `grok-2-1212`, `grok-2-vision-1212`, `grok-2-image-1212`, `grok-vision-beta`, `grok-beta`
+
+**Mistral (`LanguageModel.Mistral`)**
+- `mistral-large-2`, `mistral-large`, `mistral-medium`, `mistral-small`, `mistral-nemo`, `codestral`
+
+**Groq (`LanguageModel.Groq`)**
+- `llama-3.1-70b`, `llama-3.1-8b`, `llama-3-70b`, `llama-3-8b`, `mixtral-8x7b`, `gemma2-9b`
+
+**Local (`LanguageModel.Ollama`, `LanguageModel.LMStudio`)**
+- Curated model enums + `.custom("<model-id>")` for anything your server exposes
+
+**Aggregators / custom endpoints**
+- `.openRouter(modelId:)`, `.together(modelId:)`, `.replicate(modelId:)`
+- `.openaiCompatible(modelId:baseURL:)`, `.anthropicCompatible(modelId:baseURL:)`, `.custom(provider:)`
 
 ### Conversation Management
 
@@ -474,11 +521,11 @@ Compile-time safety with provider-specific enums and full autocomplete support:
 
 ```swift
 // Provider-specific models with compile-time checking
-.openai(.gpt4o, .gpt41, .gpt51Mini, .custom("ft:gpt-4o:org:abc"))
-.anthropic(.opus4, .sonnet4, .haiku45, .opus4Thinking)
+.openai(.gpt52, .gpt5, .gpt5Mini, .o4Mini, .custom("ft:gpt-4o:org:abc"))
+.anthropic(.opus45, .sonnet45, .haiku45, .opus4Thinking)
 .grok(.grok4, .grok4FastReasoning, .grok2Vision)
 .ollama(.llama33, .llama32, .llava, .codellama)
-.google(.gemini25Pro, .gemini25Flash)
+.google(.gemini3Flash, .gemini25Pro, .gemini25Flash)
 .mistral(.large2, .nemo)
 .groq(.llama3170b, .mixtral8x7b)
 .azureOpenAI(deployment: "gpt-4o", resource: "my-aoai")
@@ -554,7 +601,7 @@ Enhanced capabilities inspired by OpenAI Harmony patterns:
 ```swift
 // Multi-channel responses
 let result = try await generateText(
-    model: .openai(.gpt51Mini),
+    model: .openai(.gpt5),
     messages: messages,
     settings: GenerationSettings(reasoningEffort: .high)
 )
@@ -643,7 +690,7 @@ let result = try await generateText(
 
 // GPT-5.1 reasoning models with effort levels
 let reasoning = try await generateText(
-    model: .openai(.gpt51Mini),
+    model: .openai(.o4Mini),
     messages: messages,
     settings: GenerationSettings(
         providerOptions: .init(
@@ -657,7 +704,7 @@ let reasoning = try await generateText(
 
 // Claude with thinking mode
 let claude = try await generateText(
-    model: .anthropic(.opus4),
+    model: .anthropic(.opus45),
     messages: messages,
     settings: GenerationSettings(
         temperature: 0.7,
@@ -779,8 +826,8 @@ let result = try await generateText(
                                      |
   ┌─────────────────────────────────────────────────────────────────┐
   │                   Model Selection System                       │
-  │    LanguageModel.openai(.gpt4o) • .anthropic(.opus4)          │
-  │    .grok(.grok4) • .ollama(.llama33) • .google(.gemini25Flash) │
+  │    LanguageModel.openai(.gpt4o) • .anthropic(.opus45)         │
+  │    .grok(.grok4) • .ollama(.llama33) • .google(.gemini3Flash) │
   └─────────────────────────────────────────────────────────────────┘
                                      |
   ┌─────────────────────────────────────────────────────────────────┐
@@ -822,11 +869,11 @@ The `LanguageModel` enum provides compile-time safety and autocomplete for all s
 ```swift
 public enum LanguageModel: Sendable, CustomStringConvertible {
     // Major providers with sub-enums
-    case openai(OpenAI)      // .gpt4o, .gpt41, .gpt51Mini, .o4Mini
-    case anthropic(Anthropic) // .opus4, .sonnet4, .haiku45, .opus4Thinking
+    case openai(OpenAI)      // .gpt5, .gpt51, .gpt52, .gpt4o, .o4Mini
+    case anthropic(Anthropic) // .opus45, .sonnet45, .haiku45, .opus4Thinking
     case grok(Grok)          // .grok4, .grok4FastReasoning, .grok2Vision
     case ollama(Ollama)      // .llama33, .llama32, .llava, .codellama
-    case google(Google)      // .gemini25Pro, .gemini25Flash
+    case google(Google)      // .gemini3Flash, .gemini25Pro, .gemini25Flash
     case mistral(Mistral)    // .large2, .nemo, .codestral
     case groq(Groq)          // .llama3170b, .mixtral8x7b
     
@@ -840,8 +887,8 @@ public enum LanguageModel: Sendable, CustomStringConvertible {
     case anthropicCompatible(modelId: String, baseURL: String)
     case custom(provider: any ModelProvider)
     
-    public static let `default`: LanguageModel = .anthropic(.opus4)
-    public static let claude: LanguageModel = .anthropic(.opus4)
+    public static let `default`: LanguageModel = .anthropic(.opus45)
+    public static let claude: LanguageModel = .anthropic(.opus45)
     public static let gpt4o: LanguageModel = .openai(.gpt4o)
     public static let llama: LanguageModel = .ollama(.llama33)
 }
