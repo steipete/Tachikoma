@@ -24,7 +24,7 @@ struct ModelParsingTests {
     @Test("parse GPT-5.1 nano alias")
     func parseGPT51Nano() {
         let parsed = LanguageModel.parse(from: "gpt51-nano")
-        #expect(parsed == .openai(.gpt51Nano))
+        #expect(parsed == .openai(.gpt5Nano))
     }
 
     @Test("parse Claude Sonnet 4.5 snapshot id")

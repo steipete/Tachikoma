@@ -519,11 +519,7 @@ public struct ModelCostCalculator: Sendable {
             switch openaiModel {
             case .o4Mini: (1.50, 6.00)
             case .gpt52: (5.00, 20.00) // GPT-5.2 pricing estimate
-            case .gpt52Mini: (1.00, 4.00) // GPT-5.2 Mini pricing estimate
-            case .gpt52Nano: (0.50, 2.00) // GPT-5.2 Nano pricing estimate
             case .gpt51: (5.00, 20.00) // GPT-5.1 pricing estimate
-            case .gpt51Mini: (1.00, 4.00) // GPT-5.1 Mini pricing estimate
-            case .gpt51Nano: (0.50, 2.00) // GPT-5.1 Nano pricing estimate
             case .gpt5: (5.00, 20.00) // GPT-5 pricing estimate
             case .gpt5Pro: (12.00, 48.00) // Higher reasoning budget
             case .gpt5Mini: (1.00, 4.00) // GPT-5 Mini pricing estimate

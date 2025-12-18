@@ -70,16 +70,16 @@ public struct ModelSelector {
         case "gpt-5.2", "gpt5.2", "gpt-5-2", "gpt5-2", "gpt52":
             return .gpt52
         case "gpt-5.2-mini", "gpt5.2-mini", "gpt52-mini", "gpt52mini", "gpt-5-2-mini", "gpt5-2-mini":
-            return .gpt52Mini
+            return .gpt5Mini
         case "gpt-5.2-nano", "gpt5.2-nano", "gpt52-nano", "gpt52nano", "gpt-5-2-nano", "gpt5-2-nano":
-            return .gpt52Nano
+            return .gpt5Nano
         // GPT-5.1 models (latest)
         case "gpt-5.1", "gpt5.1", "gpt-5-1", "gpt5-1", "gpt51":
             return .gpt51
         case "gpt-5.1-mini", "gpt5.1-mini", "gpt51-mini", "gpt51mini", "gpt-5-1-mini", "gpt5-1-mini":
-            return .gpt51Mini
+            return .gpt5Mini
         case "gpt-5.1-nano", "gpt5.1-nano", "gpt51-nano", "gpt51nano", "gpt-5-1-nano", "gpt5-1-nano":
-            return .gpt51Nano
+            return .gpt5Nano
         // GPT-5 models
         case "gpt-5", "gpt5":
             return .gpt5
@@ -427,7 +427,7 @@ extension ModelSelector {
         case .vision:
             [.claude, .gpt4o, .google(.gemini3Flash)]
         case .reasoning:
-            [.openai(.gpt51Mini), .claude, .google(.gemini25Pro)]
+            [.openai(.gpt5Mini), .claude, .google(.gemini25Pro)]
         case .local:
             [.llama, .ollama(.mistralNemo), .ollama(.commandRPlus)]
         case .general:

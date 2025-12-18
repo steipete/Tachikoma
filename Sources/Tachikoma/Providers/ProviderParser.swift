@@ -206,9 +206,22 @@ public enum ProviderParser {
         case "o4-mini": .openai(.o4Mini)
         case "gpt-5.2", "gpt5.2", "gpt-5-2", "gpt5-2", "gpt52": .openai(.gpt52)
         case "gpt-5.2-mini", "gpt5.2-mini", "gpt-5-2-mini", "gpt5-2-mini", "gpt52-mini", "gpt52mini":
-            .openai(.gpt52Mini)
+            .openai(.gpt5Mini)
         case "gpt-5.2-nano", "gpt5.2-nano", "gpt-5-2-nano", "gpt5-2-nano", "gpt52-nano", "gpt52nano":
-            .openai(.gpt52Nano)
+            .openai(.gpt5Nano)
+        case "gpt-5.1", "gpt5.1", "gpt-5-1", "gpt5-1", "gpt51": .openai(.gpt51)
+        case "gpt-5.1-mini", "gpt5.1-mini", "gpt-5-1-mini", "gpt5-1-mini", "gpt51-mini", "gpt51mini":
+            .openai(.gpt5Mini)
+        case "gpt-5.1-nano", "gpt5.1-nano", "gpt-5-1-nano", "gpt5-1-nano", "gpt51-nano", "gpt51nano":
+            .openai(.gpt5Nano)
+        case "gpt-5", "gpt5": .openai(.gpt5)
+        case "gpt-5-pro", "gpt5-pro", "gpt5pro": .openai(.gpt5Pro)
+        case "gpt-5-mini", "gpt5-mini", "gpt5mini": .openai(.gpt5Mini)
+        case "gpt-5-nano", "gpt5-nano", "gpt5nano": .openai(.gpt5Nano)
+        case "gpt-5-thinking", "gpt5-thinking", "gpt5thinking": .openai(.gpt5Thinking)
+        case "gpt-5-thinking-mini", "gpt5-thinking-mini", "gpt5thinkingmini": .openai(.gpt5ThinkingMini)
+        case "gpt-5-thinking-nano", "gpt5-thinking-nano", "gpt5thinkingnano": .openai(.gpt5ThinkingNano)
+        case "gpt-5-chat-latest", "gpt5-chat-latest": .openai(.gpt5ChatLatest)
         case "gpt-4.1", "gpt4.1": .openai(.gpt41)
         case "gpt-4.1-mini", "gpt4.1-mini": .openai(.gpt41Mini)
         case "gpt-4o", "gpt4o": .openai(.gpt4o)
@@ -304,7 +317,7 @@ public enum ProviderParser {
         if hasAnthropic {
             .anthropic(.opus4)
         } else if hasOpenAI {
-            .openai(.gpt51Mini)
+            .openai(.gpt5Mini)
         } else if hasGrok {
             .grok(.grok4FastReasoning)
         } else {
