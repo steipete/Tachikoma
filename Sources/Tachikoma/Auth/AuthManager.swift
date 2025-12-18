@@ -254,15 +254,22 @@ public final class TKAuthManager {
         #endif
 
         print("Open this URL in a browser if it did not open automatically:\n  \(authorizeURL.absoluteString)\n")
-        print("After authorizing, paste the resulting code (full callback URL or code parameter) here:")
+        print("After authorizing, paste the resulting code (callback URL, code param, or code#state) here:")
         guard let input = readLine(), !input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             return .failure(.general("No code entered"))
         }
-        // Parse code and state from input (format: code#state)
-        let parts = input.trimmingCharacters(in: .whitespacesAndNewlines).split(separator: "#", maxSplits: 1)
-        let code = String(parts[0])
-        let state = parts.count > 1 ? String(parts[1]) : ""
+        let parsed = Self.parseOAuthCallback(from: input)
+        let code = parsed.code
+        let state = parsed.state
         guard !code.isEmpty else { return .failure(.general("Could not extract code")) }
+
+        if !state.isEmpty, state != pkce.state {
+            return .failure(.general("OAuth state mismatch (expected \(pkce.state), got \(state))"))
+        }
+
+        if config.requiresStateInTokenExchange, state.isEmpty {
+            return .failure(.general("Missing OAuth state. Paste the full callback URL or code#state."))
+        }
 
         let tokenResult = await OAuthTokenExchanger.exchange(
             config: config,
@@ -300,6 +307,8 @@ public final class TKAuthManager {
                 extraAuthorize: ["code": "true"],
                 extraToken: [:],
                 betaHeader: "oauth-2025-04-20,claude-code-20250219,interleaved-thinking-2025-05-14,fine-grained-tool-streaming-2025-05-14",
+                tokenEncoding: .json,
+                requiresStateInTokenExchange: true,
                 pkce: pkce,
             )
         case .grok, .gemini:
@@ -318,11 +327,30 @@ public final class TKAuthManager {
         }
     }
 
-    private static func parseCode(from input: String) -> String {
+    private static func parseOAuthCallback(from input: String) -> (code: String, state: String) {
         let trimmed = input.trimmingCharacters(in: .whitespacesAndNewlines)
-        if let url = URL(string: trimmed), let code = url.queryItems["code"] { return code }
-        if let hash = trimmed.firstIndex(of: "#") { return String(trimmed[..<hash]) }
-        return trimmed
+
+        if let url = URL(string: trimmed) {
+            let query = url.queryItems
+            let code = query["code"] ?? ""
+            var state = query["state"] ?? ""
+
+            if state.isEmpty, let fragment = URLComponents(url: url, resolvingAgainstBaseURL: false)?.fragment {
+                if fragment.contains("=") {
+                    let items = URLComponents(string: "https://example.com?\(fragment)")?.queryItems ?? []
+                    let fragmentParams = Dictionary(uniqueKeysWithValues: items.map { ($0.name, $0.value ?? "") })
+                    state = fragmentParams["state"] ?? ""
+                } else {
+                    state = fragment
+                }
+            }
+
+            if !code.isEmpty { return (code, state) }
+        }
+
+        let parts = trimmed.split(separator: "#", maxSplits: 1)
+        if parts.count > 1 { return (String(parts[0]), String(parts[1])) }
+        return (trimmed, "")
     }
 
     private func persistOAuthResult(_ result: OAuthTokenResult, config: OAuthConfig) -> Result<Void, TKAuthError> {
@@ -366,6 +394,11 @@ struct PKCE {
     }
 }
 
+enum OAuthTokenEncoding {
+    case formURLEncoded
+    case json
+}
+
 struct OAuthConfig {
     let prefix: String
     let authorize: String
@@ -376,7 +409,37 @@ struct OAuthConfig {
     let extraAuthorize: [String: String]
     let extraToken: [String: String]
     let betaHeader: String?
+    let tokenEncoding: OAuthTokenEncoding
+    let requiresStateInTokenExchange: Bool
     let pkce: PKCE
+
+    init(
+        prefix: String,
+        authorize: String,
+        token: String,
+        clientId: String,
+        scope: String,
+        redirect: String,
+        extraAuthorize: [String: String],
+        extraToken: [String: String],
+        betaHeader: String?,
+        tokenEncoding: OAuthTokenEncoding = .formURLEncoded,
+        requiresStateInTokenExchange: Bool = false,
+        pkce: PKCE
+    ) {
+        self.prefix = prefix
+        self.authorize = authorize
+        self.token = token
+        self.clientId = clientId
+        self.scope = scope
+        self.redirect = redirect
+        self.extraAuthorize = extraAuthorize
+        self.extraToken = extraToken
+        self.betaHeader = betaHeader
+        self.tokenEncoding = tokenEncoding
+        self.requiresStateInTokenExchange = requiresStateInTokenExchange
+        self.pkce = pkce
+    }
 
     var authorizeURL: URL? {
         var components = URLComponents(string: self.authorize)
@@ -410,7 +473,7 @@ enum OAuthTokenExchanger {
     static func exchange(
         config: OAuthConfig,
         code: String,
-        state: String,
+        state: String = "",
         pkce: PKCE,
         timeout: Double,
         session: URLSession? = nil,
@@ -424,18 +487,27 @@ enum OAuthTokenExchanger {
             "grant_type": "authorization_code",
             "client_id": config.clientId,
             "code": code,
-            "state": state,
             "redirect_uri": config.redirect,
             "code_verifier": pkce.verifier,
         ]
+        if config.requiresStateInTokenExchange {
+            if state.isEmpty { return .failure("Missing OAuth state") }
+            body["state"] = state
+        }
         config.extraToken.forEach { body[$0.key] = $0.value }
 
-        // Use JSON for Anthropic OAuth token exchange
-        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        req.setValue("application/json", forHTTPHeaderField: "Accept")
-        req.httpBody = try? JSONSerialization.data(withJSONObject: body)
+        let result: TKValidationResultJSON
+        switch config.tokenEncoding {
+        case .formURLEncoded:
+            result = await HTTP.postForm(request: req, body: body, timeoutSeconds: timeout, session: session)
+        case .json:
+            req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            req.setValue("application/json", forHTTPHeaderField: "Accept")
+            req.httpBody = try? JSONSerialization.data(withJSONObject: body)
+            result = await HTTP.performJSON(request: req, timeoutSeconds: timeout, session: session)
+        }
 
-        switch await HTTP.performJSON(request: req, timeoutSeconds: timeout, session: session) {
+        switch result {
         case let .success(json):
             guard
                 let access = json["access_token"] as? String,

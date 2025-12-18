@@ -116,6 +116,55 @@ struct AuthManagerTests {
         #expect(params["redirect_uri"] == "https://example.com/callback")
         #expect(params["code_verifier"] == config.pkce.verifier)
     }
+
+    @Test
+    @MainActor
+    func oAuthTokenExchangeUsesJSONEncodingAndStateWhenRequired() async throws {
+        OAuthMockURLProtocol.reset()
+        let config = OAuthConfig(
+            prefix: "TEST",
+            authorize: "https://example.com/auth",
+            token: "https://example.com/token",
+            clientId: "client-id",
+            scope: "scope",
+            redirect: "https://example.com/callback",
+            extraAuthorize: [:],
+            extraToken: [:],
+            betaHeader: nil,
+            tokenEncoding: .json,
+            requiresStateInTokenExchange: true,
+            pkce: PKCE(),
+        )
+        let result = await OAuthTokenExchanger.exchange(
+            config: config,
+            code: "abc123",
+            state: "state123",
+            pkce: config.pkce,
+            timeout: 5,
+            session: .oauthMock(),
+        )
+        guard case .success = result else {
+            Issue.record("Expected success but got \(result)")
+            return
+        }
+
+        let request = try #require(OAuthMockURLProtocol.lastRequest, "No request captured")
+
+        #expect(request.value(forHTTPHeaderField: "Content-Type") == "application/json")
+
+        let bodyData = try #require(OAuthMockURLProtocol.lastBody, "No request body captured")
+        let json = try #require(
+            JSONSerialization.jsonObject(with: bodyData) as? [String: Any],
+            "Expected JSON request body",
+        )
+
+        #expect(json["grant_type"] as? String == "authorization_code")
+        #expect(json["client_id"] as? String == "client-id")
+        #expect(json["code"] as? String == "abc123")
+        #expect(json["state"] as? String == "state123")
+        #expect(json["redirect_uri"] as? String == "https://example.com/callback")
+        #expect(json["code_verifier"] as? String == config.pkce.verifier)
+    }
 }
 
 // MARK: - URLSession mocking

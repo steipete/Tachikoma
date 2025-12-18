@@ -28,6 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Audio provider tests and helpers consistently force mock mode when exercising stub audio payloads, preventing accidental live API calls that fail to decode fixtures.
 - `TestHelpers` expose discardable configuration helpers and stricter mock-key detection, reducing compiler warnings and flaky skips.
 - OpenAI transcription timestamp tests no longer hit the live API and succeed reliably under both mock and real key configurations.
+- Anthropic OAuth login token exchange now uses the correct request format (JSON body + `state`). Thanks @jonathanglasmeyer.
 
 ### Testing
 - Added dedicated Grok catalog tests (selector + capability assertions) plus provider factory/e2e coverage so every supported xAI model is exercised in mock suites without hitting the live API.
