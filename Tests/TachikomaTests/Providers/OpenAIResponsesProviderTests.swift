@@ -393,6 +393,48 @@ struct OpenAIResponsesProviderTests {
         }
     }
 
+    @Test("Responses tool output is emitted even when result is empty")
+    func openAIResponsesEmitsToolOutputForEmptyResult() async throws {
+        let config = TachikomaConfiguration(loadFromEnvironment: false)
+        config.setAPIKey("live-openai", for: .openai)
+
+        let toolCall = AgentToolCall(id: "call_empty", name: "shell", arguments: [
+            "command": AnyAgentToolValue(string: "true"),
+        ])
+        let toolResult = AgentToolResult(
+            toolCallId: "call_empty",
+            result: AnyAgentToolValue(string: ""),
+            isError: false,
+        )
+
+        let providerRequest = ProviderRequest(
+            messages: [
+                .user("run"),
+                ModelMessage(role: .assistant, content: [.toolCall(toolCall)]),
+                ModelMessage(role: .tool, content: [.toolResult(toolResult)]),
+            ],
+            settings: .init(maxTokens: 32),
+        )
+
+        try await withMockedSession { request in
+            let body = try #require(Self.bodyData(from: request))
+            let json = try JSONSerialization.jsonObject(with: body) as? [String: Any]
+            let input = try #require(json?["input"] as? [[String: Any]])
+
+            let functionCallEntry = input.first { ($0["type"] as? String) == "function_call" }
+            #expect(functionCallEntry?["call_id"] as? String == "call_empty")
+
+            let outputEntry = input.first { ($0["type"] as? String) == "function_call_output" }
+            #expect(outputEntry?["call_id"] as? String == "call_empty")
+            #expect(outputEntry?["output"] as? String == "ok")
+
+            return NetworkMocking.jsonResponse(for: request, data: Self.responsesPayload(text: "Done"))
+        } operation: { session in
+            let provider = try OpenAIResponsesProvider(model: .gpt5, configuration: config, session: session)
+            _ = try await provider.generateText(request: providerRequest)
+        }
+    }
+
     @Test("Responses provider streams accumulated deltas")
     func openAIResponsesStreaming() async throws {
         let config = TachikomaConfiguration(loadFromEnvironment: false)

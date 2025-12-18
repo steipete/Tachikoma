@@ -612,12 +612,14 @@ public final class OpenAIResponsesProvider: ModelProvider {
     }
 
     private func makeFunctionCallOutput(_ result: AgentToolResult) -> ResponsesInputItem.FunctionCallOutput? {
+        // OpenAI Responses API requires a tool output for every function call.
+        // Some tools succeed with an empty stdout/result (e.g. file writes), so ensure we still emit a payload.
         let outputText = self.convertToolResultToString(result.result)
-        guard !outputText.isEmpty else { return nil }
+        let safeOutput = outputText.isEmpty ? "ok" : outputText
 
         return ResponsesInputItem.FunctionCallOutput(
             callId: result.toolCallId,
-            output: outputText,
+            output: safeOutput,
             status: result.isError ? "failed" : nil,
         )
     }
