@@ -425,7 +425,7 @@ struct OAuthConfig {
         betaHeader: String?,
         tokenEncoding: OAuthTokenEncoding = .formURLEncoded,
         requiresStateInTokenExchange: Bool = false,
-        pkce: PKCE
+        pkce: PKCE,
     ) {
         self.prefix = prefix
         self.authorize = authorize
