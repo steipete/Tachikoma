@@ -658,8 +658,11 @@ struct OpenAICompatibleHelper {
             ProcessInfo.processInfo.arguments.contains("--verbose") ||
             ProcessInfo.processInfo.arguments.contains("-v")
         {
+            let propertiesCount = tool.parameters.properties.count
+            let requiredCount = tool.parameters.required.count
             print(
-                "DEBUG: Converting tool '\(tool.name)' with \(tool.parameters.properties.count) properties, \(tool.parameters.required.count) required",
+                "DEBUG: Converting tool '\(tool.name)' with \(propertiesCount) properties, " +
+                    "\(requiredCount) required",
             )
             if tool.parameters.required.isEmpty {
                 print("DEBUG: Omitting required field for '\(tool.name)' as it's empty")

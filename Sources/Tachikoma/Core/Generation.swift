@@ -266,10 +266,12 @@ public func streamText(
     }
     let provider = try resolvedConfiguration.makeProvider(for: model)
     if debugEnabled {
+        let providerModelId = (provider as? AnthropicProvider)?.modelId ??
+            (provider as? OpenAIProvider)?.modelId ??
+            (provider as? OpenAIResponsesProvider)?.modelId ??
+            "unknown"
         print("🔵 DEBUG streamText: Provider created: \(type(of: provider))")
-        print(
-            "🔵 DEBUG streamText: Provider modelId: \((provider as? AnthropicProvider)?.modelId ?? (provider as? OpenAIProvider)?.modelId ?? (provider as? OpenAIResponsesProvider)?.modelId ?? "unknown")",
-        )
+        print("🔵 DEBUG streamText: Provider modelId: \(providerModelId)")
     }
 
     let request = ProviderRequest(
