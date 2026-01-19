@@ -142,10 +142,16 @@ public final class GoogleProvider: ModelProvider {
         var systemParts: [GoogleGenerateRequest.Content.Part] = []
 
         let toolCallNameById = Self.buildToolCallNameMap(from: request.messages)
+        
+        // Consolidate messages to fix Gemini's strict turn ordering requirements
+        // Gemini requires: user -> model (with optional functionCalls) -> function (responses) -> user OR model (with functionCalls)
+        // We need to merge consecutive assistant/tool messages into proper turns
+        var consolidatedMessages: [(role: String, parts: [GoogleGenerateRequest.Content.Part])] = []
+        var currentRole: String?
+        var currentParts: [GoogleGenerateRequest.Content.Part] = []
 
         for message in request.messages {
-            var parts: [GoogleGenerateRequest.Content.Part] = []
-
+            // Handle system messages separately
             if message.role == .system {
                 for contentPart in message.content {
                     guard case let .text(text) = contentPart else { continue }
@@ -154,66 +160,14 @@ public final class GoogleProvider: ModelProvider {
                         inlineData: nil,
                         functionCall: nil,
                         functionResponse: nil,
-                        thoughtSignature: nil,
+                        thoughtSignature: nil
                     ))
                 }
                 continue
             }
 
-            for contentPart in message.content {
-                switch contentPart {
-                case let .text(text):
-                    parts.append(.init(
-                        text: text,
-                        inlineData: nil,
-                        functionCall: nil,
-                        functionResponse: nil,
-                        thoughtSignature: nil,
-                    ))
-                case let .image(imageContent):
-                    let inline = GoogleGenerateRequest.Content.InlineData(
-                        mimeType: imageContent.mimeType,
-                        data: imageContent.data,
-                    )
-                    parts.append(.init(
-                        text: nil,
-                        inlineData: inline,
-                        functionCall: nil,
-                        functionResponse: nil,
-                        thoughtSignature: nil,
-                    ))
-                case let .toolCall(toolCall):
-                    let call = try GoogleGenerateRequest.Content.FunctionCall(
-                        id: toolCall.id,
-                        name: toolCall.name,
-                        args: Self.convertToolArguments(toolCall.arguments),
-                    )
-                    parts.append(.init(
-                        text: nil,
-                        inlineData: nil,
-                        functionCall: call,
-                        functionResponse: nil,
-                        thoughtSignature: toolCall.recipient,
-                    ))
-                case let .toolResult(toolResult):
-                    guard let name = toolCallNameById[toolResult.toolCallId] else { continue }
-                    let response = try GoogleGenerateRequest.Content.FunctionResponse(
-                        id: toolResult.toolCallId,
-                        name: name,
-                        response: Self.convertToolResult(toolResult),
-                    )
-                    parts.append(.init(
-                        text: nil,
-                        inlineData: nil,
-                        functionCall: nil,
-                        functionResponse: response,
-                        thoughtSignature: nil,
-                    ))
-                }
-            }
-
-            guard !parts.isEmpty else { continue }
-            let role = switch message.role {
+            // Determine Gemini role for this message
+            let geminiRole = switch message.role {
             case .assistant:
                 "model"
             case .tool:
@@ -221,6 +175,92 @@ public final class GoogleProvider: ModelProvider {
             default:
                 "user"
             }
+
+            // Convert message content to Gemini parts
+            var newParts: [GoogleGenerateRequest.Content.Part] = []
+            for contentPart in message.content {
+                switch contentPart {
+                case let .text(text):
+                    newParts.append(.init(
+                        text: text,
+                        inlineData: nil,
+                        functionCall: nil,
+                        functionResponse: nil,
+                        thoughtSignature: nil
+                    ))
+                case let .image(imageContent):
+                    let inline = GoogleGenerateRequest.Content.InlineData(
+                        mimeType: imageContent.mimeType,
+                        data: imageContent.data
+                    )
+                    newParts.append(.init(
+                        text: nil,
+                        inlineData: inline,
+                        functionCall: nil,
+                        functionResponse: nil,
+                        thoughtSignature: nil
+                    ))
+                case let .toolCall(toolCall):
+                    let call = try GoogleGenerateRequest.Content.FunctionCall(
+                        id: toolCall.id,
+                        name: toolCall.name,
+                        args: Self.convertToolArguments(toolCall.arguments)
+                    )
+                    newParts.append(.init(
+                        text: nil,
+                        inlineData: nil,
+                        functionCall: call,
+                        functionResponse: nil,
+                        thoughtSignature: toolCall.recipient
+                    ))
+                case let .toolResult(toolResult):
+                    guard let name = toolCallNameById[toolResult.toolCallId] else { continue }
+                    let response = try GoogleGenerateRequest.Content.FunctionResponse(
+                        id: toolResult.toolCallId,
+                        name: name,
+                        response: Self.convertToolResult(toolResult)
+                    )
+                    newParts.append(.init(
+                        text: nil,
+                        inlineData: nil,
+                        functionCall: nil,
+                        functionResponse: response,
+                        thoughtSignature: nil
+                    ))
+                }
+            }
+
+            guard !newParts.isEmpty else { continue }
+
+            // Consolidate consecutive model/function messages into single turns
+            if let prevRole = currentRole {
+                if (prevRole == "model" && geminiRole == "function") ||
+                   (prevRole == "function" && geminiRole == "model") ||
+                   (prevRole == geminiRole && prevRole != "user") {
+                    // Merge into current turn - these are part of the same logical step
+                    currentParts.append(contentsOf: newParts)
+                } else {
+                    // Different turn, save previous and start new
+                    if !currentParts.isEmpty {
+                        consolidatedMessages.append((role: prevRole, parts: currentParts))
+                    }
+                    currentRole = geminiRole
+                    currentParts = newParts
+                }
+            } else {
+                // First message
+                currentRole = geminiRole
+                currentParts = newParts
+            }
+        }
+
+        // Add final accumulated message
+        if let currentRole, !currentParts.isEmpty {
+            consolidatedMessages.append((role: currentRole, parts: currentParts))
+        }
+
+        // Convert consolidated messages to Gemini Content format
+        for (role, parts) in consolidatedMessages {
             contents.append(.init(role: role, parts: parts))
         }
 
@@ -228,7 +268,7 @@ public final class GoogleProvider: ModelProvider {
             temperature: request.settings.temperature ?? 0.7,
             maxOutputTokens: request.settings.maxTokens ?? 2048,
             topP: request.settings.topP ?? 0.95,
-            topK: request.settings.topK ?? 40,
+            topK: request.settings.topK ?? 40
         )
 
         let systemInstruction: GoogleGenerateRequest.Content? = if systemParts.isEmpty {
@@ -243,7 +283,7 @@ public final class GoogleProvider: ModelProvider {
             contents: contents,
             generationConfig: config,
             systemInstruction: systemInstruction,
-            tools: tools,
+            tools: tools
         )
     }
 }
