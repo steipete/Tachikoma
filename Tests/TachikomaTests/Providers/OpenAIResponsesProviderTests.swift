@@ -18,6 +18,7 @@ struct OpenAIResponsesProviderTests {
         let config = self.openAIConfig()
 
         let gpt5Models: [LanguageModel.OpenAI] = [
+            .gpt54,
             .gpt52,
             .gpt51,
             .gpt5,
@@ -76,6 +77,7 @@ struct OpenAIResponsesProviderTests {
 
         let reasoningModels: [LanguageModel.OpenAI] = [
             .o4Mini,
+            .gpt54,
             .gpt52,
             .gpt51,
             .gpt5,
@@ -236,6 +238,50 @@ struct OpenAIResponsesProviderTests {
             let provider = try OpenAIResponsesProvider(model: .gpt5Mini, configuration: config, session: session)
             let response = try await provider.generateText(request: self.sampleRequest)
             #expect(response.text.contains("GPT-5") || response.text.contains("pong"))
+        }
+    }
+
+    @Test("Responses request encodes json_schema structured output")
+    func openAIResponsesStructuredOutputEncoding() async throws {
+        let config = self.openAIConfig()
+        let structuredSchema = StructuredOutputSchema(
+            name: "demo_object",
+            description: "Structured output demo",
+            schema: .object([
+                "type": .string("object"),
+                "properties": .object([
+                    "value": .object([
+                        "type": .string("string"),
+                    ]),
+                ]),
+                "required": .array([.string("value")]),
+                "additionalProperties": .bool(false),
+            ]),
+        )
+        let providerRequest = ProviderRequest(
+            messages: [ModelMessage(role: .user, content: [.text("ping")])],
+            settings: .init(maxTokens: 32),
+            outputFormat: .jsonSchema(structuredSchema),
+        )
+
+        try await withMockedSession { request in
+            let body = try #require(Self.bodyData(from: request))
+            let json = try JSONSerialization.jsonObject(with: body) as? [String: Any]
+            let text = try #require(json?["text"] as? [String: Any])
+            let format = try #require(text["format"] as? [String: Any])
+            #expect(format["type"] as? String == "json_schema")
+            #expect(format["name"] as? String == "demo_object")
+            #expect(format["description"] as? String == "Structured output demo")
+            #expect(format["strict"] as? Bool == true)
+
+            let schema = try #require(format["schema"] as? [String: Any])
+            #expect(schema["type"] as? String == "object")
+            #expect(schema["additionalProperties"] as? Bool == false)
+
+            return NetworkMocking.jsonResponse(for: request, data: Self.responsesPayload(text: "{\"value\":\"pong\"}"))
+        } operation: { session in
+            let provider = try OpenAIResponsesProvider(model: .gpt52, configuration: config, session: session)
+            _ = try await provider.generateText(request: providerRequest)
         }
     }
 

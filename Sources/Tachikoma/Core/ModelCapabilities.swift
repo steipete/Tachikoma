@@ -237,6 +237,7 @@ public final class ModelCapabilityRegistry: @unchecked Sendable {
             excludedParameters: ["temperature", "topP", "frequencyPenalty", "presencePenalty"],
         )
 
+        self.capabilities["openai:gpt-5.4"] = gpt5Capabilities
         self.capabilities["openai:gpt-5.1"] = gpt5Capabilities
         self.capabilities["openai:gpt-5.2"] = gpt5Capabilities
         self.capabilities["openai:gpt-5"] = gpt5Capabilities

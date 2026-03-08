@@ -39,7 +39,7 @@ print(text)
 ```swift
 import Tachikoma
 
-let stream = try await stream("Explain actors in Swift.", using: .openai(.gpt52))
+let stream = try await stream("Explain actors in Swift.", using: .openai(.gpt54))
 for try await delta in stream {
     print(delta.content ?? "", terminator: "")
 }
@@ -87,7 +87,7 @@ let tool = createTool(
 }
 
 let result = try await generateText(
-    model: .openai(.gpt52),
+    model: .openai(.gpt54),
     messages: [.user("Compute 123 + 456 using the add tool.")],
     tools: [tool],
     maxSteps: 3
@@ -99,7 +99,7 @@ print(result.text)
 
 Common picks:
 - Anthropic: `claude-opus-4-5` (`LanguageModel.default`)
-- OpenAI: `gpt-5.2` (flagship), `gpt-5` (coding/agents), `o4-mini` (reasoning), `gpt-4o` (vision)
+- OpenAI: `gpt-5.4` (flagship), `gpt-5` (coding/agents), `o4-mini` (reasoning), `gpt-4o` (vision)
 - Google: `gemini-3-flash`
 - Grok: `grok-4-fast-reasoning`
 - Local: `ollama/llama3.3`

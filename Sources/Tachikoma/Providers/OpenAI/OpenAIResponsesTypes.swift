@@ -89,6 +89,15 @@ enum ReasoningSummary: String, Codable, Sendable {
 @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 struct TextConfig: Codable, Sendable {
     let verbosity: TextVerbosity?
+    let format: ResponseFormat?
+
+    init(
+        verbosity: TextVerbosity? = nil,
+        format: ResponseFormat? = nil,
+    ) {
+        self.verbosity = verbosity
+        self.format = format
+    }
 }
 
 /// Reasoning configuration for reasoning models
@@ -100,10 +109,22 @@ struct ReasoningConfig: Codable, Sendable {
 
 /// Response format configuration
 @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
-struct ResponseFormat: Codable {
-    let format: ResponseFormatType
+struct ResponseFormat: Codable, Sendable, Equatable {
+    let type: ResponseFormatType
 
-    enum ResponseFormatType: Codable {
+    init(type: ResponseFormatType) {
+        self.type = type
+    }
+
+    static let text = ResponseFormat(type: .text)
+    static let jsonObject = ResponseFormat(type: .jsonObject)
+
+    static func jsonSchema(_ schema: JSONSchemaFormat) -> ResponseFormat {
+        ResponseFormat(type: .jsonSchema(schema))
+    }
+
+    enum ResponseFormatType: Codable, Sendable, Equatable {
+        case text
         case jsonObject
         case jsonSchema(JSONSchemaFormat)
 
@@ -113,6 +134,9 @@ struct ResponseFormat: Codable {
 
         func encode(to encoder: Encoder) throws {
             switch self {
+            case .text:
+                var container = encoder.container(keyedBy: CodingKeys.self)
+                try container.encode("text", forKey: .type)
             case .jsonObject:
                 var container = encoder.container(keyedBy: CodingKeys.self)
                 try container.encode("json_object", forKey: .type)
@@ -126,6 +150,8 @@ struct ResponseFormat: Codable {
             let type = try container.decode(String.self, forKey: .type)
 
             switch type {
+            case "text":
+                self = .text
             case "json_object":
                 self = .jsonObject
             case "json_schema":
@@ -140,16 +166,37 @@ struct ResponseFormat: Codable {
             }
         }
     }
+
+    func encode(to encoder: Encoder) throws {
+        try type.encode(to: encoder)
+    }
+
+    init(from decoder: Decoder) throws {
+        self.type = try ResponseFormatType(from: decoder)
+    }
 }
 
 /// JSON Schema format for structured outputs
 @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
-struct JSONSchemaFormat: Codable {
-    let type: String = "json_schema"
+struct JSONSchemaFormat: Codable, Sendable, Equatable {
+    let type: String
     let strict: Bool
     let name: String
     let description: String?
-    let schema: [String: Any] // Can't be Sendable due to Any
+    let schema: TypedValue
+
+    init(
+        strict: Bool = true,
+        name: String,
+        description: String? = nil,
+        schema: TypedValue,
+    ) {
+        self.type = "json_schema"
+        self.strict = strict
+        self.name = name
+        self.description = description
+        self.schema = schema
+    }
 
     enum CodingKeys: String, CodingKey {
         case type
@@ -158,29 +205,13 @@ struct JSONSchemaFormat: Codable {
         case description
         case schema
     }
-
-    func encode(to encoder: Encoder) throws {
-        var container = encoder.container(keyedBy: CodingKeys.self)
-        try container.encode(self.type, forKey: .type)
-        try container.encode(self.strict, forKey: .strict)
-        try container.encode(self.name, forKey: .name)
-        try container.encodeIfPresent(self.description, forKey: .description)
-
-        // Encode schema as JSON data
-        let schemaData = try JSONSerialization.data(withJSONObject: self.schema)
-        let schemaJSON = try JSONSerialization.jsonObject(with: schemaData)
-        try container.encode(AnyEncodable(schemaJSON), forKey: .schema)
-    }
-
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.type = try container.decode(String.self, forKey: .type)
         self.strict = try container.decode(Bool.self, forKey: .strict)
         self.name = try container.decode(String.self, forKey: .name)
         self.description = try container.decodeIfPresent(String.self, forKey: .description)
-
-        // Decode schema as Any
-        let anySchema = try container.decode(AnyDecodable.self, forKey: .schema)
-        self.schema = anySchema.value as? [String: Any] ?? [:]
+        self.schema = try container.decode(TypedValue.self, forKey: .schema)
     }
 }
 

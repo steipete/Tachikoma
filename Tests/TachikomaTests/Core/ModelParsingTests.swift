@@ -15,6 +15,12 @@ struct ModelParsingTests {
         #expect(parsed == .openai(.gpt51))
     }
 
+    @Test("parse GPT-5.4 base model")
+    func parseGPT54() {
+        let parsed = LanguageModel.parse(from: "gpt-5.4")
+        #expect(parsed == .openai(.gpt54))
+    }
+
     @Test("parse GPT-5.2 base model")
     func parseGPT52() {
         let parsed = LanguageModel.parse(from: "gpt-5.2")

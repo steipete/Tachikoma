@@ -204,6 +204,11 @@ public enum ProviderParser {
     private static func parseOpenAIModel(_ modelString: String) -> LanguageModel? {
         switch modelString.lowercased() {
         case "o4-mini": .openai(.o4Mini)
+        case "gpt-5.4", "gpt5.4", "gpt-5-4", "gpt5-4", "gpt54": .openai(.gpt54)
+        case "gpt-5.4-mini", "gpt5.4-mini", "gpt-5-4-mini", "gpt5-4-mini", "gpt54-mini", "gpt54mini":
+            .openai(.gpt5Mini)
+        case "gpt-5.4-nano", "gpt5.4-nano", "gpt-5-4-nano", "gpt5-4-nano", "gpt54-nano", "gpt54nano":
+            .openai(.gpt5Nano)
         case "gpt-5.2", "gpt5.2", "gpt-5-2", "gpt5-2", "gpt52": .openai(.gpt52)
         case "gpt-5.2-mini", "gpt5.2-mini", "gpt-5-2-mini", "gpt5-2-mini", "gpt52-mini", "gpt52mini":
             .openai(.gpt5Mini)

@@ -34,6 +34,9 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
         // Latest models (2025)
         case o4Mini
 
+        // GPT-5.4 Series (2026)
+        case gpt54 // Flagship GPT-5.4
+
         // GPT-5.2 Series
         case gpt52 // Flagship GPT-5.2
 
@@ -69,6 +72,7 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
         public static var allCases: [OpenAI] {
             [
                 .o4Mini,
+                .gpt54,
                 .gpt52,
                 .gpt51,
                 .gpt5,
@@ -93,6 +97,7 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
             switch self {
             case let .custom(id): id
             case .o4Mini: "o4-mini"
+            case .gpt54: "gpt-5.4"
             case .gpt52: "gpt-5.2"
             case .gpt51: "gpt-5.1"
             case .gpt5: "gpt-5"
@@ -115,7 +120,8 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
 
         public var supportsVision: Bool {
             switch self {
-            case .gpt52,
+            case .gpt54,
+                 .gpt52,
                  .gpt51,
                  .gpt5, .gpt5Pro, .gpt5Mini, .gpt5Nano, .gpt5Thinking, .gpt5ThinkingMini, .gpt5ThinkingNano,
                  .gpt5ChatLatest: true // GPT-5+ supports multimodal
@@ -127,7 +133,8 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
         public var supportsTools: Bool {
             switch self {
             case .o4Mini: true
-            case .gpt52,
+            case .gpt54,
+                 .gpt52,
                  .gpt51,
                  .gpt5, .gpt5Pro, .gpt5Mini, .gpt5Nano, .gpt5Thinking, .gpt5ThinkingMini, .gpt5ThinkingNano,
                  .gpt5ChatLatest: true // GPT-5+ excels at tool calling
@@ -139,6 +146,7 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
 
         public var supportsAudioInput: Bool {
             switch self {
+            case .gpt54: false
             case .gpt52,
                  .gpt51,
                  .gpt5, .gpt5Pro, .gpt5Mini, .gpt5Nano, .gpt5Thinking, .gpt5ThinkingMini, .gpt5ThinkingNano,
@@ -165,6 +173,7 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
         public var contextLength: Int {
             switch self {
             case .o4Mini: 128_000
+            case .gpt54: 1_050_000
             case .gpt52,
                  .gpt51,
                  .gpt5, .gpt5Pro, .gpt5Mini, .gpt5Nano, .gpt5Thinking, .gpt5ThinkingMini, .gpt5ThinkingNano,
@@ -1119,6 +1128,13 @@ extension LanguageModel {
                 return .openai(.gpt5ThinkingMini)
             }
             return .openai(.gpt5Thinking)
+        }
+
+        if dotted.contains("gpt-5-4") || compact.contains("gpt54") {
+            // GPT-5.4 currently has no mini/nano variants; map those suffixes to GPT-5 mini/nano.
+            if dotted.contains("nano") || compact.contains("nano") { return .openai(.gpt5Nano) }
+            if dotted.contains("mini") || compact.contains("mini") { return .openai(.gpt5Mini) }
+            return .openai(.gpt54)
         }
 
         if dotted.contains("gpt-5-2") || compact.contains("gpt52") {

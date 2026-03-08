@@ -395,7 +395,7 @@ public func generateObject<T: Codable & Sendable>(
         messages: messages,
         tools: nil,
         settings: settings,
-        outputFormat: .json,
+        outputFormat: structuredOutputFormat(for: T.self),
     )
 
     let response: ProviderResponse = if let timeout {
@@ -453,7 +453,7 @@ public func streamObject<T: Codable & Sendable>(
         messages: messages,
         tools: nil,
         settings: settings,
-        outputFormat: .json,
+        outputFormat: structuredOutputFormat(for: T.self),
     )
 
     // Get the text stream from the provider
@@ -537,6 +537,16 @@ public func streamObject<T: Codable & Sendable>(
         settings: settings,
         schema: schema,
     )
+}
+
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
+private func structuredOutputFormat<T>(for schemaType: T.Type) -> ProviderRequest.OutputFormat
+where T: Codable & Sendable {
+    if let schemaProvider = schemaType as? any StructuredOutputSchemaProviding.Type {
+        return .jsonSchema(schemaProvider.structuredOutputSchema)
+    }
+
+    return .json
 }
 
 /// Attempt to parse a partial JSON object by fixing common issues

@@ -427,16 +427,25 @@ public final class OpenAIResponsesProvider: ModelProvider {
             reasoning = nil
         }
 
+        let textFormat = responseFormat(
+            for: request.outputFormat,
+            openAIOptions: openaiOptions,
+        )
+
         // Determine text configuration for GPT-5 (enables preamble messages)
         let textConfig: TextConfig?
-        if Self.isGPT5Model(self.model) {
-            let verbosity: TextVerbosity = if let optionVerbosity = openaiOptions?.verbosity {
+        if Self.isGPT5Model(self.model) || textFormat != nil {
+            let verbosity: TextVerbosity? = if Self.isGPT5Model(self.model) {
+                if let optionVerbosity = openaiOptions?.verbosity {
                 // Convert from public API to internal type
                 TextVerbosity(rawValue: optionVerbosity.rawValue) ?? .high
-            } else {
+                } else {
                 .high // Default for preambles
+                }
+            } else {
+                nil
             }
-            textConfig = TextConfig(verbosity: verbosity)
+            textConfig = TextConfig(verbosity: verbosity, format: textFormat)
         } else {
             textConfig = nil
         }
@@ -472,6 +481,44 @@ public final class OpenAIResponsesProvider: ModelProvider {
         }
 
         return responsesRequest
+    }
+
+    private func responseFormat(
+        for outputFormat: ProviderRequest.OutputFormat?,
+        openAIOptions: OpenAIOptions?,
+    ) -> ResponseFormat? {
+        if let outputFormat {
+            return responseFormat(for: outputFormat)
+        }
+
+        guard let responseFormat = openAIOptions?.responseFormat else {
+            return nil
+        }
+
+        switch responseFormat {
+        case .text:
+            return .text
+        case .json:
+            return .jsonObject
+        case .jsonSchema:
+            return nil
+        }
+    }
+
+    private func responseFormat(for outputFormat: ProviderRequest.OutputFormat) -> ResponseFormat {
+        switch outputFormat {
+        case .text:
+            return .text
+        case .json:
+            return .jsonObject
+        case let .jsonSchema(structuredSchema):
+            return .jsonSchema(JSONSchemaFormat(
+                strict: structuredSchema.strict,
+                name: structuredSchema.name,
+                description: structuredSchema.description,
+                schema: structuredSchema.schema,
+            ))
+        }
     }
 
     private func convertMessages(_ messages: [ModelMessage]) throws -> [ResponsesInputItem] {
@@ -909,7 +956,8 @@ public final class OpenAIResponsesProvider: ModelProvider {
 
     private static func isGPT5Model(_ model: LanguageModel.OpenAI) -> Bool {
         switch model {
-        case .gpt52,
+        case .gpt54,
+             .gpt52,
              .gpt51,
              .gpt5,
              .gpt5Pro,

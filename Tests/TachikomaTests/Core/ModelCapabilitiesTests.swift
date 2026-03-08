@@ -9,6 +9,7 @@ struct ModelCapabilitiesTests {
         @Test("GPT-5 models exclude temperature and topP")
         func gPT5ExcludesTemperature() {
             let models: [LanguageModel] = [
+                .openai(.gpt54),
                 .openai(.gpt52),
                 .openai(.gpt51),
                 .openai(.gpt5),

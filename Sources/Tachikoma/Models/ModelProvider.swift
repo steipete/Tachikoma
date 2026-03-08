@@ -59,9 +59,10 @@ public struct ProviderRequest: Sendable {
     public let settings: GenerationSettings
     public let outputFormat: OutputFormat?
 
-    public enum OutputFormat: Sendable {
+    public enum OutputFormat: Sendable, Equatable {
         case text
         case json
+        case jsonSchema(StructuredOutputSchema)
     }
 
     public init(
