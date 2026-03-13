@@ -259,18 +259,37 @@ public enum MCPToolAdapter {
                 "mimeType": AnyAgentToolValue(string: mimeType),
                 "data": AnyAgentToolValue(string: data),
             ])
-        case let .resource(uri, mimeType, text):
+        case let .resource(resource, _, _):
             var resourceDict: [String: AnyAgentToolValue] = [
                 "type": AnyAgentToolValue(string: "resource"),
-                "uri": AnyAgentToolValue(string: uri),
-                "mimeType": AnyAgentToolValue(string: mimeType),
+                "uri": AnyAgentToolValue(string: resource.uri),
             ]
-            if let text {
+            if let mimeType = resource.mimeType {
+                resourceDict["mimeType"] = AnyAgentToolValue(string: mimeType)
+            } else {
+                resourceDict["mimeType"] = AnyAgentToolValue(null: ())
+            }
+            if let text = resource.text {
                 resourceDict["text"] = AnyAgentToolValue(string: text)
             } else {
                 resourceDict["text"] = AnyAgentToolValue(null: ())
             }
+            if let blob = resource.blob {
+                resourceDict["blob"] = AnyAgentToolValue(string: blob)
+            } else {
+                resourceDict["blob"] = AnyAgentToolValue(null: ())
+            }
             return AnyAgentToolValue(object: resourceDict)
+        case let .resourceLink(uri, name, title, description, mimeType, _):
+            var resourceLinkDict: [String: AnyAgentToolValue] = [
+                "type": AnyAgentToolValue(string: "resourceLink"),
+                "uri": AnyAgentToolValue(string: uri),
+                "name": AnyAgentToolValue(string: name),
+            ]
+            resourceLinkDict["title"] = title.map { AnyAgentToolValue(string: $0) } ?? AnyAgentToolValue(null: ())
+            resourceLinkDict["description"] = description.map { AnyAgentToolValue(string: $0) } ?? AnyAgentToolValue(null: ())
+            resourceLinkDict["mimeType"] = mimeType.map { AnyAgentToolValue(string: $0) } ?? AnyAgentToolValue(null: ())
+            return AnyAgentToolValue(object: resourceLinkDict)
         case let .audio(data, mimeType):
             return AnyAgentToolValue(object: [
                 "type": AnyAgentToolValue(string: "audio"),

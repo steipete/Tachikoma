@@ -131,9 +131,12 @@ extension ToolResponse {
             case let .image(data, mimeType, _):
                 // For images, return a descriptive string
                 return AnyAgentToolValue(string: "[Image: \(mimeType), size: \(data.count) bytes]")
-            case let .resource(uri, _, text):
+            case let .resource(resource, _, _):
                 // For resources, return the text content if available
-                return AnyAgentToolValue(string: text ?? "[Resource: \(uri)]")
+                return AnyAgentToolValue(string: resource.text ?? "[Resource: \(resource.uri)]")
+            case let .resourceLink(uri, name, _, _, mimeType, _):
+                let mimeTypeDescription = mimeType.map { ", mimeType: \($0)" } ?? ""
+                return AnyAgentToolValue(string: "[Resource Link: \(name), uri: \(uri)\(mimeTypeDescription)]")
             case let .audio(data, mimeType):
                 return AnyAgentToolValue(string: "[Audio: \(mimeType), size: \(data.count) bytes]")
             }
@@ -180,16 +183,37 @@ extension ToolResponse {
                 "mimeType": AnyAgentToolValue(string: mimeType),
                 "data": AnyAgentToolValue(string: data),
             ])
-        case let .resource(uri, mimeType, text):
+        case let .resource(resource, _, _):
             var resourceDict: [String: AnyAgentToolValue] = [
                 "type": AnyAgentToolValue(string: "resource"),
-                "uri": AnyAgentToolValue(string: uri),
-                "mimeType": AnyAgentToolValue(string: mimeType),
+                "uri": AnyAgentToolValue(string: resource.uri),
             ]
-            if let text {
+            if let mimeType = resource.mimeType {
+                resourceDict["mimeType"] = AnyAgentToolValue(string: mimeType)
+            }
+            if let text = resource.text {
                 resourceDict["text"] = AnyAgentToolValue(string: text)
             }
+            if let blob = resource.blob {
+                resourceDict["blob"] = AnyAgentToolValue(string: blob)
+            }
             return AnyAgentToolValue(object: resourceDict)
+        case let .resourceLink(uri, name, title, description, mimeType, _):
+            var resourceLinkDict: [String: AnyAgentToolValue] = [
+                "type": AnyAgentToolValue(string: "resourceLink"),
+                "uri": AnyAgentToolValue(string: uri),
+                "name": AnyAgentToolValue(string: name),
+            ]
+            if let title {
+                resourceLinkDict["title"] = AnyAgentToolValue(string: title)
+            }
+            if let description {
+                resourceLinkDict["description"] = AnyAgentToolValue(string: description)
+            }
+            if let mimeType {
+                resourceLinkDict["mimeType"] = AnyAgentToolValue(string: mimeType)
+            }
+            return AnyAgentToolValue(object: resourceLinkDict)
         case let .audio(data, mimeType):
             return AnyAgentToolValue(object: [
                 "type": AnyAgentToolValue(string: "audio"),
