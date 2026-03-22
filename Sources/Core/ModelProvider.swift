@@ -224,6 +224,7 @@ public actor ModelProvider {
         }
 
         // Check standard configuration directory
+        #if os(macOS)
         let configPath = FileManager.default.homeDirectoryForCurrentUser
             .appendingPathComponent(".tachikoma")
             .appendingPathComponent("credentials")
@@ -236,6 +237,7 @@ public actor ModelProvider {
                 }
             }
         }
+        #endif
 
         return nil
     }
@@ -276,6 +278,7 @@ public actor ModelProvider {
         }
 
         // Check standard configuration directory
+        #if os(macOS)
         let configPath = FileManager.default.homeDirectoryForCurrentUser
             .appendingPathComponent(".tachikoma")
             .appendingPathComponent("credentials")
@@ -288,6 +291,7 @@ public actor ModelProvider {
                 }
             }
         }
+        #endif
 
         return nil
     }
@@ -336,6 +340,7 @@ public actor ModelProvider {
         }
 
         // Check standard configuration directory
+        #if os(macOS)
         let configPath = FileManager.default.homeDirectoryForCurrentUser
             .appendingPathComponent(".tachikoma")
             .appendingPathComponent("credentials")
@@ -351,6 +356,7 @@ public actor ModelProvider {
                 }
             }
         }
+        #endif
 
         return nil
     }
