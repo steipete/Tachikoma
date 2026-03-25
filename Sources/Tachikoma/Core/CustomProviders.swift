@@ -7,6 +7,7 @@ public struct CustomProviderInfo: Sendable {
     public let id: String
     public let kind: Kind
     public let baseURL: String
+    public let apiKey: String?
     public let headers: [String: String]
     public let models: [String: String] // map of alias->modelId (optional usage)
 }
@@ -29,6 +30,7 @@ public final class CustomProviderRegistry: @unchecked Sendable {
             guard
                 let options = dict["options"] as? [String: Any],
                 let baseURL = options["baseURL"] as? String else { continue }
+            let apiKey = options["apiKey"] as? String
             let headers = options["headers"] as? [String: String] ?? [:]
             var models: [String: String] = [:]
             if let modelsDict = dict["models"] as? [String: Any] {
@@ -36,7 +38,14 @@ public final class CustomProviderRegistry: @unchecked Sendable {
                     if let m = (v as? [String: Any])?["name"] as? String { models[k] = m }
                 }
             }
-            out[id] = CustomProviderInfo(id: id, kind: kind, baseURL: baseURL, headers: headers, models: models)
+            out[id] = CustomProviderInfo(
+                id: id,
+                kind: kind,
+                baseURL: baseURL,
+                apiKey: apiKey,
+                headers: headers,
+                models: models
+            )
         }
         self.providers = out
     }

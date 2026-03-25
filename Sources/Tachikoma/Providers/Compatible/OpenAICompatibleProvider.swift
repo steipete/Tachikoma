@@ -7,10 +7,12 @@ public final class OpenAICompatibleProvider: ModelProvider {
     public let baseURL: String?
     public let apiKey: String?
     public let capabilities: ModelCapabilities
+    private let additionalHeaders: [String: String]
 
     public init(modelId: String, baseURL: String, configuration: TachikomaConfiguration) throws {
         self.modelId = modelId
         self.baseURL = baseURL
+        self.additionalHeaders = [:]
 
         // Try to get API key from configuration, otherwise try common environment variable patterns
         if let key = configuration.getAPIKey(for: .custom("openai_compatible")) {
@@ -33,6 +35,26 @@ public final class OpenAICompatibleProvider: ModelProvider {
         )
     }
 
+    public init(
+        modelId: String,
+        baseURL: String,
+        apiKey: String?,
+        headers: [String: String] = [:],
+        capabilities: ModelCapabilities = ModelCapabilities(
+            supportsVision: true,
+            supportsTools: true,
+            supportsStreaming: true,
+            contextLength: 128_000,
+            maxOutputTokens: 4096,
+        )
+    ) {
+        self.modelId = modelId
+        self.baseURL = baseURL
+        self.apiKey = apiKey
+        self.additionalHeaders = headers
+        self.capabilities = capabilities
+    }
+
     public func generateText(request: ProviderRequest) async throws -> ProviderResponse {
         // Use OpenAI-compatible implementation
         try await OpenAICompatibleHelper.generateText(
@@ -41,6 +63,7 @@ public final class OpenAICompatibleProvider: ModelProvider {
             baseURL: self.baseURL!,
             apiKey: self.apiKey ?? "",
             providerName: "OpenAICompatible",
+            additionalHeaders: self.additionalHeaders,
         )
     }
 
@@ -52,6 +75,7 @@ public final class OpenAICompatibleProvider: ModelProvider {
             baseURL: self.baseURL!,
             apiKey: self.apiKey ?? "",
             providerName: "OpenAICompatible",
+            additionalHeaders: self.additionalHeaders,
         )
     }
 }

@@ -35,6 +35,20 @@ public final class AnthropicCompatibleProvider: ModelProvider {
         )
     }
 
+    public init(modelId: String, baseURL: String, apiKey: String?) {
+        self.modelId = modelId
+        self.baseURL = baseURL
+        self.apiKey = apiKey
+        self.configuration = TachikomaConfiguration.current
+        self.capabilities = ModelCapabilities(
+            supportsVision: true,
+            supportsTools: true,
+            supportsStreaming: true,
+            contextLength: 200_000,
+            maxOutputTokens: 8192,
+        )
+    }
+
     public func generateText(request: ProviderRequest) async throws -> ProviderResponse {
         let provider = try makeAnthropicProvider()
         return try await provider.generateText(request: request)
