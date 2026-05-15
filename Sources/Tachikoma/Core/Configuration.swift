@@ -281,7 +281,17 @@ public final class TachikomaConfiguration: @unchecked Sendable {
         self.loadFromEnvironment()
     }
 
-    /// Load configuration from environment variables
+    /// Load configuration from environment variables.
+    ///
+    /// Marked `@inline(never)` to work around a Swift release-mode optimizer
+    /// issue where inlining this function into the singleton-init path causes
+    /// the `_baseURLs[.anthropic]` write to be incorrectly eliminated, leaving
+    /// `AnthropicProvider.init` reading a stale (default) value via
+    /// `getBaseURL`. OpenAI / Ollama / MiniMax / Azure writes happen to
+    /// survive the optimization; only Anthropic is empirically affected.
+    /// Removing this annotation reintroduces the bug observed in
+    /// openclaw/Peekaboo release builds for `claude-*` models. See #17.
+    @inline(never)
     private func loadFromEnvironment() {
         // Load API keys for all standard providers from environment
         for provider in Provider.standardProviders {

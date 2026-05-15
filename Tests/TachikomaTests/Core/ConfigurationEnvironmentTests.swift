@@ -33,4 +33,17 @@ struct ConfigurationEnvironmentTests {
         let configuration = TachikomaConfiguration(loadFromEnvironment: true)
         #expect(configuration.getBaseURL(for: .openai) == "https://env.example.com")
     }
+
+    @Test
+    func `TachikomaConfiguration picks up ANTHROPIC_BASE_URL from environment`() {
+        let key = "ANTHROPIC_BASE_URL"
+        setenv(key, "https://env.example.com", 1)
+        defer { unsetenv(key) }
+
+        let rawValue = Provider.environmentValue(for: key)
+        #expect(rawValue == "https://env.example.com")
+
+        let configuration = TachikomaConfiguration(loadFromEnvironment: true)
+        #expect(configuration.getBaseURL(for: .anthropic) == "https://env.example.com")
+    }
 }
