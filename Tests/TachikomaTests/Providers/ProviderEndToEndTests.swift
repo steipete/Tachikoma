@@ -145,6 +145,79 @@ struct ProviderEndToEndTests {
         }
     }
 
+    @Test
+    func `Google provider drops orphan required tool parameters`() async throws {
+        let tool = AgentTool(
+            name: "search",
+            description: "Search files",
+            parameters: AgentToolParameters(
+                properties: [
+                    "query": AgentToolParameterProperty(
+                        name: "query",
+                        type: .string,
+                        description: "Search query",
+                    ),
+                ],
+                required: ["query", "mode"],
+            ),
+        ) { _ in
+            AnyAgentToolValue(string: "ok")
+        }
+        let orphanOnlyTool = AgentTool(
+            name: "noop",
+            description: "No-op",
+            parameters: AgentToolParameters(
+                properties: [
+                    "reason": AgentToolParameterProperty(
+                        name: "reason",
+                        type: .string,
+                        description: "Reason",
+                    ),
+                ],
+                required: ["missing"],
+            ),
+        ) { _ in
+            AnyAgentToolValue(string: "ok")
+        }
+
+        let providerRequest = ProviderRequest(
+            messages: [ModelMessage(role: .user, content: [.text("Find it")])],
+            tools: [tool, orphanOnlyTool],
+            settings: .init(maxTokens: 32),
+        )
+
+        try await NetworkMocking.withMockedNetwork { request in
+            let body = try #require(self.bodyData(from: request))
+            let json = try #require(JSONSerialization.jsonObject(with: body) as? [String: Any])
+            let tools = try #require(json["tools"] as? [[String: Any]])
+            let declarations = try #require(tools.first?["functionDeclarations"] as? [[String: Any]])
+            let parametersByName = Dictionary(
+                uniqueKeysWithValues: try declarations.map { declaration in
+                    (
+                        try #require(declaration["name"] as? String),
+                        try #require(declaration["parameters"] as? [String: Any])
+                    )
+                },
+            )
+            let searchParameters = try #require(parametersByName["search"])
+            let noopParameters = try #require(parametersByName["noop"])
+
+            #expect(searchParameters["properties"] as? [String: Any] != nil)
+            #expect(searchParameters["required"] as? [String] == ["query"])
+            #expect(noopParameters["properties"] as? [String: Any] != nil)
+            #expect(noopParameters["required"] == nil)
+
+            return NetworkMocking.streamResponse(for: request, data: Self.googleStreamPayload(text: "Done"))
+        } operation: {
+            let config = Self.makeConfiguration { config in
+                config.setAPIKey("google-live", for: .google)
+            }
+            let provider = try GoogleProvider(model: .gemini25Flash, configuration: config)
+            let response = try await provider.generateText(request: providerRequest)
+            #expect(response.text.contains("Done"))
+        }
+    }
+
     // MARK: - OpenAI-compatible providers
 
     @Test

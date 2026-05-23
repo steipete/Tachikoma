@@ -309,14 +309,6 @@ extension GoogleProvider {
         // any orphan `required` names so we never send Gemini an invalid schema.
         let declaredKeys = Set(properties.keys)
         let sanitizedRequired = tool.parameters.required.filter { declaredKeys.contains($0) }
-        let orphanRequired = tool.parameters.required.filter { !declaredKeys.contains($0) }
-        if !orphanRequired.isEmpty {
-            FileHandle.standardError.write(Data(
-                """
-                [Tachikoma/Google] Tool '\(tool.name)' lists required parameters that are not in `properties`: \
-                \(orphanRequired). Dropping them from the Gemini request to keep the schema valid.\n
-                """.utf8))
-        }
 
         var parameters: [String: Any] = [
             "type": "object",
