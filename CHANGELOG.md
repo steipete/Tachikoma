@@ -20,6 +20,7 @@ All notable changes to the Tachikoma project will be documented in this file.
 - OpenAI Responses API providers now resolve shared OAuth/API-key credentials instead of requiring `OPENAI_API_KEY` directly.
 - Credential loading now only maps exact API-key credential names to provider API keys, so OAuth access/refresh tokens no longer overwrite configured OpenAI or Anthropic keys.
 - Custom OpenAI-compatible and Anthropic-compatible providers now forward configured proxy headers to request calls.
+- Anthropic base URL environment overrides now survive Swift release builds, so `ANTHROPIC_BASE_URL` can route requests through local proxies. Thanks @shraderdm.
 
 ## [0.2.0] - 2026-04-28
 
