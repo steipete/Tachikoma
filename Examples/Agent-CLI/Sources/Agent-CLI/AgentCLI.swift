@@ -501,6 +501,7 @@ struct AgentCLI: AsyncParsableCommand {
         case .anthropic: .anthropic
         case .google: .google
         case .minimax: .minimax
+        case .minimaxCN: .minimaxCN
         case .mistral: .mistral
         case .groq: .groq
         case .grok: .grok
@@ -550,7 +551,7 @@ enum CLIError: LocalizedError {
 /// Extension to add provider helpers
 extension Provider {
     static var allStandard: [Provider] {
-        [.openai, .anthropic, .google, .minimax, .mistral, .groq, .grok, .ollama]
+        [.openai, .anthropic, .google, .minimax, .minimaxCN, .mistral, .groq, .grok, .ollama]
     }
 
     var displayName: String {
@@ -559,6 +560,7 @@ extension Provider {
         case .anthropic: "Anthropic"
         case .google: "Google"
         case .minimax: "MiniMax"
+        case .minimaxCN: "MiniMax China"
         case .mistral: "Mistral"
         case .groq: "Groq"
         case .grok: "Grok"

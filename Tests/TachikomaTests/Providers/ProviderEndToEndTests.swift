@@ -449,6 +449,43 @@ struct ProviderEndToEndTests {
         }
     }
 
+    @Test
+    func `MiniMax China provider uses China endpoint and bearer auth`() async throws {
+        try await NetworkMocking.withMockedNetwork { request in
+            #expect(request.url?.host == "api.minimaxi.com")
+            self.expectPath(request, endsWith: "/messages")
+            #expect(request.value(forHTTPHeaderField: "Authorization") == "Bearer live-minimax-cn")
+            #expect(request.value(forHTTPHeaderField: "x-api-key") == nil)
+            return NetworkMocking.jsonResponse(for: request, data: Self.anthropicPayload(text: "MiniMax China ok"))
+        } operation: {
+            let config = Self.makeConfiguration { config in
+                config.setAPIKey("live-minimax-cn", for: .minimaxCN)
+            }
+            let provider = try ProviderFactory.createProvider(for: .minimaxCN(.m27), configuration: config)
+            let response = try await provider.generateText(request: Self.basicRequest)
+            #expect(response.text == "MiniMax China ok")
+        }
+    }
+
+    @Test
+    func `MiniMax China provider falls back to MiniMax API key`() async throws {
+        try await NetworkMocking.withMockedNetwork { request in
+            #expect(request.url?.host == "api.minimaxi.com")
+            #expect(request.value(forHTTPHeaderField: "Authorization") == "Bearer shared-minimax")
+            return NetworkMocking.jsonResponse(
+                for: request,
+                data: Self.anthropicPayload(text: "MiniMax China fallback ok"),
+            )
+        } operation: {
+            let config = Self.makeConfiguration { config in
+                config.setAPIKey("shared-minimax", for: .minimax)
+            }
+            let provider = try ProviderFactory.createProvider(for: .minimaxCN(.m27), configuration: config)
+            let response = try await provider.generateText(request: Self.basicRequest)
+            #expect(response.text == "MiniMax China fallback ok")
+        }
+    }
+
     // MARK: - Helpers
 
     private func assertOpenAICompatibleProvider(_ model: LanguageModel, provider: Provider) async throws {

@@ -208,6 +208,8 @@ public final class ModelCapabilityRegistry: @unchecked Sendable {
             "lmstudio:\(submodel.modelId)"
         case let .minimax(submodel):
             "minimax:\(submodel.modelId)"
+        case let .minimaxCN(submodel):
+            "minimax-cn:\(submodel.modelId)"
         case let .openRouter(modelId):
             "openrouter:\(modelId)"
         case let .together(modelId):
@@ -358,7 +360,7 @@ public final class ModelCapabilityRegistry: @unchecked Sendable {
                 supportsSeed: true,
             )
 
-        case .minimax:
+        case .minimax, .minimaxCN:
             return ModelParameterCapabilities()
 
         default:

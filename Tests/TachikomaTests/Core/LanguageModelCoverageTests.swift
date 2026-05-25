@@ -82,6 +82,7 @@ struct LanguageModelCoverageTests {
             .groq(.llama3370b),
             .grok(.grok43),
             .minimax(.m27),
+            .minimaxCN(.m27),
             .ollama(.llama33),
             .lmstudio(.gptOSS20B),
             .openRouter(modelId: "openrouter/alpha"),

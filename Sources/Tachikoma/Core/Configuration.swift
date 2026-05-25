@@ -142,6 +142,10 @@ public final class TachikomaConfiguration: @unchecked Sendable {
                 return configuredKey
             }
 
+            if provider == .minimaxCN, let sharedMiniMaxKey = self._apiKeys[Provider.minimax.identifier] {
+                return sharedMiniMaxKey
+            }
+
             // Fall back to environment variable only if loadFromEnvironment is true
             if self._loadFromEnvironment {
                 return provider.loadAPIKeyFromEnvironment()
@@ -342,6 +346,7 @@ public final class TachikomaConfiguration: @unchecked Sendable {
             .openai: "OPENAI_BASE_URL",
             .anthropic: "ANTHROPIC_BASE_URL",
             .minimax: "MINIMAX_BASE_URL",
+            .minimaxCN: "MINIMAX_CN_BASE_URL",
             .ollama: "OLLAMA_BASE_URL",
             .azureOpenAI: "AZURE_OPENAI_ENDPOINT",
         ]
@@ -434,7 +439,8 @@ public final class TachikomaConfiguration: @unchecked Sendable {
 
         self.lock.withLock {
             for (provider, key) in self._apiKeys {
-                let envVarName = "\(provider.uppercased())_API_KEY"
+                let standardEnvVar = Provider.from(identifier: provider).environmentVariable
+                let envVarName = standardEnvVar.isEmpty ? "\(provider.uppercased())_API_KEY" : standardEnvVar
                 lines.append("\(envVarName)=\(key)")
             }
         }

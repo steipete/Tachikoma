@@ -130,6 +130,8 @@ public enum ProviderParser {
                 environmentModel = self.parseGoogleModel(config.model)
             case "minimax" where hasMiniMax:
                 environmentModel = self.parseMiniMaxModel(config.model)
+            case "minimax-cn" where hasMiniMax, "minimax_cn" where hasMiniMax, "minimaxi" where hasMiniMax:
+                environmentModel = self.parseMiniMaxCNModel(config.model)
             case "grok" where hasGrok, "xai" where hasGrok:
                 environmentModel = self.parseGrokModel(config.model)
             case "ollama" where hasOllama:
@@ -309,6 +311,17 @@ public enum ProviderParser {
             .minimax(.m27)
         case "minimax-m2.7-highspeed", "minimax-m2-7-highspeed", "m2.7-highspeed", "m2-7-highspeed":
             .minimax(.m27Highspeed)
+        default:
+            nil
+        }
+    }
+
+    private static func parseMiniMaxCNModel(_ modelString: String) -> LanguageModel? {
+        switch modelString.lowercased() {
+        case "minimax-m2.7", "minimax-m2-7", "m2.7", "m2-7":
+            .minimaxCN(.m27)
+        case "minimax-m2.7-highspeed", "minimax-m2-7-highspeed", "m2.7-highspeed", "m2-7-highspeed":
+            .minimaxCN(.m27Highspeed)
         default:
             nil
         }

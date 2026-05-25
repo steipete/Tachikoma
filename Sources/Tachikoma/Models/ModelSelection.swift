@@ -31,6 +31,10 @@ public struct ModelSelector {
         }
 
         // MiniMax shortcuts and models
+        if let miniMaxModel = parseMiniMaxCNModel(normalized) {
+            return .minimaxCN(miniMaxModel)
+        }
+
         if let miniMaxModel = parseMiniMaxModel(normalized) {
             return .minimax(miniMaxModel)
         }
@@ -256,6 +260,28 @@ public struct ModelSelector {
         }
     }
 
+    private static func parseMiniMaxCNModel(_ input: String) -> Model.MiniMax? {
+        switch input {
+        case "minimax-cn-m2.7", "minimax-cn-m2-7", "minimaxi-m2.7", "minimaxi-m2-7",
+             "minimax_cn/m2.7", "minimax_cn/m2-7", "minimax_cn/minimax-m2.7",
+             "minimax_cn/minimax-m2-7",
+             "minimax-cn/m2.7", "minimax-cn/m2-7", "minimax-cn/minimax-m2.7",
+             "minimax-cn/minimax-m2-7", "minimaxi/m2.7", "minimaxi/m2-7":
+            .m27
+        case "minimax-cn-m2.7-highspeed", "minimax-cn-m2-7-highspeed", "minimaxi-m2.7-highspeed",
+             "minimaxi-m2-7-highspeed", "minimax-cn/m2.7-highspeed", "minimax-cn/m2-7-highspeed",
+             "minimax_cn/m2.7-highspeed", "minimax_cn/m2-7-highspeed",
+             "minimax_cn/minimax-m2.7-highspeed", "minimax_cn/minimax-m2-7-highspeed",
+             "minimax-cn/minimax-m2.7-highspeed", "minimax-cn/minimax-m2-7-highspeed",
+             "minimaxi/m2.7-highspeed", "minimaxi/m2-7-highspeed":
+            .m27Highspeed
+        case "minimax-cn", "minimax_cn", "minimaxi":
+            .m27
+        default:
+            nil
+        }
+    }
+
     private static func isUnsupportedLegacyGrokModel(_ input: String) -> Bool {
         let normalized = input.lowercased()
         return normalized.hasPrefix("grok-2") ||
@@ -369,7 +395,7 @@ public struct ModelSelector {
             }
         case "google", "gemini":
             return Model.Google.allCases.map(\.userFacingModelId)
-        case "minimax":
+        case "minimax", "minimax-cn", "minimaxi":
             return Model.MiniMax.allCases.map(\.modelId)
         case "ollama":
             return Model.Ollama.allCases.compactMap {
@@ -457,6 +483,11 @@ public func getAllAvailableModels() -> String {
     )
 
     output += formatModelList(
+        title: "MiniMax China",
+        models: ModelSelector.availableModels(for: "minimax-cn"),
+    )
+
+    output += formatModelList(
         title: "Grok (xAI)",
         models: ModelSelector.availableModels(for: "grok"),
     )
@@ -471,6 +502,7 @@ public func getAllAvailableModels() -> String {
     output += "  • gpt → gpt-5.5\n"
     output += "  • gemini → gemini-3.1-pro-preview\n"
     output += "  • minimax → MiniMax-M2.7\n"
+    output += "  • minimax-cn → MiniMax-M2.7 via api.minimaxi.com\n"
     output += "  • grok → grok-4.3\n"
     output += "  • llama, llama3 → llama3.3\n"
 

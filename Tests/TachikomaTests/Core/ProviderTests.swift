@@ -51,6 +51,7 @@ enum ProviderTests {
             #expect(Provider.mistral.identifier == "mistral")
             #expect(Provider.google.identifier == "google")
             #expect(Provider.minimax.identifier == "minimax")
+            #expect(Provider.minimaxCN.identifier == "minimax-cn")
             #expect(Provider.ollama.identifier == "ollama")
             #expect(Provider.azureOpenAI.identifier == "azure-openai")
         }
@@ -70,6 +71,7 @@ enum ProviderTests {
             #expect(Provider.mistral.displayName == "Mistral")
             #expect(Provider.google.displayName == "Google")
             #expect(Provider.minimax.displayName == "MiniMax")
+            #expect(Provider.minimaxCN.displayName == "MiniMax China")
             #expect(Provider.ollama.displayName == "Ollama")
             #expect(Provider.azureOpenAI.displayName == "Azure OpenAI")
             #expect(Provider.custom("test").displayName == "Test")
@@ -84,6 +86,7 @@ enum ProviderTests {
             #expect(Provider.mistral.environmentVariable == "MISTRAL_API_KEY")
             #expect(Provider.google.environmentVariable == "GEMINI_API_KEY")
             #expect(Provider.minimax.environmentVariable == "MINIMAX_API_KEY")
+            #expect(Provider.minimaxCN.environmentVariable == "MINIMAX_CN_API_KEY")
             #expect(Provider.ollama.environmentVariable == "OLLAMA_API_KEY")
             #expect(Provider.azureOpenAI.environmentVariable == "AZURE_OPENAI_API_KEY")
             #expect(Provider.custom("test").environmentVariable.isEmpty)
@@ -93,6 +96,7 @@ enum ProviderTests {
         func `Alternative environment variables`() {
             #expect(Provider.grok.alternativeEnvironmentVariables == ["XAI_API_KEY", "GROK_API_KEY"])
             #expect(Provider.google.alternativeEnvironmentVariables == ["GOOGLE_API_KEY"])
+            #expect(Provider.minimaxCN.alternativeEnvironmentVariables == ["MINIMAX_API_KEY"])
             #expect(Provider.openai.alternativeEnvironmentVariables.isEmpty)
             #expect(Provider.anthropic.alternativeEnvironmentVariables.isEmpty)
             #expect(Provider.azureOpenAI.alternativeEnvironmentVariables == [
@@ -110,6 +114,7 @@ enum ProviderTests {
             #expect(Provider.mistral.defaultBaseURL == "https://api.mistral.ai/v1")
             #expect(Provider.google.defaultBaseURL == "https://generativelanguage.googleapis.com/v1beta")
             #expect(Provider.minimax.defaultBaseURL == "https://api.minimax.io/anthropic")
+            #expect(Provider.minimaxCN.defaultBaseURL == "https://api.minimaxi.com/anthropic")
             #expect(Provider.ollama.defaultBaseURL == "http://localhost:11434")
             #expect(Provider.azureOpenAI.defaultBaseURL == nil)
             #expect(Provider.custom("test").defaultBaseURL == nil)
@@ -124,6 +129,7 @@ enum ProviderTests {
             #expect(Provider.mistral.requiresAPIKey == true)
             #expect(Provider.google.requiresAPIKey == true)
             #expect(Provider.minimax.requiresAPIKey == true)
+            #expect(Provider.minimaxCN.requiresAPIKey == true)
             #expect(Provider.ollama.requiresAPIKey == false) // Ollama typically doesn't require API key
             #expect(Provider.azureOpenAI.requiresAPIKey == true)
             #expect(Provider.custom("test").requiresAPIKey == true) // Assume custom providers need keys
@@ -140,6 +146,8 @@ enum ProviderTests {
             #expect(Provider.from(identifier: "mistral") == .mistral)
             #expect(Provider.from(identifier: "google") == .google)
             #expect(Provider.from(identifier: "minimax") == .minimax)
+            #expect(Provider.from(identifier: "minimax-cn") == .minimaxCN)
+            #expect(Provider.from(identifier: "minimaxi") == .minimaxCN)
             #expect(Provider.from(identifier: "ollama") == .ollama)
             #expect(Provider.from(identifier: "azure-openai") == .azureOpenAI)
         }
@@ -179,6 +187,7 @@ enum ProviderTests {
                 .mistral,
                 .google,
                 .minimax,
+                .minimaxCN,
                 .ollama,
                 .azureOpenAI,
             ]
@@ -199,6 +208,18 @@ enum ProviderTests {
             let provider = Provider.grok
             #expect(provider.environmentVariable == "X_AI_API_KEY")
             #expect(provider.alternativeEnvironmentVariables == ["XAI_API_KEY", "GROK_API_KEY"])
+        }
+
+        @Test
+        func `MiniMax China falls back to MiniMax environment variable`() async {
+            let resolved = await withTemporaryEnvironment([
+                "MINIMAX_CN_API_KEY": nil,
+                "MINIMAX_API_KEY": "shared-minimax-key",
+            ]) {
+                Provider.minimaxCN.loadAPIKeyFromEnvironment()
+            }
+
+            #expect(resolved == "shared-minimax-key")
         }
 
         @Test

@@ -66,6 +66,51 @@ struct CredentialLoadingTests {
         #endif
     }
 
+    @Test
+    func `MiniMax China credentials save and reload with canonical env name`() async throws {
+        #if !os(Windows)
+        try await TestEnvironmentMutex.shared.withLock {
+            let originalProfileDirectory = TachikomaConfiguration.profileDirectoryName
+            let profilePath = FileManager.default.temporaryDirectory
+                .appendingPathComponent("tachikoma-minimax-cn-credentials-\(UUID().uuidString)")
+                .path
+            let credentialPath = "\(profilePath)/credentials"
+            let savedEnvironment = self.savedEnvironment(for: ["MINIMAX_CN_API_KEY", "MINIMAX_API_KEY"])
+
+            TachikomaConfiguration.profileDirectoryName = profilePath
+            for (key, _) in savedEnvironment {
+                unsetenv(key)
+            }
+
+            defer {
+                self.restoreEnvironment(savedEnvironment)
+                TachikomaConfiguration.profileDirectoryName = originalProfileDirectory
+                try? FileManager.default.removeItem(atPath: profilePath)
+            }
+
+            let config = TachikomaConfiguration(loadFromEnvironment: false)
+            config.setAPIKey("cn-api-key", for: .minimaxCN)
+            try config.saveCredentials()
+
+            let savedCredentials = try String(contentsOfFile: credentialPath, encoding: .utf8)
+            #expect(savedCredentials.contains("MINIMAX_CN_API_KEY=cn-api-key"))
+            #expect(!savedCredentials.contains("MINIMAX-CN_API_KEY"))
+
+            let reloaded = TachikomaConfiguration(loadFromEnvironment: true)
+            #expect(reloaded.getAPIKey(for: .minimaxCN) == "cn-api-key")
+        }
+        #endif
+    }
+
+    @Test
+    func `MiniMax China availability accepts configured shared MiniMax key`() {
+        let config = TachikomaConfiguration(loadFromEnvironment: false)
+        config.setAPIKey("shared-minimax-key", for: .minimax)
+
+        #expect(config.getAPIKey(for: .minimaxCN) == "shared-minimax-key")
+        #expect(config.hasAPIKey(for: .minimaxCN))
+    }
+
     private func withIsolatedCredentials<T: Sendable>(
         _ credentials: String,
         _ body: @Sendable () throws -> T,
@@ -96,11 +141,15 @@ struct CredentialLoadingTests {
 
     private func unsetOpenAIEnvironment() -> [(String, String?)] {
         let keys = ["OPENAI_API_KEY", "OPENAI_ACCESS_TOKEN", "OPENAI_REFRESH_TOKEN", "OPENAI_ACCESS_EXPIRES"]
-        let saved = keys.map { key in
-            (key, getenv(key).map { String(cString: $0) })
-        }
+        let saved = self.savedEnvironment(for: keys)
         keys.forEach { unsetenv($0) }
         return saved
+    }
+
+    private func savedEnvironment(for keys: [String]) -> [(String, String?)] {
+        keys.map { key in
+            (key, getenv(key).map { String(cString: $0) })
+        }
     }
 
     private func restoreEnvironment(_ saved: [(String, String?)]) {

@@ -376,6 +376,7 @@ struct AICLI {
         case .anthropic: .anthropic
         case .google: .google
         case .minimax: .minimax
+        case .minimaxCN: .minimaxCN
         case .mistral: .mistral
         case .groq: .groq
         case .grok: .grok
@@ -408,6 +409,11 @@ struct AICLI {
             print("Get your key at: https://aistudio.google.com/apikey")
         case .minimax:
             print("Set your MiniMax API key:")
+            print("export MINIMAX_API_KEY='your-key-here'")
+        case .minimaxCN:
+            print("Set your MiniMax China API key:")
+            print("export MINIMAX_CN_API_KEY='your-key-here'")
+            print("# or reuse the global MiniMax key name:")
             print("export MINIMAX_API_KEY='your-key-here'")
         case .mistral:
             print("Set your Mistral API key:")

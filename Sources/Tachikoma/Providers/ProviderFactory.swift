@@ -60,19 +60,22 @@ public struct ProviderFactory {
             guard let apiKey = configuration.getAPIKey(for: .minimax) else {
                 throw TachikomaError.authenticationFailed("MINIMAX_API_KEY not found")
             }
-            return try AnthropicCompatibleProvider(
-                modelId: minimaxModel.modelId,
-                baseURL: configuration.getBaseURL(for: .minimax) ?? "https://api.minimax.io/anthropic",
-                configuration: configuration,
+            return try Self.makeMiniMaxProvider(
+                model: minimaxModel,
+                provider: .minimax,
                 apiKey: apiKey,
-                auth: .bearer(apiKey, betaHeader: nil),
-                capabilities: ModelCapabilities(
-                    supportsVision: minimaxModel.supportsVision,
-                    supportsTools: minimaxModel.supportsTools,
-                    supportsStreaming: true,
-                    contextLength: minimaxModel.contextLength,
-                    maxOutputTokens: 8192,
-                ),
+                configuration: configuration,
+            )
+
+        case let .minimaxCN(minimaxModel):
+            guard let apiKey = configuration.getAPIKey(for: .minimaxCN) ?? configuration.getAPIKey(for: .minimax) else {
+                throw TachikomaError.authenticationFailed("MINIMAX_CN_API_KEY or MINIMAX_API_KEY not found")
+            }
+            return try Self.makeMiniMaxProvider(
+                model: minimaxModel,
+                provider: .minimaxCN,
+                apiKey: apiKey,
+                configuration: configuration,
             )
 
         case let .openRouter(modelId):
@@ -126,6 +129,32 @@ public struct ProviderFactory {
             }
             return provider
         }
+    }
+
+    private static func makeMiniMaxProvider(
+        model: LanguageModel.MiniMax,
+        provider: Provider,
+        apiKey: String,
+        configuration: TachikomaConfiguration,
+    ) throws
+        -> any ModelProvider
+    {
+        try AnthropicCompatibleProvider(
+            modelId: model.modelId,
+            baseURL: configuration.getBaseURL(for: provider) ?? provider
+                .defaultBaseURL ?? "https://api.minimax.io/anthropic",
+            configuration: configuration,
+            apiKey: apiKey,
+            // MiniMax's Anthropic-compatible setup uses Claude Code-style Authorization auth, not Anthropic x-api-key.
+            auth: .bearer(apiKey, betaHeader: nil),
+            capabilities: ModelCapabilities(
+                supportsVision: model.supportsVision,
+                supportsTools: model.supportsTools,
+                supportsStreaming: true,
+                contextLength: model.contextLength,
+                maxOutputTokens: 8192,
+            ),
+        )
     }
 }
 
