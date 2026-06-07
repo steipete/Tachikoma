@@ -23,6 +23,7 @@ struct OpenAIResponsesProviderTests {
         let config = self.openAIConfig()
 
         let gpt5Models: [LanguageModel.OpenAI] = [
+            .chatLatest,
             .gpt55,
             .gpt54,
             .gpt54Mini,
@@ -82,6 +83,7 @@ struct OpenAIResponsesProviderTests {
         let config = self.openAIConfig()
 
         let responsesModels: [LanguageModel.OpenAI] = [
+            .chatLatest,
             .gpt55,
             .gpt54,
             .gpt54Mini,
@@ -242,6 +244,25 @@ struct OpenAIResponsesProviderTests {
             let provider = try OpenAIResponsesProvider(model: .gpt5Mini, configuration: config, session: session)
             let response = try await provider.generateText(request: self.sampleRequest)
             #expect(response.text.contains("GPT-5") || response.text.contains("pong"))
+        }
+    }
+
+    @Test
+    func `chat-latest Responses payload omits GPT-5 reasoning controls`() async throws {
+        let config = TachikomaConfiguration(loadFromEnvironment: false)
+        config.setAPIKey("live-openai", for: .openai)
+
+        try await self.withMockedSession { request in
+            let body = try #require(Self.bodyData(from: request))
+            let json = try JSONSerialization.jsonObject(with: body) as? [String: Any]
+            #expect(json?["model"] as? String == "chat-latest")
+            #expect(json?["reasoning"] == nil)
+            #expect(json?["text"] == nil)
+
+            return NetworkMocking.jsonResponse(for: request, data: Self.responsesPayload(text: "pong"))
+        } operation: { session in
+            let provider = try OpenAIResponsesProvider(model: .chatLatest, configuration: config, session: session)
+            _ = try await provider.generateText(request: self.sampleRequest)
         }
     }
 
@@ -494,6 +515,34 @@ struct OpenAIResponsesProviderTests {
             }
 
             #expect(collected == "Hello world")
+        }
+    }
+
+    @Test
+    func `chat-latest streams Responses event deltas`() async throws {
+        let config = TachikomaConfiguration(loadFromEnvironment: false)
+        config.setAPIKey("live-openai", for: .openai)
+
+        try await self.withMockedSession { request in
+            #expect(request.url?.path == "/v1/responses")
+            let payload = Self.responsesStreamPayload(chunks: [
+                Self.streamChunkJSON(content: "Hello", finishReason: nil),
+                Self.streamChunkJSON(content: " latest", finishReason: nil),
+                Self.streamChunkJSON(content: nil, finishReason: "stop"),
+            ])
+            return NetworkMocking.streamResponse(for: request, data: payload)
+        } operation: { session in
+            let provider = try OpenAIResponsesProvider(model: .chatLatest, configuration: config, session: session)
+            let stream = try await provider.streamText(request: self.sampleRequest)
+
+            var collected = ""
+            for try await delta in stream {
+                if case .textDelta = delta.type {
+                    collected.append(delta.content ?? "")
+                }
+            }
+
+            #expect(collected == "Hello latest")
         }
     }
 

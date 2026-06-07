@@ -15,6 +15,15 @@ struct ModelParsingTests {
     }
 
     @Test
+    func `parse chat latest OpenAI alias`() throws {
+        #expect(LanguageModel.parse(from: "chat-latest") == .openai(.chatLatest))
+        #expect(LanguageModel.parse(from: "gpt-5-chat-latest") == .openai(.chatLatest))
+        #expect(LanguageModel.parse(from: "openai/chat-latest") == .openai(.chatLatest))
+        #expect(LanguageModel.parse(from: "openai/gpt-5-chat-latest") == .openai(.chatLatest))
+        #expect(try ModelSelector.parseModel("openai/chat-latest") == .openai(.chatLatest))
+    }
+
+    @Test
     func `parse GPT-5.4 base model`() {
         let parsed = LanguageModel.parse(from: "gpt-5.4")
         #expect(parsed == .openai(.gpt54))

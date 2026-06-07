@@ -528,6 +528,7 @@ public struct ModelCostCalculator: Sendable {
         // OpenAI Pricing (as of 2025)
         case let .openai(openaiModel):
             switch openaiModel {
+            case .chatLatest: (5.00, 30.00) // ChatGPT Instant alias pricing estimate
             case .gpt55: (5.00, 20.00) // GPT-5.5 pricing estimate
             case .gpt54: (5.00, 20.00) // GPT-5.4 pricing estimate
             case .gpt54Mini: (1.00, 4.00)

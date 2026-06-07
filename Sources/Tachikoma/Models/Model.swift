@@ -33,6 +33,9 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
     // MARK: - Provider Sub-Enums
 
     public enum OpenAI: Sendable, Hashable, CaseIterable {
+        /// Latest ChatGPT Instant alias.
+        case chatLatest
+
         /// GPT-5.5 Series
         case gpt55 // Flagship GPT-5.5
 
@@ -52,6 +55,7 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
 
         public static var allCases: [OpenAI] {
             [
+                .chatLatest,
                 .gpt55,
                 .gpt54,
                 .gpt54Mini,
@@ -66,6 +70,7 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
         public var modelId: String {
             switch self {
             case let .custom(id): id
+            case .chatLatest: "chat-latest"
             case .gpt55: "gpt-5.5"
             case .gpt54: "gpt-5.4"
             case .gpt54Mini: "gpt-5.4-mini"
@@ -79,7 +84,8 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
 
         public var supportsVision: Bool {
             switch self {
-            case .gpt55,
+            case .chatLatest,
+                 .gpt55,
                  .gpt54, .gpt54Mini, .gpt54Nano,
                  .gpt5, .gpt5Pro, .gpt5Mini, .gpt5Nano: true // GPT-5+ supports multimodal
             default: false
@@ -88,7 +94,8 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
 
         public var supportsTools: Bool {
             switch self {
-            case .gpt55,
+            case .chatLatest,
+                 .gpt55,
                  .gpt54, .gpt54Mini, .gpt54Nano,
                  .gpt5, .gpt5Pro, .gpt5Mini, .gpt5Nano: true // GPT-5+ excels at tool calling
             case .custom: true // Assume custom models support tools
@@ -120,7 +127,8 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
 
         public var contextLength: Int {
             switch self {
-            case .gpt55,
+            case .chatLatest,
+                 .gpt55,
                  .gpt54, .gpt54Mini, .gpt54Nano,
                  .gpt5, .gpt5Pro, .gpt5Mini, .gpt5Nano: 400_000 // 272k input + 128k output
             case .custom: 128_000 // Default assumption
@@ -136,8 +144,7 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
                 normalized.hasPrefix("o3") || normalized.hasPrefix("o4") ||
                 normalized.hasPrefix("gpt-5.1") || compact.hasPrefix("gpt51") ||
                 normalized.hasPrefix("gpt-5.2") || compact.hasPrefix("gpt52") ||
-                normalized.contains("gpt-5-thinking") || compact.contains("gpt5thinking") ||
-                normalized == "gpt-5-chat-latest" || compact == "gpt5chatlatest"
+                normalized.contains("gpt-5-thinking") || compact.contains("gpt5thinking")
         }
     }
 
@@ -1114,6 +1121,13 @@ extension LanguageModel {
 
         if let qualified = ProviderParser.parse(trimmed) {
             let provider = qualified.provider.lowercased()
+            if provider == "openai" {
+                guard let parsed = Self.parse(from: qualified.model),
+                      case .openai = parsed
+                else { return nil }
+
+                return parsed
+            }
             if provider == "openrouter" {
                 return .openRouter(modelId: qualified.model)
             }
@@ -1132,9 +1146,13 @@ extension LanguageModel {
         if
             compact.contains("gpt4") || compact.contains("gpt3") || compact.contains("o3") || compact.contains("o4") ||
             compact.contains("gpt51") || compact.contains("gpt52") ||
-            compact.contains("gpt5thinking") || compact.contains("gpt5chat")
+            compact.contains("gpt5thinking")
         {
             return nil
+        }
+
+        if dashed == "chat-latest" || compact == "chatlatest" || dashed == "gpt-5-chat-latest" || compact == "gpt5chatlatest" {
+            return .openai(.chatLatest)
         }
 
         if dashed == "gpt-5-pro" || compact == "gpt5pro" {

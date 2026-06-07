@@ -5,6 +5,7 @@ All notable changes to the Tachikoma project will be documented in this file.
 ## [Unreleased]
 
 ### Added
+- Added first-class OpenAI `chat-latest` support with parsing aliases, Responses API routing, model capabilities, and usage estimates.
 - Added first-class MiniMax support with the `MiniMax-M2.7` catalog models, `MINIMAX_API_KEY` / `MINIMAX_BASE_URL` configuration, bearer-token Anthropic-compatible transport, model parsing shortcuts, usage estimates, and provider tests.
 - Added explicit LM Studio model shortcuts such as `lmstudio` and `lmstudio/openai/gpt-oss-120b` so local provider selections no longer fall through to Ollama custom IDs.
 
@@ -13,6 +14,7 @@ All notable changes to the Tachikoma project will be documented in this file.
 - Removed stale direct model support for retired or non-canonical IDs including GPT-5.1/5.2/pseudo-thinking models, deprecated Claude Sonnet/Opus 4 snapshots, Grok 2/3/4-fast rows, old Groq Llama/Mixtral/Gemma aliases, stale Mistral aliases, and invalid LM Studio `current`.
 
 ### Fixed
+- SwiftPM consumers now resolve Commander from the package URL instead of accidentally inheriting a sibling local checkout.
 - Ollama model parsing now preserves explicit custom vision model IDs such as `qwen2.5vl:3b` instead of falling back to `llama3.3` (#16).
 - Auth resolution now snapshots environment-ignore state consistently, preventing parallel tests and concurrent callers from falling back to stored OpenRouter credentials when an environment override is present.
 - SwiftPM consumers can now resolve Commander remotely instead of requiring a local `../Commander` checkout. Thanks @malpern.

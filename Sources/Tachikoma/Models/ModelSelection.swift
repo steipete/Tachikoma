@@ -59,6 +59,9 @@ public struct ModelSelector {
 
         if let qualified = ProviderParser.parse(normalized) {
             let provider = qualified.provider.lowercased()
+            if provider == "openai", let openaiModel = parseOpenAIModel(qualified.model.lowercased()) {
+                return .openai(openaiModel)
+            }
             if provider == "openrouter" {
                 return .openRouter(modelId: qualified.model)
             }
@@ -98,6 +101,8 @@ public struct ModelSelector {
 
     private static func parseOpenAIModel(_ input: String) -> Model.OpenAI? {
         switch input {
+        case "chat-latest", "chatlatest", "gpt-5-chat-latest", "gpt5-chat-latest", "gpt5chatlatest":
+            return .chatLatest
         // GPT-5.5 models
         case "gpt-5.5", "gpt5.5", "gpt-5-5", "gpt5-5", "gpt55":
             return .gpt55
@@ -180,8 +185,7 @@ public struct ModelSelector {
             normalized.hasPrefix("o3") || normalized.hasPrefix("o4") ||
             normalized.hasPrefix("gpt-5.1") || normalized.hasPrefix("gpt-5.2") ||
             compact.hasPrefix("gpt51") || compact.hasPrefix("gpt52") ||
-            normalized.contains("gpt-5-thinking") || compact.contains("gpt5thinking") ||
-            normalized == "gpt-5-chat-latest" || compact == "gpt5chatlatest"
+            normalized.contains("gpt-5-thinking") || compact.contains("gpt5thinking")
     }
 
     private static func isUnsupportedLegacyAnthropicModel(_ input: String) -> Bool {

@@ -17,7 +17,8 @@ public struct ProviderFactory {
         case let .openai(openaiModel):
             // Use Responses API for the GPT-5 family
             switch openaiModel {
-            case .gpt55,
+            case .chatLatest,
+                 .gpt55,
                  .gpt54,
                  .gpt54Mini,
                  .gpt54Nano,

@@ -58,13 +58,14 @@ public final class OpenAIResponsesProvider: ModelProvider {
         // Set capabilities based on model
         let isReasoningModel = Self.isReasoningModel(model)
         let isGPT5 = Self.isGPT5Model(model)
+        let hasLargeOutputWindow = isReasoningModel || isGPT5 || model == .chatLatest
 
         self.capabilities = ModelCapabilities(
             supportsVision: model.supportsVision,
             supportsTools: model.supportsTools,
             supportsStreaming: true,
             contextLength: model.contextLength,
-            maxOutputTokens: isReasoningModel || isGPT5 ? 128_000 : 4096,
+            maxOutputTokens: hasLargeOutputWindow ? 128_000 : 4096,
         )
     }
 
@@ -263,8 +264,8 @@ public final class OpenAIResponsesProvider: ModelProvider {
                             }
 
                             if let data = jsonString.data(using: .utf8) {
-                                // Try GPT-5 format first
-                                if Self.isGPT5Model(self.model) {
+                                // Responses API event streams use typed event payloads.
+                                if Self.usesResponsesEventStream(self.model) {
                                     if
                                         let event = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
                                         let eventType = event["type"] as? String
@@ -938,6 +939,10 @@ public final class OpenAIResponsesProvider: ModelProvider {
         default:
             false
         }
+    }
+
+    private static func usesResponsesEventStream(_ model: LanguageModel.OpenAI) -> Bool {
+        model == .chatLatest || Self.isGPT5Model(model)
     }
 }
 

@@ -227,13 +227,14 @@ public enum ProviderParser {
             !normalized.hasPrefix("o3"), !normalized.hasPrefix("o4"),
             !normalized.hasPrefix("gpt-5.1"), !compact.hasPrefix("gpt51"),
             !normalized.hasPrefix("gpt-5.2"), !compact.hasPrefix("gpt52"),
-            !normalized.contains("gpt-5-thinking"), !compact.contains("gpt5thinking"),
-            normalized != "gpt-5-chat-latest", compact != "gpt5chatlatest" else
+            !normalized.contains("gpt-5-thinking"), !compact.contains("gpt5thinking") else
         {
             return nil
         }
 
         return switch normalized {
+        case "chat-latest", "chatlatest", "gpt-5-chat-latest", "gpt5-chat-latest", "gpt5chatlatest":
+            .openai(.chatLatest)
         case "gpt-5.5", "gpt5.5", "gpt-5-5", "gpt5-5", "gpt55": .openai(.gpt55)
         case "gpt-5.5-mini", "gpt5.5-mini", "gpt-5-5-mini", "gpt5-5-mini", "gpt55-mini", "gpt55mini":
             .openai(.gpt5Mini)

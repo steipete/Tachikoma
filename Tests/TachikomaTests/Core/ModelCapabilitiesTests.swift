@@ -29,6 +29,13 @@ enum ModelCapabilitiesTests {
         }
 
         @Test
+        func `chat-latest does not advertise audio input`() {
+            #expect(LanguageModel.openai(.chatLatest).supportsVision)
+            #expect(LanguageModel.openai(.chatLatest).supportsTools)
+            #expect(LanguageModel.openai(.chatLatest).supportsAudioInput == false)
+        }
+
+        @Test
         func `Gemini 3 Flash supports thinking config options`() {
             let capabilities = ModelCapabilityRegistry.shared.capabilities(for: .google(.gemini3Flash))
             #expect(capabilities.supportsTopK)
