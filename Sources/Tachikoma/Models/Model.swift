@@ -1122,9 +1122,9 @@ extension LanguageModel {
         if let qualified = ProviderParser.parse(trimmed) {
             let provider = qualified.provider.lowercased()
             if provider == "openai" {
-                guard let parsed = Self.parse(from: qualified.model),
-                      case .openai = parsed
-                else { return nil }
+                guard
+                    let parsed = Self.parse(from: qualified.model),
+                    case .openai = parsed else { return nil }
 
                 return parsed
             }
@@ -1151,7 +1151,10 @@ extension LanguageModel {
             return nil
         }
 
-        if dashed == "chat-latest" || compact == "chatlatest" || dashed == "gpt-5-chat-latest" || compact == "gpt5chatlatest" {
+        if
+            dashed == "chat-latest" || compact == "chatlatest" || dashed == "gpt-5-chat-latest" || compact ==
+            "gpt5chatlatest"
+        {
             return .openai(.chatLatest)
         }
 

@@ -942,7 +942,7 @@ public final class OpenAIResponsesProvider: ModelProvider {
     }
 
     private static func usesResponsesEventStream(_ model: LanguageModel.OpenAI) -> Bool {
-        model == .chatLatest || Self.isGPT5Model(model)
+        model == .chatLatest || self.isGPT5Model(model)
     }
 }
 
