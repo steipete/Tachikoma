@@ -175,9 +175,15 @@ struct ProviderSystemTests {
         #expect(Model.anthropic(.opus48).supportsStreaming == false)
         #expect(Model.anthropic(.fable5).supportsStreaming == false)
         #expect(Model.openRouter(modelId: "anthropic/claude-fable-5").supportsStreaming == false)
+        #expect(Model.openRouter(modelId: "fable5").supportsStreaming == false)
         #expect(Model.openRouter(modelId: "anthropic/claude-opus-4-8").supportsStreaming == false)
+        #expect(Model.together(modelId: "claude-fable-5").supportsStreaming == false)
         #expect(Model.openaiCompatible(
             modelId: "anthropic/claude-fable-5",
+            baseURL: "https://example.test",
+        ).supportsStreaming == false)
+        #expect(Model.openaiCompatible(
+            modelId: "fable5",
             baseURL: "https://example.test",
         ).supportsStreaming == false)
         #expect(Model.openaiCompatible(

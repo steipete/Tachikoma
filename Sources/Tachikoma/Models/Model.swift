@@ -860,13 +860,16 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
         if case let .anthropicCompatible(modelId, _) = self {
             return !Anthropic.hasStreamingRefusalRisk(modelId: modelId)
         }
-        if case let .openRouter(modelId) = self, modelId.lowercased().hasPrefix("anthropic/") {
+        if case let .openRouter(modelId) = self {
             return !Anthropic.hasStreamingRefusalRisk(modelId: modelId)
         }
-        if case let .together(modelId) = self, modelId.lowercased().hasPrefix("anthropic/") {
+        if case let .together(modelId) = self {
             return !Anthropic.hasStreamingRefusalRisk(modelId: modelId)
         }
         if case let .openaiCompatible(modelId, _) = self {
+            guard !Anthropic.hasStreamingRefusalRisk(modelId: modelId) else {
+                return false
+            }
             let normalized = modelId.lowercased()
             guard
                 normalized.contains("claude") ||
@@ -875,7 +878,7 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
             {
                 return true
             }
-            return !Anthropic.hasStreamingRefusalRisk(modelId: modelId)
+            return true
         }
         if
             case let .custom(provider) = self,
