@@ -52,7 +52,8 @@ jobs:
     - name: Run Tests (Unit Tests Only)
       run: |
         if [[ "${{ runner.os }}" == "Linux" ]]; then
-          swift test --filter TachikomaTests --skip "OpenAIAudioProviderTests" --skip "ProviderEndToEndTests"
+          # Several test suites mutate process-wide env/profile state.
+          swift test --no-parallel --filter TachikomaTests --skip "OpenAIAudioProviderTests" --skip "ProviderEndToEndTests"
         else
           swift test --filter TachikomaTests
         fi

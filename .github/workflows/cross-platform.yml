@@ -48,7 +48,8 @@ jobs:
           export OPENAI_API_KEY="${OPENAI_API_KEY:-test-key}"
           export ANTHROPIC_API_KEY="${ANTHROPIC_API_KEY:-test-key}"
           SKIP_FLAGS="--skip ProviderEndToEndTests"
-          swift test $SKIP_FLAGS
+          # Several test suites mutate process-wide env/profile state.
+          swift test --no-parallel $SKIP_FLAGS
 
   test-linux-ubuntu-24:
     runs-on: ubuntu-24.04
@@ -76,7 +77,8 @@ jobs:
           export OPENAI_API_KEY="${OPENAI_API_KEY:-test-key}"
           export ANTHROPIC_API_KEY="${ANTHROPIC_API_KEY:-test-key}"
           SKIP_FLAGS="--skip ProviderEndToEndTests"
-          swift test $SKIP_FLAGS
+          # Several test suites mutate process-wide env/profile state.
+          swift test --no-parallel $SKIP_FLAGS
 
   # Optional: Build release artifacts
   build-release:

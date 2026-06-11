@@ -105,7 +105,8 @@ jobs:
           echo "OPENAI_API_KEY missing; skipping OpenAIAudioProviderTests"
           SKIP_FLAGS="$SKIP_FLAGS --skip OpenAIAudioProviderTests"
         fi
-        swift test --verbose $SKIP_FLAGS
+        # Several test suites mutate process-wide env/profile state.
+        swift test --no-parallel --verbose $SKIP_FLAGS
       env:
         OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
