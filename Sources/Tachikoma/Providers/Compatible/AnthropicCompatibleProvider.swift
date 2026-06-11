@@ -11,6 +11,7 @@ public final class AnthropicCompatibleProvider: ModelProvider {
     private let configuration: TachikomaConfiguration
     private let auth: TKAuthValue?
     private let reasoningProvider: String
+    private let reasoningModelId: String
     private let reasoningBaseURL: String?
 
     public init(
@@ -22,6 +23,7 @@ public final class AnthropicCompatibleProvider: ModelProvider {
         auth: TKAuthValue? = nil,
         capabilities: ModelCapabilities? = nil,
         reasoningProvider: String = "anthropic-compatible",
+        reasoningModelId: String? = nil,
         reasoningBaseURL: String? = nil,
         includeReasoningBaseURL: Bool = true,
     ) throws {
@@ -30,6 +32,7 @@ public final class AnthropicCompatibleProvider: ModelProvider {
         self.configuration = configuration
         self.additionalHeaders = additionalHeaders
         self.reasoningProvider = reasoningProvider
+        self.reasoningModelId = reasoningModelId ?? modelId
         self.reasoningBaseURL = includeReasoningBaseURL ? (reasoningBaseURL ?? baseURL) : nil
 
         // Try explicit provider key, then configuration, then common environment variable patterns.
@@ -109,7 +112,7 @@ public final class AnthropicCompatibleProvider: ModelProvider {
             additionalHeaders: self.additionalHeaders,
             authOverride: self.auth,
             reasoningProvider: self.reasoningProvider,
-            reasoningModelId: self.modelId,
+            reasoningModelId: self.reasoningModelId,
             reasoningBaseURL: self.reasoningBaseURL,
         )
     }
