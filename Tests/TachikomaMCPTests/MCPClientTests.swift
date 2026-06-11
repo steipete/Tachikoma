@@ -191,7 +191,7 @@ struct MCPClientTests {
         let imageData = Data("test".utf8)
         let imageResponse = ToolResponse.image(data: imageData, mimeType: "image/png")
         #expect(imageResponse.content.count == 1)
-        if case .image(data: let data, mimeType: let mimeType, annotations: _, _meta: _) = imageResponse.content.first {
+        if case let .image(data: data, mimeType: mimeType, annotations: _, _meta: _) = imageResponse.content.first {
             #expect(data == imageData.base64EncodedString())
             #expect(mimeType == "image/png")
         } else {

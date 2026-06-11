@@ -199,7 +199,7 @@ struct StopConditionsTests {
         }
 
         #expect(Date().timeIntervalSince(start) < 0.5)
-        #expect(received.map(\.content).compactMap { $0 } == ["STOP"])
+        #expect(received.map(\.content).compactMap(\.self) == ["STOP"])
         #expect(received.last?.type == .done)
         #expect(received.last?.finishReason == .stop)
     }

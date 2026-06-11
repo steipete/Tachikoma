@@ -37,7 +37,7 @@ public func generateText(
     var totalUsage = Usage(inputTokens: 0, outputTokens: 0)
     var finalResponseStartIndex = messages.count
 
-        for stepIndex in 0..<maxSteps {
+    for stepIndex in 0..<maxSteps {
         let request = ProviderRequest(
             messages: currentMessages.sanitizedForProvider(model, configuration: resolvedConfiguration),
             tools: tools,
@@ -372,34 +372,34 @@ public func streamText(
 
                 for try await delta in capturedStream {
                     if buffersUntilDone, delta.type != .done {
-	                        if !didTriggerLocalStop {
-	                            bufferedDeltas.append(delta)
-	                            track(delta)
-	                            if
-	                                let capturedStopCondition,
-	                                case .textDelta = delta.type,
-	                                let content = delta.content
-	                            {
-	                                bufferedVisibleText += content
-	                                didTriggerLocalStop = await capturedStopCondition.shouldStop(
-	                                    text: bufferedVisibleText,
-	                                    delta: content,
-	                                )
-	                            }
+                        if !didTriggerLocalStop {
+                            bufferedDeltas.append(delta)
+                            track(delta)
+                            if
+                                let capturedStopCondition,
+                                case .textDelta = delta.type,
+                                let content = delta.content
+                            {
+                                bufferedVisibleText += content
+                                didTriggerLocalStop = await capturedStopCondition.shouldStop(
+                                    text: bufferedVisibleText,
+                                    delta: content,
+                                )
+                            }
                         }
                         continue
                     }
 
                     if case .done = delta.type {
                         didReceiveTerminal = true
-	                        if buffersUntilDone {
-	                            if delta.finishReason == .contentFilter {
-	                                bufferedDeltas.removeAll()
-	                                yieldAndTrack(delta)
-	                            } else {
-	                                for bufferedDelta in bufferedDeltas {
-	                                    continuation.yield(bufferedDelta)
-	                                }
+                        if buffersUntilDone {
+                            if delta.finishReason == .contentFilter {
+                                bufferedDeltas.removeAll()
+                                yieldAndTrack(delta)
+                            } else {
+                                for bufferedDelta in bufferedDeltas {
+                                    continuation.yield(bufferedDelta)
+                                }
                                 bufferedDeltas.removeAll()
                                 if didTriggerLocalStop {
                                     yieldAndTrack(TextStreamDelta.done(usage: delta.usage, finishReason: .stop))
@@ -640,7 +640,8 @@ public func streamObject<T: Codable & Sendable>(
                         if delta.finishReason == .contentFilter {
                             throw TachikomaError.apiError("Response was blocked by the provider content filter")
                         }
-                        try publishCompleteObject(allowLastValidObjectFallback: delta.finishReason == .stop || delta.finishReason == nil)
+                        try publishCompleteObject(allowLastValidObjectFallback: delta.finishReason == .stop || delta
+                            .finishReason == nil)
                     }
                 }
 
@@ -664,7 +665,7 @@ public func streamObject<T: Codable & Sendable>(
                             rawText: accumulatedText,
                         ))
                         continuation.yield(ObjectStreamDelta(type: .done))
-                        }
+                    }
                 }
 
                 continuation.finish()
@@ -742,14 +743,14 @@ private func fixPartialJSON(_ json: String) -> String {
     return fixed
 }
 
-private extension LanguageModel {
-    func buffersTextStreamUntilDone(settings: GenerationSettings) -> Bool {
+extension LanguageModel {
+    fileprivate func buffersTextStreamUntilDone(settings: GenerationSettings) -> Bool {
         self.hasAnthropicStreamingRefusalRisk ||
             settings.streamBuffering == .untilTerminal ||
             (settings.stopConditions != nil && self.canEmitTerminalContentFilterAfterText)
     }
 
-    func buffersObjectStreamUntilDone(settings: GenerationSettings) -> Bool {
+    fileprivate func buffersObjectStreamUntilDone(settings: GenerationSettings) -> Bool {
         settings.streamBuffering == .untilTerminal ||
             self.hasAnthropicStreamingRefusalRisk
     }
@@ -793,8 +794,8 @@ private extension LanguageModel {
         case let .custom(provider):
             guard
                 let parsed = ProviderParser.parse(provider.modelId),
-                let registeredProvider = CustomProviderRegistry.shared.get(parsed.provider)
-            else {
+                let registeredProvider = CustomProviderRegistry.shared.get(parsed.provider) else
+            {
                 return false
             }
             switch registeredProvider.kind {
@@ -830,8 +831,8 @@ private struct ReasoningReplayTarget {
     }
 }
 
-private extension Array where Element == ModelMessage {
-    func replacingGeneratedAssistantText(after prefixCount: Int, with text: String) -> [ModelMessage] {
+extension [ModelMessage] {
+    fileprivate func replacingGeneratedAssistantText(after prefixCount: Int, with text: String) -> [ModelMessage] {
         guard self.indices.contains(prefixCount) else {
             return self
         }
@@ -875,8 +876,13 @@ private extension Array where Element == ModelMessage {
     }
 }
 
-private extension [ModelMessage] {
-    func sanitizedForProvider(_ model: LanguageModel, configuration: TachikomaConfiguration) -> [ModelMessage] {
+extension [ModelMessage] {
+    fileprivate func sanitizedForProvider(
+        _ model: LanguageModel,
+        configuration: TachikomaConfiguration,
+    )
+        -> [ModelMessage]
+    {
         if let target = model.anthropicThinkingReplayTarget(configuration: configuration) {
             var sanitized: [ModelMessage] = []
             for message in self {
@@ -894,8 +900,9 @@ private extension [ModelMessage] {
                     continue
                 }
                 guard let producerModel = message.metadata?.customData?["anthropic.thinking.model"] else {
-                    if target.allowsLegacyUnknown,
-                       message.metadata?.customData?["anthropic.thinking.type"] != nil
+                    if
+                        target.allowsLegacyUnknown,
+                        message.metadata?.customData?["anthropic.thinking.type"] != nil
                     {
                         sanitized.append(message)
                     }
@@ -936,35 +943,35 @@ private extension [ModelMessage] {
     }
 }
 
-private extension ModelMessage {
-    var hasAnthropicThinkingReplayMetadata: Bool {
+extension ModelMessage {
+    private var hasAnthropicThinkingReplayMetadata: Bool {
         guard let customData = metadata?.customData else { return false }
         return customData["anthropic.thinking.model"] != nil ||
             customData["anthropic.thinking.type"] != nil ||
             customData["anthropic.thinking.signature"] != nil
     }
 
-    var hasOpenRouterReasoningReplayMetadata: Bool {
+    fileprivate var hasOpenRouterReasoningReplayMetadata: Bool {
         guard let customData = metadata?.customData else { return false }
         return customData["openrouter.reasoning_details"] != nil ||
             customData["openrouter.reasoning"] != nil
     }
 
-    var hasProviderReasoningReplayMetadata: Bool {
+    private var hasProviderReasoningReplayMetadata: Bool {
         self.hasAnthropicThinkingReplayMetadata || self.hasOpenRouterReasoningReplayMetadata
     }
 
-    var isSyntheticReasoningBoundary: Bool {
+    fileprivate var isSyntheticReasoningBoundary: Bool {
         metadata?.customData?["tachikoma.internal.boundary"] == "reasoning_only"
     }
 }
 
-private extension [ModelMessage] {
-    func sanitizedForToolContext() -> [ModelMessage] {
+extension [ModelMessage] {
+    fileprivate func sanitizedForToolContext() -> [ModelMessage] {
         self.filter { $0.channel != .thinking && !$0.isSyntheticReasoningBoundary }
     }
 
-    func containsAssistantText(_ text: String) -> Bool {
+    fileprivate func containsAssistantText(_ text: String) -> Bool {
         guard !text.isEmpty else { return true }
         let assistantTexts = self.flatMap { message -> [String] in
             guard message.role == .assistant, message.channel != .thinking else {
@@ -980,7 +987,7 @@ private extension [ModelMessage] {
         return assistantTexts.contains(text) || assistantTexts.joined() == text
     }
 
-    func containsReasoningBlock(_ reasoning: ProviderReasoningBlock) -> Bool {
+    fileprivate func containsReasoningBlock(_ reasoning: ProviderReasoningBlock) -> Bool {
         self.contains { message in
             message.role == .assistant && message.channel == .thinking && message.content.contains { part in
                 guard case let .text(value) = part else { return false }
@@ -993,7 +1000,7 @@ private extension [ModelMessage] {
         }
     }
 
-    func containsToolCall(id: String) -> Bool {
+    fileprivate func containsToolCall(id: String) -> Bool {
         self.contains { message in
             message.role == .assistant && message.content.contains { part in
                 if case let .toolCall(toolCall) = part {
@@ -1005,14 +1012,16 @@ private extension [ModelMessage] {
     }
 }
 
-private extension LanguageModel {
-    func responseHistoryMessages(
+extension LanguageModel {
+    fileprivate func responseHistoryMessages(
         nativeMessages: [ModelMessage],
         text: String,
         reasoning: [ProviderReasoningBlock],
         toolCalls: [AgentToolCall],
         configuration: TachikomaConfiguration,
-    ) -> [ModelMessage] {
+    )
+        -> [ModelMessage]
+    {
         var history = nativeMessages
 
         for reasoningBlock in reasoning where !history.containsReasoningBlock(reasoningBlock) {
@@ -1044,7 +1053,7 @@ private extension LanguageModel {
         return history
     }
 
-    func anthropicThinkingReplayTarget(configuration: TachikomaConfiguration) -> ReasoningReplayTarget? {
+    fileprivate func anthropicThinkingReplayTarget(configuration: TachikomaConfiguration) -> ReasoningReplayTarget? {
         switch self {
         case let .anthropic(model):
             return ReasoningReplayTarget(
@@ -1094,8 +1103,8 @@ private extension LanguageModel {
             guard
                 let parsed = ProviderParser.parse(provider.modelId),
                 let registeredProvider = CustomProviderRegistry.shared.get(parsed.provider),
-                registeredProvider.kind == .anthropic
-            else {
+                registeredProvider.kind == .anthropic else
+            {
                 return provider.modelId.contains("claude") || provider.modelId.contains("anthropic")
                     ? ReasoningReplayTarget(
                         provider: "custom-anthropic",
@@ -1116,24 +1125,26 @@ private extension LanguageModel {
         }
     }
 
-    func openRouterReasoningReplayTarget(configuration: TachikomaConfiguration) -> ReasoningReplayTarget? {
+    fileprivate func openRouterReasoningReplayTarget(configuration: TachikomaConfiguration) -> ReasoningReplayTarget? {
         switch self {
         case let .openRouter(modelId):
-            return ReasoningReplayTarget(
+            ReasoningReplayTarget(
                 provider: "openrouter",
                 modelId: modelId,
                 baseURL: configuration.getBaseURL(for: .custom("openrouter")) ?? "https://openrouter.ai/api/v1",
                 allowsLegacyUnknown: false,
             )
         default:
-            return nil
+            nil
         }
     }
 
-    func anthropicThinkingMetadata(
+    private func anthropicThinkingMetadata(
         for reasoning: ProviderReasoningBlock,
         configuration: TachikomaConfiguration,
-    ) -> [String: String] {
+    )
+        -> [String: String]
+    {
         if
             let rawJSON = reasoning.rawJSON,
             let target = self.openRouterReasoningReplayTarget(configuration: configuration)

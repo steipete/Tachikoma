@@ -977,7 +977,7 @@ struct GenerationTests {
                 seenMessages.messages = request.messages
             }
         }
-        let thinking = ModelMessage(
+        let thinking = try ModelMessage(
             role: .assistant,
             content: [.text("private")],
             channel: .thinking,
@@ -987,7 +987,8 @@ struct GenerationTests {
                 "anthropic.thinking.type": "thinking",
                 "tachikoma.reasoning.provider": "anthropic",
                 "tachikoma.reasoning.model": "claude-fable-5",
-                "tachikoma.reasoning.base_url": ReasoningEndpointIdentity.canonical("https://api.anthropic.com")!,
+                "tachikoma.reasoning.base_url": #require(ReasoningEndpointIdentity
+                    .canonical("https://api.anthropic.com")),
             ]),
         )
 
@@ -1101,7 +1102,7 @@ struct GenerationTests {
                 seenMessages.messages = request.messages
             }
         }
-        let thinking = ModelMessage(
+        let thinking = try ModelMessage(
             role: .assistant,
             content: [.text("private")],
             channel: .thinking,
@@ -1111,7 +1112,8 @@ struct GenerationTests {
                 "anthropic.thinking.type": "thinking",
                 "tachikoma.reasoning.provider": "anthropic",
                 "tachikoma.reasoning.model": "claude-fable-5",
-                "tachikoma.reasoning.base_url": ReasoningEndpointIdentity.canonical("https://api.anthropic.com")!,
+                "tachikoma.reasoning.base_url": #require(ReasoningEndpointIdentity
+                    .canonical("https://api.anthropic.com")),
             ]),
         )
 
@@ -1129,8 +1131,10 @@ struct GenerationTests {
     @Test
     func `GenerateText preserves direct custom Anthropic thinking for same model`() async throws {
         let seenMessages = MessageBox()
-        let provider = StaticProvider(modelId: "claude-fable-5", response: ProviderResponse(text: "ok", finishReason: .stop)) {
-            request in
+        let provider = StaticProvider(
+            modelId: "claude-fable-5",
+            response: ProviderResponse(text: "ok", finishReason: .stop),
+        ) { request in
             seenMessages.messages = request.messages
         }
         let config = TachikomaConfiguration(loadFromEnvironment: false)
@@ -1169,7 +1173,7 @@ struct GenerationTests {
                 seenMessages.messages = request.messages
             }
         }
-        let thinking = ModelMessage(
+        let thinking = try ModelMessage(
             role: .assistant,
             content: [.text("private")],
             channel: .thinking,
@@ -1179,7 +1183,8 @@ struct GenerationTests {
                 "anthropic.thinking.type": "thinking",
                 "tachikoma.reasoning.provider": "anthropic",
                 "tachikoma.reasoning.model": "claude-fable-5",
-                "tachikoma.reasoning.base_url": ReasoningEndpointIdentity.canonical("https://api.anthropic.com")!,
+                "tachikoma.reasoning.base_url": #require(ReasoningEndpointIdentity
+                    .canonical("https://api.anthropic.com")),
             ]),
         )
 
@@ -1203,7 +1208,7 @@ struct GenerationTests {
                 seenMessages.messages = request.messages
             }
         }
-        let thinking = ModelMessage(
+        let thinking = try ModelMessage(
             role: .assistant,
             content: [.text("private")],
             channel: .thinking,
@@ -1213,7 +1218,8 @@ struct GenerationTests {
                 "anthropic.thinking.type": "thinking",
                 "tachikoma.reasoning.provider": "anthropic-compatible",
                 "tachikoma.reasoning.model": "claude-proxy-model",
-                "tachikoma.reasoning.base_url": ReasoningEndpointIdentity.canonical("https://example.test")!,
+                "tachikoma.reasoning.base_url": #require(ReasoningEndpointIdentity
+                    .canonical("https://example.test")),
             ]),
         )
 
@@ -1248,7 +1254,8 @@ struct GenerationTests {
         #expect(thinking.metadata?.customData?["anthropic.thinking.model"] == "claude-fable-5")
         #expect(thinking.metadata?.customData?["anthropic.thinking.signature"] == "sig")
         #expect(thinking.metadata?.customData?["tachikoma.reasoning.provider"] == "anthropic-compatible")
-        #expect(thinking.metadata?.customData?["tachikoma.reasoning.base_url"] == ReasoningEndpointIdentity.canonical("https://example.test"))
+        #expect(thinking.metadata?.customData?["tachikoma.reasoning.base_url"] == ReasoningEndpointIdentity
+            .canonical("https://example.test"))
     }
 
     @Test
@@ -1674,7 +1681,7 @@ struct GenerationTests {
                 seenMessages.messages = request.messages
             }
         }
-        let thinking = ModelMessage(
+        let thinking = try ModelMessage(
             role: .assistant,
             content: [.text("private")],
             channel: .thinking,
@@ -1684,7 +1691,8 @@ struct GenerationTests {
                 "anthropic.thinking.type": "thinking",
                 "tachikoma.reasoning.provider": "anthropic",
                 "tachikoma.reasoning.model": "claude-fable-5",
-                "tachikoma.reasoning.base_url": ReasoningEndpointIdentity.canonical("https://api.anthropic.com")!,
+                "tachikoma.reasoning.base_url": #require(ReasoningEndpointIdentity
+                    .canonical("https://api.anthropic.com")),
             ]),
         )
         let boundary = ModelMessage(
@@ -1715,7 +1723,7 @@ struct GenerationTests {
                 seenMessages.messages = request.messages
             }
         }
-        let thinking = ModelMessage(
+        let thinking = try ModelMessage(
             role: .assistant,
             content: [.text("private")],
             channel: .thinking,
@@ -1725,7 +1733,8 @@ struct GenerationTests {
                 "anthropic.thinking.type": "thinking",
                 "tachikoma.reasoning.provider": "anthropic",
                 "tachikoma.reasoning.model": "claude-fable-5",
-                "tachikoma.reasoning.base_url": ReasoningEndpointIdentity.canonical("https://api.anthropic.com")!,
+                "tachikoma.reasoning.base_url": #require(ReasoningEndpointIdentity
+                    .canonical("https://api.anthropic.com")),
             ]),
         )
         let boundary = ModelMessage(
@@ -1760,7 +1769,7 @@ struct GenerationTests {
                 seenMessages.messages = request.messages
             }
         }
-        let thinking = ModelMessage(
+        let thinking = try ModelMessage(
             role: .assistant,
             content: [.text("private")],
             channel: .thinking,
@@ -1770,7 +1779,8 @@ struct GenerationTests {
                 "anthropic.thinking.type": "thinking",
                 "tachikoma.reasoning.provider": "anthropic",
                 "tachikoma.reasoning.model": "claude-fable-5",
-                "tachikoma.reasoning.base_url": ReasoningEndpointIdentity.canonical("https://api.anthropic.com")!,
+                "tachikoma.reasoning.base_url": #require(ReasoningEndpointIdentity
+                    .canonical("https://api.anthropic.com")),
             ]),
         )
 
@@ -1837,7 +1847,8 @@ struct GenerationTests {
         #expect(thinking.metadata?.customData?["tachikoma.reasoning.provider"] == "openrouter")
         #expect(thinking.metadata?.customData?["tachikoma.reasoning.model"] == "anthropic/claude-fable-5")
         let endpointIdentity = try #require(thinking.metadata?.customData?["tachikoma.reasoning.base_url"])
-        #expect(endpointIdentity == ReasoningEndpointIdentity.canonical("https://proxy.example.test/api/v1?token=secret"))
+        #expect(endpointIdentity == ReasoningEndpointIdentity
+            .canonical("https://proxy.example.test/api/v1?token=secret"))
         #expect(endpointIdentity.contains("secret") == false)
         #expect(endpointIdentity.contains("token") == false)
         #expect(thinking.metadata?.customData?["openrouter.reasoning_details"]?.contains("sealed") == true)
@@ -1913,8 +1924,13 @@ private struct StaticProvider: ModelProvider {
         self.onGenerate = onGenerate
     }
 
-    var baseURL: String? { nil }
-    var apiKey: String? { nil }
+    var baseURL: String? {
+        nil
+    }
+
+    var apiKey: String? {
+        nil
+    }
 
     func generateText(request: ProviderRequest) async throws -> ProviderResponse {
         self.onGenerate?(request)

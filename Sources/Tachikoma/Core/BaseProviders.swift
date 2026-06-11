@@ -118,14 +118,16 @@ public final class AnthropicProvider: ModelProvider {
     }
 
     private static func mergedBetaHeader(configuration: TachikomaConfiguration, auth: TKAuthValue) -> String {
-        Self.mergedBetaHeader(configuration: configuration, auth: auth, model: nil)
+        self.mergedBetaHeader(configuration: configuration, auth: auth, model: nil)
     }
 
     private static func mergedBetaHeader(
         configuration: TachikomaConfiguration,
         auth: TKAuthValue,
         model: LanguageModel.Anthropic?,
-    ) -> String {
+    )
+        -> String
+    {
         var existing: String?
         if case let .bearer(_, betaHeader) = auth {
             existing = betaHeader
@@ -302,7 +304,7 @@ public final class AnthropicProvider: ModelProvider {
         }
         let maxTokens = validatedSettings.maxTokens ?? self.defaultMaxTokens(for: self.model)
         if !stream, Self.requiresExtendedNonStreamingTimeout(model: self.model, maxTokens: maxTokens) {
-            urlRequest.timeoutInterval = 1_800
+            urlRequest.timeoutInterval = 1800
         }
 
         let anthropicRequest = try AnthropicMessageRequest(
@@ -387,11 +389,10 @@ public final class AnthropicProvider: ModelProvider {
 
         let finishReason = Self.mapFinishReason(anthropicResponse.stopReason)
         if finishReason == .contentFilter {
-            let fallbackRefusalText: String
-            if let category = anthropicResponse.stopDetails?.category {
-                fallbackRefusalText = "Request refused by Anthropic content filter (\(category))"
+            let fallbackRefusalText = if let category = anthropicResponse.stopDetails?.category {
+                "Request refused by Anthropic content filter (\(category))"
             } else {
-                fallbackRefusalText = "Request refused by Anthropic content filter"
+                "Request refused by Anthropic content filter"
             }
             let refusalText = anthropicResponse.stopDetails?.explanation ?? fallbackRefusalText
             return ProviderResponse(
@@ -499,7 +500,7 @@ public final class AnthropicProvider: ModelProvider {
     }
 
     private func defaultMaxTokens(for model: LanguageModel.Anthropic) -> Int {
-        if Self.isFable(model: model) { return min(128_000, 16_384) }
+        if Self.isFable(model: model) { return min(128_000, 16384) }
         return 1024
     }
 
@@ -512,7 +513,7 @@ public final class AnthropicProvider: ModelProvider {
     }
 
     private static func requiresExtendedNonStreamingTimeout(model: LanguageModel.Anthropic, maxTokens: Int) -> Bool {
-        Self.isFable(model: model) || maxTokens >= 64_000
+        self.isFable(model: model) || maxTokens >= 64000
     }
 
     static func mapFinishReason(_ stopReason: String?) -> FinishReason? {
@@ -542,8 +543,9 @@ public final class AnthropicProvider: ModelProvider {
 
     public func streamText(request: ProviderRequest) async throws -> AsyncThrowingStream<TextStreamDelta, Error> {
         guard !Self.hasStreamingRefusalRisk(model: self.model) else {
+            let message = "\(self.model.modelId) streaming is disabled because Anthropic refusals require rollback-aware handling"
             throw TachikomaError.invalidConfiguration(
-                "\(self.model.modelId) streaming is disabled because Anthropic refusals require rollback-aware handling; use generateText instead",
+                "\(message); use generateText instead",
             )
         }
 
@@ -1044,8 +1046,8 @@ enum ReasoningEndpointIdentity {
             !trimmed.isEmpty,
             var components = URLComponents(string: trimmed),
             let scheme = components.scheme?.lowercased(),
-            let host = components.host?.lowercased()
-        else {
+            let host = components.host?.lowercased() else
+        {
             return nil
         }
 

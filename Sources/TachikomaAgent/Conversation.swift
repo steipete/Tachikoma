@@ -138,7 +138,9 @@ public final class Conversation: @unchecked Sendable {
     public func replaceModelMessages(
         _ modelMessages: [ModelMessage],
         validatingSnapshotIDs snapshotIDs: [String],
-    ) -> Bool {
+    )
+        -> Bool
+    {
         self.lock.lock()
         defer { self.lock.unlock() }
 
@@ -183,7 +185,9 @@ public final class Conversation: @unchecked Sendable {
         _ modelMessages: [ModelMessage],
         afterMessageID messageID: String,
         validatingSnapshotIDs snapshotIDs: [String],
-    ) -> Bool {
+    )
+        -> Bool
+    {
         guard !modelMessages.isEmpty else { return true }
 
         self.lock.lock()
@@ -211,9 +215,11 @@ public final class Conversation: @unchecked Sendable {
     public func mergeContentFilterResult(
         _ resultMessages: [ModelMessage],
         originalMessages: [ModelMessage],
-        afterMessageID messageID: String?,
+        afterMessageID _: String?,
         validatingSnapshotIDs snapshotIDs: [String],
-    ) -> Bool {
+    )
+        -> Bool
+    {
         let generatedMessages = Array(resultMessages.dropFirst(originalMessages.count))
         if !generatedMessages.isEmpty {
             return self.replaceModelMessages(
@@ -259,8 +265,10 @@ public final class Conversation: @unchecked Sendable {
         using model: Model? = nil,
         tools: [AgentTool]? = nil,
         maxSteps: Int = 5,
-    ) async throws -> String {
-        return try await self.withContinuationLock {
+    ) async throws
+        -> String
+    {
+        try await self.withContinuationLock {
             let conversationMessages = self.messages
             let modelMessages = conversationMessages.map { $0.toModelMessage() }
             let snapshotIDs = conversationMessages.map(\.id)
@@ -335,7 +343,7 @@ public final class Conversation: @unchecked Sendable {
                 messages: modelMessages,
                 tools: tools ?? [], // Use provided tools or empty array
                 settings: streamSettings,
-                configuration: configuration,
+                configuration: self.configuration,
             )
         } catch {
             gateRelease.release()

@@ -130,7 +130,7 @@ struct MCPToolAdapterTests {
 
         #expect(response.isError == false)
         #expect(response.content.count == 1)
-        if case .image(data: let data, mimeType: let mimeType, annotations: _, _meta: _) = response.content[0] {
+        if case let .image(data: data, mimeType: mimeType, annotations: _, _meta: _) = response.content[0] {
             #expect(data == imageData.base64EncodedString())
             #expect(mimeType == "image/jpeg")
         } else {

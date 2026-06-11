@@ -457,7 +457,11 @@ struct ProviderEndToEndTests {
             #expect(request.value(forHTTPHeaderField: "Authorization") == "Bearer live-minimax")
             return NetworkMocking.jsonResponse(
                 for: request,
-                data: Self.anthropicPayloadWithThinking(text: "MiniMax ok", thinking: "native-thought", signature: "sig-mm"),
+                data: Self.anthropicPayloadWithThinking(
+                    text: "MiniMax ok",
+                    thinking: "native-thought",
+                    signature: "sig-mm",
+                ),
             )
         } operation: {
             let config = Self.makeConfiguration { config in

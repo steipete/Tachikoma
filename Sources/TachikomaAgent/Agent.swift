@@ -99,7 +99,7 @@ public final class Agent<Context>: @unchecked Sendable {
                 tools: tools.isEmpty ? nil : tools,
                 settings: settings,
                 maxSteps: 5, // Allow multi-step tool execution
-                configuration: configuration,
+                configuration: self.configuration,
             )
 
             let didMerge: Bool
@@ -689,8 +689,8 @@ extension LanguageModel {
         case let .custom(provider):
             guard
                 let parsed = ProviderParser.parse(provider.modelId),
-                let registeredProvider = CustomProviderRegistry.shared.get(parsed.provider)
-            else {
+                let registeredProvider = CustomProviderRegistry.shared.get(parsed.provider) else
+            {
                 return LanguageModel.Anthropic.hasStreamingRefusalRisk(modelId: provider.modelId)
             }
             switch registeredProvider.kind {

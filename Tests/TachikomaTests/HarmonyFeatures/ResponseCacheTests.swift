@@ -117,7 +117,7 @@ struct ResponseCacheTests {
             ],
         ))
 
-        #expect(large.estimatedMemorySize() > small.estimatedMemorySize() + 12_000)
+        #expect(large.estimatedMemorySize() > small.estimatedMemorySize() + 12000)
     }
 
     @Test

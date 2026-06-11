@@ -1,4 +1,7 @@
 import Foundation
+#if canImport(FoundationNetworking)
+import FoundationNetworking
+#endif
 import Testing
 @testable import Tachikoma
 
@@ -183,8 +186,8 @@ struct AnthropicInterleavedDefaultsTests {
         let body = try #require(urlRequest.httpBody)
         let json = try #require(try JSONSerialization.jsonObject(with: body) as? [String: Any])
 
-        #expect(json["max_tokens"] as? Int == 16_384)
-        #expect(urlRequest.timeoutInterval == 1_800)
+        #expect(json["max_tokens"] as? Int == 16384)
+        #expect(urlRequest.timeoutInterval == 1800)
     }
 
     @Test
@@ -200,7 +203,7 @@ struct AnthropicInterleavedDefaultsTests {
             stream: false,
         )
 
-        #expect(urlRequest.timeoutInterval == 1_800)
+        #expect(urlRequest.timeoutInterval == 1800)
     }
 
     @Test
@@ -217,7 +220,7 @@ struct AnthropicInterleavedDefaultsTests {
                 stream: false,
             )
 
-            #expect(urlRequest.timeoutInterval == 1_800)
+            #expect(urlRequest.timeoutInterval == 1800)
         }
     }
 
@@ -239,7 +242,7 @@ struct AnthropicInterleavedDefaultsTests {
         #expect(LanguageModel.Anthropic.custom("claude-fable-5").maxOutputTokens == 128_000)
         #expect(json["model"] as? String == "claude-fable-5")
         #expect(json["thinking"] == nil)
-        #expect(json["max_tokens"] as? Int == 16_384)
+        #expect(json["max_tokens"] as? Int == 16384)
     }
 
     @Test
@@ -259,7 +262,7 @@ struct AnthropicInterleavedDefaultsTests {
         #expect(LanguageModel.Anthropic.custom("anthropic.claude-fable-5").maxOutputTokens == 128_000)
         #expect(json["model"] as? String == "anthropic.claude-fable-5")
         #expect(json["thinking"] == nil)
-        #expect(json["max_tokens"] as? Int == 16_384)
+        #expect(json["max_tokens"] as? Int == 16384)
     }
 
     @Test
@@ -534,7 +537,7 @@ struct AnthropicInterleavedDefaultsTests {
     func `Fable 5 preserves signed thinking history while omitting request thinking field`() throws {
         let config = TachikomaConfiguration(apiKeys: ["anthropic": "test-key"])
         let provider = try AnthropicProvider(model: .fable5, configuration: config)
-        let signedThinking = ModelMessage(
+        let signedThinking = try ModelMessage(
             role: .assistant,
             content: [.text("fable thinking")],
             channel: .thinking,
@@ -544,7 +547,8 @@ struct AnthropicInterleavedDefaultsTests {
                 "anthropic.thinking.type": "thinking",
                 "tachikoma.reasoning.provider": "anthropic",
                 "tachikoma.reasoning.model": "claude-fable-5",
-                "tachikoma.reasoning.base_url": ReasoningEndpointIdentity.canonical("https://api.anthropic.com")!,
+                "tachikoma.reasoning.base_url": #require(ReasoningEndpointIdentity
+                    .canonical("https://api.anthropic.com")),
             ]),
         )
 
@@ -569,7 +573,7 @@ struct AnthropicInterleavedDefaultsTests {
     func `Fable 5 drops mismatched signed thinking history in direct provider requests`() throws {
         let config = TachikomaConfiguration(apiKeys: ["anthropic": "test-key"])
         let provider = try AnthropicProvider(model: .fable5, configuration: config)
-        let signedThinking = ModelMessage(
+        let signedThinking = try ModelMessage(
             role: .assistant,
             content: [.text("foreign thinking")],
             channel: .thinking,
@@ -579,7 +583,8 @@ struct AnthropicInterleavedDefaultsTests {
                 "anthropic.thinking.type": "thinking",
                 "tachikoma.reasoning.provider": "anthropic",
                 "tachikoma.reasoning.model": "claude-fable-5",
-                "tachikoma.reasoning.base_url": ReasoningEndpointIdentity.canonical("https://other.example.test")!,
+                "tachikoma.reasoning.base_url": #require(ReasoningEndpointIdentity
+                    .canonical("https://other.example.test")),
             ]),
         )
 
@@ -702,7 +707,7 @@ struct AnthropicInterleavedDefaultsTests {
         let config = TachikomaConfiguration(apiKeys: ["anthropic": "test-key"])
         let provider = try AnthropicProvider(model: .fable5, configuration: config)
 
-        let signedThinking = ModelMessage(
+        let signedThinking = try ModelMessage(
             role: .assistant,
             content: [.text("signed")],
             channel: .thinking,
@@ -712,10 +717,11 @@ struct AnthropicInterleavedDefaultsTests {
                 "anthropic.thinking.type": "thinking",
                 "tachikoma.reasoning.provider": "anthropic",
                 "tachikoma.reasoning.model": "claude-fable-5",
-                "tachikoma.reasoning.base_url": ReasoningEndpointIdentity.canonical("https://api.anthropic.com")!,
+                "tachikoma.reasoning.base_url": #require(ReasoningEndpointIdentity
+                    .canonical("https://api.anthropic.com")),
             ]),
         )
-        let redactedThinking = ModelMessage(
+        let redactedThinking = try ModelMessage(
             role: .assistant,
             content: [.text("opaque")],
             channel: .thinking,
@@ -724,7 +730,8 @@ struct AnthropicInterleavedDefaultsTests {
                 "anthropic.thinking.type": "redacted_thinking",
                 "tachikoma.reasoning.provider": "anthropic",
                 "tachikoma.reasoning.model": "claude-fable-5",
-                "tachikoma.reasoning.base_url": ReasoningEndpointIdentity.canonical("https://api.anthropic.com")!,
+                "tachikoma.reasoning.base_url": #require(ReasoningEndpointIdentity
+                    .canonical("https://api.anthropic.com")),
             ]),
         )
 
@@ -754,8 +761,8 @@ struct AnthropicInterleavedDefaultsTests {
         #expect(LanguageModel.Anthropic.fable5.maxOutputTokens == 128_000)
         #expect(LanguageModel.Anthropic.opus47.maxOutputTokens == 128_000)
         #expect(LanguageModel.Anthropic.opus48.maxOutputTokens == 128_000)
-        #expect(LanguageModel.Anthropic.sonnet46.maxOutputTokens == 64_000)
-        #expect(LanguageModel.Anthropic.haiku45.maxOutputTokens == 64_000)
+        #expect(LanguageModel.Anthropic.sonnet46.maxOutputTokens == 64000)
+        #expect(LanguageModel.Anthropic.haiku45.maxOutputTokens == 64000)
     }
 
     @Test
@@ -947,9 +954,9 @@ private final class AnthropicIdentityURLProtocol: URLProtocol {
                 url: url,
                 statusCode: 200,
                 httpVersion: nil,
-                headerFields: ["Content-Type": "application/json"]
-            )
-        else {
+                headerFields: ["Content-Type": "application/json"],
+            ) else
+        {
             self.client?.urlProtocol(self, didFailWithError: TachikomaError.invalidInput("Missing mock response"))
             return
         }

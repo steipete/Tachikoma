@@ -230,7 +230,7 @@ struct OpenAIResponsesProviderTests {
             toolCall: nil,
         )
 
-        let response = try JSONDecoder().decode(OpenAIResponsesResponse.self, from: """
+        let response = try JSONDecoder().decode(OpenAIResponsesResponse.self, from: #require("""
         {
           "id": "resp_1",
           "object": "response",
@@ -250,7 +250,7 @@ struct OpenAIResponsesProviderTests {
           ],
           "incomplete_details": { "reason": "content_filter" }
         }
-        """.data(using: .utf8)!)
+        """.data(using: .utf8)))
 
         let providerResponse = try OpenAIResponsesProvider.convertToProviderResponse(response)
 
@@ -333,7 +333,7 @@ struct OpenAIResponsesProviderTests {
 
     @Test
     func `Alternate choices content filter suppresses text and tool calls`() throws {
-        let response = try JSONDecoder().decode(OpenAIResponsesResponse.self, from: """
+        let response = try JSONDecoder().decode(OpenAIResponsesResponse.self, from: #require("""
         {
           "id": "chatcmpl_1",
           "object": "chat.completion",
@@ -361,7 +361,7 @@ struct OpenAIResponsesProviderTests {
             }
           ]
         }
-        """.data(using: .utf8)!)
+        """.data(using: .utf8)))
 
         let providerResponse = try OpenAIResponsesProvider.convertToProviderResponse(response)
 
@@ -689,7 +689,6 @@ struct OpenAIResponsesProviderTests {
                     collected.append(delta.content ?? "")
                 case .done:
                     receivedDone = true
-                    break
                 case .toolCall, .toolResult, .reasoning:
                     break
                 }

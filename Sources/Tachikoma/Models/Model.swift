@@ -1,7 +1,5 @@
 import Foundation
 
-// swiftlint:disable file_length
-
 // MARK: - Modern Language Model System
 
 /// Language model selection following AI SDK patterns
@@ -231,7 +229,7 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
         public var maxOutputTokens: Int {
             switch self {
             case .fable5, .opus48, .opus47: 128_000
-            case .sonnet46, .haiku45: 64_000
+            case .sonnet46, .haiku45: 64000
             case let .custom(id):
                 Self.isFable(modelId: id) ? 128_000 : 8192
             case .opus45, .opus4, .sonnet45: 4096
@@ -250,7 +248,7 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
             let dotSegments = pathSegments.flatMap { $0.components(separatedBy: ".") }
                 .filter { !$0.isEmpty }
             let segments = pathSegments + dotSegments
-            let canonicalSegments: Set<String> = [
+            let canonicalSegments: Set = [
                 "claude-fable-5",
                 "fable-5",
                 "fable5",
@@ -278,7 +276,7 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
             let dotSegments = pathSegments.flatMap { $0.components(separatedBy: ".") }
                 .filter { !$0.isEmpty }
             let segments = pathSegments + dotSegments
-            let canonicalSegments: Set<String> = [
+            let canonicalSegments: Set = [
                 "claude-opus-4-8",
                 "opus-4-8",
                 "opus48",
@@ -294,7 +292,7 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
         }
 
         public static func hasStreamingRefusalRisk(modelId: String) -> Bool {
-            Self.isFable(modelId: modelId) || Self.isOpus48(modelId: modelId)
+            self.isFable(modelId: modelId) || self.isOpus48(modelId: modelId)
         }
     }
 
@@ -873,15 +871,16 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
             guard
                 normalized.contains("claude") ||
                 normalized.hasPrefix("anthropic/") ||
-                normalized.hasPrefix("anthropic.")
-            else {
+                normalized.hasPrefix("anthropic.") else
+            {
                 return true
             }
             return !Anthropic.hasStreamingRefusalRisk(modelId: modelId)
         }
-        if case let .custom(provider) = self,
-           let parsed = ProviderParser.parse(provider.modelId),
-           CustomProviderRegistry.shared.get(parsed.provider)?.kind == .anthropic
+        if
+            case let .custom(provider) = self,
+            let parsed = ProviderParser.parse(provider.modelId),
+            CustomProviderRegistry.shared.get(parsed.provider)?.kind == .anthropic
         {
             return !Anthropic.hasStreamingRefusalRisk(modelId: parsed.model)
         }
@@ -1352,29 +1351,33 @@ extension LanguageModel {
             return nil
         }
 
-        if matchesExactAlias(
-            [
-                "claude-fable-5",
-                "fable-5",
-                "fable.5",
-                "fable5",
-                "fable",
-            ],
-            compactAliases: ["claudefable5", "fable5"],
-        ) {
+        if
+            matchesExactAlias(
+                [
+                    "claude-fable-5",
+                    "fable-5",
+                    "fable.5",
+                    "fable5",
+                    "fable",
+                ],
+                compactAliases: ["claudefable5", "fable5"],
+            )
+        {
             return .anthropic(.fable5)
         }
 
-        if matchesExactAlias(
-            [
-                "claude-opus-4-8",
-                "claude-opus-4.8",
-                "opus-4-8",
-                "opus-4.8",
-                "opus48",
-            ],
-            compactAliases: ["claudeopus48", "opus48"],
-        ) {
+        if
+            matchesExactAlias(
+                [
+                    "claude-opus-4-8",
+                    "claude-opus-4.8",
+                    "opus-4-8",
+                    "opus-4.8",
+                    "opus48",
+                ],
+                compactAliases: ["claudeopus48", "opus48"],
+            )
+        {
             return .anthropic(.opus48)
         }
 
@@ -1791,5 +1794,3 @@ extension LanguageModel {
         }
     }
 }
-
-// swiftlint:enable file_length

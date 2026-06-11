@@ -420,7 +420,8 @@ extension GenerationSettings: Codable {
         self.reasoningEffort = try container.decodeIfPresent(ReasoningEffort.self, forKey: .reasoningEffort)
         self.seed = try container.decodeIfPresent(Int.self, forKey: .seed)
         self.providerOptions = try container.decodeIfPresent(ProviderOptions.self, forKey: .providerOptions) ?? .init()
-        self.streamBuffering = try container.decodeIfPresent(StreamBufferingMode.self, forKey: .streamBuffering) ?? .incremental
+        self.streamBuffering = try container
+            .decodeIfPresent(StreamBufferingMode.self, forKey: .streamBuffering) ?? .incremental
         self.stopConditions = nil // Can't decode function types
     }
 

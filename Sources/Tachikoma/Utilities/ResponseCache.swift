@@ -93,7 +93,6 @@ struct CacheKey: Hashable {
         encoder.outputFormatting = [.sortedKeys]
         return encoder
     }()
-
 }
 
 // MARK: - Response Cache

@@ -87,7 +87,8 @@ enum AnthropicMessageConversion {
                     let signature = message.metadata?.customData?[thinkingSignatureKey]
                     let type = message.metadata?.customData?[thinkingTypeKey] ?? "thinking"
                     let customData = message.metadata?.customData ?? [:]
-                    if customData["tachikoma.reasoning.provider"] != nil ||
+                    if
+                        customData["tachikoma.reasoning.provider"] != nil ||
                         customData["tachikoma.reasoning.model"] != nil ||
                         customData["tachikoma.reasoning.base_url"] != nil ||
                         customData["anthropic.thinking.model"] != nil

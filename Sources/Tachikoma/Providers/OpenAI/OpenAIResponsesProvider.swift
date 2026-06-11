@@ -215,12 +215,14 @@ public final class OpenAIResponsesProvider: ModelProvider {
                     let lines = responseText.components(separatedBy: "\n")
                     var streamState = ResponsesStreamState()
                     for line in lines {
-                        if try Self.processResponsesStreamLine(
-                            line,
-                            model: self.model,
-                            state: &streamState,
-                            continuation: continuation,
-                        ) {
+                        if
+                            try Self.processResponsesStreamLine(
+                                line,
+                                model: self.model,
+                                state: &streamState,
+                                continuation: continuation,
+                            )
+                        {
                             return
                         }
                     }
@@ -258,12 +260,14 @@ public final class OpenAIResponsesProvider: ModelProvider {
                     var streamState = ResponsesStreamState()
 
                     for try await line in bytes.lines {
-                        if try Self.processResponsesStreamLine(
-                            line,
-                            model: self.model,
-                            state: &streamState,
-                            continuation: continuation,
-                        ) {
+                        if
+                            try Self.processResponsesStreamLine(
+                                line,
+                                model: self.model,
+                                state: &streamState,
+                                continuation: continuation,
+                            )
+                        {
                             return
                         }
                     }
@@ -319,8 +323,8 @@ public final class OpenAIResponsesProvider: ModelProvider {
         if Self.usesResponsesEventStream(model) {
             guard
                 let event = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-                let eventType = event["type"] as? String
-            else {
+                let eventType = event["type"] as? String else
+            {
                 return false
             }
 
@@ -629,8 +633,8 @@ public final class OpenAIResponsesProvider: ModelProvider {
         guard
             let response = event["response"] as? [String: Any],
             let incompleteDetails = response["incomplete_details"] as? [String: Any],
-            let reason = incompleteDetails["reason"] as? String
-        else {
+            let reason = incompleteDetails["reason"] as? String else
+        {
             return .other
         }
 
@@ -640,11 +644,11 @@ public final class OpenAIResponsesProvider: ModelProvider {
     private static func finishReasonForIncompleteReason(_ reason: String?) -> FinishReason {
         switch reason {
         case "content_filter":
-            return .contentFilter
+            .contentFilter
         case "max_output_tokens":
-            return .length
+            .length
         default:
-            return .other
+            .other
         }
     }
 

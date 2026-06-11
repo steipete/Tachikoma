@@ -494,18 +494,20 @@ struct OpenAICompatibleHelper {
         providerName: String,
         modelId: String,
         baseURL: String,
-    ) -> GenerationSettings {
+    )
+        -> GenerationSettings
+    {
         settings.validated(for: self.languageModel(providerName: providerName, modelId: modelId, baseURL: baseURL))
     }
 
     private static func languageModel(providerName: String, modelId: String, baseURL: String) -> LanguageModel {
         switch providerName.lowercased() {
         case "openrouter":
-            return .openRouter(modelId: modelId)
+            .openRouter(modelId: modelId)
         case "together":
-            return .together(modelId: modelId)
+            .together(modelId: modelId)
         default:
-            return .openaiCompatible(modelId: modelId, baseURL: baseURL)
+            .openaiCompatible(modelId: modelId, baseURL: baseURL)
         }
     }
 
@@ -731,8 +733,8 @@ struct OpenAICompatibleHelper {
     private static func decodeReasoningDetails(_ rawJSON: String) -> [JSONValue] {
         guard
             let data = rawJSON.data(using: .utf8),
-            let details = try? JSONDecoder().decode([JSONValue].self, from: data)
-        else {
+            let details = try? JSONDecoder().decode([JSONValue].self, from: data) else
+        {
             return []
         }
         return details

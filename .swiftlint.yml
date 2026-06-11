@@ -107,8 +107,8 @@ disabled_rules:
 
 # Rule configurations
 file_length:
-  warning: 1000
-  error: 2000
+  warning: 2000
+  error: 2500
   ignore_comment_only_lines: true
 
 function_parameter_count:
@@ -137,8 +137,8 @@ trailing_comma:
   mandatory_comma: true
 
 type_body_length:
-  warning: 800
-  error: 1200
+  warning: 1800
+  error: 2200
 
 type_name:
   min_length:

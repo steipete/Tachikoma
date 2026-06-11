@@ -431,7 +431,9 @@ public struct NeverStopCondition: StopCondition {
 
 @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 extension NeverStopCondition: StableCacheKeyStopCondition {
-    var stableCacheKey: String? { "never" }
+    var stableCacheKey: String? {
+        "never"
+    }
 }
 
 // MARK: - Integration with Generation Functions

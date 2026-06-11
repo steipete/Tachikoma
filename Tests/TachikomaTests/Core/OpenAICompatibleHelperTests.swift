@@ -195,33 +195,31 @@ struct OpenAICompatibleHelperTests {
     @Test
     func `generateText decodes OpenRouter reasoning details`() async throws {
         let response = try await withMockedSession { urlRequest in
+            let reasoningDetails: [[String: String]] = [["type": "reasoning.encrypted", "data": "sealed"]]
+            let toolCall: [String: Any] = [
+                "id": "call-1",
+                "type": "function",
+                "function": ["name": "lookup", "arguments": "{}"],
+            ]
+            let toolCalls = [toolCall]
+            let choice: [String: Any] = [
+                "index": 0,
+                "message": [
+                    "role": "assistant",
+                    "content": NSNull(),
+                    "reasoning_details": reasoningDetails,
+                    "tool_calls": toolCalls,
+                ],
+                "finish_reason": "tool_calls",
+            ]
             let payload: [String: Any] = [
                 "id": "chatcmpl-test",
                 "object": "chat.completion",
                 "created": 1_700_000_000,
                 "model": "anthropic/claude-fable-5",
-                "choices": [[
-                    "index": 0,
-                    "message": [
-                        "role": "assistant",
-                        "content": NSNull(),
-                        "reasoning_details": [[
-                            "type": "reasoning.encrypted",
-                            "data": "sealed",
-                        ]],
-                        "tool_calls": [[
-                            "id": "call-1",
-                            "type": "function",
-                            "function": [
-                                "name": "lookup",
-                                "arguments": "{}",
-                            ],
-                        ]],
-                    ],
-                    "finish_reason": "tool_calls",
-                ]],
+                "choices": [choice],
             ]
-            return self.jsonResponse(for: urlRequest, data: try JSONSerialization.data(withJSONObject: payload))
+            return try self.jsonResponse(for: urlRequest, data: JSONSerialization.data(withJSONObject: payload))
         } operation: { session in
             try await OpenAICompatibleHelper.generateText(
                 request: ProviderRequest(messages: [.user("hi")]),
@@ -247,7 +245,7 @@ struct OpenAICompatibleHelperTests {
             settings: GenerationSettings(maxTokens: 128, temperature: 0.7),
         )
 
-        _ = try await withMockedSession { urlRequest in
+        _ = try await self.withMockedSession { urlRequest in
             capture.body = self.bodyData(from: urlRequest)
             return self.jsonResponse(for: urlRequest, data: Self.chatCompletionPayload(text: "pong"))
         } operation: { session in
@@ -271,7 +269,7 @@ struct OpenAICompatibleHelperTests {
         let capture = CapturedRequest()
         let rawReasoning = #"[{"type":"reasoning.encrypted","data":"sealed"}]"#
         let call = AgentToolCall(id: "call-1", name: "lookup", arguments: [:])
-        let request = ProviderRequest(messages: [
+        let request = try ProviderRequest(messages: [
             .user("hi"),
             ModelMessage(
                 role: .assistant,
@@ -281,7 +279,8 @@ struct OpenAICompatibleHelperTests {
                     "openrouter.reasoning_details": rawReasoning,
                     "tachikoma.reasoning.provider": "openrouter",
                     "tachikoma.reasoning.model": "anthropic/claude-fable-5",
-                    "tachikoma.reasoning.base_url": ReasoningEndpointIdentity.canonical("https://mock.compatible")!,
+                    "tachikoma.reasoning.base_url": #require(ReasoningEndpointIdentity
+                        .canonical("https://mock.compatible")),
                 ]),
             ),
             ModelMessage(role: .assistant, content: [.toolCall(call)]),
@@ -291,7 +290,7 @@ struct OpenAICompatibleHelperTests {
             ),
         ])
 
-        _ = try await withMockedSession { urlRequest in
+        _ = try await self.withMockedSession { urlRequest in
             capture.body = self.bodyData(from: urlRequest)
             return self.jsonResponse(for: urlRequest, data: Self.chatCompletionPayload(text: "done"))
         } operation: { session in
@@ -318,7 +317,7 @@ struct OpenAICompatibleHelperTests {
     func `generateText replays OpenRouter reasoning details on reasoning-only assistant boundary`() async throws {
         let capture = CapturedRequest()
         let rawReasoning = #"[{"type":"reasoning.encrypted","data":"sealed"}]"#
-        let request = ProviderRequest(messages: [
+        let request = try ProviderRequest(messages: [
             .user("first"),
             ModelMessage(
                 role: .assistant,
@@ -328,7 +327,8 @@ struct OpenAICompatibleHelperTests {
                     "openrouter.reasoning_details": rawReasoning,
                     "tachikoma.reasoning.provider": "openrouter",
                     "tachikoma.reasoning.model": "anthropic/claude-fable-5",
-                    "tachikoma.reasoning.base_url": ReasoningEndpointIdentity.canonical("https://mock.compatible")!,
+                    "tachikoma.reasoning.base_url": #require(ReasoningEndpointIdentity
+                        .canonical("https://mock.compatible")),
                 ]),
             ),
             ModelMessage(
@@ -339,7 +339,7 @@ struct OpenAICompatibleHelperTests {
             .user("next"),
         ])
 
-        _ = try await withMockedSession { urlRequest in
+        _ = try await self.withMockedSession { urlRequest in
             capture.body = self.bodyData(from: urlRequest)
             return self.jsonResponse(for: urlRequest, data: Self.chatCompletionPayload(text: "done"))
         } operation: { session in
@@ -359,7 +359,8 @@ struct OpenAICompatibleHelperTests {
         let assistant = messages[assistantIndex]
         let details = try #require(assistant["reasoning_details"] as? [[String: Any]])
         #expect(details.first?["data"] as? String == "sealed")
-        let nextMessage = try #require(messages.indices.contains(assistantIndex + 1) ? messages[assistantIndex + 1] : nil)
+        let nextMessage = try #require(messages.indices
+            .contains(assistantIndex + 1) ? messages[assistantIndex + 1] : nil)
         #expect(nextMessage["role"] as? String == "user")
     }
 
@@ -368,7 +369,7 @@ struct OpenAICompatibleHelperTests {
         let capture = CapturedRequest()
         let rawReasoning = #"[{"type":"reasoning.encrypted","data":"sealed"}]"#
         let call = AgentToolCall(id: "call-1", name: "lookup", arguments: [:])
-        let request = ProviderRequest(messages: [
+        let request = try ProviderRequest(messages: [
             .user("hi"),
             ModelMessage(
                 role: .assistant,
@@ -378,7 +379,8 @@ struct OpenAICompatibleHelperTests {
                     "openrouter.reasoning_details": rawReasoning,
                     "tachikoma.reasoning.provider": "openrouter",
                     "tachikoma.reasoning.model": "anthropic/claude-fable-5",
-                    "tachikoma.reasoning.base_url": ReasoningEndpointIdentity.canonical("https://other.example.test")!,
+                    "tachikoma.reasoning.base_url": #require(ReasoningEndpointIdentity
+                        .canonical("https://other.example.test")),
                 ]),
             ),
             ModelMessage(role: .assistant, content: [.toolCall(call)]),
@@ -388,7 +390,7 @@ struct OpenAICompatibleHelperTests {
             ),
         ])
 
-        _ = try await withMockedSession { urlRequest in
+        _ = try await self.withMockedSession { urlRequest in
             capture.body = self.bodyData(from: urlRequest)
             return self.jsonResponse(for: urlRequest, data: Self.chatCompletionPayload(text: "done"))
         } operation: { session in
@@ -411,7 +413,7 @@ struct OpenAICompatibleHelperTests {
     @Test
     func `generateText drops unmatched OpenRouter reasoning instead of serializing it as text`() async throws {
         let capture = CapturedRequest()
-        let request = ProviderRequest(messages: [
+        let request = try ProviderRequest(messages: [
             .user("hi"),
             ModelMessage(
                 role: .assistant,
@@ -421,13 +423,14 @@ struct OpenAICompatibleHelperTests {
                     "openrouter.reasoning": "private reasoning",
                     "tachikoma.reasoning.provider": "openrouter",
                     "tachikoma.reasoning.model": "other-model",
-                    "tachikoma.reasoning.base_url": ReasoningEndpointIdentity.canonical("https://mock.compatible")!,
+                    "tachikoma.reasoning.base_url": #require(ReasoningEndpointIdentity
+                        .canonical("https://mock.compatible")),
                 ]),
             ),
             .assistant("visible"),
         ])
 
-        _ = try await withMockedSession { urlRequest in
+        _ = try await self.withMockedSession { urlRequest in
             capture.body = self.bodyData(from: urlRequest)
             return self.jsonResponse(for: urlRequest, data: Self.chatCompletionPayload(text: "done"))
         } operation: { session in
@@ -446,7 +449,7 @@ struct OpenAICompatibleHelperTests {
         let assistantMessages = messages.filter { $0["role"] as? String == "assistant" }
         #expect(assistantMessages.count == 1)
         #expect(assistantMessages.first?["content"] as? String == "visible")
-        #expect(String(data: try #require(capture.body), encoding: .utf8)?.contains("private reasoning") == false)
+        #expect(try String(data: #require(capture.body), encoding: .utf8)?.contains("private reasoning") == false)
     }
 
     @Test

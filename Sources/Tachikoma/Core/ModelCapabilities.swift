@@ -411,8 +411,8 @@ public final class ModelCapabilityRegistry: @unchecked Sendable {
             guard
                 let parsed = ProviderParser.parse(provider.modelId),
                 LanguageModel.Anthropic.isFable(modelId: parsed.model),
-                CustomProviderRegistry.shared.get(parsed.provider)?.kind == .anthropic
-            else {
+                CustomProviderRegistry.shared.get(parsed.provider)?.kind == .anthropic else
+            {
                 return false
             }
             return true

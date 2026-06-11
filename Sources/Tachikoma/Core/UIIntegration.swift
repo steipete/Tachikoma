@@ -181,8 +181,8 @@ extension [ModelMessage] {
     }
 }
 
-private extension ModelMessage {
-    var isProviderNativeReasoningBlock: Bool {
+extension ModelMessage {
+    fileprivate var isProviderNativeReasoningBlock: Bool {
         guard channel == .thinking, let customData = metadata?.customData else { return false }
         return customData["anthropic.thinking.model"] != nil ||
             customData["anthropic.thinking.type"] != nil ||
@@ -190,7 +190,7 @@ private extension ModelMessage {
             customData["tachikoma.reasoning.provider"] != nil
     }
 
-    var isSyntheticReasoningBoundary: Bool {
+    fileprivate var isSyntheticReasoningBoundary: Bool {
         metadata?.customData?["tachikoma.internal.boundary"] == "reasoning_only"
     }
 }
