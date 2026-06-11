@@ -63,6 +63,7 @@ enum ModelCapabilitiesTests {
         @Test
         func `Claude models support thinking`() {
             let models: [LanguageModel] = [
+                .anthropic(.fable5),
                 .anthropic(.opus47),
                 .anthropic(.opus4),
                 .anthropic(.sonnet46),
@@ -79,8 +80,8 @@ enum ModelCapabilitiesTests {
         }
 
         @Test
-        func `Claude Opus 4_7 and 4_8 advertise adaptive thinking without sampling options`() {
-            for model in [LanguageModel.anthropic(.opus47), .anthropic(.opus48)] {
+        func `Claude Fable 5 and Opus 4_7 plus 4_8 advertise adaptive thinking without sampling options`() {
+            for model in [LanguageModel.anthropic(.fable5), .anthropic(.opus47), .anthropic(.opus48)] {
                 let capabilities = ModelCapabilityRegistry.shared.capabilities(for: model)
 
                 #expect(!capabilities.supportsTemperature)
@@ -197,6 +198,19 @@ enum ModelCapabilitiesTests {
         }
 
         @Test
+        func `Validate settings preserves stream buffering mode`() {
+            let settings = GenerationSettings(
+                temperature: 0.7,
+                streamBuffering: .untilTerminal,
+            )
+
+            let validated = settings.validated(for: .openai(.gpt55))
+
+            #expect(validated.temperature == nil)
+            #expect(validated.streamBuffering == .untilTerminal)
+        }
+
+        @Test
         func `Validate settings for GPT-5 strips unsupported options`() {
             let settings = GenerationSettings(
                 temperature: 0.5,
@@ -289,6 +303,49 @@ enum ModelCapabilitiesTests {
             #expect(validated.topK == nil)
             #expect(validated.providerOptions.anthropic?.thinking != nil)
             #expect(validated.providerOptions.anthropic?.cacheControl == .persistent)
+        }
+
+        @Test
+        func `Validate Anthropic-compatible Fable strips unsupported sampling`() {
+            let settings = GenerationSettings(
+                temperature: 0.7,
+                topP: 0.9,
+                topK: 40,
+                providerOptions: .init(
+                    anthropic: .init(thinking: .adaptive),
+                ),
+            )
+
+            let validated = settings.validated(for: LanguageModel.anthropicCompatible(
+                modelId: "claude-fable-5",
+                baseURL: "https://example.test",
+            ))
+
+            #expect(validated.temperature == nil)
+            #expect(validated.topP == nil)
+            #expect(validated.topK == nil)
+            #expect(validated.providerOptions.anthropic?.thinking != nil)
+        }
+
+        @Test
+        func `Validate direct custom Fable strips unsupported sampling`() {
+            let settings = GenerationSettings(
+                temperature: 0.7,
+                topP: 0.9,
+                topK: 40,
+                providerOptions: .init(
+                    anthropic: .init(thinking: .adaptive),
+                ),
+            )
+
+            let validated = settings.validated(
+                for: LanguageModel.anthropic(.custom("anthropic.claude-fable-5")),
+            )
+
+            #expect(validated.temperature == nil)
+            #expect(validated.topP == nil)
+            #expect(validated.topK == nil)
+            #expect(validated.providerOptions.anthropic?.thinking != nil)
         }
     }
 

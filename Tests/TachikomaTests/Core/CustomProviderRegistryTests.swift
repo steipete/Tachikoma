@@ -120,6 +120,30 @@ struct CustomProviderRegistryTests {
         let compatibleClaude = try #require(resolvedClaude as? AnthropicCompatibleProvider)
         #expect(compatibleClaude.apiKey == "claude-provider-key")
 
+        let fableModel = LanguageModel.custom(
+            provider: DynamicCustomProvider(modelId: "claude-proxy/claude-fable-5"),
+        )
+        #expect(fableModel.supportsStreaming == false)
+        let resolvedFable = try ProviderFactory.createProvider(
+            for: fableModel,
+            configuration: TachikomaConfiguration(loadFromEnvironment: false),
+        )
+        let compatibleFable = try #require(resolvedFable as? AnthropicCompatibleProvider)
+        #expect(compatibleFable.capabilities.supportsStreaming == false)
+
+        let directFableProvider = DynamicCustomProvider(
+            modelId: "claude-fable-5",
+            capabilities: ModelCapabilities(supportsStreaming: false),
+        )
+        let directFableModel = LanguageModel.custom(provider: directFableProvider)
+        #expect(directFableModel.supportsStreaming == false)
+
+        let unrelatedFableNamedProvider = DynamicCustomProvider(
+            modelId: "local-claude-fable-5-benchmark",
+            capabilities: ModelCapabilities(supportsStreaming: true),
+        )
+        #expect(LanguageModel.custom(provider: unrelatedFableNamedProvider).supportsStreaming == true)
+
         #expect(CustomProviderRegistry.shared.get("missing") == nil)
     }
 
@@ -175,10 +199,11 @@ private final class DynamicCustomProvider: ModelProvider {
     let modelId: String
     let baseURL: String? = nil
     let apiKey: String? = nil
-    let capabilities = ModelCapabilities()
+    let capabilities: ModelCapabilities
 
-    init(modelId: String) {
+    init(modelId: String, capabilities: ModelCapabilities = ModelCapabilities()) {
         self.modelId = modelId
+        self.capabilities = capabilities
     }
 
     func generateText(request _: ProviderRequest) async throws -> ProviderResponse {

@@ -1,3 +1,12 @@
+#if canImport(CryptoKit)
+import CryptoKit
+
+private typealias ReasoningEndpointHasher = CryptoKit.SHA256
+#else
+import Crypto
+
+private typealias ReasoningEndpointHasher = Crypto.SHA256
+#endif
 import Foundation
 #if canImport(FoundationNetworking)
 import FoundationNetworking
@@ -17,22 +26,35 @@ public final class AnthropicProvider: ModelProvider {
     private let auth: TKAuthValue
     private let betaHeader: String
     private let additionalHeaders: [String: String]
+    private let reasoningProvider: String
+    private let reasoningModelId: String
+    private let reasoningBaseURL: String?
+    private let urlSession: URLSession
 
     private static let requiredBetaFlags: [String] = [
         "interleaved-thinking-2025-05-14",
         "fine-grained-tool-streaming-2025-05-14",
     ]
-
     public init(
         model: LanguageModel.Anthropic,
         configuration: TachikomaConfiguration,
         additionalHeaders: [String: String] = [:],
         authOverride: TKAuthValue? = nil,
+        reasoningProvider: String = "anthropic",
+        reasoningModelId: String? = nil,
+        reasoningBaseURL: String? = nil,
+        urlSession: URLSession = .shared,
     ) throws {
         self.model = model
         self.modelId = model.modelId
         self.baseURL = configuration.getBaseURL(for: .anthropic) ?? "https://api.anthropic.com"
         self.additionalHeaders = additionalHeaders
+        self.reasoningProvider = reasoningProvider
+        self.reasoningModelId = reasoningModelId ?? model.modelId
+        self.reasoningBaseURL = ReasoningEndpointIdentity.canonical(
+            reasoningBaseURL ?? (reasoningProvider == "anthropic" ? self.baseURL : nil),
+        )
+        self.urlSession = urlSession
 
         if let authOverride {
             self.auth = authOverride
@@ -57,16 +79,18 @@ public final class AnthropicProvider: ModelProvider {
             throw TachikomaError.authenticationFailed("ANTHROPIC_API_KEY not found")
         }
 
-        self.betaHeader = Self.mergedBetaHeader(configuration: configuration, auth: self.auth)
+        self.betaHeader = Self.mergedBetaHeader(configuration: configuration, auth: self.auth, model: model)
 
+        let isFable = Self.isFable(model: model)
+        let supportsSafeStreaming = !Self.hasStreamingRefusalRisk(model: model)
         self.capabilities = ModelCapabilities(
             supportsVision: model.supportsVision,
             supportsTools: model.supportsTools,
-            supportsStreaming: true,
+            supportsStreaming: supportsSafeStreaming,
             supportsAudioInput: model.supportsAudioInput,
             supportsAudioOutput: model.supportsAudioOutput,
-            contextLength: model.contextLength,
-            maxOutputTokens: 4096,
+            contextLength: isFable ? 1_000_000 : model.contextLength,
+            maxOutputTokens: isFable ? 128_000 : model.maxOutputTokens,
         )
     }
 
@@ -94,6 +118,14 @@ public final class AnthropicProvider: ModelProvider {
     }
 
     private static func mergedBetaHeader(configuration: TachikomaConfiguration, auth: TKAuthValue) -> String {
+        Self.mergedBetaHeader(configuration: configuration, auth: auth, model: nil)
+    }
+
+    private static func mergedBetaHeader(
+        configuration: TachikomaConfiguration,
+        auth: TKAuthValue,
+        model: LanguageModel.Anthropic?,
+    ) -> String {
         var existing: String?
         if case let .bearer(_, betaHeader) = auth {
             existing = betaHeader
@@ -101,6 +133,14 @@ public final class AnthropicProvider: ModelProvider {
 
         if existing?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty != false {
             existing = configuration.credentialValue(for: "ANTHROPIC_BETA_HEADER")
+        }
+
+        if let model, Self.isFable(model: model) {
+            return existing?
+                .split(separator: ",")
+                .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+                .filter { !$0.isEmpty }
+                .joined(separator: ",") ?? ""
         }
 
         return Self.mergedBetaHeader(existing: existing)
@@ -117,9 +157,13 @@ public final class AnthropicProvider: ModelProvider {
         case .disabled:
             return nil
         case .adaptive:
+            if Self.isFable(model: model) { return nil }
             guard self.usesAdaptiveThinking(model: model) else { return nil }
             return AnthropicThinking(type: "adaptive", budgetTokens: nil)
         case let .enabled(budgetTokens):
+            if Self.isFable(model: model) {
+                return nil
+            }
             if case .opus48 = model {
                 return AnthropicThinking(type: "adaptive", budgetTokens: nil)
             }
@@ -148,6 +192,7 @@ public final class AnthropicProvider: ModelProvider {
     }
 
     private func usesAdaptiveThinking(model: LanguageModel.Anthropic) -> Bool {
+        if Self.isFable(model: model) { return true }
         if case .opus48 = model { return true }
         if case .opus47 = model { return true }
         if case .sonnet46 = model { return true }
@@ -155,11 +200,12 @@ public final class AnthropicProvider: ModelProvider {
     }
 
     private func supportsEffort(model: LanguageModel.Anthropic) -> Bool {
+        if Self.isFable(model: model) { return true }
         switch model {
         case .opus48, .opus47, .opus45, .sonnet46:
-            true
+            return true
         default:
-            false
+            return false
         }
     }
 
@@ -202,6 +248,19 @@ public final class AnthropicProvider: ModelProvider {
         }
 
         let validatedSettings = request.settings.validated(for: .anthropic(self.model))
+        if
+            Self.isFable(model: self.model),
+            case .disabled = validatedSettings.providerOptions.anthropic?.thinking
+        {
+            throw TachikomaError.invalidConfiguration(
+                "Claude Fable 5 always uses adaptive thinking; disabled thinking is not supported",
+            )
+        }
+        if Self.isFable(model: self.model), request.messages.last?.role == .assistant {
+            throw TachikomaError.invalidConfiguration(
+                "Claude Fable 5 does not support assistant prefill requests",
+            )
+        }
         let requestedThinking = self.anthropicThinking(
             from: validatedSettings.providerOptions.anthropic?.thinking,
             model: self.model,
@@ -214,11 +273,19 @@ public final class AnthropicProvider: ModelProvider {
         var thinking: AnthropicThinking?
         let systemMessage: String?
         let messages: [AnthropicMessage]
+        let preserveSignedThinking = requestedThinking != nil || self.requiresSignedThinkingReplay(model: self.model)
+        let reasoningTarget = AnthropicReasoningReplayTarget(
+            provider: self.reasoningProvider,
+            modelId: self.reasoningModelId,
+            endpointIdentity: self.reasoningBaseURL,
+            allowsLegacyUnknown: !Self.isFable(model: self.model),
+        )
         do {
             thinking = requestedThinking
             (systemMessage, messages) = try AnthropicMessageConversion.convertMessagesToAnthropic(
                 request.messages,
-                thinkingEnabled: requestedThinking != nil,
+                thinkingEnabled: preserveSignedThinking,
+                reasoningTarget: reasoningTarget,
             )
         } catch {
             // If we can't provide signed thinking blocks for a cached/history session, fall back to non-thinking mode.
@@ -227,14 +294,20 @@ public final class AnthropicProvider: ModelProvider {
                 (systemMessage, messages) = try AnthropicMessageConversion.convertMessagesToAnthropic(
                     request.messages,
                     thinkingEnabled: false,
+                    reasoningTarget: reasoningTarget,
                 )
             } else {
                 throw error
             }
         }
+        let maxTokens = validatedSettings.maxTokens ?? self.defaultMaxTokens(for: self.model)
+        if !stream, Self.requiresExtendedNonStreamingTimeout(model: self.model, maxTokens: maxTokens) {
+            urlRequest.timeoutInterval = 1_800
+        }
+
         let anthropicRequest = try AnthropicMessageRequest(
             model: modelId,
-            maxTokens: validatedSettings.maxTokens ?? 1024,
+            maxTokens: maxTokens,
             temperature: thinking == nil ? validatedSettings.temperature : nil,
             system: systemMessage,
             messages: messages,
@@ -270,7 +343,7 @@ public final class AnthropicProvider: ModelProvider {
             }
         }
 
-        let (data, response) = try await URLSession.shared.data(for: urlRequest)
+        let (data, response) = try await self.urlSession.data(for: urlRequest)
 
         guard let httpResponse = response as? HTTPURLResponse else {
             throw TachikomaError.networkError(NSError(domain: "Invalid response", code: 0))
@@ -302,7 +375,7 @@ public final class AnthropicProvider: ModelProvider {
             switch content {
             case let .text(textContent):
                 textContent.text
-            case .toolUse:
+            case .thinking, .redactedThinking, .toolUse:
                 nil
             }
         }.joined()
@@ -312,19 +385,64 @@ public final class AnthropicProvider: ModelProvider {
             outputTokens: anthropicResponse.usage.outputTokens,
         )
 
-        let finishReason: FinishReason? = switch anthropicResponse.stopReason {
-        case "end_turn": .stop
-        case "max_tokens": .length
-        case "tool_use": .toolCalls
-        case "stop_sequence": .stop
-        default: .other
+        let finishReason = Self.mapFinishReason(anthropicResponse.stopReason)
+        if finishReason == .contentFilter {
+            let fallbackRefusalText: String
+            if let category = anthropicResponse.stopDetails?.category {
+                fallbackRefusalText = "Request refused by Anthropic content filter (\(category))"
+            } else {
+                fallbackRefusalText = "Request refused by Anthropic content filter"
+            }
+            let refusalText = anthropicResponse.stopDetails?.explanation ?? fallbackRefusalText
+            return ProviderResponse(
+                text: refusalText,
+                usage: usage,
+                finishReason: finishReason,
+                toolCalls: nil,
+                reasoning: [],
+                assistantMessages: [],
+                isBillable: usage.outputTokens > 0,
+            )
         }
 
-        // Convert tool calls if present
-        let toolCalls = anthropicResponse.content.compactMap { content -> AgentToolCall? in
+        var reasoning: [ProviderReasoningBlock] = []
+        var toolCalls: [AgentToolCall] = []
+        var assistantMessages: [ModelMessage] = []
+
+        for content in anthropicResponse.content {
             switch content {
-            case .text:
-                return nil
+            case let .text(textContent):
+                if !textContent.text.isEmpty {
+                    assistantMessages.append(.assistant(textContent.text))
+                }
+            case let .thinking(thinking):
+                let block = ProviderReasoningBlock(
+                    text: thinking.thinking,
+                    signature: thinking.signature,
+                    type: thinking.type,
+                )
+                reasoning.append(block)
+                assistantMessages.append(ModelMessage(
+                    role: .assistant,
+                    content: [.text(thinking.thinking)],
+                    channel: .thinking,
+                    metadata: .init(customData: self.reasoningMetadata(
+                        type: thinking.type,
+                        signature: thinking.signature,
+                    )),
+                ))
+            case let .redactedThinking(thinking):
+                let block = ProviderReasoningBlock(
+                    text: thinking.data,
+                    type: thinking.type,
+                )
+                reasoning.append(block)
+                assistantMessages.append(ModelMessage(
+                    role: .assistant,
+                    content: [.text(thinking.data)],
+                    channel: .thinking,
+                    metadata: .init(customData: self.reasoningMetadata(type: thinking.type)),
+                ))
             case let .toolUse(toolUse):
                 // Convert input to AnyAgentToolValue dictionary
                 var arguments: [String: AnyAgentToolValue] = [:]
@@ -340,11 +458,13 @@ public final class AnthropicProvider: ModelProvider {
                     }
                 }
 
-                return AgentToolCall(
+                let toolCall = AgentToolCall(
                     id: toolUse.id,
                     name: toolUse.name,
                     arguments: arguments,
                 )
+                toolCalls.append(toolCall)
+                assistantMessages.append(ModelMessage(role: .assistant, content: [.toolCall(toolCall)]))
             }
         }
 
@@ -353,7 +473,59 @@ public final class AnthropicProvider: ModelProvider {
             usage: usage,
             finishReason: finishReason,
             toolCalls: toolCalls.isEmpty ? nil : toolCalls,
+            reasoning: reasoning,
+            assistantMessages: assistantMessages,
         )
+    }
+
+    private func reasoningMetadata(type: String, signature: String? = nil) -> [String: String] {
+        var metadata = [
+            "anthropic.thinking.model": self.reasoningModelId,
+            "anthropic.thinking.type": type,
+            "tachikoma.reasoning.provider": self.reasoningProvider,
+            "tachikoma.reasoning.model": self.reasoningModelId,
+        ]
+        if let signature, !signature.isEmpty {
+            metadata["anthropic.thinking.signature"] = signature
+        }
+        if let reasoningBaseURL {
+            metadata["tachikoma.reasoning.base_url"] = reasoningBaseURL
+        }
+        return metadata
+    }
+
+    private func requiresSignedThinkingReplay(model: LanguageModel.Anthropic) -> Bool {
+        Self.isFable(model: model)
+    }
+
+    private func defaultMaxTokens(for model: LanguageModel.Anthropic) -> Int {
+        if Self.isFable(model: model) { return min(128_000, 16_384) }
+        return 1024
+    }
+
+    private static func isFable(model: LanguageModel.Anthropic) -> Bool {
+        LanguageModel.Anthropic.isFable(modelId: model.modelId)
+    }
+
+    private static func hasStreamingRefusalRisk(model: LanguageModel.Anthropic) -> Bool {
+        LanguageModel.Anthropic.hasStreamingRefusalRisk(modelId: model.modelId)
+    }
+
+    private static func requiresExtendedNonStreamingTimeout(model: LanguageModel.Anthropic, maxTokens: Int) -> Bool {
+        Self.isFable(model: model) || maxTokens >= 64_000
+    }
+
+    static func mapFinishReason(_ stopReason: String?) -> FinishReason? {
+        switch stopReason {
+        case "end_turn": .stop
+        case "max_tokens": .length
+        case "tool_use": .toolCalls
+        case "stop_sequence": .stop
+        case "model_context_window_exceeded": .length
+        case "refusal": .contentFilter
+        case nil: nil
+        default: .other
+        }
     }
 
     private func applyAuth(to request: inout URLRequest, secret: String) {
@@ -363,10 +535,18 @@ public final class AnthropicProvider: ModelProvider {
         case .bearer:
             request.setValue("Bearer " + secret, forHTTPHeaderField: "Authorization")
         }
-        request.setValue(self.betaHeader, forHTTPHeaderField: "anthropic-beta")
+        if !self.betaHeader.isEmpty {
+            request.setValue(self.betaHeader, forHTTPHeaderField: "anthropic-beta")
+        }
     }
 
     public func streamText(request: ProviderRequest) async throws -> AsyncThrowingStream<TextStreamDelta, Error> {
+        guard !Self.hasStreamingRefusalRisk(model: self.model) else {
+            throw TachikomaError.invalidConfiguration(
+                "\(self.model.modelId) streaming is disabled because Anthropic refusals require rollback-aware handling; use generateText instead",
+            )
+        }
+
         let urlRequest = try self.makeURLRequest(for: request, stream: true)
 
         // Debug logging only when explicitly enabled
@@ -417,7 +597,7 @@ public final class AnthropicProvider: ModelProvider {
             (Data, URLResponse),
             Error,
         >) in
-            URLSession.shared.dataTask(with: urlRequest) { data, response, error in
+            self.urlSession.dataTask(with: urlRequest) { data, response, error in
                 if let error {
                     continuation.resume(throwing: error)
                 } else if let data, let response {
@@ -445,7 +625,7 @@ public final class AnthropicProvider: ModelProvider {
         let lines = String(data: data, encoding: .utf8)?.components(separatedBy: "\n") ?? []
         #else
         // macOS/iOS: Use streaming API
-        let (bytes, response) = try await URLSession.shared.bytes(for: urlRequest)
+        let (bytes, response) = try await self.urlSession.bytes(for: urlRequest)
 
         guard let httpResponse = response as? HTTPURLResponse else {
             throw TachikomaError.networkError(NSError(domain: "Invalid response", code: 0))
@@ -469,6 +649,7 @@ public final class AnthropicProvider: ModelProvider {
                 var currentReasoningSignature: String?
                 var currentReasoningType: String?
                 var reasoningSignatureEmitted = false
+                var finishReason: FinishReason?
 
                 do {
                     for try await line in bytes.lines {
@@ -502,7 +683,7 @@ public final class AnthropicProvider: ModelProvider {
                                     currentReasoningType = nil
                                     reasoningSignatureEmitted = false
                                 }
-                                continuation.yield(TextStreamDelta.done())
+                                continuation.yield(.done(finishReason: finishReason))
                                 break
                             }
 
@@ -533,6 +714,12 @@ public final class AnthropicProvider: ModelProvider {
                                             currentReasoningSignature = nil
                                             currentReasoningType = block.type
                                             reasoningSignatureEmitted = false
+                                            if block.type == "redacted_thinking", let data = block.data {
+                                                continuation.yield(TextStreamDelta.reasoning(
+                                                    data,
+                                                    type: "redacted_thinking",
+                                                ))
+                                            }
                                             continue
                                         }
                                     }
@@ -637,7 +824,9 @@ public final class AnthropicProvider: ModelProvider {
 
                                 case "message_delta":
                                     // Message-level updates (usage, etc.)
-                                    // Usage is typically included in the done event, not separately
+                                    if let stopReason = event.delta?.stopReason {
+                                        finishReason = Self.mapFinishReason(stopReason)
+                                    }
                                     continue
 
                                 case "message_stop":
@@ -657,7 +846,7 @@ public final class AnthropicProvider: ModelProvider {
                                         currentReasoningType = nil
                                         reasoningSignatureEmitted = false
                                     }
-                                    continuation.yield(TextStreamDelta.done())
+                                    continuation.yield(.done(finishReason: finishReason))
 
                                 default:
                                     // Unknown event type, skip
@@ -694,6 +883,7 @@ public final class AnthropicProvider: ModelProvider {
                 var currentReasoningSignature: String?
                 var currentReasoningType: String?
                 var reasoningSignatureEmitted = false
+                var finishReason: FinishReason?
 
                 do {
                     for line in lines {
@@ -720,7 +910,7 @@ public final class AnthropicProvider: ModelProvider {
                                         type: currentReasoningType,
                                     ))
                                 }
-                                continuation.yield(TextStreamDelta.done())
+                                continuation.yield(.done(finishReason: finishReason))
                                 break
                             }
 
@@ -739,6 +929,12 @@ public final class AnthropicProvider: ModelProvider {
                                         currentReasoningSignature = nil
                                         currentReasoningType = block.type
                                         reasoningSignatureEmitted = false
+                                        if block.type == "redacted_thinking", let data = block.data {
+                                            continuation.yield(TextStreamDelta.reasoning(
+                                                data,
+                                                type: "redacted_thinking",
+                                            ))
+                                        }
                                     }
                                 case "content_block_delta":
                                     if let delta = event.delta {
@@ -761,6 +957,10 @@ public final class AnthropicProvider: ModelProvider {
                                             accumulatedReasoning += thinking
                                         }
                                     }
+                                case "message_delta":
+                                    if let stopReason = event.delta?.stopReason {
+                                        finishReason = Self.mapFinishReason(stopReason)
+                                    }
                                 case "message_stop":
                                     if !accumulatedText.isEmpty {
                                         continuation.yield(TextStreamDelta.text(accumulatedText))
@@ -772,7 +972,7 @@ public final class AnthropicProvider: ModelProvider {
                                             type: currentReasoningType,
                                         ))
                                     }
-                                    continuation.yield(TextStreamDelta.done())
+                                    continuation.yield(.done(finishReason: finishReason))
                                 default:
                                     continue
                                 }
@@ -833,6 +1033,37 @@ public final class AnthropicProvider: ModelProvider {
                 required: tool.parameters.required,
             ),
         )
+    }
+}
+
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
+enum ReasoningEndpointIdentity {
+    static func canonical(_ rawValue: String?) -> String? {
+        guard
+            let trimmed = rawValue?.trimmingCharacters(in: .whitespacesAndNewlines),
+            !trimmed.isEmpty,
+            var components = URLComponents(string: trimmed),
+            let scheme = components.scheme?.lowercased(),
+            let host = components.host?.lowercased()
+        else {
+            return nil
+        }
+
+        components.scheme = scheme
+        components.host = host
+        components.user = nil
+        components.password = nil
+        components.fragment = nil
+        while components.path.count > 1, components.path.hasSuffix("/") {
+            components.path.removeLast()
+        }
+
+        guard let value = components.string else { return nil }
+        guard let data = value.data(using: .utf8) else { return nil }
+        let digest = ReasoningEndpointHasher.hash(data: data)
+            .map { String(format: "%02x", $0) }
+            .joined()
+        return "sha256:\(digest)"
     }
 }
 

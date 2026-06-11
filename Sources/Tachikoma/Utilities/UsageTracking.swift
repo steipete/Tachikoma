@@ -543,6 +543,7 @@ public struct ModelCostCalculator: Sendable {
         // Anthropic Pricing (as of 2026)
         case let .anthropic(anthropicModel):
             switch anthropicModel {
+            case .fable5: (10.00, 50.00)
             case .opus48: (5.00, 25.00)
             case .opus47: (5.00, 25.00)
             case .opus45: (5.00, 25.00)
@@ -550,7 +551,8 @@ public struct ModelCostCalculator: Sendable {
             case .sonnet46: (3.00, 15.00)
             case .sonnet45: (4.00, 18.00)
             case .haiku45: (1.20, 6.00)
-            case .custom: (3.00, 15.00) // Default estimate
+            case let .custom(id):
+                id.lowercased().contains("claude-fable-5") ? (10.00, 50.00) : (3.00, 15.00)
             }
         // Google Pricing (standard tier, as of 2026)
         case let .google(googleModel):

@@ -80,6 +80,70 @@ struct UIIntegrationTests {
     }
 
     @Test
+    func `Thinking ModelMessages are hidden from UI messages`() {
+        let thinking = ModelMessage(
+            role: .assistant,
+            content: [.text("private reasoning")],
+            channel: .thinking,
+            metadata: .init(customData: ["anthropic.thinking.signature": "sig"]),
+        )
+        let visible = ModelMessage(role: .assistant, content: [.text("Visible answer")])
+
+        let uiMessages = [thinking, visible].toUIMessages()
+
+        #expect(uiMessages.count == 1)
+        #expect(uiMessages[0].content == "Visible answer")
+    }
+
+    @Test
+    func `Provider-neutral thinking ModelMessages remain visible in UI messages`() {
+        let thinking = ModelMessage(
+            role: .assistant,
+            content: [.text("visible reasoning")],
+            channel: .thinking,
+        )
+
+        let uiMessages = [thinking].toUIMessages()
+
+        #expect(uiMessages.count == 1)
+        #expect(uiMessages[0].content == "visible reasoning")
+    }
+
+    @Test
+    func `Provider-native reasoning ModelMessages are hidden from UI messages`() {
+        let reasoning = ModelMessage(
+            role: .assistant,
+            content: [.text("openrouter reasoning")],
+            channel: .thinking,
+            metadata: .init(customData: [
+                "tachikoma.reasoning.provider": "openrouter",
+                "tachikoma.reasoning.model": "anthropic/claude-fable-5",
+            ]),
+        )
+        let visible = ModelMessage(role: .assistant, content: [.text("Visible answer")])
+
+        let uiMessages = [reasoning, visible].toUIMessages()
+
+        #expect(uiMessages.count == 1)
+        #expect(uiMessages[0].content == "Visible answer")
+    }
+
+    @Test
+    func `Synthetic reasoning boundaries are hidden from UI messages`() {
+        let boundary = ModelMessage(
+            role: .assistant,
+            content: [.text("")],
+            metadata: .init(customData: ["tachikoma.internal.boundary": "reasoning_only"]),
+        )
+        let visible = ModelMessage(role: .assistant, content: [.text("Visible answer")])
+
+        let uiMessages = [boundary, visible].toUIMessages()
+
+        #expect(uiMessages.count == 1)
+        #expect(uiMessages[0].content == "Visible answer")
+    }
+
+    @Test
     func `StreamTextResult to UI Message Stream`() async {
         // Create a mock stream
         let textStream = AsyncThrowingStream<TextStreamDelta, Error> { continuation in

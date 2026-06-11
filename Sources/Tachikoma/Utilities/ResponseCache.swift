@@ -7,17 +7,43 @@ import UIKit
 
 /// Hashable key for cache entries
 @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
+public struct CacheProviderIdentity: Hashable, Sendable {
+    public let providerKind: String
+    public let modelId: String
+    public let endpointIdentity: String?
+
+    public init(providerKind: String, modelId: String, baseURL: String?) {
+        self.providerKind = providerKind
+        self.modelId = modelId
+        self.endpointIdentity = ReasoningEndpointIdentity.canonical(baseURL)
+    }
+}
+
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 struct CacheKey: Hashable {
     let hash: String
     let model: String? // Store model ID for invalidation
+    let isCacheable: Bool
 
-    init(from request: ProviderRequest, model: String? = nil) {
-        self.model = model
+    init(from request: ProviderRequest, providerIdentity: CacheProviderIdentity? = nil, model: String? = nil) {
+        self.model = providerIdentity?.modelId ?? model
         // Create a unique hash from the request
         var hasher = Hasher()
+        if let providerIdentity {
+            hasher.combine(providerIdentity.providerKind)
+            hasher.combine(providerIdentity.modelId)
+            hasher.combine(providerIdentity.endpointIdentity)
+        }
         // Combine message content
         for message in request.messages {
             hasher.combine(message.role.rawValue)
+            hasher.combine(message.channel?.rawValue)
+            hasher.combine(message.metadata?.conversationId)
+            hasher.combine(message.metadata?.turnId)
+            for key in message.metadata?.customData?.keys.sorted() ?? [] {
+                hasher.combine(key)
+                hasher.combine(message.metadata?.customData?[key])
+            }
             for part in message.content {
                 switch part {
                 case let .text(text):
@@ -41,8 +67,33 @@ struct CacheKey: Hashable {
         hasher.combine(request.settings.temperature)
         hasher.combine(request.settings.maxTokens)
         hasher.combine(request.settings.topP)
+        hasher.combine(request.settings.topK)
+        hasher.combine(request.settings.frequencyPenalty)
+        hasher.combine(request.settings.presencePenalty)
+        hasher.combine(request.settings.stopSequences)
+        hasher.combine(request.settings.reasoningEffort?.rawValue)
+        hasher.combine(request.settings.seed)
+        if let stopConditions = request.settings.stopConditions {
+            guard let cacheKey = (stopConditions as? StableCacheKeyStopCondition)?.stableCacheKey else {
+                self.hash = ""
+                self.isCacheable = false
+                return
+            }
+            hasher.combine(cacheKey)
+        }
+        if let providerOptionsData = try? Self.providerOptionsEncoder.encode(request.settings.providerOptions) {
+            hasher.combine(providerOptionsData)
+        }
         self.hash = String(hasher.finalize())
+        self.isCacheable = true
     }
+
+    private static let providerOptionsEncoder: JSONEncoder = {
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.sortedKeys]
+        return encoder
+    }()
+
 }
 
 // MARK: - Response Cache
@@ -75,11 +126,16 @@ public actor ResponseCache {
     public func get(
         for request: ProviderRequest,
         ttlOverride: TimeInterval? = nil,
+        providerIdentity: CacheProviderIdentity? = nil,
     )
         -> ProviderResponse?
     {
         // Get cached response with TTL validation
-        let key = CacheKey(from: request)
+        let key = CacheKey(from: request, providerIdentity: providerIdentity)
+        guard key.isCacheable else {
+            self.statistics.recordMiss()
+            return nil
+        }
 
         guard let entry = cache[key] else {
             self.statistics.recordMiss()
@@ -109,9 +165,13 @@ public actor ResponseCache {
         for request: ProviderRequest,
         ttl: TimeInterval? = nil,
         priority: CachePriority = .normal,
+        providerIdentity: CacheProviderIdentity? = nil,
     ) {
         // Store response with custom TTL and priority
-        let key = CacheKey(from: request)
+        let key = CacheKey(from: request, providerIdentity: providerIdentity)
+        guard key.isCacheable else {
+            return
+        }
 
         // Check memory limit
         if self.shouldEvictForMemory() {
@@ -457,9 +517,33 @@ final class CacheEntry: @unchecked Sendable {
         // Rough estimation based on response content
         let textSize = self.response.text.utf8.count
         let toolCallsSize = (response.toolCalls?.count ?? 0) * 100 // Estimate 100 bytes per tool call
+        let reasoningSize = self.response.reasoning.reduce(0) { total, block in
+            total + block.text.utf8.count +
+                (block.signature?.utf8.count ?? 0) +
+                (block.rawJSON?.utf8.count ?? 0) +
+                block.type.utf8.count
+        }
+        let assistantMessageSize = self.response.assistantMessages.reduce(0) { total, message in
+            let contentSize = message.content.reduce(0) { contentTotal, part in
+                switch part {
+                case let .text(text):
+                    contentTotal + text.utf8.count
+                case let .image(image):
+                    contentTotal + image.mimeType.utf8.count + image.data.utf8.count
+                case let .toolCall(call):
+                    contentTotal + call.id.utf8.count + call.name.utf8.count + 100
+                case let .toolResult(result):
+                    contentTotal + result.toolCallId.utf8.count + 100
+                }
+            }
+            let metadataSize = (message.metadata?.customData ?? [:]).reduce(0) { metadataTotal, pair in
+                metadataTotal + pair.key.utf8.count + pair.value.utf8.count
+            }
+            return total + contentSize + metadataSize + (message.channel?.rawValue.utf8.count ?? 0)
+        }
         let usageSize = 50 // Fixed overhead for usage data
 
-        return textSize + toolCallsSize + usageSize + 100 // 100 bytes overhead
+        return textSize + toolCallsSize + reasoningSize + assistantMessageSize + usageSize + 100
     }
 }
 
@@ -546,6 +630,7 @@ extension ResponseCache {
 public struct CacheAwareProvider<Base: ModelProvider>: ModelProvider {
     let provider: Base
     let cache: ResponseCache
+    private let providerIdentity: CacheProviderIdentity
 
     public var modelId: String {
         self.provider.modelId
@@ -563,11 +648,21 @@ public struct CacheAwareProvider<Base: ModelProvider>: ModelProvider {
         self.provider.capabilities
     }
 
+    init(provider: Base, cache: ResponseCache) {
+        self.provider = provider
+        self.cache = cache
+        self.providerIdentity = CacheProviderIdentity(
+            providerKind: String(reflecting: Base.self),
+            modelId: provider.modelId,
+            baseURL: provider.baseURL,
+        )
+    }
+
     public func generateText(request: ProviderRequest) async throws -> ProviderResponse {
         // Check cache with smart TTL based on request type
         let ttl = self.determineTTL(for: request)
 
-        if let cached = await cache.get(for: request, ttlOverride: ttl) {
+        if let cached = await cache.get(for: request, ttlOverride: ttl, providerIdentity: self.providerIdentity) {
             return cached
         }
 
@@ -575,7 +670,13 @@ public struct CacheAwareProvider<Base: ModelProvider>: ModelProvider {
         let response = try await provider.generateText(request: request)
         let priority = self.determinePriority(for: request)
 
-        await self.cache.store(response, for: request, ttl: ttl, priority: priority)
+        await self.cache.store(
+            response,
+            for: request,
+            ttl: ttl,
+            priority: priority,
+            providerIdentity: self.providerIdentity,
+        )
         return response
     }
 

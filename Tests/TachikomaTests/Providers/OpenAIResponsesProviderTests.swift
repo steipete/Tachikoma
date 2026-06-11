@@ -204,6 +204,7 @@ struct OpenAIResponsesProviderTests {
             choices: nil,
             usage: nil,
             metadata: nil,
+            incompleteDetails: nil,
         )
 
         let providerResponse = try OpenAIResponsesProvider.convertToProviderResponse(response)
@@ -214,6 +215,159 @@ struct OpenAIResponsesProviderTests {
         #expect(toolCalls[0].name == "see")
         #expect(toolCalls[0].arguments["mode"]?.stringValue == "screen")
         #expect(providerResponse.finishReason == .toolCalls)
+    }
+
+    @Test
+    func `GPT-5 incomplete content filter response maps finish reason`() throws {
+        let output = OpenAIResponsesResponse.ResponsesOutput(
+            id: "out_1",
+            type: "message",
+            status: "incomplete",
+            content: [
+                .init(type: "output_text", text: "blocked partial", toolCall: nil),
+            ],
+            role: "assistant",
+            toolCall: nil,
+        )
+
+        let response = try JSONDecoder().decode(OpenAIResponsesResponse.self, from: """
+        {
+          "id": "resp_1",
+          "object": "response",
+          "created_at": 0,
+          "status": "incomplete",
+          "model": "gpt-5",
+          "output": [
+            {
+              "id": "out_1",
+              "type": "message",
+              "status": "incomplete",
+              "role": "assistant",
+              "content": [
+                { "type": "output_text", "text": "blocked partial" }
+              ]
+            }
+          ],
+          "incomplete_details": { "reason": "content_filter" }
+        }
+        """.data(using: .utf8)!)
+
+        let providerResponse = try OpenAIResponsesProvider.convertToProviderResponse(response)
+
+        #expect(output.status == "incomplete")
+        #expect(providerResponse.text.isEmpty)
+        #expect(providerResponse.finishReason == .contentFilter)
+    }
+
+    @Test
+    func `GPT-5 incomplete content filter discards parsed tool calls`() throws {
+        let toolCall = OpenAIResponsesResponse.ResponsesToolCall(
+            id: "call_1",
+            type: "function",
+            function: .init(name: "see", arguments: "{\"mode\":\"screen\"}"),
+        )
+        let output = OpenAIResponsesResponse.ResponsesOutput(
+            id: "out_1",
+            type: "message",
+            status: "incomplete",
+            content: [
+                .init(type: "output_text", text: "blocked partial", toolCall: nil),
+                .init(type: "tool_call", text: nil, toolCall: toolCall),
+            ],
+            role: "assistant",
+            toolCall: nil,
+        )
+        let response = OpenAIResponsesResponse(
+            id: "resp_1",
+            object: "response",
+            createdAt: 0,
+            created: nil,
+            status: "incomplete",
+            model: "gpt-5",
+            output: [output],
+            choices: nil,
+            usage: nil,
+            metadata: nil,
+            incompleteDetails: .init(reason: "content_filter"),
+        )
+
+        let providerResponse = try OpenAIResponsesProvider.convertToProviderResponse(response)
+
+        #expect(providerResponse.text.isEmpty)
+        #expect(providerResponse.toolCalls == nil)
+        #expect(providerResponse.finishReason == .contentFilter)
+    }
+
+    @Test
+    func `GPT-5 completed refusal output maps to content filter`() throws {
+        let output = OpenAIResponsesResponse.ResponsesOutput(
+            id: "out_1",
+            type: "message",
+            status: "completed",
+            content: [
+                .init(type: "refusal", refusal: "I cannot help with that."),
+            ],
+            role: "assistant",
+            toolCall: nil,
+        )
+        let response = OpenAIResponsesResponse(
+            id: "resp_1",
+            object: "response",
+            createdAt: 0,
+            created: nil,
+            status: "completed",
+            model: "gpt-5",
+            output: [output],
+            choices: nil,
+            usage: nil,
+            metadata: nil,
+            incompleteDetails: nil,
+        )
+
+        let providerResponse = try OpenAIResponsesProvider.convertToProviderResponse(response)
+
+        #expect(providerResponse.text.isEmpty)
+        #expect(providerResponse.toolCalls == nil)
+        #expect(providerResponse.finishReason == .contentFilter)
+    }
+
+    @Test
+    func `Alternate choices content filter suppresses text and tool calls`() throws {
+        let response = try JSONDecoder().decode(OpenAIResponsesResponse.self, from: """
+        {
+          "id": "chatcmpl_1",
+          "object": "chat.completion",
+          "created": 0,
+          "model": "gpt-5",
+          "choices": [
+            {
+              "index": 0,
+              "message": {
+                "role": "assistant",
+                "content": "blocked partial",
+                "tool_calls": [
+                  {
+                    "id": "call_1",
+                    "type": "function",
+                    "function": {
+                      "name": "see",
+                      "arguments": "{\\"mode\\":\\"screen\\"}"
+                    }
+                  }
+                ]
+              },
+              "finish_reason": "content_filter",
+              "logprobs": null
+            }
+          ]
+        }
+        """.data(using: .utf8)!)
+
+        let providerResponse = try OpenAIResponsesProvider.convertToProviderResponse(response)
+
+        #expect(providerResponse.text.isEmpty)
+        #expect(providerResponse.toolCalls == nil)
+        #expect(providerResponse.finishReason == .contentFilter)
     }
 
     @Test
@@ -528,11 +682,13 @@ struct OpenAIResponsesProviderTests {
             let stream = try await provider.streamText(request: self.sampleRequest)
 
             var collected = ""
+            var receivedDone = false
             for try await delta in stream {
                 switch delta.type {
                 case .textDelta:
                     collected.append(delta.content ?? "")
                 case .done:
+                    receivedDone = true
                     break
                 case .toolCall, .toolResult, .reasoning:
                     break
@@ -540,6 +696,185 @@ struct OpenAIResponsesProviderTests {
             }
 
             #expect(collected == "Hello world")
+            #expect(receivedDone)
+        }
+    }
+
+    @Test
+    func `Responses provider marks completed tool streams as tool calls`() async throws {
+        let config = TachikomaConfiguration(loadFromEnvironment: false)
+        config.setAPIKey("live-openai", for: .openai)
+
+        try await self.withMockedSession { request in
+            #expect(request.url?.path == "/v1/responses")
+            let payload = Self.responsesStreamPayload(chunks: [
+                Self.streamEventJSON([
+                    "type": "response.output_item.added",
+                    "item": [
+                        "id": "item_1",
+                        "type": "function_call",
+                        "name": "lookup",
+                    ],
+                ]),
+                Self.streamEventJSON([
+                    "type": "response.function_call_arguments.done",
+                    "item_id": "item_1",
+                    "arguments": #"{"query":"weather"}"#,
+                ]),
+                Self.streamEventJSON(["type": "response.completed"]),
+            ])
+            return NetworkMocking.streamResponse(for: request, data: payload)
+        } operation: { session in
+            let provider = try OpenAIResponsesProvider(model: .gpt55, configuration: config, session: session)
+            let stream = try await provider.streamText(request: self.sampleRequest)
+
+            var sawToolCall = false
+            var finishReason: FinishReason?
+            for try await delta in stream {
+                if delta.type == .toolCall {
+                    sawToolCall = true
+                }
+                if delta.type == .done {
+                    finishReason = delta.finishReason
+                }
+            }
+
+            #expect(sawToolCall)
+            #expect(finishReason == .toolCalls)
+        }
+    }
+
+    @Test
+    func `Responses provider maps incomplete content filter stream finish reason`() async throws {
+        let config = TachikomaConfiguration(loadFromEnvironment: false)
+        config.setAPIKey("live-openai", for: .openai)
+
+        try await self.withMockedSession { request in
+            #expect(request.url?.path == "/v1/responses")
+            let payload = Self.responsesStreamPayload(chunks: [
+                Self.streamChunkJSON(content: "partial", finishReason: nil),
+                Self.streamEventJSON([
+                    "type": "response.incomplete",
+                    "response": [
+                        "incomplete_details": ["reason": "content_filter"],
+                    ],
+                ]),
+            ])
+            return NetworkMocking.streamResponse(for: request, data: payload)
+        } operation: { session in
+            let provider = try OpenAIResponsesProvider(model: .gpt55, configuration: config, session: session)
+            let stream = try await provider.streamText(request: self.sampleRequest)
+
+            var collected = ""
+            var finishReason: FinishReason?
+            for try await delta in stream {
+                if case .textDelta = delta.type {
+                    collected.append(delta.content ?? "")
+                }
+                if delta.type == .done {
+                    finishReason = delta.finishReason
+                }
+            }
+
+            #expect(collected == "partial")
+            #expect(finishReason == .contentFilter)
+        }
+    }
+
+    @Test
+    func `Responses provider maps refusal stream events to content filter`() async throws {
+        let config = TachikomaConfiguration(loadFromEnvironment: false)
+        config.setAPIKey("live-openai", for: .openai)
+
+        try await self.withMockedSession { request in
+            #expect(request.url?.path == "/v1/responses")
+            let payload = Self.responsesStreamPayload(chunks: [
+                Self.streamEventJSON([
+                    "type": "response.refusal.delta",
+                    "delta": "no",
+                ]),
+                Self.streamEventJSON(["type": "response.refusal.done"]),
+                Self.streamEventJSON(["type": "response.completed"]),
+            ])
+            return NetworkMocking.streamResponse(for: request, data: payload)
+        } operation: { session in
+            let provider = try OpenAIResponsesProvider(model: .gpt55, configuration: config, session: session)
+            let stream = try await provider.streamText(request: self.sampleRequest)
+
+            var finishReason: FinishReason?
+            for try await delta in stream where delta.type == .done {
+                finishReason = delta.finishReason
+            }
+
+            #expect(finishReason == .contentFilter)
+        }
+    }
+
+    @Test
+    func `Responses provider throws on failed stream event`() async throws {
+        let config = TachikomaConfiguration(loadFromEnvironment: false)
+        config.setAPIKey("live-openai", for: .openai)
+
+        try await self.withMockedSession { request in
+            #expect(request.url?.path == "/v1/responses")
+            let payload = Self.responsesStreamPayload(chunks: [
+                Self.streamEventJSON([
+                    "type": "response.failed",
+                    "response": [
+                        "error": [
+                            "message": "stream failed after partial output",
+                        ],
+                    ],
+                ]),
+            ])
+            return NetworkMocking.streamResponse(for: request, data: payload)
+        } operation: { session in
+            let provider = try OpenAIResponsesProvider(model: .gpt55, configuration: config, session: session)
+            let stream = try await provider.streamText(request: self.sampleRequest)
+
+            do {
+                for try await _ in stream {}
+                Issue.record("Expected stream failure")
+            } catch let error as TachikomaError {
+                guard case let .apiError(message) = error else {
+                    Issue.record("Expected apiError, got \(error)")
+                    return
+                }
+                #expect(message.contains("response.failed"))
+                #expect(message.contains("stream failed after partial output"))
+            }
+        }
+    }
+
+    @Test
+    func `Responses provider throws on error stream event`() async throws {
+        let config = TachikomaConfiguration(loadFromEnvironment: false)
+        config.setAPIKey("live-openai", for: .openai)
+
+        try await self.withMockedSession { request in
+            #expect(request.url?.path == "/v1/responses")
+            let payload = Self.responsesStreamPayload(chunks: [
+                Self.streamEventJSON([
+                    "type": "error",
+                    "message": "top-level stream error",
+                ]),
+            ])
+            return NetworkMocking.streamResponse(for: request, data: payload)
+        } operation: { session in
+            let provider = try OpenAIResponsesProvider(model: .gpt55, configuration: config, session: session)
+            let stream = try await provider.streamText(request: self.sampleRequest)
+
+            do {
+                for try await _ in stream {}
+                Issue.record("Expected stream failure")
+            } catch let error as TachikomaError {
+                guard case let .apiError(message) = error else {
+                    Issue.record("Expected apiError, got \(error)")
+                    return
+                }
+                #expect(message.contains("error"))
+                #expect(message.contains("top-level stream error"))
+            }
         }
     }
 
@@ -654,6 +989,11 @@ struct OpenAIResponsesProviderTests {
             "type": finishReason == nil ? "response.output_text.done" : "response.completed",
         ]
         let data = try! JSONSerialization.data(withJSONObject: chunk)
+        return String(data: data, encoding: .utf8)!
+    }
+
+    private static func streamEventJSON(_ event: [String: Any]) -> String {
+        let data = try! JSONSerialization.data(withJSONObject: event)
         return String(data: data, encoding: .utf8)!
     }
 

@@ -40,12 +40,13 @@ public final class OpenAICompatibleProvider: ModelProvider {
             self.apiKey = nil // Some compatible APIs don't require keys
         }
 
+        let isFable = LanguageModel.Anthropic.isFable(modelId: modelId)
         self.capabilities = ModelCapabilities(
             supportsVision: false,
             supportsTools: true,
-            supportsStreaming: true,
-            contextLength: 128_000,
-            maxOutputTokens: 4096,
+            supportsStreaming: !LanguageModel.Anthropic.hasStreamingRefusalRisk(modelId: modelId),
+            contextLength: isFable ? 1_000_000 : 128_000,
+            maxOutputTokens: isFable ? 128_000 : 4096,
         )
     }
 
@@ -63,8 +64,12 @@ public final class OpenAICompatibleProvider: ModelProvider {
     }
 
     public func streamText(request: ProviderRequest) async throws -> AsyncThrowingStream<TextStreamDelta, Error> {
+        guard !LanguageModel.Anthropic.hasStreamingRefusalRisk(modelId: self.modelId) else {
+            throw TachikomaError.invalidConfiguration("\(self.modelId) does not support streaming")
+        }
+
         // Use OpenAI-compatible streaming implementation
-        try await OpenAICompatibleHelper.streamText(
+        return try await OpenAICompatibleHelper.streamText(
             request: request,
             modelId: self.modelId,
             baseURL: self.baseURL!,

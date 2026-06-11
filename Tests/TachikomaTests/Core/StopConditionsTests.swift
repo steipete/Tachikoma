@@ -180,6 +180,30 @@ struct StopConditionsTests {
         #expect(!collectedText.contains("ignored"))
     }
 
+    @Test
+    func `Stop conditions finish immediately after local match`() async throws {
+        let stream = AsyncThrowingStream<TextStreamDelta, Error> { continuation in
+            Task {
+                continuation.yield(TextStreamDelta(type: .textDelta, content: "STOP"))
+                try? await Task.sleep(nanoseconds: 2_000_000_000)
+                continuation.yield(TextStreamDelta(type: .textDelta, content: "late"))
+                continuation.yield(TextStreamDelta(type: .done, finishReason: .length))
+                continuation.finish()
+            }
+        }
+
+        let start = Date()
+        var received: [TextStreamDelta] = []
+        for try await delta in stream.stopWhen(StringStopCondition("STOP")) {
+            received.append(delta)
+        }
+
+        #expect(Date().timeIntervalSince(start) < 0.5)
+        #expect(received.map(\.content).compactMap { $0 } == ["STOP"])
+        #expect(received.last?.type == .done)
+        #expect(received.last?.finishReason == .stop)
+    }
+
     // MARK: - Builder Pattern Tests
 
     @Test

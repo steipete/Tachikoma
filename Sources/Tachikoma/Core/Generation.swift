@@ -35,10 +35,11 @@ public func generateText(
     var currentMessages = messages
     var allSteps: [GenerationStep] = []
     var totalUsage = Usage(inputTokens: 0, outputTokens: 0)
+    var finalResponseStartIndex = messages.count
 
-    for stepIndex in 0..<maxSteps {
+        for stepIndex in 0..<maxSteps {
         let request = ProviderRequest(
-            messages: currentMessages,
+            messages: currentMessages.sanitizedForProvider(model, configuration: resolvedConfiguration),
             tools: tools,
             settings: settings,
         )
@@ -51,8 +52,23 @@ public func generateText(
             try await provider.generateText(request: request)
         }
 
-        // Track usage with proper session management
-        if let usage = response.usage {
+        let isContentFiltered = response.finishReason == .contentFilter
+        let responseText = isContentFiltered ? "" : response.text
+        let responseToolCalls = isContentFiltered ? [] : (response.toolCalls ?? [])
+        let responseReasoning = isContentFiltered ? [] : response.reasoning
+        let responseAssistantMessages = isContentFiltered ? [] : response.assistantMessages
+        let responseMessageStartIndex = currentMessages.count
+        finalResponseStartIndex = responseMessageStartIndex
+        let responseHistoryMessages = model.responseHistoryMessages(
+            nativeMessages: responseAssistantMessages,
+            text: responseText,
+            reasoning: responseReasoning,
+            toolCalls: responseToolCalls,
+            configuration: resolvedConfiguration,
+        )
+
+        // Track billable usage with proper session management.
+        if response.isBillable, let usage = response.usage {
             let actualSessionId = sessionId ?? "generation-\(UUID().uuidString)"
 
             // Start session if not already started
@@ -86,8 +102,8 @@ public func generateText(
         // Create step record
         let step = GenerationStep(
             stepIndex: stepIndex,
-            text: response.text,
-            toolCalls: response.toolCalls ?? [],
+            text: responseText,
+            toolCalls: responseToolCalls,
             toolResults: [],
             usage: response.usage,
             finishReason: response.finishReason,
@@ -95,18 +111,26 @@ public func generateText(
 
         allSteps.append(step)
 
-        // Add assistant message
-        var assistantContent: [ModelMessage.ContentPart] = [.text(response.text)]
+        if isContentFiltered {
+            break
+        }
+
+        if !responseHistoryMessages.isEmpty {
+            currentMessages.append(contentsOf: responseHistoryMessages)
+            if responseHistoryMessages.allSatisfy({ $0.channel == .thinking }) {
+                currentMessages.append(ModelMessage(
+                    role: .assistant,
+                    content: [.text("")],
+                    metadata: .init(customData: ["tachikoma.internal.boundary": "reasoning_only"]),
+                ))
+            }
+        }
 
         // Handle tool calls
-        if let toolCalls = response.toolCalls, !toolCalls.isEmpty {
-            // Add tool calls to assistant message
-            assistantContent.append(contentsOf: toolCalls.map { .toolCall($0) })
-            currentMessages.append(ModelMessage(role: .assistant, content: assistantContent))
-
+        if !responseToolCalls.isEmpty {
             // Execute tools
             var toolResults: [AgentToolResult] = []
-            for toolCall in toolCalls {
+            for toolCall in responseToolCalls {
                 if let tool = tools?.first(where: { $0.name == toolCall.name }) {
                     do {
                         // Debug: Log tool call details in verbose mode
@@ -124,7 +148,7 @@ public func generateText(
 
                         // Create execution context with full conversation and model info
                         let context = ToolExecutionContext(
-                            messages: currentMessages,
+                            messages: currentMessages.sanitizedForToolContext(),
                             model: model,
                             settings: settings,
                             sessionId: sessionId ?? "generation-\(UUID().uuidString)",
@@ -161,8 +185,8 @@ public func generateText(
             // Update step with tool results
             allSteps[stepIndex] = GenerationStep(
                 stepIndex: stepIndex,
-                text: response.text,
-                toolCalls: toolCalls,
+                text: responseText,
+                toolCalls: responseToolCalls,
                 toolResults: toolResults,
                 usage: response.usage,
                 finishReason: response.finishReason,
@@ -174,17 +198,17 @@ public func generateText(
             }
         } else {
             // No tool calls, we're done
-            currentMessages.append(ModelMessage(role: .assistant, content: assistantContent))
             break
         }
     }
 
     // Extract final text from last step
     var finalText = allSteps.last?.text ?? ""
+    let originalFinalText = finalText
     var finalFinishReason = allSteps.last?.finishReason ?? .other
 
     // Apply stop conditions if configured
-    if let stopCondition = settings.stopConditions {
+    if finalFinishReason != .contentFilter, let stopCondition = settings.stopConditions {
         // Check if we should stop and truncate the text
         if await stopCondition.shouldStop(text: finalText, delta: nil) {
             // Truncate text based on the type of stop condition
@@ -217,13 +241,16 @@ public func generateText(
             }
         }
     }
+    let finalMessages = finalText == originalFinalText
+        ? currentMessages
+        : currentMessages.replacingGeneratedAssistantText(after: finalResponseStartIndex, with: finalText)
 
     return GenerateTextResult(
         text: finalText,
         usage: totalUsage,
         finishReason: finalFinishReason,
         steps: allSteps,
-        messages: currentMessages,
+        messages: finalMessages,
     )
 }
 
@@ -254,6 +281,9 @@ public func streamText(
 {
     // Debug logging only when explicitly enabled via environment variable or verbose flag
     let resolvedConfiguration = TachikomaConfiguration.resolve(configuration)
+    guard model.supportsStreaming else {
+        throw TachikomaError.invalidConfiguration("\(model.modelId) does not support streaming")
+    }
     let debugEnabled = ProcessInfo.processInfo.environment["DEBUG_TACHIKOMA"] != nil ||
         resolvedConfiguration.verbose
     if debugEnabled {
@@ -275,7 +305,7 @@ public func streamText(
     }
 
     let request = ProviderRequest(
-        messages: messages,
+        messages: messages.sanitizedForProvider(model, configuration: resolvedConfiguration),
         tools: tools,
         settings: settings,
     )
@@ -296,12 +326,6 @@ public func streamText(
         stream = try await provider.streamText(request: request)
     }
 
-    // Apply stop conditions if configured
-    if let stopCondition = settings.stopConditions {
-        // Wrap the stream with stop condition checking
-        stream = stream.stopWhen(stopCondition)
-    }
-
     // Use provided session or create a new one for tracking streaming usage
     let actualSessionId = sessionId ?? "streaming-\(UUID().uuidString)"
     if sessionId == nil {
@@ -311,22 +335,83 @@ public func streamText(
     // Wrap the stream to track usage when it completes
     let capturedModel = model
     let capturedSessionId = actualSessionId
-    let capturedStream = stream
     let shouldEndSession = sessionId == nil
+    let buffersUntilDone = model.buffersTextStreamUntilDone(settings: settings)
+    if !buffersUntilDone, let stopCondition = settings.stopConditions {
+        stream = stream.stopWhen(stopCondition)
+    }
+    let capturedStream = stream
+    let capturedStopCondition = buffersUntilDone ? settings.stopConditions : nil
 
     let trackedStream = AsyncThrowingStream<TextStreamDelta, Error> { continuation in
         Task {
             do {
                 let totalInputTokens = 0
                 var totalOutputTokens = 0
+                var bufferedDeltas: [TextStreamDelta] = []
+                var bufferedVisibleText = ""
+                var didReceiveTerminal = false
+                var didTriggerLocalStop = false
 
-                for try await delta in capturedStream {
-                    continuation.yield(delta)
-
+                func track(_ delta: TextStreamDelta) {
                     // Track tokens as they come in (approximate)
                     if case .textDelta = delta.type, let content = delta.content {
                         // Rough approximation: ~4 characters per token
                         totalOutputTokens += max(1, content.count / 4)
+                    }
+                }
+
+                func yieldAndTrack(_ delta: TextStreamDelta) {
+                    track(delta)
+                    continuation.yield(delta)
+                }
+
+                if let capturedStopCondition {
+                    await capturedStopCondition.reset()
+                }
+
+                for try await delta in capturedStream {
+                    if buffersUntilDone, delta.type != .done {
+	                        if !didTriggerLocalStop {
+	                            bufferedDeltas.append(delta)
+	                            track(delta)
+	                            if
+	                                let capturedStopCondition,
+	                                case .textDelta = delta.type,
+	                                let content = delta.content
+	                            {
+	                                bufferedVisibleText += content
+	                                didTriggerLocalStop = await capturedStopCondition.shouldStop(
+	                                    text: bufferedVisibleText,
+	                                    delta: content,
+	                                )
+	                            }
+                        }
+                        continue
+                    }
+
+                    if case .done = delta.type {
+                        didReceiveTerminal = true
+	                        if buffersUntilDone {
+	                            if delta.finishReason == .contentFilter {
+	                                bufferedDeltas.removeAll()
+	                                yieldAndTrack(delta)
+	                            } else {
+	                                for bufferedDelta in bufferedDeltas {
+	                                    continuation.yield(bufferedDelta)
+	                                }
+                                bufferedDeltas.removeAll()
+                                if didTriggerLocalStop {
+                                    yieldAndTrack(TextStreamDelta.done(usage: delta.usage, finishReason: .stop))
+                                } else {
+                                    yieldAndTrack(delta)
+                                }
+                            }
+                        } else {
+                            yieldAndTrack(delta)
+                        }
+                    } else {
+                        yieldAndTrack(delta)
                     }
 
                     if case .done = delta.type {
@@ -346,6 +431,10 @@ public func streamText(
                             _ = UsageTracker.shared.endSession(capturedSessionId)
                         }
                     }
+                }
+
+                if buffersUntilDone, !didReceiveTerminal, !bufferedDeltas.isEmpty {
+                    throw TachikomaError.apiError("Stream ended before provider completion status was received")
                 }
 
                 continuation.finish()
@@ -392,7 +481,7 @@ public func generateObject<T: Codable & Sendable>(
     let provider = try resolvedConfiguration.makeProvider(for: model)
 
     let request = ProviderRequest(
-        messages: messages,
+        messages: messages.sanitizedForProvider(model, configuration: resolvedConfiguration),
         tools: nil,
         settings: settings,
         outputFormat: .json,
@@ -404,6 +493,10 @@ public func generateObject<T: Codable & Sendable>(
         }
     } else {
         try await provider.generateText(request: request)
+    }
+
+    if response.finishReason == .contentFilter {
+        throw TachikomaError.apiError("Response was blocked by the provider content filter")
     }
 
     // Parse the JSON response into the expected type
@@ -446,11 +539,14 @@ public func streamObject<T: Codable & Sendable>(
     -> StreamObjectResult<T>
 {
     let resolvedConfiguration = TachikomaConfiguration.resolve(configuration)
+    guard model.supportsStreaming else {
+        throw TachikomaError.invalidConfiguration("\(model.modelId) does not support streaming")
+    }
     let provider = try resolvedConfiguration.makeProvider(for: model)
 
     // Create request with JSON output format
     let request = ProviderRequest(
-        messages: messages,
+        messages: messages.sanitizedForProvider(model, configuration: resolvedConfiguration),
         tools: nil,
         settings: settings,
         outputFormat: .json,
@@ -458,6 +554,7 @@ public func streamObject<T: Codable & Sendable>(
 
     // Get the text stream from the provider
     let stream = try await provider.streamText(request: request)
+    let buffersUntilDone = model.buffersObjectStreamUntilDone(settings: settings)
 
     // Create a new stream that attempts to parse partial JSON objects
     let objectStream = AsyncThrowingStream<ObjectStreamDelta<T>, Error> { continuation in
@@ -466,6 +563,37 @@ public func streamObject<T: Codable & Sendable>(
                 var accumulatedText = ""
                 var lastValidObject: T?
                 var hasStarted = false
+                var bufferedStartDelta: ObjectStreamDelta<T>?
+                var didFinishObject = false
+
+                func publishCompleteObject(allowLastValidObjectFallback: Bool) throws {
+                    if buffersUntilDone, let bufferedStartDelta {
+                        continuation.yield(bufferedStartDelta)
+                    }
+                    if
+                        let jsonData = accumulatedText.data(using: .utf8),
+                        let finalObject = try? JSONDecoder().decode(T.self, from: jsonData)
+                    {
+                        continuation.yield(ObjectStreamDelta(
+                            type: .complete,
+                            object: finalObject,
+                            rawText: accumulatedText,
+                        ))
+                    } else if allowLastValidObjectFallback, let lastValidObject {
+                        // If we have a last valid object, use it as complete
+                        continuation.yield(ObjectStreamDelta(
+                            type: .complete,
+                            object: lastValidObject,
+                            rawText: accumulatedText,
+                        ))
+                    } else {
+                        throw TachikomaError.invalidInput(
+                            "Failed to parse complete object from stream",
+                        )
+                    }
+                    continuation.yield(ObjectStreamDelta(type: .done))
+                    didFinishObject = true
+                }
 
                 for try await delta in stream {
                     if case .textDelta = delta.type, let content = delta.content {
@@ -474,7 +602,16 @@ public func streamObject<T: Codable & Sendable>(
                         // Signal stream start
                         if !hasStarted {
                             hasStarted = true
-                            continuation.yield(ObjectStreamDelta(type: .start))
+                            let startDelta = ObjectStreamDelta<T>(type: .start)
+                            if buffersUntilDone {
+                                bufferedStartDelta = startDelta
+                            } else {
+                                continuation.yield(startDelta)
+                            }
+                        }
+
+                        if buffersUntilDone {
+                            continue
                         }
 
                         // Attempt to parse the accumulated JSON
@@ -482,46 +619,52 @@ public func streamObject<T: Codable & Sendable>(
                             // Try to parse as complete object
                             if let object = try? JSONDecoder().decode(T.self, from: jsonData) {
                                 lastValidObject = object
-                                continuation.yield(ObjectStreamDelta(
+                                let objectDelta = ObjectStreamDelta(
                                     type: .partial,
                                     object: object,
                                     rawText: accumulatedText,
-                                ))
+                                )
+                                continuation.yield(objectDelta)
                             } else if let partialObject = attemptPartialParse(T.self, from: accumulatedText) {
                                 // Attempt to parse as partial object
                                 lastValidObject = partialObject
-                                continuation.yield(ObjectStreamDelta(
+                                let objectDelta = ObjectStreamDelta(
                                     type: .partial,
                                     object: partialObject,
                                     rawText: accumulatedText,
-                                ))
+                                )
+                                continuation.yield(objectDelta)
                             }
                         }
                     } else if case .done = delta.type {
-                        // Final parse attempt
-                        if
-                            let jsonData = accumulatedText.data(using: .utf8),
-                            let finalObject = try? JSONDecoder().decode(T.self, from: jsonData)
-                        {
-                            continuation.yield(ObjectStreamDelta(
-                                type: .complete,
-                                object: finalObject,
-                                rawText: accumulatedText,
-                            ))
-                        } else if let lastValidObject {
-                            // If we have a last valid object, use it as complete
-                            continuation.yield(ObjectStreamDelta(
-                                type: .complete,
-                                object: lastValidObject,
-                                rawText: accumulatedText,
-                            ))
-                        } else {
-                            throw TachikomaError.invalidInput(
-                                "Failed to parse complete object from stream",
-                            )
+                        if delta.finishReason == .contentFilter {
+                            throw TachikomaError.apiError("Response was blocked by the provider content filter")
                         }
-                        continuation.yield(ObjectStreamDelta(type: .done))
+                        try publishCompleteObject(allowLastValidObjectFallback: delta.finishReason == .stop || delta.finishReason == nil)
                     }
+                }
+
+                if !didFinishObject, hasStarted {
+                    if buffersUntilDone {
+                        throw TachikomaError.apiError("Stream ended before provider completion status was received")
+                    } else if
+                        let jsonData = accumulatedText.data(using: .utf8),
+                        let finalObject = try? JSONDecoder().decode(T.self, from: jsonData)
+                    {
+                        continuation.yield(ObjectStreamDelta(
+                            type: .complete,
+                            object: finalObject,
+                            rawText: accumulatedText,
+                        ))
+                        continuation.yield(ObjectStreamDelta(type: .done))
+                    } else if let lastValidObject {
+                        continuation.yield(ObjectStreamDelta(
+                            type: .complete,
+                            object: lastValidObject,
+                            rawText: accumulatedText,
+                        ))
+                        continuation.yield(ObjectStreamDelta(type: .done))
+                        }
                 }
 
                 continuation.finish()
@@ -597,6 +740,453 @@ private func fixPartialJSON(_ json: String) -> String {
     }
 
     return fixed
+}
+
+private extension LanguageModel {
+    func buffersTextStreamUntilDone(settings: GenerationSettings) -> Bool {
+        self.hasAnthropicStreamingRefusalRisk ||
+            settings.streamBuffering == .untilTerminal ||
+            (settings.stopConditions != nil && self.canEmitTerminalContentFilterAfterText)
+    }
+
+    func buffersObjectStreamUntilDone(settings: GenerationSettings) -> Bool {
+        settings.streamBuffering == .untilTerminal ||
+            self.hasAnthropicStreamingRefusalRisk
+    }
+
+    private var hasAnthropicStreamingRefusalRisk: Bool {
+        switch self {
+        case let .anthropic(model):
+            return LanguageModel.Anthropic.hasStreamingRefusalRisk(modelId: model.modelId)
+        case let .anthropicCompatible(modelId, _):
+            return LanguageModel.Anthropic.hasStreamingRefusalRisk(modelId: modelId)
+        case let .openRouter(modelId), let .together(modelId):
+            return LanguageModel.Anthropic.hasStreamingRefusalRisk(modelId: modelId)
+        case let .openaiCompatible(modelId, _):
+            return LanguageModel.Anthropic.hasStreamingRefusalRisk(modelId: modelId)
+        case let .custom(provider):
+            if
+                let parsed = ProviderParser.parse(provider.modelId),
+                CustomProviderRegistry.shared.get(parsed.provider)?.kind == .anthropic
+            {
+                return LanguageModel.Anthropic.hasStreamingRefusalRisk(modelId: parsed.model)
+            }
+            return LanguageModel.Anthropic.hasStreamingRefusalRisk(modelId: provider.modelId)
+        default:
+            return false
+        }
+    }
+
+    private var canEmitTerminalContentFilterAfterText: Bool {
+        switch self {
+        case .openai,
+             .openaiCompatible,
+             .openRouter,
+             .together,
+             .replicate,
+             .google,
+             .mistral,
+             .groq,
+             .grok,
+             .azureOpenAI:
+            return true
+        case let .custom(provider):
+            guard
+                let parsed = ProviderParser.parse(provider.modelId),
+                let registeredProvider = CustomProviderRegistry.shared.get(parsed.provider)
+            else {
+                return false
+            }
+            switch registeredProvider.kind {
+            case .openai:
+                return true
+            case .anthropic:
+                return false
+            }
+        default:
+            return false
+        }
+    }
+}
+
+private struct ReasoningReplayTarget {
+    let provider: String
+    let modelId: String
+    let baseURL: String?
+    let allowsLegacyUnknown: Bool
+
+    func matches(_ customData: [String: String]) -> Bool {
+        guard customData["tachikoma.reasoning.provider"] == self.provider else {
+            return false
+        }
+        guard customData["tachikoma.reasoning.model"] == self.modelId else {
+            return false
+        }
+        return customData["tachikoma.reasoning.base_url"] == self.endpointIdentity
+    }
+
+    var endpointIdentity: String? {
+        ReasoningEndpointIdentity.canonical(self.baseURL)
+    }
+}
+
+private extension Array where Element == ModelMessage {
+    func replacingGeneratedAssistantText(after prefixCount: Int, with text: String) -> [ModelMessage] {
+        guard self.indices.contains(prefixCount) else {
+            return self
+        }
+
+        var messages = self
+        var cursor = text.startIndex
+        for messageIndex in prefixCount..<messages.count {
+            let message = messages[messageIndex]
+            guard message.role == .assistant, message.channel != .thinking else {
+                continue
+            }
+
+            var content: [ModelMessage.ContentPart] = []
+            for part in message.content {
+                guard case let .text(originalText) = part else {
+                    content.append(part)
+                    continue
+                }
+
+                guard cursor < text.endIndex else {
+                    continue
+                }
+
+                let remainingCount = text.distance(from: cursor, to: text.endIndex)
+                let takeCount = Swift.min(originalText.count, remainingCount)
+                let endIndex = text.index(cursor, offsetBy: takeCount)
+                content.append(.text(String(text[cursor..<endIndex])))
+                cursor = endIndex
+            }
+
+            messages[messageIndex] = ModelMessage(
+                id: message.id,
+                role: message.role,
+                content: content,
+                timestamp: message.timestamp,
+                channel: message.channel,
+                metadata: message.metadata,
+            )
+        }
+        return messages
+    }
+}
+
+private extension [ModelMessage] {
+    func sanitizedForProvider(_ model: LanguageModel, configuration: TachikomaConfiguration) -> [ModelMessage] {
+        if let target = model.anthropicThinkingReplayTarget(configuration: configuration) {
+            var sanitized: [ModelMessage] = []
+            for message in self {
+                if message.isSyntheticReasoningBoundary {
+                    if sanitized.last?.channel == .thinking {
+                        sanitized.append(message)
+                    }
+                    continue
+                }
+                guard message.channel == .thinking else {
+                    sanitized.append(message)
+                    continue
+                }
+                guard !message.hasOpenRouterReasoningReplayMetadata else {
+                    continue
+                }
+                guard let producerModel = message.metadata?.customData?["anthropic.thinking.model"] else {
+                    if target.allowsLegacyUnknown,
+                       message.metadata?.customData?["anthropic.thinking.type"] != nil
+                    {
+                        sanitized.append(message)
+                    }
+                    continue
+                }
+                let customData = message.metadata?.customData ?? [:]
+                if producerModel == target.modelId, target.matches(customData) {
+                    sanitized.append(message)
+                }
+            }
+            return sanitized
+        }
+
+        if let target = model.openRouterReasoningReplayTarget(configuration: configuration) {
+            var sanitized: [ModelMessage] = []
+            for message in self {
+                if message.isSyntheticReasoningBoundary {
+                    if sanitized.last?.channel == .thinking {
+                        sanitized.append(message)
+                    }
+                    continue
+                }
+                guard message.channel == .thinking else {
+                    sanitized.append(message)
+                    continue
+                }
+                guard message.hasOpenRouterReasoningReplayMetadata else {
+                    continue
+                }
+                if target.matches(message.metadata?.customData ?? [:]) {
+                    sanitized.append(message)
+                }
+            }
+            return sanitized
+        }
+
+        return self.filter { !$0.isSyntheticReasoningBoundary && $0.channel != .thinking }
+    }
+}
+
+private extension ModelMessage {
+    var hasAnthropicThinkingReplayMetadata: Bool {
+        guard let customData = metadata?.customData else { return false }
+        return customData["anthropic.thinking.model"] != nil ||
+            customData["anthropic.thinking.type"] != nil ||
+            customData["anthropic.thinking.signature"] != nil
+    }
+
+    var hasOpenRouterReasoningReplayMetadata: Bool {
+        guard let customData = metadata?.customData else { return false }
+        return customData["openrouter.reasoning_details"] != nil ||
+            customData["openrouter.reasoning"] != nil
+    }
+
+    var hasProviderReasoningReplayMetadata: Bool {
+        self.hasAnthropicThinkingReplayMetadata || self.hasOpenRouterReasoningReplayMetadata
+    }
+
+    var isSyntheticReasoningBoundary: Bool {
+        metadata?.customData?["tachikoma.internal.boundary"] == "reasoning_only"
+    }
+}
+
+private extension [ModelMessage] {
+    func sanitizedForToolContext() -> [ModelMessage] {
+        self.filter { $0.channel != .thinking && !$0.isSyntheticReasoningBoundary }
+    }
+
+    func containsAssistantText(_ text: String) -> Bool {
+        guard !text.isEmpty else { return true }
+        let assistantTexts = self.flatMap { message -> [String] in
+            guard message.role == .assistant, message.channel != .thinking else {
+                return []
+            }
+            return message.content.compactMap { part in
+                if case let .text(value) = part {
+                    return value
+                }
+                return nil
+            }
+        }
+        return assistantTexts.contains(text) || assistantTexts.joined() == text
+    }
+
+    func containsReasoningBlock(_ reasoning: ProviderReasoningBlock) -> Bool {
+        self.contains { message in
+            message.role == .assistant && message.channel == .thinking && message.content.contains { part in
+                guard case let .text(value) = part else { return false }
+                if let signature = reasoning.signature, !signature.isEmpty {
+                    return message.metadata?.customData?["anthropic.thinking.signature"] == signature ||
+                        message.metadata?.customData?["tachikoma.reasoning.signature"] == signature
+                }
+                return value == reasoning.text
+            }
+        }
+    }
+
+    func containsToolCall(id: String) -> Bool {
+        self.contains { message in
+            message.role == .assistant && message.content.contains { part in
+                if case let .toolCall(toolCall) = part {
+                    return toolCall.id == id
+                }
+                return false
+            }
+        }
+    }
+}
+
+private extension LanguageModel {
+    func responseHistoryMessages(
+        nativeMessages: [ModelMessage],
+        text: String,
+        reasoning: [ProviderReasoningBlock],
+        toolCalls: [AgentToolCall],
+        configuration: TachikomaConfiguration,
+    ) -> [ModelMessage] {
+        var history = nativeMessages
+
+        for reasoningBlock in reasoning where !history.containsReasoningBlock(reasoningBlock) {
+            history.append(ModelMessage(
+                role: .assistant,
+                content: [.text(reasoningBlock.text)],
+                channel: .thinking,
+                metadata: .init(customData: self.anthropicThinkingMetadata(
+                    for: reasoningBlock,
+                    configuration: configuration,
+                )),
+            ))
+        }
+
+        let missingToolCalls = toolCalls.filter { !history.containsToolCall(id: $0.id) }
+        let isMissingText = !history.containsAssistantText(text)
+        let needsFallbackBoundary = nativeMessages.isEmpty && text.isEmpty && missingToolCalls.isEmpty
+
+        guard isMissingText || !missingToolCalls.isEmpty || needsFallbackBoundary else {
+            return history
+        }
+
+        var fallbackContent: [ModelMessage.ContentPart] = []
+        if isMissingText || needsFallbackBoundary {
+            fallbackContent.append(.text(text))
+        }
+        fallbackContent.append(contentsOf: missingToolCalls.map { .toolCall($0) })
+        history.append(ModelMessage(role: .assistant, content: fallbackContent))
+        return history
+    }
+
+    func anthropicThinkingReplayTarget(configuration: TachikomaConfiguration) -> ReasoningReplayTarget? {
+        switch self {
+        case let .anthropic(model):
+            return ReasoningReplayTarget(
+                provider: "anthropic",
+                modelId: model.modelId,
+                baseURL: configuration.getBaseURL(for: .anthropic) ?? Provider.anthropic.defaultBaseURL,
+                allowsLegacyUnknown: !LanguageModel.Anthropic.isFable(modelId: model.modelId),
+            )
+        case let .anthropicCompatible(modelId, baseURL):
+            return ReasoningReplayTarget(
+                provider: "anthropic-compatible",
+                modelId: modelId,
+                baseURL: baseURL,
+                allowsLegacyUnknown: !LanguageModel.Anthropic.isFable(modelId: modelId),
+            )
+        case let .minimax(model):
+            return ReasoningReplayTarget(
+                provider: "minimax",
+                modelId: model.modelId,
+                baseURL: configuration.getBaseURL(for: .minimax) ?? Provider.minimax.defaultBaseURL,
+                allowsLegacyUnknown: true,
+            )
+        case let .minimaxCN(model):
+            return ReasoningReplayTarget(
+                provider: "minimax-cn",
+                modelId: model.modelId,
+                baseURL: configuration.getBaseURL(for: .minimaxCN) ?? Provider.minimaxCN.defaultBaseURL,
+                allowsLegacyUnknown: true,
+            )
+        case let .custom(provider):
+            if let directAnthropicProvider = provider as? AnthropicProvider {
+                return ReasoningReplayTarget(
+                    provider: "anthropic",
+                    modelId: directAnthropicProvider.modelId,
+                    baseURL: directAnthropicProvider.baseURL ?? Provider.anthropic.defaultBaseURL,
+                    allowsLegacyUnknown: !LanguageModel.Anthropic.isFable(modelId: directAnthropicProvider.modelId),
+                )
+            }
+            if let compatibleProvider = provider as? AnthropicCompatibleProvider {
+                return ReasoningReplayTarget(
+                    provider: "anthropic-compatible",
+                    modelId: compatibleProvider.modelId,
+                    baseURL: compatibleProvider.baseURL,
+                    allowsLegacyUnknown: !LanguageModel.Anthropic.isFable(modelId: compatibleProvider.modelId),
+                )
+            }
+            guard
+                let parsed = ProviderParser.parse(provider.modelId),
+                let registeredProvider = CustomProviderRegistry.shared.get(parsed.provider),
+                registeredProvider.kind == .anthropic
+            else {
+                return provider.modelId.contains("claude") || provider.modelId.contains("anthropic")
+                    ? ReasoningReplayTarget(
+                        provider: "custom-anthropic",
+                        modelId: provider.modelId,
+                        baseURL: provider.baseURL,
+                        allowsLegacyUnknown: !LanguageModel.Anthropic.isFable(modelId: provider.modelId),
+                    )
+                    : nil
+            }
+            return ReasoningReplayTarget(
+                provider: "custom-anthropic",
+                modelId: parsed.model,
+                baseURL: registeredProvider.baseURL,
+                allowsLegacyUnknown: !LanguageModel.Anthropic.isFable(modelId: parsed.model),
+            )
+        default:
+            return nil
+        }
+    }
+
+    func openRouterReasoningReplayTarget(configuration: TachikomaConfiguration) -> ReasoningReplayTarget? {
+        switch self {
+        case let .openRouter(modelId):
+            return ReasoningReplayTarget(
+                provider: "openrouter",
+                modelId: modelId,
+                baseURL: configuration.getBaseURL(for: .custom("openrouter")) ?? "https://openrouter.ai/api/v1",
+                allowsLegacyUnknown: false,
+            )
+        default:
+            return nil
+        }
+    }
+
+    func anthropicThinkingMetadata(
+        for reasoning: ProviderReasoningBlock,
+        configuration: TachikomaConfiguration,
+    ) -> [String: String] {
+        if
+            let rawJSON = reasoning.rawJSON,
+            let target = self.openRouterReasoningReplayTarget(configuration: configuration)
+        {
+            var metadata = [
+                "openrouter.reasoning_details": rawJSON,
+                "tachikoma.reasoning.type": reasoning.type,
+                "tachikoma.reasoning.provider": target.provider,
+                "tachikoma.reasoning.model": target.modelId,
+            ]
+            if let endpointIdentity = target.endpointIdentity {
+                metadata["tachikoma.reasoning.base_url"] = endpointIdentity
+            }
+            return metadata
+        }
+        if
+            reasoning.type == "openrouter_reasoning",
+            let target = self.openRouterReasoningReplayTarget(configuration: configuration)
+        {
+            var metadata = [
+                "openrouter.reasoning": reasoning.text,
+                "tachikoma.reasoning.type": reasoning.type,
+                "tachikoma.reasoning.provider": target.provider,
+                "tachikoma.reasoning.model": target.modelId,
+            ]
+            if let endpointIdentity = target.endpointIdentity {
+                metadata["tachikoma.reasoning.base_url"] = endpointIdentity
+            }
+            return metadata
+        }
+
+        guard let target = self.anthropicThinkingReplayTarget(configuration: configuration) else {
+            var customData = ["tachikoma.reasoning.type": reasoning.type]
+            if let signature = reasoning.signature, !signature.isEmpty {
+                customData["tachikoma.reasoning.signature"] = signature
+            }
+            return customData
+        }
+
+        var customData = [
+            "anthropic.thinking.type": reasoning.type,
+            "anthropic.thinking.model": target.modelId,
+            "tachikoma.reasoning.provider": target.provider,
+            "tachikoma.reasoning.model": target.modelId,
+        ]
+        if let endpointIdentity = target.endpointIdentity {
+            customData["tachikoma.reasoning.base_url"] = endpointIdentity
+        }
+        if let signature = reasoning.signature, !signature.isEmpty {
+            customData["anthropic.thinking.signature"] = signature
+        }
+        return customData
+    }
 }
 
 // MARK: - Convenience Functions
@@ -746,7 +1336,7 @@ public func analyze(
 @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public func stream(
     _ prompt: String,
-    using model: LanguageModel = .default,
+    using model: LanguageModel = .defaultStreaming,
     system: String? = nil,
     maxTokens: Int? = nil,
     temperature: Double? = nil,

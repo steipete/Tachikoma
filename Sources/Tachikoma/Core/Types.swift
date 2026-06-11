@@ -326,6 +326,11 @@ public enum ImageInput: Sendable {
 /// Settings for text generation
 @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public struct GenerationSettings: Sendable {
+    public enum StreamBufferingMode: String, Sendable, Codable {
+        case incremental
+        case untilTerminal
+    }
+
     public let maxTokens: Int?
     public let temperature: Double?
     public let topP: Double?
@@ -337,6 +342,7 @@ public struct GenerationSettings: Sendable {
     public let stopConditions: (any StopCondition)?
     public let seed: Int?
     public let providerOptions: ProviderOptions
+    public let streamBuffering: StreamBufferingMode
 
     public init(
         maxTokens: Int? = nil,
@@ -350,6 +356,7 @@ public struct GenerationSettings: Sendable {
         stopConditions: (any StopCondition)? = nil,
         seed: Int? = nil,
         providerOptions: ProviderOptions = .init(),
+        streamBuffering: StreamBufferingMode = .incremental,
     ) {
         self.maxTokens = maxTokens
         self.temperature = temperature
@@ -362,9 +369,27 @@ public struct GenerationSettings: Sendable {
         self.stopConditions = stopConditions
         self.seed = seed
         self.providerOptions = providerOptions
+        self.streamBuffering = streamBuffering
     }
 
     public static let `default` = GenerationSettings()
+
+    public func withStreamBuffering(_ mode: StreamBufferingMode) -> GenerationSettings {
+        GenerationSettings(
+            maxTokens: self.maxTokens,
+            temperature: self.temperature,
+            topP: self.topP,
+            topK: self.topK,
+            frequencyPenalty: self.frequencyPenalty,
+            presencePenalty: self.presencePenalty,
+            stopSequences: self.stopSequences,
+            reasoningEffort: self.reasoningEffort,
+            stopConditions: self.stopConditions,
+            seed: self.seed,
+            providerOptions: self.providerOptions,
+            streamBuffering: mode,
+        )
+    }
 }
 
 /// Manual Codable conformance excluding non-codable stopConditions
@@ -380,6 +405,7 @@ extension GenerationSettings: Codable {
         case reasoningEffort
         case seed
         case providerOptions
+        case streamBuffering
     }
 
     public init(from decoder: Decoder) throws {
@@ -394,6 +420,7 @@ extension GenerationSettings: Codable {
         self.reasoningEffort = try container.decodeIfPresent(ReasoningEffort.self, forKey: .reasoningEffort)
         self.seed = try container.decodeIfPresent(Int.self, forKey: .seed)
         self.providerOptions = try container.decodeIfPresent(ProviderOptions.self, forKey: .providerOptions) ?? .init()
+        self.streamBuffering = try container.decodeIfPresent(StreamBufferingMode.self, forKey: .streamBuffering) ?? .incremental
         self.stopConditions = nil // Can't decode function types
     }
 
@@ -409,6 +436,7 @@ extension GenerationSettings: Codable {
         try container.encodeIfPresent(self.reasoningEffort, forKey: .reasoningEffort)
         try container.encodeIfPresent(self.seed, forKey: .seed)
         try container.encode(self.providerOptions, forKey: .providerOptions)
+        try container.encode(self.streamBuffering, forKey: .streamBuffering)
         // Don't encode stopConditions since it can't be serialized
     }
 }

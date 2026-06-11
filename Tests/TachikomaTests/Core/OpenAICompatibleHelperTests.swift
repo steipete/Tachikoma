@@ -122,6 +122,49 @@ struct OpenAICompatibleHelperTests {
     }
 
     @Test
+    func `streamText maps content filter finish reasons`() async throws {
+        let request = ProviderRequest(
+            messages: [ModelMessage(role: .user, content: [.text("blocked")])],
+        )
+
+        let deltas = try await withMockedSession { urlRequest in
+            let sse = """
+            data: {\"id\":\"chunk_1\",\"choices\":[{\"delta\":{\"content\":\"partial\"},\"index\":0,\"finish_reason\":null}]}
+
+            data: {\"id\":\"chunk_2\",\"choices\":[{\"delta\":{},\"index\":0,\"finish_reason\":\"content_filter\"}]}
+
+            data: [DONE]
+
+            """.utf8Data()
+            let response = HTTPURLResponse(
+                url: urlRequest.url!,
+                statusCode: 200,
+                httpVersion: nil,
+                headerFields: ["Content-Type": "text/event-stream"],
+            )!
+            return (response, sse)
+        } operation: { session in
+            let stream = try await OpenAICompatibleHelper.streamText(
+                request: request,
+                modelId: "compatible-model",
+                baseURL: "https://mock.compatible",
+                apiKey: "sk-test",
+                providerName: "TestProvider",
+                session: session,
+            )
+
+            var deltas: [TextStreamDelta] = []
+            for try await delta in stream {
+                deltas.append(delta)
+            }
+            return deltas
+        }
+
+        #expect(deltas.contains { $0.type == .textDelta && $0.content == "partial" })
+        #expect(deltas.contains { $0.type == .done && $0.finishReason == .contentFilter })
+    }
+
+    @Test
     func `OpenAI-compatible provider forwards configured headers`() async throws {
         let request = ProviderRequest(
             messages: [ModelMessage(role: .user, content: [.text("ping")])],
@@ -147,6 +190,263 @@ struct OpenAICompatibleHelperTests {
             let response = try await provider.generateText(request: request)
             #expect(response.text == "pong")
         }
+    }
+
+    @Test
+    func `generateText decodes OpenRouter reasoning details`() async throws {
+        let response = try await withMockedSession { urlRequest in
+            let payload: [String: Any] = [
+                "id": "chatcmpl-test",
+                "object": "chat.completion",
+                "created": 1_700_000_000,
+                "model": "anthropic/claude-fable-5",
+                "choices": [[
+                    "index": 0,
+                    "message": [
+                        "role": "assistant",
+                        "content": NSNull(),
+                        "reasoning_details": [[
+                            "type": "reasoning.encrypted",
+                            "data": "sealed",
+                        ]],
+                        "tool_calls": [[
+                            "id": "call-1",
+                            "type": "function",
+                            "function": [
+                                "name": "lookup",
+                                "arguments": "{}",
+                            ],
+                        ]],
+                    ],
+                    "finish_reason": "tool_calls",
+                ]],
+            ]
+            return self.jsonResponse(for: urlRequest, data: try JSONSerialization.data(withJSONObject: payload))
+        } operation: { session in
+            try await OpenAICompatibleHelper.generateText(
+                request: ProviderRequest(messages: [.user("hi")]),
+                modelId: "anthropic/claude-fable-5",
+                baseURL: "https://mock.compatible",
+                apiKey: "sk-test",
+                providerName: "OpenRouter",
+                session: session,
+            )
+        }
+
+        let reasoning = try #require(response.reasoning.first)
+        #expect(reasoning.type == "openrouter_reasoning_details")
+        #expect(reasoning.rawJSON?.contains("reasoning.encrypted") == true)
+        #expect(response.toolCalls?.first?.id == "call-1")
+    }
+
+    @Test
+    func `generateText strips unsupported Fable sampling for OpenRouter route`() async throws {
+        let capture = CapturedRequest()
+        let request = ProviderRequest(
+            messages: [ModelMessage(role: .user, content: [.text("ping")])],
+            settings: GenerationSettings(maxTokens: 128, temperature: 0.7),
+        )
+
+        _ = try await withMockedSession { urlRequest in
+            capture.body = self.bodyData(from: urlRequest)
+            return self.jsonResponse(for: urlRequest, data: Self.chatCompletionPayload(text: "pong"))
+        } operation: { session in
+            try await OpenAICompatibleHelper.generateText(
+                request: request,
+                modelId: "anthropic/claude-fable-5",
+                baseURL: "https://mock.compatible",
+                apiKey: "sk-test",
+                providerName: "OpenRouter",
+                session: session,
+            )
+        }
+
+        let bodyJSON = try #require(capture.body).jsonObject()
+        #expect(bodyJSON["temperature"] == nil)
+        #expect(bodyJSON["max_tokens"] as? Int == 128)
+    }
+
+    @Test
+    func `generateText replays OpenRouter reasoning details on assistant tool messages`() async throws {
+        let capture = CapturedRequest()
+        let rawReasoning = #"[{"type":"reasoning.encrypted","data":"sealed"}]"#
+        let call = AgentToolCall(id: "call-1", name: "lookup", arguments: [:])
+        let request = ProviderRequest(messages: [
+            .user("hi"),
+            ModelMessage(
+                role: .assistant,
+                content: [.text("")],
+                channel: .thinking,
+                metadata: .init(customData: [
+                    "openrouter.reasoning_details": rawReasoning,
+                    "tachikoma.reasoning.provider": "openrouter",
+                    "tachikoma.reasoning.model": "anthropic/claude-fable-5",
+                    "tachikoma.reasoning.base_url": ReasoningEndpointIdentity.canonical("https://mock.compatible")!,
+                ]),
+            ),
+            ModelMessage(role: .assistant, content: [.toolCall(call)]),
+            ModelMessage(
+                role: .tool,
+                content: [.toolResult(.success(toolCallId: "call-1", result: AnyAgentToolValue(string: "ok")))],
+            ),
+        ])
+
+        _ = try await withMockedSession { urlRequest in
+            capture.body = self.bodyData(from: urlRequest)
+            return self.jsonResponse(for: urlRequest, data: Self.chatCompletionPayload(text: "done"))
+        } operation: { session in
+            try await OpenAICompatibleHelper.generateText(
+                request: request,
+                modelId: "anthropic/claude-fable-5",
+                baseURL: "https://mock.compatible",
+                apiKey: "sk-test",
+                providerName: "OpenRouter",
+                session: session,
+            )
+        }
+
+        let bodyJSON = try #require(capture.body).jsonObject()
+        let messages = try #require(bodyJSON["messages"] as? [[String: Any]])
+        let assistant = try #require(messages.first { $0["role"] as? String == "assistant" })
+        let details = try #require(assistant["reasoning_details"] as? [[String: Any]])
+        #expect(details.first?["type"] as? String == "reasoning.encrypted")
+        #expect(details.first?["data"] as? String == "sealed")
+        #expect(assistant["tool_calls"] != nil)
+    }
+
+    @Test
+    func `generateText replays OpenRouter reasoning details on reasoning-only assistant boundary`() async throws {
+        let capture = CapturedRequest()
+        let rawReasoning = #"[{"type":"reasoning.encrypted","data":"sealed"}]"#
+        let request = ProviderRequest(messages: [
+            .user("first"),
+            ModelMessage(
+                role: .assistant,
+                content: [.text("")],
+                channel: .thinking,
+                metadata: .init(customData: [
+                    "openrouter.reasoning_details": rawReasoning,
+                    "tachikoma.reasoning.provider": "openrouter",
+                    "tachikoma.reasoning.model": "anthropic/claude-fable-5",
+                    "tachikoma.reasoning.base_url": ReasoningEndpointIdentity.canonical("https://mock.compatible")!,
+                ]),
+            ),
+            ModelMessage(
+                role: .assistant,
+                content: [.text("")],
+                metadata: .init(customData: ["tachikoma.internal.boundary": "reasoning_only"]),
+            ),
+            .user("next"),
+        ])
+
+        _ = try await withMockedSession { urlRequest in
+            capture.body = self.bodyData(from: urlRequest)
+            return self.jsonResponse(for: urlRequest, data: Self.chatCompletionPayload(text: "done"))
+        } operation: { session in
+            try await OpenAICompatibleHelper.generateText(
+                request: request,
+                modelId: "anthropic/claude-fable-5",
+                baseURL: "https://mock.compatible",
+                apiKey: "sk-test",
+                providerName: "OpenRouter",
+                session: session,
+            )
+        }
+
+        let bodyJSON = try #require(capture.body).jsonObject()
+        let messages = try #require(bodyJSON["messages"] as? [[String: Any]])
+        let assistantIndex = try #require(messages.firstIndex { $0["role"] as? String == "assistant" })
+        let assistant = messages[assistantIndex]
+        let details = try #require(assistant["reasoning_details"] as? [[String: Any]])
+        #expect(details.first?["data"] as? String == "sealed")
+        let nextMessage = try #require(messages.indices.contains(assistantIndex + 1) ? messages[assistantIndex + 1] : nil)
+        #expect(nextMessage["role"] as? String == "user")
+    }
+
+    @Test
+    func `generateText does not replay OpenRouter reasoning from another endpoint`() async throws {
+        let capture = CapturedRequest()
+        let rawReasoning = #"[{"type":"reasoning.encrypted","data":"sealed"}]"#
+        let call = AgentToolCall(id: "call-1", name: "lookup", arguments: [:])
+        let request = ProviderRequest(messages: [
+            .user("hi"),
+            ModelMessage(
+                role: .assistant,
+                content: [.text("")],
+                channel: .thinking,
+                metadata: .init(customData: [
+                    "openrouter.reasoning_details": rawReasoning,
+                    "tachikoma.reasoning.provider": "openrouter",
+                    "tachikoma.reasoning.model": "anthropic/claude-fable-5",
+                    "tachikoma.reasoning.base_url": ReasoningEndpointIdentity.canonical("https://other.example.test")!,
+                ]),
+            ),
+            ModelMessage(role: .assistant, content: [.toolCall(call)]),
+            ModelMessage(
+                role: .tool,
+                content: [.toolResult(.success(toolCallId: "call-1", result: AnyAgentToolValue(string: "ok")))],
+            ),
+        ])
+
+        _ = try await withMockedSession { urlRequest in
+            capture.body = self.bodyData(from: urlRequest)
+            return self.jsonResponse(for: urlRequest, data: Self.chatCompletionPayload(text: "done"))
+        } operation: { session in
+            try await OpenAICompatibleHelper.generateText(
+                request: request,
+                modelId: "anthropic/claude-fable-5",
+                baseURL: "https://mock.compatible",
+                apiKey: "sk-test",
+                providerName: "OpenRouter",
+                session: session,
+            )
+        }
+
+        let bodyJSON = try #require(capture.body).jsonObject()
+        let messages = try #require(bodyJSON["messages"] as? [[String: Any]])
+        let assistantMessages = messages.filter { $0["role"] as? String == "assistant" }
+        #expect(assistantMessages.allSatisfy { $0["reasoning_details"] == nil })
+    }
+
+    @Test
+    func `generateText drops unmatched OpenRouter reasoning instead of serializing it as text`() async throws {
+        let capture = CapturedRequest()
+        let request = ProviderRequest(messages: [
+            .user("hi"),
+            ModelMessage(
+                role: .assistant,
+                content: [.text("private reasoning")],
+                channel: .thinking,
+                metadata: .init(customData: [
+                    "openrouter.reasoning": "private reasoning",
+                    "tachikoma.reasoning.provider": "openrouter",
+                    "tachikoma.reasoning.model": "other-model",
+                    "tachikoma.reasoning.base_url": ReasoningEndpointIdentity.canonical("https://mock.compatible")!,
+                ]),
+            ),
+            .assistant("visible"),
+        ])
+
+        _ = try await withMockedSession { urlRequest in
+            capture.body = self.bodyData(from: urlRequest)
+            return self.jsonResponse(for: urlRequest, data: Self.chatCompletionPayload(text: "done"))
+        } operation: { session in
+            try await OpenAICompatibleHelper.generateText(
+                request: request,
+                modelId: "anthropic/claude-fable-5",
+                baseURL: "https://mock.compatible",
+                apiKey: "sk-test",
+                providerName: "OpenRouter",
+                session: session,
+            )
+        }
+
+        let bodyJSON = try #require(capture.body).jsonObject()
+        let messages = try #require(bodyJSON["messages"] as? [[String: Any]])
+        let assistantMessages = messages.filter { $0["role"] as? String == "assistant" }
+        #expect(assistantMessages.count == 1)
+        #expect(assistantMessages.first?["content"] as? String == "visible")
+        #expect(String(data: try #require(capture.body), encoding: .utf8)?.contains("private reasoning") == false)
     }
 
     @Test

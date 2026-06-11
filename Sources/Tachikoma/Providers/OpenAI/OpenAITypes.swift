@@ -77,11 +77,14 @@ struct OpenAIChatMessage: Codable {
     let content: Either<String, [OpenAIChatMessageContent]>?
     let toolCallId: String?
     let toolCalls: [AgentToolCall]?
+    let reasoning: String?
+    let reasoningDetails: [JSONValue]?
 
     enum CodingKeys: String, CodingKey {
-        case role, content
+        case role, content, reasoning
         case toolCallId = "tool_call_id"
         case toolCalls = "tool_calls"
+        case reasoningDetails = "reasoning_details"
     }
 
     struct AgentToolCall: Codable {
@@ -100,6 +103,8 @@ struct OpenAIChatMessage: Codable {
         self.content = .left(content)
         self.toolCallId = toolCallId
         self.toolCalls = nil
+        self.reasoning = nil
+        self.reasoningDetails = nil
     }
 
     init(role: String, content: [OpenAIChatMessageContent], toolCallId: String? = nil) {
@@ -107,13 +112,23 @@ struct OpenAIChatMessage: Codable {
         self.content = .right(content)
         self.toolCallId = toolCallId
         self.toolCalls = nil
+        self.reasoning = nil
+        self.reasoningDetails = nil
     }
 
-    init(role: String, content: String? = nil, toolCalls: [AgentToolCall]?) {
+    init(
+        role: String,
+        content: String? = nil,
+        toolCalls: [AgentToolCall]?,
+        reasoning: String? = nil,
+        reasoningDetails: [JSONValue]? = nil,
+    ) {
         self.role = role
         self.content = content.map { .left($0) }
         self.toolCallId = nil
         self.toolCalls = toolCalls
+        self.reasoning = reasoning
+        self.reasoningDetails = reasoningDetails
     }
 }
 
@@ -246,10 +261,13 @@ struct OpenAIChatResponse: Codable {
         let role: String
         let content: String?
         let toolCalls: [AgentToolCall]?
+        let reasoning: String?
+        let reasoningDetails: [JSONValue]?
 
         enum CodingKeys: String, CodingKey {
-            case role, content
+            case role, content, reasoning
             case toolCalls = "tool_calls"
+            case reasoningDetails = "reasoning_details"
         }
     }
 

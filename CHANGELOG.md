@@ -10,7 +10,8 @@ All notable changes to the Tachikoma project will be documented in this file.
 - Added explicit LM Studio model shortcuts such as `lmstudio` and `lmstudio/openai/gpt-oss-120b` so local provider selections no longer fall through to Ollama custom IDs.
 
 ### Changed
-- Refreshed the first-class model catalog to current provider IDs: OpenAI GPT-5.5/5.4, Claude Opus 4.7/Sonnet 4.6/Haiku 4.5, Gemini 3.1, Mistral latest aliases, Groq current production IDs, and xAI Grok 4.3/4.20.
+- Refreshed the first-class model catalog to current provider IDs: OpenAI GPT-5.5/5.4, Claude Fable 5/Opus 4.8/Opus 4.7/Sonnet 4.6/Haiku 4.5, Gemini 3.1, Mistral latest aliases, Groq current production IDs, and xAI Grok 4.3/4.20.
+- Added explicit `claude-fable-5` support with 1M context, 128K max output, signed-thinking replay, refusal handling, and non-streaming generation; `LanguageModel.default` remains `claude-opus-4-8`, while `LanguageModel.defaultStreaming` now uses streaming-safe `gpt-5.5`.
 - Removed stale direct model support for retired or non-canonical IDs including GPT-5.1/5.2/pseudo-thinking models, deprecated Claude Sonnet/Opus 4 snapshots, Grok 2/3/4-fast rows, old Groq Llama/Mixtral/Gemma aliases, stale Mistral aliases, and invalid LM Studio `current`.
 
 ### Fixed

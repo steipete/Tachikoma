@@ -10,6 +10,8 @@ public final class AnthropicCompatibleProvider: ModelProvider {
     public let capabilities: ModelCapabilities
     private let configuration: TachikomaConfiguration
     private let auth: TKAuthValue?
+    private let reasoningProvider: String
+    private let reasoningBaseURL: String?
 
     public init(
         modelId: String,
@@ -19,11 +21,16 @@ public final class AnthropicCompatibleProvider: ModelProvider {
         additionalHeaders: [String: String] = [:],
         auth: TKAuthValue? = nil,
         capabilities: ModelCapabilities? = nil,
+        reasoningProvider: String = "anthropic-compatible",
+        reasoningBaseURL: String? = nil,
+        includeReasoningBaseURL: Bool = true,
     ) throws {
         self.modelId = modelId
         self.baseURL = baseURL
         self.configuration = configuration
         self.additionalHeaders = additionalHeaders
+        self.reasoningProvider = reasoningProvider
+        self.reasoningBaseURL = includeReasoningBaseURL ? (reasoningBaseURL ?? baseURL) : nil
 
         // Try explicit provider key, then configuration, then common environment variable patterns.
         if let key = apiKey {
@@ -51,12 +58,24 @@ public final class AnthropicCompatibleProvider: ModelProvider {
             self.auth = nil
         }
 
-        self.capabilities = capabilities ?? ModelCapabilities(
+        let isFable = LanguageModel.Anthropic.isFable(modelId: modelId)
+        let supportsSafeStreaming = !LanguageModel.Anthropic.hasStreamingRefusalRisk(modelId: modelId)
+        let baseCapabilities = capabilities ?? ModelCapabilities(
             supportsVision: true,
             supportsTools: true,
-            supportsStreaming: true,
-            contextLength: 200_000,
-            maxOutputTokens: 8192,
+            supportsStreaming: supportsSafeStreaming,
+            contextLength: isFable ? 1_000_000 : 200_000,
+            maxOutputTokens: isFable ? 128_000 : 8192,
+        )
+        self.capabilities = supportsSafeStreaming ? baseCapabilities : ModelCapabilities(
+            supportsVision: baseCapabilities.supportsVision,
+            supportsTools: baseCapabilities.supportsTools,
+            supportsStreaming: false,
+            supportsAudioInput: baseCapabilities.supportsAudioInput,
+            supportsAudioOutput: baseCapabilities.supportsAudioOutput,
+            contextLength: baseCapabilities.contextLength,
+            maxOutputTokens: baseCapabilities.maxOutputTokens,
+            costPerToken: baseCapabilities.costPerToken,
         )
     }
 
@@ -89,6 +108,9 @@ public final class AnthropicCompatibleProvider: ModelProvider {
             configuration: compatConfig,
             additionalHeaders: self.additionalHeaders,
             authOverride: self.auth,
+            reasoningProvider: self.reasoningProvider,
+            reasoningModelId: self.modelId,
+            reasoningBaseURL: self.reasoningBaseURL,
         )
     }
 }

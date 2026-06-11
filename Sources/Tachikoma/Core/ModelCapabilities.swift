@@ -259,7 +259,7 @@ public final class ModelCapabilityRegistry: @unchecked Sendable {
             ),
         )
 
-        // Opus 4.7+ maps requested thinking to Anthropic's adaptive thinking request shape.
+        // Fable 5 and Opus 4.7+ map requested thinking to Anthropic's adaptive thinking request shape.
         let claudeAdaptiveThinkingCapabilities = ModelParameterCapabilities(
             supportsTemperature: false,
             supportsTopP: false,
@@ -270,6 +270,7 @@ public final class ModelCapabilityRegistry: @unchecked Sendable {
             ),
             excludedParameters: ["temperature", "topP", "topK"],
         )
+        self.capabilities["anthropic:claude-fable-5"] = claudeAdaptiveThinkingCapabilities
         self.capabilities["anthropic:claude-opus-4-8"] = claudeAdaptiveThinkingCapabilities
         self.capabilities["anthropic:claude-opus-4-7"] = claudeAdaptiveThinkingCapabilities
         self.capabilities["anthropic:claude-opus-4-5"] = claude4Capabilities
@@ -344,6 +345,19 @@ public final class ModelCapabilityRegistry: @unchecked Sendable {
             return registered
         }
 
+        if self.isAnthropicFableCompatible(model) {
+            return ModelParameterCapabilities(
+                supportsTemperature: false,
+                supportsTopP: false,
+                supportsTopK: false,
+                supportedProviderOptions: .init(
+                    supportsThinking: true,
+                    supportsCacheControl: true,
+                ),
+                excludedParameters: ["temperature", "topP", "topK"],
+            )
+        }
+
         // Return provider-based defaults
         switch model {
         case .openai:
@@ -380,6 +394,30 @@ public final class ModelCapabilityRegistry: @unchecked Sendable {
         default:
             // Default capabilities for unknown models
             return ModelParameterCapabilities()
+        }
+    }
+
+    private func isAnthropicFableCompatible(_ model: LanguageModel) -> Bool {
+        switch model {
+        case let .anthropic(anthropic):
+            return LanguageModel.Anthropic.isFable(modelId: anthropic.modelId)
+        case let .anthropicCompatible(modelId, _):
+            return LanguageModel.Anthropic.isFable(modelId: modelId)
+        case let .openRouter(modelId),
+             let .openaiCompatible(modelId, _),
+             let .together(modelId):
+            return LanguageModel.Anthropic.isFable(modelId: modelId)
+        case let .custom(provider):
+            guard
+                let parsed = ProviderParser.parse(provider.modelId),
+                LanguageModel.Anthropic.isFable(modelId: parsed.model),
+                CustomProviderRegistry.shared.get(parsed.provider)?.kind == .anthropic
+            else {
+                return false
+            }
+            return true
+        default:
+            return false
         }
     }
 }
@@ -441,6 +479,7 @@ extension GenerationSettings {
             stopConditions: stopConditions,
             seed: seed,
             providerOptions: adjustedProviderOptions,
+            streamBuffering: self.streamBuffering,
         )
     }
 

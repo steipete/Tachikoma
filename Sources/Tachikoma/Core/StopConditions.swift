@@ -13,6 +13,17 @@ public protocol StopCondition: Sendable {
     func reset() async
 }
 
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
+protocol StableCacheKeyStopCondition {
+    var stableCacheKey: String? { get }
+}
+
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
+private func compositeStableCacheKey(kind: String, children: [String]) -> String {
+    let encodedChildren = children.map { "\($0.utf8.count):\($0)" }.joined()
+    return "\(kind):[\(encodedChildren)]"
+}
+
 // MARK: - Built-in Stop Conditions
 
 /// Stop when a specific string is encountered
@@ -37,6 +48,13 @@ public struct StringStopCondition: StopCondition {
     }
 
     public func reset() async {}
+}
+
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
+extension StringStopCondition: StableCacheKeyStopCondition {
+    var stableCacheKey: String? {
+        "string:\(self.caseSensitive):\(self.stopString)"
+    }
 }
 
 /// Stop when a regex pattern is matched
@@ -79,6 +97,13 @@ public struct RegexStopCondition: StopCondition {
         }
 
         return Range(match.range, in: text)
+    }
+}
+
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
+extension RegexStopCondition: StableCacheKeyStopCondition {
+    var stableCacheKey: String? {
+        "regex:\(self.pattern)"
     }
 }
 
@@ -182,6 +207,15 @@ public struct AnyStopCondition: StopCondition {
     }
 }
 
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
+extension AnyStopCondition: StableCacheKeyStopCondition {
+    var stableCacheKey: String? {
+        let keys = self.conditions.compactMap { ($0 as? StableCacheKeyStopCondition)?.stableCacheKey }
+        guard keys.count == self.conditions.count else { return nil }
+        return compositeStableCacheKey(kind: "any", children: keys)
+    }
+}
+
 /// Stop when all conditions are met
 @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public struct AllStopCondition: StopCondition {
@@ -208,6 +242,15 @@ public struct AllStopCondition: StopCondition {
         for condition in self.conditions {
             await condition.reset()
         }
+    }
+}
+
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
+extension AllStopCondition: StableCacheKeyStopCondition {
+    var stableCacheKey: String? {
+        let keys = self.conditions.compactMap { ($0 as? StableCacheKeyStopCondition)?.stableCacheKey }
+        guard keys.count == self.conditions.count else { return nil }
+        return compositeStableCacheKey(kind: "all", children: keys)
     }
 }
 
@@ -386,6 +429,11 @@ public struct NeverStopCondition: StopCondition {
     public func reset() async {}
 }
 
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
+extension NeverStopCondition: StableCacheKeyStopCondition {
+    var stableCacheKey: String? { "never" }
+}
+
 // MARK: - Integration with Generation Functions
 
 @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
@@ -431,9 +479,8 @@ extension AsyncThrowingStream where Element == TextStreamDelta {
 
                             // Check stop condition
                             if await condition.shouldStop(text: accumulatedText, delta: content) {
-                                // Yield the current delta then stop
                                 continuation.yield(delta)
-                                continuation.yield(TextStreamDelta.done())
+                                continuation.yield(TextStreamDelta.done(finishReason: .stop))
                                 continuation.finish()
                                 return
                             }

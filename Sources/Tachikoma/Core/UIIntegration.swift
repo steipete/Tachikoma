@@ -132,7 +132,9 @@ extension [ModelMessage] {
     /// Convert model messages to UI messages for display
     public func toUIMessages() -> [UIMessage] {
         // Convert model messages to UI messages for display
-        map { modelMessage in
+        compactMap { modelMessage in
+            guard !modelMessage.isProviderNativeReasoningBlock else { return nil }
+            guard !modelMessage.isSyntheticReasoningBoundary else { return nil }
             var content = ""
             var attachments: [UIAttachment] = []
             var toolCalls: [AgentToolCall] = []
@@ -176,6 +178,20 @@ extension [ModelMessage] {
                 toolCalls: toolCalls.isEmpty ? nil : toolCalls,
             )
         }
+    }
+}
+
+private extension ModelMessage {
+    var isProviderNativeReasoningBlock: Bool {
+        guard channel == .thinking, let customData = metadata?.customData else { return false }
+        return customData["anthropic.thinking.model"] != nil ||
+            customData["anthropic.thinking.type"] != nil ||
+            customData["anthropic.thinking.signature"] != nil ||
+            customData["tachikoma.reasoning.provider"] != nil
+    }
+
+    var isSyntheticReasoningBoundary: Bool {
+        metadata?.customData?["tachikoma.internal.boundary"] == "reasoning_only"
     }
 }
 

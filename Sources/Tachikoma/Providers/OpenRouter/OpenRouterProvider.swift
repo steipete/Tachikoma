@@ -33,12 +33,13 @@ public final class OpenRouterProvider: ModelProvider {
             throw TachikomaError.authenticationFailed("OPENROUTER_API_KEY not found")
         }
 
+        let isFable = LanguageModel.Anthropic.isFable(modelId: modelId)
         self.capabilities = ModelCapabilities(
             supportsVision: true,
             supportsTools: true,
-            supportsStreaming: true,
-            contextLength: 128_000,
-            maxOutputTokens: 4096,
+            supportsStreaming: !LanguageModel.Anthropic.hasStreamingRefusalRisk(modelId: modelId),
+            contextLength: isFable ? 1_000_000 : 128_000,
+            maxOutputTokens: isFable ? 128_000 : 4096,
         )
 
         self.defaultHeaders = [
@@ -66,6 +67,9 @@ public final class OpenRouterProvider: ModelProvider {
     public func streamText(request: ProviderRequest) async throws -> AsyncThrowingStream<TextStreamDelta, Error> {
         guard let baseURL, let apiKey else {
             throw TachikomaError.invalidConfiguration("OpenRouter provider missing base URL or API key")
+        }
+        guard !LanguageModel.Anthropic.hasStreamingRefusalRisk(modelId: self.modelId) else {
+            throw TachikomaError.invalidConfiguration("\(self.modelId) does not support streaming")
         }
 
         return try await OpenAICompatibleHelper.streamText(

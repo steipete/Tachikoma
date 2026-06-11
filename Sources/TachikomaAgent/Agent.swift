@@ -26,32 +26,43 @@ public final class Agent<Context>: @unchecked Sendable {
     public private(set) var tools: [AgentTool]
 
     /// Language model used by this agent
-    public var model: LanguageModel
+    public var model: LanguageModel {
+        didSet {
+            self.usesImplicitDefaultModel = false
+        }
+    }
 
     /// Generation settings for the agent
     public var settings: GenerationSettings
+
+    /// Provider configuration for generation and streaming
+    private let configuration: TachikomaConfiguration
 
     /// The context instance passed to tool executions
     private let context: Context
 
     /// Current conversation history
     public private(set) var conversation: Conversation
+    private var usesImplicitDefaultModel: Bool
 
     public init(
         name: String,
         instructions: String,
-        model: LanguageModel = .default,
+        model: LanguageModel? = nil,
         tools: [AgentTool] = [],
         settings: GenerationSettings = .default,
+        configuration: TachikomaConfiguration = .current,
         context: Context,
     ) {
         self.name = name
         self.instructions = instructions
-        self.model = model
+        self.usesImplicitDefaultModel = model == nil
+        self.model = model ?? .default
         self.tools = tools
         self.settings = settings
+        self.configuration = configuration
         self.context = context
-        self.conversation = Conversation()
+        self.conversation = Conversation(configuration: configuration)
 
         // Add system message with instructions
         self.conversation.addSystemMessage(instructions)
@@ -71,66 +82,133 @@ public final class Agent<Context>: @unchecked Sendable {
 
     /// Execute a single message with the agent
     public func execute(_ message: String) async throws -> AgentResponse {
-        // Add user message to conversation
-        self.conversation.addUserMessage(message)
+        let conversation = self.conversation
+        let model = self.model
+        let tools = self.tools
+        let settings = self.settings
 
-        // Generate response using the conversation
-        let result = try await generateText(
-            model: model,
-            messages: conversation.getModelMessages(),
-            tools: self.tools.isEmpty ? nil : self.tools,
-            settings: self.settings,
-            maxSteps: 5, // Allow multi-step tool execution
-        )
+        return try await conversation.withContinuationLock {
+            conversation.addUserMessage(message)
+            let conversationMessages = conversation.messages
+            let modelMessages = conversationMessages.map { $0.toModelMessage() }
+            let snapshotIDs = conversationMessages.map(\.id)
+            let anchorID = conversationMessages.last?.id
+            let result = try await generateText(
+                model: model,
+                messages: modelMessages,
+                tools: tools.isEmpty ? nil : tools,
+                settings: settings,
+                maxSteps: 5, // Allow multi-step tool execution
+                configuration: configuration,
+            )
 
-        // Add assistant response to conversation
-        self.conversation.addAssistantMessage(result.text)
-
-        // Add any tool calls and results to conversation
-        for step in result.steps {
-            if !step.toolCalls.isEmpty {
-                for _ in step.toolCalls {
-                    // Tool calls are already added by generateText
+            let didMerge: Bool
+            if result.finishReason == .contentFilter {
+                didMerge = conversation.mergeContentFilterResult(
+                    result.messages,
+                    originalMessages: modelMessages,
+                    afterMessageID: anchorID,
+                    validatingSnapshotIDs: snapshotIDs,
+                )
+            } else if let anchorID {
+                let generatedMessages = Array(result.messages.dropFirst(modelMessages.count))
+                let didMerge = conversation.appendGeneratedMessages(
+                    generatedMessages,
+                    afterMessageID: anchorID,
+                    validatingSnapshotIDs: snapshotIDs,
+                )
+                guard didMerge else {
+                    throw TachikomaError.invalidConfiguration(
+                        "Conversation changed during generation; refusing to merge response",
+                    )
                 }
+                return AgentResponse(
+                    text: result.text,
+                    usage: result.usage,
+                    finishReason: result.finishReason ?? .other,
+                    steps: result.steps,
+                    conversationLength: conversation.messages.count,
+                )
+            } else {
+                didMerge = conversation.messages.isEmpty
             }
-            if !step.toolResults.isEmpty {
-                for _ in step.toolResults {
-                    // Tool results are already added by generateText
-                }
+
+            guard didMerge else {
+                throw TachikomaError.invalidConfiguration(
+                    "Conversation changed during generation; refusing to merge response",
+                )
             }
+
+            return AgentResponse(
+                text: result.text,
+                usage: result.usage,
+                finishReason: result.finishReason ?? .other,
+                steps: result.steps,
+                conversationLength: conversation.messages.count,
+            )
         }
-
-        return AgentResponse(
-            text: result.text,
-            usage: result.usage,
-            finishReason: result.finishReason ?? .other,
-            steps: result.steps,
-            conversationLength: self.conversation.messages.count,
-        )
     }
 
     /// Stream a response from the agent
     public func stream(_ message: String) async throws -> AsyncThrowingStream<TextStreamDelta, Error> {
+        let streamingModel = if self.usesImplicitDefaultModel {
+            LanguageModel.defaultStreaming
+        } else if self.model.supportsStreaming {
+            self.model
+        } else {
+            self.model
+        }
+        guard streamingModel.supportsStreaming else {
+            throw TachikomaError.invalidConfiguration("\(self.model.modelId) does not support streaming")
+        }
+
+        let conversation = self.conversation
+        try await conversation.acquireContinuationLock()
+        let gateRelease = AsyncReleaseOnce {
+            await conversation.releaseContinuationLock()
+        }
+
         // Add user message to conversation
-        self.conversation.addUserMessage(message)
+        conversation.addUserMessage(message)
+        let conversationMessages = conversation.messages
+        let modelMessages = conversationMessages.map { $0.toModelMessage() }
+        let snapshotIDs = conversationMessages.map(\.id)
+        let buffersUntilDone = self.settings.streamBuffering == .untilTerminal
 
         // Stream response
-        let streamResult = try await streamText(
-            model: model,
-            messages: conversation.getModelMessages(),
-            tools: self.tools.isEmpty ? nil : self.tools,
-            settings: self.settings,
-            maxSteps: 5,
-        )
+        let streamResult: StreamTextResult
+        do {
+            streamResult = try await streamText(
+                model: streamingModel,
+                messages: modelMessages,
+                tools: self.tools.isEmpty ? nil : self.tools,
+                settings: self.settings,
+                maxSteps: 5,
+                configuration: self.configuration,
+            )
+        } catch {
+            gateRelease.release()
+            throw error
+        }
 
         // Track final message in conversation (this is approximate for streaming)
         return AsyncThrowingStream<TextStreamDelta, Error> { continuation in
-            Task {
+            let producer = Task {
+                defer {
+                    gateRelease.release()
+                }
                 do {
                     var assistantText = ""
+                    var bufferedDeltas: [TextStreamDelta] = []
+                    var didReceiveTerminal = false
 
                     for try await delta in streamResult.stream {
-                        continuation.yield(delta)
+                        try Task.checkCancellation()
+                        if buffersUntilDone {
+                            bufferedDeltas.append(delta)
+                        } else {
+                            continuation.yield(delta)
+                        }
 
                         // Collect assistant text
                         if case .textDelta = delta.type, let content = delta.content {
@@ -138,11 +216,43 @@ public final class Agent<Context>: @unchecked Sendable {
                         }
 
                         if case .done = delta.type {
+                            didReceiveTerminal = true
+                            guard delta.finishReason != .contentFilter else {
+                                let didRollback = conversation.replaceModelMessages(
+                                    modelMessages.droppingLastUserTurn(),
+                                    validatingSnapshotIDs: snapshotIDs,
+                                )
+                                guard didRollback else {
+                                    throw TachikomaError.invalidConfiguration(
+                                        "Conversation changed during streaming; refusing to merge response",
+                                    )
+                                }
+                                assistantText = ""
+                                bufferedDeltas.removeAll()
+                                if buffersUntilDone {
+                                    continuation.yield(delta)
+                                }
+                                continue
+                            }
+                            if buffersUntilDone {
+                                for bufferedDelta in bufferedDeltas {
+                                    continuation.yield(bufferedDelta)
+                                }
+                                bufferedDeltas.removeAll()
+                            }
                             // Add final assistant message to conversation
                             if !assistantText.isEmpty {
-                                self.conversation.addAssistantMessage(assistantText)
+                                conversation.addAssistantMessage(assistantText)
+                                assistantText = ""
                             }
                         }
+                    }
+                    if buffersUntilDone, !didReceiveTerminal, !bufferedDeltas.isEmpty {
+                        throw TachikomaError.apiError("Stream ended before provider completion status was received")
+                    }
+                    if !buffersUntilDone, !assistantText.isEmpty {
+                        try Task.checkCancellation()
+                        conversation.addAssistantMessage(assistantText)
                     }
 
                     continuation.finish()
@@ -150,13 +260,16 @@ public final class Agent<Context>: @unchecked Sendable {
                     continuation.finish(throwing: error)
                 }
             }
+            continuation.onTermination = { @Sendable _ in
+                producer.cancel()
+            }
         }
     }
 
     /// Reset the agent's conversation history
     public func resetConversation() {
         // Reset the agent's conversation history
-        self.conversation = Conversation()
+        self.conversation = Conversation(configuration: self.configuration)
         self.conversation.addSystemMessage(self.instructions)
     }
 
@@ -169,12 +282,36 @@ public final class Agent<Context>: @unchecked Sendable {
     public func updateInstructions(_ newInstructions: String) {
         // Create new conversation with updated instructions
         let oldMessages = self.conversation.getModelMessages().filter { $0.role != .system }
-        self.conversation = Conversation()
+        self.conversation = Conversation(configuration: self.configuration)
         self.conversation.addSystemMessage(newInstructions)
 
         // Re-add non-system messages
         for message in oldMessages {
             self.conversation.addModelMessage(message)
+        }
+    }
+}
+
+final class AsyncReleaseOnce: @unchecked Sendable {
+    private let lock = NSLock()
+    private var didRelease = false
+    private let operation: @Sendable () async -> Void
+
+    init(operation: @escaping @Sendable () async -> Void) {
+        self.operation = operation
+    }
+
+    func release() {
+        self.lock.lock()
+        guard !self.didRelease else {
+            self.lock.unlock()
+            return
+        }
+        self.didRelease = true
+        self.lock.unlock()
+
+        Task {
+            await self.operation()
         }
     }
 }
@@ -536,4 +673,34 @@ public enum SessionStatus: String, Codable, Sendable, CaseIterable {
     case completed
     case failed
     case cancelled
+}
+
+extension LanguageModel {
+    var requiresTerminalRefusalBuffering: Bool {
+        switch self {
+        case let .anthropic(model):
+            return LanguageModel.Anthropic.hasStreamingRefusalRisk(modelId: model.modelId)
+        case let .anthropicCompatible(modelId, _):
+            return LanguageModel.Anthropic.hasStreamingRefusalRisk(modelId: modelId)
+        case let .openRouter(modelId), let .together(modelId):
+            return LanguageModel.Anthropic.hasStreamingRefusalRisk(modelId: modelId)
+        case let .openaiCompatible(modelId, _):
+            return LanguageModel.Anthropic.hasStreamingRefusalRisk(modelId: modelId)
+        case let .custom(provider):
+            guard
+                let parsed = ProviderParser.parse(provider.modelId),
+                let registeredProvider = CustomProviderRegistry.shared.get(parsed.provider)
+            else {
+                return LanguageModel.Anthropic.hasStreamingRefusalRisk(modelId: provider.modelId)
+            }
+            switch registeredProvider.kind {
+            case .openai:
+                return false
+            case .anthropic:
+                return LanguageModel.Anthropic.hasStreamingRefusalRisk(modelId: parsed.model)
+            }
+        default:
+            return false
+        }
+    }
 }

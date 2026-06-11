@@ -484,11 +484,17 @@ struct OpenAIResponsesResponse: Codable {
     let choices: [ResponsesChoice]? // Alternate responses can use choices array
     let usage: ResponsesUsage?
     let metadata: ResponsesMetadata?
+    let incompleteDetails: IncompleteDetails?
 
     enum CodingKeys: String, CodingKey {
         case id, object, status, model, output, choices, usage, metadata
         case createdAt = "created_at"
         case created
+        case incompleteDetails = "incomplete_details"
+    }
+
+    struct IncompleteDetails: Codable {
+        let reason: String?
     }
 
     /// GPT-5 output format
@@ -513,11 +519,25 @@ struct OpenAIResponsesResponse: Codable {
         struct OutputContent: Codable {
             let type: String
             let text: String?
+            let refusal: String?
             let toolCall: ResponsesToolCall?
+
+            init(
+                type: String,
+                text: String? = nil,
+                refusal: String? = nil,
+                toolCall: ResponsesToolCall? = nil,
+            ) {
+                self.type = type
+                self.text = text
+                self.refusal = refusal
+                self.toolCall = toolCall
+            }
 
             enum CodingKeys: String, CodingKey {
                 case type
                 case text
+                case refusal
                 case toolCall = "tool_call"
             }
         }

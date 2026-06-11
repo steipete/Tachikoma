@@ -60,6 +60,67 @@ struct ResponseCacheTests {
     }
 
     @Test
+    func `ResponseCache keys include reasoning metadata`() async {
+        let cache = ResponseCache()
+        let response = ProviderResponse(text: "cached", usage: nil, finishReason: .stop)
+
+        func request(signature: String) -> ProviderRequest {
+            ProviderRequest(
+                messages: [
+                    .user("Hello"),
+                    ModelMessage(
+                        role: .assistant,
+                        content: [.text("thinking")],
+                        channel: .thinking,
+                        metadata: .init(customData: [
+                            "anthropic.thinking.signature": signature,
+                            "anthropic.thinking.type": "thinking",
+                        ]),
+                    ),
+                    .assistant("Hi"),
+                ],
+                tools: nil,
+                settings: .default,
+            )
+        }
+
+        await cache.store(response, for: request(signature: "sig-a"))
+
+        #expect(await cache.get(for: request(signature: "sig-a"))?.text == "cached")
+        #expect(await cache.get(for: request(signature: "sig-b")) == nil)
+    }
+
+    @Test
+    func `CacheEntry size includes reasoning and assistant messages`() {
+        let small = CacheEntry(response: ProviderResponse(text: "ok"))
+        let largePayload = String(repeating: "x", count: 4096)
+        let large = CacheEntry(response: ProviderResponse(
+            text: "ok",
+            reasoning: [
+                ProviderReasoningBlock(text: largePayload, signature: largePayload, type: "thinking"),
+                ProviderReasoningBlock(
+                    text: "",
+                    type: "openrouter_reasoning_details",
+                    rawJSON: largePayload,
+                ),
+            ],
+            assistantMessages: [
+                ModelMessage(
+                    role: .assistant,
+                    content: [.text(largePayload)],
+                    channel: .thinking,
+                    metadata: .init(customData: [
+                        "anthropic.thinking.model": "claude-fable-5",
+                        "anthropic.thinking.signature": largePayload,
+                    ]),
+                ),
+            ],
+        ))
+
+        #expect(large.estimatedMemorySize() > small.estimatedMemorySize() + 12_000)
+    }
+
+    @Test
     func `ResponseCache cache miss`() async {
         let cache = ResponseCache()
 
@@ -268,6 +329,99 @@ struct ResponseCacheTests {
     }
 
     @Test
+    func `CacheKey includes reasoning effort and Anthropic thinking options`() {
+        let messages = [ModelMessage.user("Hello")]
+        let lowEffort = ProviderRequest(
+            messages: messages,
+            settings: GenerationSettings(
+                reasoningEffort: .low,
+                providerOptions: .init(anthropic: .init(thinking: .adaptive)),
+            ),
+        )
+        let highEffort = ProviderRequest(
+            messages: messages,
+            settings: GenerationSettings(
+                reasoningEffort: .high,
+                providerOptions: .init(anthropic: .init(thinking: .adaptive)),
+            ),
+        )
+        let disabledThinking = ProviderRequest(
+            messages: messages,
+            settings: GenerationSettings(
+                reasoningEffort: .low,
+                providerOptions: .init(anthropic: .init(thinking: .disabled)),
+            ),
+        )
+
+        #expect(CacheKey(from: lowEffort).hash != CacheKey(from: highEffort).hash)
+        #expect(CacheKey(from: lowEffort).hash != CacheKey(from: disabledThinking).hash)
+    }
+
+    @Test
+    func `CacheKey includes string stop condition values`() {
+        let endRequest = ProviderRequest(
+            messages: [ModelMessage.user("Hello")],
+            settings: GenerationSettings(stopConditions: StringStopCondition("END")),
+        )
+        let stopRequest = ProviderRequest(
+            messages: [ModelMessage.user("Hello")],
+            settings: GenerationSettings(stopConditions: StringStopCondition("STOP")),
+        )
+
+        #expect(CacheKey(from: endRequest).hash != CacheKey(from: stopRequest).hash)
+    }
+
+    @Test
+    func `CacheKey encodes composite stop conditions without delimiter collisions`() async {
+        let cache = ResponseCache()
+        let splitRequest = ProviderRequest(
+            messages: [ModelMessage.user("Hello")],
+            settings: GenerationSettings(stopConditions: AnyStopCondition(
+                StringStopCondition("a"),
+                StringStopCondition("b"),
+            )),
+        )
+        let joinedRequest = ProviderRequest(
+            messages: [ModelMessage.user("Hello")],
+            settings: GenerationSettings(stopConditions: AnyStopCondition(
+                StringStopCondition("a,string:true:b"),
+            )),
+        )
+
+        #expect(CacheKey(from: splitRequest).hash != CacheKey(from: joinedRequest).hash)
+
+        await cache.store(ProviderResponse(text: "split", finishReason: .stop), for: splitRequest)
+        let joinedCached = await cache.get(for: joinedRequest)
+
+        #expect(joinedCached == nil)
+    }
+
+    @Test
+    func `CacheKey marks custom stop conditions uncacheable`() {
+        let request = ProviderRequest(
+            messages: [ModelMessage.user("Hello")],
+            settings: GenerationSettings(stopConditions: PredicateStopCondition { _, _ in false }),
+        )
+
+        let key = CacheKey(from: request)
+        #expect(key.isCacheable == false)
+    }
+
+    @Test
+    func `ResponseCache skips custom stop condition entries`() async {
+        let cache = ResponseCache()
+        let request = ProviderRequest(
+            messages: [ModelMessage.user("Hello")],
+            settings: GenerationSettings(stopConditions: PredicateStopCondition { _, _ in false }),
+        )
+
+        await cache.store(ProviderResponse(text: "cached", finishReason: .stop), for: request)
+        let cached = await cache.get(for: request)
+
+        #expect(cached == nil)
+    }
+
+    @Test
     func `CacheKey includes tools in hash`() {
         let tool1 = AgentTool(
             name: "tool1",
@@ -363,6 +517,38 @@ struct ResponseCacheTests {
     }
 
     @Test
+    func `CachedProvider keys include provider endpoint identity`() async throws {
+        let cache = ResponseCache()
+        let callCountA = Box(value: 0)
+        let callCountB = Box(value: 0)
+        var providerA = ResponseCacheMockProvider(
+            model: .openaiCompatible(modelId: "shared-model", baseURL: "https://gateway.test/v1?tenant=a"),
+            response: ProviderResponse(text: "tenant-a", usage: nil, finishReason: .stop),
+            mockModelId: "shared-model",
+            mockBaseURL: "https://gateway.test/v1?tenant=a",
+        )
+        var providerB = ResponseCacheMockProvider(
+            model: .openaiCompatible(modelId: "shared-model", baseURL: "https://gateway.test/v1?tenant=b"),
+            response: ProviderResponse(text: "tenant-b", usage: nil, finishReason: .stop),
+            mockModelId: "shared-model",
+            mockBaseURL: "https://gateway.test/v1?tenant=b",
+        )
+        providerA.onGenerateText = { _ in callCountA.value += 1 }
+        providerB.onGenerateText = { _ in callCountB.value += 1 }
+
+        let cachedA = await cache.wrapProvider(providerA)
+        let cachedB = await cache.wrapProvider(providerB)
+        let request = ProviderRequest(messages: [ModelMessage.user("Test")], tools: nil, settings: .default)
+
+        #expect(try await cachedA.generateText(request: request).text == "tenant-a")
+        #expect(try await cachedB.generateText(request: request).text == "tenant-b")
+        #expect(try await cachedA.generateText(request: request).text == "tenant-a")
+        #expect(try await cachedB.generateText(request: request).text == "tenant-b")
+        #expect(callCountA.value == 1)
+        #expect(callCountB.value == 1)
+    }
+
+    @Test
     func `CachedProvider doesn't cache streaming`() async throws {
         let cache = ResponseCache()
 
@@ -397,15 +583,17 @@ struct ResponseCacheTests {
 private struct ResponseCacheMockProvider: ModelProvider {
     let model: LanguageModel
     let response: ProviderResponse
+    let mockModelId: String
+    let mockBaseURL: String?
     var onGenerateText: (@Sendable (ProviderRequest) -> Void)?
     var onStreamText: (@Sendable (ProviderRequest) -> Void)?
 
     var modelId: String {
-        "mock-model"
+        self.mockModelId
     }
 
     var baseURL: String? {
-        nil
+        self.mockBaseURL
     }
 
     var apiKey: String? {
@@ -419,11 +607,15 @@ private struct ResponseCacheMockProvider: ModelProvider {
     init(
         model: LanguageModel,
         response: ProviderResponse,
+        mockModelId: String = "mock-model",
+        mockBaseURL: String? = nil,
         onGenerateText: (@Sendable (ProviderRequest) -> Void)? = nil,
         onStreamText: (@Sendable (ProviderRequest) -> Void)? = nil,
     ) {
         self.model = model
         self.response = response
+        self.mockModelId = mockModelId
+        self.mockBaseURL = mockBaseURL
         self.onGenerateText = onGenerateText
         self.onStreamText = onStreamText
     }

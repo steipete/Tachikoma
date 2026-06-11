@@ -125,6 +125,8 @@ public struct ProviderFactory {
                             configuration: configuration,
                             apiKey: custom.apiKey,
                             additionalHeaders: custom.headers,
+                            reasoningProvider: "custom-anthropic",
+                            reasoningBaseURL: custom.baseURL,
                         )
                     }
                 }
@@ -141,10 +143,10 @@ public struct ProviderFactory {
     ) throws
         -> any ModelProvider
     {
-        try AnthropicCompatibleProvider(
+        let baseURL = configuration.getBaseURL(for: provider) ?? provider.defaultBaseURL ?? "https://api.minimax.io/anthropic"
+        return try AnthropicCompatibleProvider(
             modelId: model.modelId,
-            baseURL: configuration.getBaseURL(for: provider) ?? provider
-                .defaultBaseURL ?? "https://api.minimax.io/anthropic",
+            baseURL: baseURL,
             configuration: configuration,
             apiKey: apiKey,
             // MiniMax's Anthropic-compatible setup uses Claude Code-style Authorization auth, not Anthropic x-api-key.
@@ -156,6 +158,8 @@ public struct ProviderFactory {
                 contextLength: model.contextLength,
                 maxOutputTokens: 8192,
             ),
+            reasoningProvider: provider == .minimaxCN ? "minimax-cn" : "minimax",
+            reasoningBaseURL: baseURL,
         )
     }
 }

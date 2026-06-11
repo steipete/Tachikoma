@@ -22,13 +22,15 @@ struct ProviderSystemTests {
     @Test
     func `Provider Factory - Anthropic Provider Creation`() async throws {
         try await TestHelpers.withTestConfiguration(apiKeys: ["anthropic": "test-key"]) { config in
-            let model = Model.anthropic(.opus47)
+            let model = Model.anthropic(.fable5)
             let provider = try ProviderFactory.createProvider(for: model, configuration: config)
 
-            #expect(provider.modelId == "claude-opus-4-7")
+            #expect(provider.modelId == "claude-fable-5")
             #expect(provider.capabilities.supportsVision == true)
             #expect(provider.capabilities.supportsTools == true)
-            #expect(provider.capabilities.supportsStreaming == true)
+            #expect(provider.capabilities.supportsStreaming == false)
+            #expect(provider.capabilities.contextLength == 1_000_000)
+            #expect(provider.capabilities.maxOutputTokens == 128_000)
         }
     }
 
@@ -138,6 +140,7 @@ struct ProviderSystemTests {
         #expect(Model.openai(.gpt5Mini).supportsVision == true)
         #expect(Model.openai(.custom("text-only-openai")).supportsVision == false)
 
+        #expect(Model.anthropic(.fable5).supportsVision == true)
         #expect(Model.anthropic(.opus4).supportsVision == true)
         #expect(Model.anthropic(.sonnet46).supportsVision == true)
 
@@ -153,6 +156,7 @@ struct ProviderSystemTests {
         #expect(Model.openai(.gpt55).supportsTools == true)
         #expect(Model.openai(.gpt55).supportsTools == true)
 
+        #expect(Model.anthropic(.fable5).supportsTools == true)
         #expect(Model.anthropic(.opus4).supportsTools == true)
         #expect(Model.anthropic(.sonnet46).supportsTools == true)
 
@@ -167,6 +171,19 @@ struct ProviderSystemTests {
     func `Model Capabilities - Streaming Support`() {
         #expect(Model.openai(.gpt55).supportsStreaming == true)
         #expect(Model.anthropic(.opus4).supportsStreaming == true)
+        #expect(Model.anthropic(.opus47).supportsStreaming == true)
+        #expect(Model.anthropic(.opus48).supportsStreaming == false)
+        #expect(Model.anthropic(.fable5).supportsStreaming == false)
+        #expect(Model.openRouter(modelId: "anthropic/claude-fable-5").supportsStreaming == false)
+        #expect(Model.openRouter(modelId: "anthropic/claude-opus-4-8").supportsStreaming == false)
+        #expect(Model.openaiCompatible(
+            modelId: "anthropic/claude-fable-5",
+            baseURL: "https://example.test",
+        ).supportsStreaming == false)
+        #expect(Model.openaiCompatible(
+            modelId: "sonnet4-local",
+            baseURL: "https://example.test",
+        ).supportsStreaming == true)
         #expect(Model.grok(.grok43).supportsStreaming == true)
         #expect(Model.ollama(.llama33).supportsStreaming == true)
     }

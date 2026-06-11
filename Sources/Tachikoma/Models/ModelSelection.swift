@@ -162,6 +162,8 @@ public struct ModelSelector {
     private static func parseAnthropicModel(_ input: String) -> Model.Anthropic? {
         switch input {
         // Direct matches
+        case "claude-fable-5", "claude-fable-5-latest", "fable-5", "fable.5", "fable5", "fable":
+            return .fable5
         case "claude-opus-4-8", "claude-opus-4.8", "opus-4-8", "opus-4.8", "opus48",
              "claude-opus-4-8-latest":
             return .opus48
@@ -183,7 +185,7 @@ public struct ModelSelector {
         case "claude-haiku", "haiku":
             return .haiku45
         case "anthropic":
-            return .opus48 // Default Anthropic model
+            return .opus48
         default:
             // Check if it's a Claude model ID
             if self.isUnsupportedLegacyAnthropicModel(input) {
@@ -518,6 +520,7 @@ public func getAllAvailableModels() -> String {
 
     output += "\nShortcuts:\n"
     output += "  • claude, claude-opus, opus → claude-opus-4-8\n"
+    output += "  • fable → claude-fable-5\n"
     output += "  • gpt → gpt-5.5\n"
     output += "  • gemini → gemini-3.5-flash\n"
     output += "  • minimax → MiniMax-M2.7\n"
@@ -526,7 +529,7 @@ public func getAllAvailableModels() -> String {
     output += "  • llama, llama3 → llama3.3\n"
 
     output += "\nCustom Models:\n"
-    output += "  • OpenRouter: anthropic/claude-opus-4-8\n"
+    output += "  • OpenRouter: anthropic/claude-fable-5\n"
     output += "  • Custom OpenAI: custom-gpt-model\n"
     output += "  • Local Ollama: any-model:tag\n"
 

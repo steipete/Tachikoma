@@ -139,13 +139,11 @@ enum AnthropicContent: Codable {
 
     struct RedactedThinkingContent: Codable {
         let type: String
-        let redactedThinking: String
-        let signature: String
+        let data: String
 
         enum CodingKeys: String, CodingKey {
             case type
-            case redactedThinking = "redacted_thinking"
-            case signature
+            case data
         }
     }
 
@@ -402,12 +400,14 @@ struct AnthropicMessageResponse: Codable {
     let model: String
     let stopReason: String?
     let stopSequence: String?
+    let stopDetails: StopDetails?
     let usage: AnthropicUsage
 
     enum CodingKeys: String, CodingKey {
         case id, type, role, content, model, usage
         case stopReason = "stop_reason"
         case stopSequence = "stop_sequence"
+        case stopDetails = "stop_details"
     }
 
     init(from decoder: Decoder) throws {
@@ -419,12 +419,20 @@ struct AnthropicMessageResponse: Codable {
         self.model = try container.decode(String.self, forKey: .model)
         self.stopReason = try container.decodeIfPresent(String.self, forKey: .stopReason)
         self.stopSequence = try container.decodeIfPresent(String.self, forKey: .stopSequence)
+        self.stopDetails = try container.decodeIfPresent(StopDetails.self, forKey: .stopDetails)
         self.usage = try container.decode(AnthropicUsage.self, forKey: .usage)
+    }
+
+    struct StopDetails: Codable {
+        let category: String?
+        let explanation: String?
     }
 }
 
 enum AnthropicResponseContent: Codable {
     case text(TextContent)
+    case thinking(ThinkingContent)
+    case redactedThinking(RedactedThinkingContent)
     case toolUse(ToolUseContent)
 
     struct TextContent: Codable {
@@ -458,6 +466,22 @@ enum AnthropicResponseContent: Codable {
             var container = encoder.container(keyedBy: CodingKeys.self)
             try container.encode(self.type, forKey: .type)
             try container.encode(self.text, forKey: .text)
+        }
+    }
+
+    struct ThinkingContent: Codable {
+        let type: String
+        let thinking: String
+        let signature: String
+    }
+
+    struct RedactedThinkingContent: Codable {
+        let type: String
+        let data: String
+
+        enum CodingKeys: String, CodingKey {
+            case type
+            case data
         }
     }
 
@@ -540,6 +564,10 @@ enum AnthropicResponseContent: Codable {
         switch type {
         case "text":
             self = try .text(TextContent(from: decoder))
+        case "thinking":
+            self = try .thinking(ThinkingContent(from: decoder))
+        case "redacted_thinking":
+            self = try .redactedThinking(RedactedThinkingContent(from: decoder))
         case "tool_use":
             self = try .toolUse(ToolUseContent(from: decoder))
         default:
@@ -558,6 +586,10 @@ enum AnthropicResponseContent: Codable {
         switch self {
         case let .text(content):
             try content.encode(to: encoder)
+        case let .thinking(content):
+            try content.encode(to: encoder)
+        case let .redactedThinking(content):
+            try content.encode(to: encoder)
         case let .toolUse(content):
             try content.encode(to: encoder)
         }
@@ -567,6 +599,8 @@ enum AnthropicResponseContent: Codable {
         case type
         case text
         case thinking
+        case redactedThinking = "redacted_thinking"
+        case signature
     }
 }
 
@@ -577,6 +611,17 @@ struct AnthropicUsage: Codable {
     enum CodingKeys: String, CodingKey {
         case inputTokens = "input_tokens"
         case outputTokens = "output_tokens"
+    }
+
+    init(inputTokens: Int, outputTokens: Int) {
+        self.inputTokens = inputTokens
+        self.outputTokens = outputTokens
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.inputTokens = try container.decodeIfPresent(Int.self, forKey: .inputTokens) ?? 0
+        self.outputTokens = try container.decodeIfPresent(Int.self, forKey: .outputTokens) ?? 0
     }
 }
 
@@ -612,12 +657,11 @@ struct AnthropicStreamContentBlock: Codable {
     let text: String?
     let input: Any?
     let thinking: String?
-    let redactedThinking: String?
+    let data: String?
     let signature: String?
 
     enum CodingKeys: String, CodingKey {
-        case type, id, name, text, input, thinking, signature
-        case redactedThinking = "redacted_thinking"
+        case type, id, name, text, input, thinking, data, signature
     }
 
     init(from decoder: Decoder) throws {
@@ -627,7 +671,7 @@ struct AnthropicStreamContentBlock: Codable {
         self.name = try? container.decode(String.self, forKey: .name)
         self.text = try? container.decode(String.self, forKey: .text)
         self.thinking = try? container.decode(String.self, forKey: .thinking)
-        self.redactedThinking = try? container.decode(String.self, forKey: .redactedThinking)
+        self.data = try? container.decode(String.self, forKey: .data)
         self.signature = try? container.decode(String.self, forKey: .signature)
 
         // Decode input as generic JSON if present
@@ -653,7 +697,7 @@ struct AnthropicStreamContentBlock: Codable {
         try container.encodeIfPresent(self.name, forKey: .name)
         try container.encodeIfPresent(self.text, forKey: .text)
         try container.encodeIfPresent(self.thinking, forKey: .thinking)
-        try container.encodeIfPresent(self.redactedThinking, forKey: .redactedThinking)
+        try container.encodeIfPresent(self.data, forKey: .data)
         try container.encodeIfPresent(self.signature, forKey: .signature)
         if let input {
             let data = try JSONSerialization.data(withJSONObject: input)
@@ -676,6 +720,17 @@ struct AnthropicStreamDelta: Codable {
         case partialJson = "partial_json"
         case stopReason = "stop_reason"
         case stopSequence = "stop_sequence"
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.type = try container.decodeIfPresent(String.self, forKey: .type) ?? ""
+        self.text = try container.decodeIfPresent(String.self, forKey: .text)
+        self.thinking = try container.decodeIfPresent(String.self, forKey: .thinking)
+        self.signature = try container.decodeIfPresent(String.self, forKey: .signature)
+        self.partialJson = try container.decodeIfPresent(String.self, forKey: .partialJson)
+        self.stopReason = try container.decodeIfPresent(String.self, forKey: .stopReason)
+        self.stopSequence = try container.decodeIfPresent(String.self, forKey: .stopSequence)
     }
 }
 

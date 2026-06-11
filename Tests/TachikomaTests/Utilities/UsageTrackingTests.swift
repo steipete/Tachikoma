@@ -123,6 +123,16 @@ struct UsageTrackingTests {
         #expect(gpt5MiniCost.total == 5.00)
 
         // Test Anthropic pricing
+        let claudeFableCost = calculator.calculateCost(for: .anthropic(.fable5), usage: usage)
+        #expect(claudeFableCost.input == 10.00)
+        #expect(claudeFableCost.output == 50.00)
+        #expect(claudeFableCost.total == 60.00)
+
+        let customClaudeFableCost = calculator.calculateCost(for: .anthropic(.custom("claude-fable-5")), usage: usage)
+        #expect(customClaudeFableCost.input == 10.00)
+        #expect(customClaudeFableCost.output == 50.00)
+        #expect(customClaudeFableCost.total == 60.00)
+
         let claudeOpusCost = calculator.calculateCost(for: .anthropic(.opus48), usage: usage)
         #expect(claudeOpusCost.input == 5.00)
         #expect(claudeOpusCost.output == 25.00)

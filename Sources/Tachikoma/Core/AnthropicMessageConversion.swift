@@ -1,17 +1,55 @@
 import Foundation
 
+struct AnthropicReasoningReplayTarget {
+    let provider: String
+    let modelId: String
+    let endpointIdentity: String?
+    let allowsLegacyUnknown: Bool
+
+    func matches(_ customData: [String: String]) -> Bool {
+        guard customData["tachikoma.reasoning.provider"] == self.provider else {
+            return false
+        }
+        guard customData["tachikoma.reasoning.model"] == self.modelId else {
+            return false
+        }
+        return customData["tachikoma.reasoning.base_url"] == self.endpointIdentity
+    }
+}
+
 enum AnthropicMessageConversion {
     static func convertMessagesToAnthropic(
         _ messages: [ModelMessage],
         thinkingEnabled: Bool,
+        reasoningTarget: AnthropicReasoningReplayTarget? = nil,
     ) throws
         -> (String?, [AnthropicMessage])
     {
         var systemMessage: String?
         var anthropicMessages: [AnthropicMessage] = []
-        var pendingSignedThinking: (text: String, signature: String, type: String)?
+        var pendingThinkingBlocks: [(text: String, signature: String?, type: String)] = []
         let thinkingSignatureKey = "anthropic.thinking.signature"
         let thinkingTypeKey = "anthropic.thinking.type"
+
+        func appendThinkingBlocks(
+            _ pendingBlocks: [(text: String, signature: String?, type: String)],
+            to content: inout [AnthropicContent],
+        ) {
+            for pending in pendingBlocks {
+                if pending.type == "redacted_thinking" {
+                    content.append(.redactedThinking(.init(
+                        type: "redacted_thinking",
+                        data: pending.text,
+                    )))
+                } else if let signature = pending.signature {
+                    content.append(.thinking(.init(
+                        type: "thinking",
+                        thinking: pending.text,
+                        signature: signature,
+                    )))
+                }
+            }
+        }
 
         for message in messages {
             switch message.role {
@@ -48,29 +86,31 @@ enum AnthropicMessageConversion {
                     }.joined()
                     let signature = message.metadata?.customData?[thinkingSignatureKey]
                     let type = message.metadata?.customData?[thinkingTypeKey] ?? "thinking"
-                    if let signature, !signature.isEmpty {
-                        pendingSignedThinking = (text: text, signature: signature, type: type)
+                    let customData = message.metadata?.customData ?? [:]
+                    if customData["tachikoma.reasoning.provider"] != nil ||
+                        customData["tachikoma.reasoning.model"] != nil ||
+                        customData["tachikoma.reasoning.base_url"] != nil ||
+                        customData["anthropic.thinking.model"] != nil
+                    {
+                        guard reasoningTarget?.matches(customData) == true else {
+                            continue
+                        }
+                    } else if reasoningTarget?.allowsLegacyUnknown != true {
+                        continue
+                    }
+                    if type == "redacted_thinking" {
+                        pendingThinkingBlocks.append((text: text, signature: nil, type: type))
+                    } else if let signature, !signature.isEmpty {
+                        pendingThinkingBlocks.append((text: text, signature: signature, type: type))
                     }
                     continue
                 }
 
                 var content: [AnthropicContent] = []
 
-                if thinkingEnabled, let pending = pendingSignedThinking {
-                    if pending.type == "redacted_thinking" {
-                        content.append(.redactedThinking(.init(
-                            type: "redacted_thinking",
-                            redactedThinking: pending.text,
-                            signature: pending.signature,
-                        )))
-                    } else {
-                        content.append(.thinking(.init(
-                            type: "thinking",
-                            thinking: pending.text,
-                            signature: pending.signature,
-                        )))
-                    }
-                    pendingSignedThinking = nil
+                if thinkingEnabled, !pendingThinkingBlocks.isEmpty {
+                    appendThinkingBlocks(pendingThinkingBlocks, to: &content)
+                    pendingThinkingBlocks.removeAll()
                 }
 
                 // Process each content part
@@ -139,21 +179,12 @@ enum AnthropicMessageConversion {
             }
         }
 
-        if thinkingEnabled, let pending = pendingSignedThinking {
-            let thinkingContent: AnthropicContent = if pending.type == "redacted_thinking" {
-                .redactedThinking(.init(
-                    type: "redacted_thinking",
-                    redactedThinking: pending.text,
-                    signature: pending.signature,
-                ))
-            } else {
-                .thinking(.init(
-                    type: "thinking",
-                    thinking: pending.text,
-                    signature: pending.signature,
-                ))
+        if thinkingEnabled, !pendingThinkingBlocks.isEmpty {
+            var content: [AnthropicContent] = []
+            appendThinkingBlocks(pendingThinkingBlocks, to: &content)
+            if !content.isEmpty {
+                anthropicMessages.append(AnthropicMessage(role: "assistant", content: content))
             }
-            anthropicMessages.append(AnthropicMessage(role: "assistant", content: [thinkingContent]))
         }
 
         return (systemMessage, anthropicMessages)

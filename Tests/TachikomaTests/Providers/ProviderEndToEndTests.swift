@@ -450,6 +450,33 @@ struct ProviderEndToEndTests {
     }
 
     @Test
+    func `MiniMax reasoning metadata is bound to configured endpoint`() async throws {
+        let baseURL = "https://minimax-proxy.test/anthropic?tenant=a"
+        try await NetworkMocking.withMockedNetwork { request in
+            #expect(request.url?.host == "minimax-proxy.test")
+            #expect(request.value(forHTTPHeaderField: "Authorization") == "Bearer live-minimax")
+            return NetworkMocking.jsonResponse(
+                for: request,
+                data: Self.anthropicPayloadWithThinking(text: "MiniMax ok", thinking: "native-thought", signature: "sig-mm"),
+            )
+        } operation: {
+            let config = Self.makeConfiguration { config in
+                config.setAPIKey("live-minimax", for: .minimax)
+                config.setBaseURL(baseURL, for: .minimax)
+            }
+            let provider = try ProviderFactory.createProvider(for: .minimax(.m27), configuration: config)
+            let response = try await provider.generateText(request: Self.basicRequest)
+            let thinkingMessage = try #require(response.assistantMessages.first { $0.channel == .thinking })
+            let metadata = try #require(thinkingMessage.metadata?.customData)
+
+            #expect(metadata["tachikoma.reasoning.provider"] == "minimax")
+            #expect(metadata["tachikoma.reasoning.model"] == "MiniMax-M2.7")
+            #expect(metadata["anthropic.thinking.signature"] == "sig-mm")
+            #expect(metadata["tachikoma.reasoning.base_url"] == ReasoningEndpointIdentity.canonical(baseURL))
+        }
+    }
+
+    @Test
     func `MiniMax China provider uses China endpoint and bearer auth`() async throws {
         try await NetworkMocking.withMockedNetwork { request in
             #expect(request.url?.host == "api.minimaxi.com")
@@ -582,6 +609,25 @@ struct ProviderEndToEndTests {
                 ["type": "text", "text": text],
             ],
             "model": "claude-sonnet-4-6",
+            "stop_reason": "end_turn",
+            "usage": [
+                "input_tokens": 12,
+                "output_tokens": 6,
+            ],
+        ]
+        return try! JSONSerialization.data(withJSONObject: dict)
+    }
+
+    private static func anthropicPayloadWithThinking(text: String, thinking: String, signature: String) -> Data {
+        let dict: [String: Any] = [
+            "id": "msg_1",
+            "type": "message",
+            "role": "assistant",
+            "content": [
+                ["type": "thinking", "thinking": thinking, "signature": signature],
+                ["type": "text", "text": text],
+            ],
+            "model": "MiniMax-M2.7",
             "stop_reason": "end_turn",
             "usage": [
                 "input_tokens": 12,

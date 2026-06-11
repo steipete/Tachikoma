@@ -36,14 +36,24 @@ struct OpenAICompatibleHelper {
         }
 
         // Extract stop sequences from stop conditions
-        let stopSequences = Self.extractStopSequences(from: request.settings.stopConditions)
+        let settings = Self.validatedSettings(
+            request.settings,
+            providerName: providerName,
+            modelId: modelId,
+            baseURL: baseURL,
+        )
+        let stopSequences = Self.extractStopSequences(from: settings.stopConditions)
 
         // Convert request to OpenAI-compatible format
         let openAIRequest = try OpenAIChatRequest(
             model: modelId,
-            messages: convertMessages(request.messages),
-            temperature: request.settings.temperature,
-            maxTokens: request.settings.maxTokens,
+            messages: convertMessages(
+                request.messages,
+                replayOpenRouterReasoningForModel: providerName == "OpenRouter" ? modelId : nil,
+                replayOpenRouterReasoningForBaseURL: providerName == "OpenRouter" ? baseURL : nil,
+            ),
+            temperature: settings.temperature,
+            maxTokens: settings.maxTokens,
             tools: request.tools?.compactMap { try self.convertTool($0) },
             stream: false,
             stop: stopSequences.isEmpty ? nil : stopSequences,
@@ -100,14 +110,9 @@ struct OpenAICompatibleHelper {
         let usage = openAIResponse.usage.map {
             Usage(inputTokens: $0.promptTokens ?? 0, outputTokens: $0.completionTokens ?? 0)
         }
+        let reasoning = Self.reasoningBlocks(from: choice.message)
 
-        let finishReason: FinishReason? = switch choice.finishReason {
-        case "stop": .stop
-        case "length": .length
-        case "tool_calls": .toolCalls
-        case "content_filter": .contentFilter
-        default: .other
-        }
+        let finishReason = Self.mapFinishReason(choice.finishReason)
 
         // Convert tool calls if present
         let toolCalls = choice.message.toolCalls?.compactMap { openAIToolCall -> AgentToolCall? in
@@ -142,6 +147,7 @@ struct OpenAICompatibleHelper {
             usage: usage,
             finishReason: finishReason,
             toolCalls: toolCalls,
+            reasoning: reasoning,
         )
     }
 
@@ -173,14 +179,27 @@ struct OpenAICompatibleHelper {
         }
 
         // Extract stop sequences from stop conditions
-        let stopSequences = Self.extractStopSequences(from: request.settings.stopConditions)
+        guard !LanguageModel.Anthropic.hasStreamingRefusalRisk(modelId: modelId) else {
+            throw TachikomaError.invalidConfiguration("\(modelId) does not support streaming")
+        }
+        let settings = Self.validatedSettings(
+            request.settings,
+            providerName: providerName,
+            modelId: modelId,
+            baseURL: baseURL,
+        )
+        let stopSequences = Self.extractStopSequences(from: settings.stopConditions)
 
         // Convert request to OpenAI-compatible format
         let openAIRequest = try OpenAIChatRequest(
             model: modelId,
-            messages: convertMessages(request.messages),
-            temperature: request.settings.temperature,
-            maxTokens: request.settings.maxTokens,
+            messages: convertMessages(
+                request.messages,
+                replayOpenRouterReasoningForModel: providerName == "OpenRouter" ? modelId : nil,
+                replayOpenRouterReasoningForBaseURL: providerName == "OpenRouter" ? baseURL : nil,
+            ),
+            temperature: settings.temperature,
+            maxTokens: settings.maxTokens,
             tools: request.tools?.compactMap { try self.convertTool($0) },
             stream: true,
             stop: stopSequences.isEmpty ? nil : stopSequences,
@@ -346,8 +365,10 @@ struct OpenAICompatibleHelper {
                                         }
                                     }
 
-                                    if choice.finishReason != nil {
-                                        continuation.yield(TextStreamDelta.done())
+                                    if let finishReason = choice.finishReason {
+                                        continuation.yield(TextStreamDelta.done(
+                                            finishReason: Self.mapFinishReason(finishReason),
+                                        ))
                                         break
                                     }
                                 }
@@ -427,9 +448,10 @@ struct OpenAICompatibleHelper {
                                     }
 
                                     if let finishReason = choice.finishReason {
-                                        if finishReason == "stop" || finishReason == "tool_calls" {
-                                            continuation.yield(TextStreamDelta.done())
-                                        }
+                                        continuation.yield(TextStreamDelta.done(
+                                            finishReason: Self.mapFinishReason(finishReason),
+                                        ))
+                                        break
                                     }
                                 }
                             } catch {
@@ -455,6 +477,37 @@ struct OpenAICompatibleHelper {
     } // End of streamText function
 
     // MARK: - Helper Methods
+
+    private static func mapFinishReason(_ reason: String?) -> FinishReason? {
+        switch reason {
+        case "stop": .stop
+        case "length": .length
+        case "tool_calls": .toolCalls
+        case "content_filter": .contentFilter
+        case nil: nil
+        default: .other
+        }
+    }
+
+    private static func validatedSettings(
+        _ settings: GenerationSettings,
+        providerName: String,
+        modelId: String,
+        baseURL: String,
+    ) -> GenerationSettings {
+        settings.validated(for: self.languageModel(providerName: providerName, modelId: modelId, baseURL: baseURL))
+    }
+
+    private static func languageModel(providerName: String, modelId: String, baseURL: String) -> LanguageModel {
+        switch providerName.lowercased() {
+        case "openrouter":
+            return .openRouter(modelId: modelId)
+        case "together":
+            return .together(modelId: modelId)
+        default:
+            return .openaiCompatible(modelId: modelId, baseURL: baseURL)
+        }
+    }
 
     /// Extract native stop sequences from stop conditions
     private static func extractStopSequences(from stopCondition: (any StopCondition)?) -> [String] {
@@ -512,18 +565,55 @@ struct OpenAICompatibleHelper {
         }
     }
 
-    private static func convertMessages(_ messages: [ModelMessage]) throws -> [OpenAIChatMessage] {
-        messages.map { message in
+    private static func convertMessages(
+        _ messages: [ModelMessage],
+        replayOpenRouterReasoningForModel modelId: String?,
+        replayOpenRouterReasoningForBaseURL baseURL: String?,
+    ) throws
+        -> [OpenAIChatMessage]
+    {
+        var converted: [OpenAIChatMessage] = []
+        var pendingReasoningDetails: [JSONValue] = []
+        var pendingReasoningText: [String] = []
+        let endpointIdentity = ReasoningEndpointIdentity.canonical(baseURL)
+
+        for message in messages {
+            if
+                message.channel == .thinking,
+                let customData = message.metadata?.customData,
+                customData["tachikoma.reasoning.provider"] == "openrouter",
+                customData["tachikoma.reasoning.model"] == modelId,
+                customData["tachikoma.reasoning.base_url"] == endpointIdentity,
+                let rawReasoningDetails = customData["openrouter.reasoning_details"]
+            {
+                pendingReasoningDetails.append(contentsOf: Self.decodeReasoningDetails(rawReasoningDetails))
+                continue
+            }
+            if
+                message.channel == .thinking,
+                let customData = message.metadata?.customData,
+                customData["tachikoma.reasoning.provider"] == "openrouter",
+                customData["tachikoma.reasoning.model"] == modelId,
+                customData["tachikoma.reasoning.base_url"] == endpointIdentity,
+                let reasoning = customData["openrouter.reasoning"]
+            {
+                pendingReasoningText.append(reasoning)
+                continue
+            }
+            if message.channel == .thinking {
+                continue
+            }
+
             switch message.role {
             case .system:
-                return OpenAIChatMessage(role: "system", content: message.content.compactMap { part in
+                converted.append(OpenAIChatMessage(role: "system", content: message.content.compactMap { part in
                     if case let .text(text) = part { return text }
                     return nil
-                }.joined())
+                }.joined()))
             case .user:
                 if message.content.count == 1, case let .text(text) = message.content.first! {
                     // Simple text message
-                    return OpenAIChatMessage(role: "user", content: text)
+                    converted.append(OpenAIChatMessage(role: "user", content: text))
                 } else {
                     // Multi-modal message
                     let content = message.content.compactMap { contentPart -> OpenAIChatMessageContent? in
@@ -540,7 +630,7 @@ struct OpenAICompatibleHelper {
                             return nil // Skip tool calls and results in user messages
                         }
                     }
-                    return OpenAIChatMessage(role: "user", content: content)
+                    converted.append(OpenAIChatMessage(role: "user", content: content))
                 }
             case .assistant:
                 // Check if this assistant message contains tool calls
@@ -571,15 +661,25 @@ struct OpenAICompatibleHelper {
 
                 // If we have tool calls, create a message with tool calls
                 if !toolCalls.isEmpty {
-                    return OpenAIChatMessage(
+                    converted.append(OpenAIChatMessage(
                         role: "assistant",
                         content: textContent.isEmpty ? nil : textContent,
                         toolCalls: toolCalls,
-                    )
+                        reasoning: pendingReasoningText.isEmpty ? nil : pendingReasoningText.joined(separator: "\n"),
+                        reasoningDetails: pendingReasoningDetails.isEmpty ? nil : pendingReasoningDetails,
+                    ))
                 } else {
                     // Regular text message
-                    return OpenAIChatMessage(role: "assistant", content: textContent)
+                    converted.append(OpenAIChatMessage(
+                        role: "assistant",
+                        content: textContent,
+                        toolCalls: nil,
+                        reasoning: pendingReasoningText.isEmpty ? nil : pendingReasoningText.joined(separator: "\n"),
+                        reasoningDetails: pendingReasoningDetails.isEmpty ? nil : pendingReasoningDetails,
+                    ))
                 }
+                pendingReasoningText.removeAll()
+                pendingReasoningDetails.removeAll()
             case .tool:
                 // Extract tool call ID and result content from tool result
                 var toolCallId: String?
@@ -598,9 +698,44 @@ struct OpenAICompatibleHelper {
                     }
                 }
 
-                return OpenAIChatMessage(role: "tool", content: resultContent, toolCallId: toolCallId)
+                converted.append(OpenAIChatMessage(role: "tool", content: resultContent, toolCallId: toolCallId))
             }
         }
+
+        return converted
+    }
+
+    private static func reasoningBlocks(from message: OpenAIChatResponse.Message) -> [ProviderReasoningBlock] {
+        var blocks: [ProviderReasoningBlock] = []
+        if let details = message.reasoningDetails, !details.isEmpty {
+            blocks.append(ProviderReasoningBlock(
+                text: message.reasoning ?? "",
+                type: "openrouter_reasoning_details",
+                rawJSON: Self.encodeReasoningDetails(details),
+            ))
+        } else if let reasoning = message.reasoning, !reasoning.isEmpty {
+            blocks.append(ProviderReasoningBlock(
+                text: reasoning,
+                type: "openrouter_reasoning",
+                rawJSON: nil,
+            ))
+        }
+        return blocks
+    }
+
+    private static func encodeReasoningDetails(_ details: [JSONValue]) -> String? {
+        guard let data = try? JSONEncoder().encode(details) else { return nil }
+        return String(data: data, encoding: .utf8)
+    }
+
+    private static func decodeReasoningDetails(_ rawJSON: String) -> [JSONValue] {
+        guard
+            let data = rawJSON.data(using: .utf8),
+            let details = try? JSONDecoder().decode([JSONValue].self, from: data)
+        else {
+            return []
+        }
+        return details
     }
 
     private static func convertTool(_ tool: AgentTool) throws -> OpenAITool {

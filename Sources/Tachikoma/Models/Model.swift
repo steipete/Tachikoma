@@ -156,7 +156,8 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
     }
 
     public enum Anthropic: Sendable, Hashable, CaseIterable {
-        // Claude 4.x / 4.5+ Series
+        // Claude 5 / 4.x Series
+        case fable5
         case opus48
         case opus47
         case opus45
@@ -170,6 +171,7 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
 
         public static var allCases: [Anthropic] {
             [
+                .fable5,
                 .opus48,
                 .opus47,
                 .opus45,
@@ -183,6 +185,7 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
         public var modelId: String {
             switch self {
             case let .custom(id): id
+            case .fable5: "claude-fable-5"
             case .opus48: "claude-opus-4-8"
             case .opus47: "claude-opus-4-7"
             case .opus45: "claude-opus-4-5"
@@ -195,7 +198,7 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
 
         public var supportsVision: Bool {
             switch self {
-            case .opus48, .opus47, .opus45, .opus4, .sonnet46, .sonnet45, .haiku45:
+            case .fable5, .opus48, .opus47, .opus45, .opus4, .sonnet46, .sonnet45, .haiku45:
                 true
             case .custom: true // Assume custom models support vision
             }
@@ -217,11 +220,81 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
 
         public var contextLength: Int {
             switch self {
-            case .opus48, .opus47, .sonnet46: 1_000_000
+            case .fable5, .opus48, .opus47, .sonnet46: 1_000_000
             case .haiku45: 200_000
             case .opus45, .opus4, .sonnet45: 500_000
-            case .custom: 200_000 // Default assumption
+            case let .custom(id):
+                Self.isFable(modelId: id) ? 1_000_000 : 200_000 // Default assumption
             }
+        }
+
+        public var maxOutputTokens: Int {
+            switch self {
+            case .fable5, .opus48, .opus47: 128_000
+            case .sonnet46, .haiku45: 64_000
+            case let .custom(id):
+                Self.isFable(modelId: id) ? 128_000 : 8192
+            case .opus45, .opus4, .sonnet45: 4096
+            }
+        }
+
+        public var supportsStreaming: Bool {
+            !Self.hasStreamingRefusalRisk(modelId: self.modelId)
+        }
+
+        public static func isFable(modelId: String) -> Bool {
+            let normalized = modelId.lowercased()
+            let pathSegments = normalized
+                .components(separatedBy: CharacterSet(charactersIn: "/:@"))
+                .filter { !$0.isEmpty }
+            let dotSegments = pathSegments.flatMap { $0.components(separatedBy: ".") }
+                .filter { !$0.isEmpty }
+            let segments = pathSegments + dotSegments
+            let canonicalSegments: Set<String> = [
+                "claude-fable-5",
+                "fable-5",
+                "fable5",
+                "fable",
+            ]
+            return normalized == Self.fable5.modelId || segments.contains { segment in
+                if canonicalSegments.contains(segment) { return true }
+                let compactSegment = segment
+                    .replacingOccurrences(of: "-", with: "")
+                    .replacingOccurrences(of: "_", with: "")
+                    .replacingOccurrences(of: ".", with: "")
+                return compactSegment == "claudefable5" || compactSegment == "fable5"
+            }
+        }
+
+        public static func isOpus48(modelId: String) -> Bool {
+            let normalized = modelId.lowercased()
+            let compactExact = normalized
+                .replacingOccurrences(of: "-", with: "")
+                .replacingOccurrences(of: "_", with: "")
+                .replacingOccurrences(of: ".", with: "")
+            let pathSegments = normalized
+                .components(separatedBy: CharacterSet(charactersIn: "/:@"))
+                .filter { !$0.isEmpty }
+            let dotSegments = pathSegments.flatMap { $0.components(separatedBy: ".") }
+                .filter { !$0.isEmpty }
+            let segments = pathSegments + dotSegments
+            let canonicalSegments: Set<String> = [
+                "claude-opus-4-8",
+                "opus-4-8",
+                "opus48",
+            ]
+            return normalized == Self.opus48.modelId || segments.contains { segment in
+                if canonicalSegments.contains(segment) { return true }
+                let compactSegment = segment
+                    .replacingOccurrences(of: "-", with: "")
+                    .replacingOccurrences(of: "_", with: "")
+                    .replacingOccurrences(of: ".", with: "")
+                return compactSegment == "claudeopus48" || compactSegment == "opus48"
+            } || compactExact == "claudeopus48" || compactExact == "opus48"
+        }
+
+        public static func hasStreamingRefusalRisk(modelId: String) -> Bool {
+            Self.isFable(modelId: modelId) || Self.isOpus48(modelId: modelId)
         }
     }
 
@@ -783,8 +856,39 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
     }
 
     public var supportsStreaming: Bool {
-        // All models support streaming by default
-        true
+        if case let .anthropic(model) = self {
+            return model.supportsStreaming
+        }
+        if case let .anthropicCompatible(modelId, _) = self {
+            return !Anthropic.hasStreamingRefusalRisk(modelId: modelId)
+        }
+        if case let .openRouter(modelId) = self, modelId.lowercased().hasPrefix("anthropic/") {
+            return !Anthropic.hasStreamingRefusalRisk(modelId: modelId)
+        }
+        if case let .together(modelId) = self, modelId.lowercased().hasPrefix("anthropic/") {
+            return !Anthropic.hasStreamingRefusalRisk(modelId: modelId)
+        }
+        if case let .openaiCompatible(modelId, _) = self {
+            let normalized = modelId.lowercased()
+            guard
+                normalized.contains("claude") ||
+                normalized.hasPrefix("anthropic/") ||
+                normalized.hasPrefix("anthropic.")
+            else {
+                return true
+            }
+            return !Anthropic.hasStreamingRefusalRisk(modelId: modelId)
+        }
+        if case let .custom(provider) = self,
+           let parsed = ProviderParser.parse(provider.modelId),
+           CustomProviderRegistry.shared.get(parsed.provider)?.kind == .anthropic
+        {
+            return !Anthropic.hasStreamingRefusalRisk(modelId: parsed.model)
+        }
+        if case let .custom(provider) = self {
+            return provider.capabilities.supportsStreaming
+        }
+        return true
     }
 
     public var providerName: String {
@@ -829,10 +933,11 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
     // MARK: - Default Model
 
     public static let `default`: LanguageModel = .anthropic(.opus48)
+    public static let defaultStreaming: LanguageModel = .openai(.gpt55)
 
     // MARK: - Convenience Static Properties
 
-    /// Default Claude model (opus48)
+    /// Default Claude model (Opus 4.8)
     public static let claude: LanguageModel = .anthropic(.opus48)
 
     /// Default Grok model (Grok 4.3)
@@ -967,10 +1072,14 @@ extension LanguageModel {
             model.contextLength
         case .azureOpenAI:
             128_000 // conservative default matching OpenAI tier
-        case .openRouter, .together, .replicate:
+        case let .openRouter(modelId), let .together(modelId):
+            Anthropic.isFable(modelId: modelId) ? 1_000_000 : 128_000
+        case .replicate:
             128_000 // Common default
-        case .openaiCompatible, .anthropicCompatible:
-            128_000 // Common default
+        case let .openaiCompatible(modelId, _):
+            Anthropic.isFable(modelId: modelId) ? 1_000_000 : 128_000
+        case let .anthropicCompatible(modelId, _):
+            Anthropic.isFable(modelId: modelId) ? 1_000_000 : 128_000
         case let .custom(provider):
             provider.capabilities.contextLength
         }
@@ -1224,6 +1333,13 @@ extension LanguageModel {
 
         // MARK: Anthropic models
 
+        func matchesExactAlias(_ aliases: Set<String>, compactAliases: Set<String> = []) -> Bool {
+            aliases.contains(normalized) ||
+                aliases.contains(dashed) ||
+                aliases.contains(dotted) ||
+                compactAliases.contains(compact)
+        }
+
         if dotted.contains("claude-3") || compact.contains("claude3") {
             return nil
         }
@@ -1236,14 +1352,29 @@ extension LanguageModel {
             return nil
         }
 
-        if
-            dotted.contains("claude-opus-4-8") ||
-            dotted.contains("claude-opus-4.8") ||
-            compact.contains("claudeopus48") ||
-            dotted.contains("opus-4-8") ||
-            dotted.contains("opus-4.8") ||
-            compact.contains("opus48")
-        {
+        if matchesExactAlias(
+            [
+                "claude-fable-5",
+                "fable-5",
+                "fable.5",
+                "fable5",
+                "fable",
+            ],
+            compactAliases: ["claudefable5", "fable5"],
+        ) {
+            return .anthropic(.fable5)
+        }
+
+        if matchesExactAlias(
+            [
+                "claude-opus-4-8",
+                "claude-opus-4.8",
+                "opus-4-8",
+                "opus-4.8",
+                "opus48",
+            ],
+            compactAliases: ["claudeopus48", "opus48"],
+        ) {
             return .anthropic(.opus48)
         }
 
@@ -1563,8 +1694,8 @@ extension LanguageModel {
     }
 
     private static func looksAnthropic(_ normalized: String) -> Bool {
-        normalized.contains("claude") || normalized.contains("opus") || normalized.contains("sonnet") ||
-            normalized.contains("haiku") || normalized == "anthropic"
+        normalized.contains("claude") || normalized.contains("fable") || normalized.contains("opus") ||
+            normalized.contains("sonnet") || normalized.contains("haiku") || normalized == "anthropic"
     }
 
     private static func looksGoogle(_ normalized: String) -> Bool {

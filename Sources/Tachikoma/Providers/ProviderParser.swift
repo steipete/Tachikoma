@@ -8,7 +8,7 @@ public enum ProviderParser {
         /// The provider name (e.g., "openai", "anthropic", "ollama")
         public let provider: String
 
-        /// The model name (e.g., "gpt-5.5", "claude-opus-4-7", "llava:latest")
+        /// The model name (e.g., "gpt-5.5", "claude-fable-5", "llava:latest")
         public let model: String
 
         /// The full string representation (e.g., "openai/gpt-5.5")
@@ -44,7 +44,7 @@ public enum ProviderParser {
     }
 
     /// Parse a comma-separated list of providers
-    /// - Parameter providersString: String like "openai/gpt-5.5,anthropic/claude-opus-4-7,ollama/llava:latest"
+    /// - Parameter providersString: String like "openai/gpt-5.5,anthropic/claude-fable-5,ollama/llava:latest"
     /// - Returns: Array of parsed configurations
     public static func parseList(_ providersString: String) -> [ProviderConfig] {
         // Parse a comma-separated list of providers
@@ -54,7 +54,7 @@ public enum ProviderParser {
     }
 
     /// Get the first provider from a comma-separated list
-    /// - Parameter providersString: String like "openai/gpt-5.5,anthropic/claude-opus-4-7"
+    /// - Parameter providersString: String like "openai/gpt-5.5,anthropic/claude-fable-5"
     /// - Returns: First parsed configuration or nil if none valid
     public static func parseFirst(_ providersString: String) -> ProviderConfig? {
         // Get the first provider from a comma-separated list
@@ -270,8 +270,10 @@ public enum ProviderParser {
         }
 
         return switch normalized {
+        case "claude-fable-5", "claude-fable-5-latest", "fable-5", "fable.5", "fable5", "fable":
+            .anthropic(.fable5)
         case "claude-opus-4-8", "claude-opus-4.8", "claude-opus-4-8-latest", "opus-4-8", "opus-4.8",
-             "opus48":
+             "opus48", "claude", "claude-latest", "claude_latest", "claudelatest", "claude-default", "claude_default":
             .anthropic(.opus48)
         case "claude-opus-4-7", "claude-opus-4.7", "claude-opus-4-7-latest", "opus-4-7", "opus-4.7", "opus47":
             .anthropic(.opus47)

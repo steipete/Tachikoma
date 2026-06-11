@@ -84,6 +84,27 @@ public struct ProviderResponse: Sendable {
     public let usage: Usage?
     public let finishReason: FinishReason?
     public let toolCalls: [AgentToolCall]?
+    public let reasoning: [ProviderReasoningBlock]
+    public let assistantMessages: [ModelMessage]
+    public let isBillable: Bool
+
+    public init(
+        text: String,
+        usage: Usage? = nil,
+        finishReason: FinishReason? = nil,
+        toolCalls: [AgentToolCall]? = nil,
+        reasoning: [ProviderReasoningBlock] = [],
+        assistantMessages: [ModelMessage] = [],
+        isBillable: Bool = true,
+    ) {
+        self.text = text
+        self.usage = usage
+        self.finishReason = finishReason
+        self.toolCalls = toolCalls
+        self.reasoning = reasoning
+        self.assistantMessages = assistantMessages
+        self.isBillable = isBillable
+    }
 
     public init(
         text: String,
@@ -91,9 +112,30 @@ public struct ProviderResponse: Sendable {
         finishReason: FinishReason? = nil,
         toolCalls: [AgentToolCall]? = nil,
     ) {
+        self.init(
+            text: text,
+            usage: usage,
+            finishReason: finishReason,
+            toolCalls: toolCalls,
+            reasoning: [],
+            assistantMessages: [],
+            isBillable: true,
+        )
+    }
+}
+
+/// Provider-native signed reasoning block that must be replayed in later requests.
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
+public struct ProviderReasoningBlock: Sendable, Equatable {
+    public let text: String
+    public let signature: String?
+    public let type: String
+    public let rawJSON: String?
+
+    public init(text: String, signature: String? = nil, type: String = "thinking", rawJSON: String? = nil) {
         self.text = text
-        self.usage = usage
-        self.finishReason = finishReason
-        self.toolCalls = toolCalls
+        self.signature = signature
+        self.type = type
+        self.rawJSON = rawJSON
     }
 }

@@ -44,9 +44,18 @@ struct ModelParsingTests {
     }
 
     @Test
+    func `parse Claude Fable 5 model id`() throws {
+        #expect(LanguageModel.parse(from: "claude-fable-5") == .anthropic(.fable5))
+        #expect(LanguageModel.parse(from: "fable") == .anthropic(.fable5))
+        #expect(try ModelSelector.parseModel("fable5") == .anthropic(.fable5))
+        #expect(LanguageModel.parse(from: "my-fable5-7b") == nil)
+    }
+
+    @Test
     func `parse Claude Opus 4.8 model id`() {
         let parsed = LanguageModel.parse(from: "claude-opus-4-8")
         #expect(parsed == .anthropic(.opus48))
+        #expect(LanguageModel.parse(from: "my-opus48-distill") == nil)
     }
 
     @Test
@@ -56,9 +65,10 @@ struct ModelParsingTests {
     }
 
     @Test
-    func `parse shorthand Claude alias`() {
+    func `parse shorthand Claude alias`() throws {
         let parsed = LanguageModel.parse(from: "claude")
         #expect(parsed == .anthropic(.opus48))
+        #expect(try ModelSelector.parseModel("anthropic") == .anthropic(.opus48))
     }
 
     @Test
@@ -75,6 +85,7 @@ struct ModelParsingTests {
 
     @Test
     func `parse provider qualified latest hosted models`() throws {
+        #expect(LanguageModel.parse(from: "anthropic/claude-fable-5") == .anthropic(.fable5))
         #expect(LanguageModel.parse(from: "anthropic/claude-opus-4-8") == .anthropic(.opus48))
         #expect(LanguageModel.parse(from: "google/gemini-3.5-flash") == .google(.gemini35Flash))
         #expect(LanguageModel.parse(from: "xai/grok-4.3-latest") == .grok(.grok43))
