@@ -433,7 +433,7 @@ public func streamText(
                     }
                 }
 
-                if buffersUntilDone, !didReceiveTerminal, !bufferedDeltas.isEmpty {
+                if buffersUntilDone, !didReceiveTerminal {
                     throw TachikomaError.apiError("Stream ended before provider completion status was received")
                 }
 
@@ -1049,7 +1049,10 @@ extension LanguageModel {
             fallbackContent.append(.text(text))
         }
         fallbackContent.append(contentsOf: missingToolCalls.map { .toolCall($0) })
-        history.append(ModelMessage(role: .assistant, content: fallbackContent))
+        let fallbackMetadata = needsFallbackBoundary
+            ? MessageMetadata(customData: ["tachikoma.internal.boundary": "reasoning_only"])
+            : nil
+        history.append(ModelMessage(role: .assistant, content: fallbackContent, metadata: fallbackMetadata))
         return history
     }
 

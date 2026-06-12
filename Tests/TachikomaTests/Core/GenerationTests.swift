@@ -1259,6 +1259,29 @@ struct GenerationTests {
     }
 
     @Test
+    func `GenerateText tags fallback reasoning-only boundary for Anthropic-compatible Fable`() async throws {
+        let providerResponse = ProviderResponse(
+            text: "",
+            finishReason: .stop,
+            reasoning: [ProviderReasoningBlock(text: "private", signature: "sig")],
+        )
+        let config = TachikomaConfiguration(loadFromEnvironment: false)
+        config.setProviderFactoryOverride { _, _ in StaticProvider(response: providerResponse) }
+
+        let result = try await generateText(
+            model: .anthropicCompatible(modelId: "claude-fable-5", baseURL: "https://example.test"),
+            messages: [.user("hi")],
+            configuration: config,
+        )
+
+        #expect(result.messages.count == 3)
+        #expect(result.messages[1].channel == .thinking)
+        #expect(result.messages[2].role == .assistant)
+        #expect(result.messages[2].content == [.text("")])
+        #expect(result.messages[2].metadata?.customData?["tachikoma.internal.boundary"] == "reasoning_only")
+    }
+
+    @Test
     func `GenerateText tags fallback reasoning for direct custom Fable`() async throws {
         let provider = StaticProvider(
             modelId: "claude-fable-5",
@@ -1481,6 +1504,36 @@ struct GenerationTests {
 
         let operation = try #require(UsageTracker.shared.getSession(sessionId)?.operations.last)
         #expect(operation.usage.outputTokens > 0)
+    }
+
+    @Test
+    func `StreamText buffered mode fails when provider ends without terminal status`() async throws {
+        let config = TachikomaConfiguration(loadFromEnvironment: false)
+        config.setProviderFactoryOverride { _, _ in
+            StaticProvider(
+                response: ProviderResponse(text: "", finishReason: .stop),
+                capabilities: ModelCapabilities(supportsStreaming: true),
+                streamDeltas: [],
+            )
+        }
+
+        let result = try await streamText(
+            model: .openaiCompatible(modelId: "compatible-model", baseURL: "https://example.test"),
+            messages: [.user("hi")],
+            settings: GenerationSettings(streamBuffering: .untilTerminal),
+            configuration: config,
+        )
+
+        do {
+            for try await _ in result.stream {}
+            Issue.record("Expected missing terminal status error")
+        } catch let error as TachikomaError {
+            guard case let .apiError(message) = error else {
+                Issue.record("Expected apiError, got \(error)")
+                return
+            }
+            #expect(message.contains("provider completion status"))
+        }
     }
 
     @Test
