@@ -362,13 +362,17 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
     public enum MiniMax: String, Sendable, Hashable, CaseIterable {
         case m27 = "MiniMax-M2.7"
         case m27Highspeed = "MiniMax-M2.7-highspeed"
+        case m3 = "MiniMax-M3"
 
         public var modelId: String {
             self.rawValue
         }
 
         public var supportsVision: Bool {
-            false
+            switch self {
+            case .m3: return true
+            case .m27, .m27Highspeed: return false
+            }
         }
 
         public var supportsTools: Bool {
@@ -1559,6 +1563,16 @@ extension LanguageModel {
             return .minimax(.m27)
         }
 
+        if
+            dashed.contains("minimax-m3") ||
+            dotted.contains("minimax-m-3") ||
+            compact.contains("minimaxm3") ||
+            dashed == "m3" ||
+            dotted == "m-3"
+        {
+            return .minimax(.m3)
+        }
+
         // MARK: Grok models
 
         let unsupportedGrok = normalized.contains("grok-4.20-multi-agent") ||
@@ -1793,6 +1807,8 @@ extension LanguageModel {
             return .m27
         case "minimax-m2.7-highspeed", "minimax-m2-7-highspeed", "m2.7-highspeed", "m2-7-highspeed":
             return .m27Highspeed
+        case "minimax-m3", "m3":
+            return .m3
         default:
             return nil
         }
