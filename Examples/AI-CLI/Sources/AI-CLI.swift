@@ -376,6 +376,7 @@ struct AICLI {
         case .google: .google
         case .minimax: .minimax
         case .minimaxCN: .minimaxCN
+        case .kimi: .kimi
         case .mistral: .mistral
         case .groq: .groq
         case .grok: .grok

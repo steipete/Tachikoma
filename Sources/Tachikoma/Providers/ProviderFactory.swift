@@ -80,6 +80,25 @@ public struct ProviderFactory {
                 configuration: configuration,
             )
 
+        case let .kimi(kimiModel):
+            guard let apiKey = configuration.getAPIKey(for: .kimi) else {
+                throw TachikomaError.authenticationFailed("MOONSHOT_API_KEY not found")
+            }
+            let baseURL = configuration.getBaseURL(for: .kimi) ?? Provider.kimi.defaultBaseURL ?? "https://api.kimi.com/coding/v1"
+            return try OpenAICompatibleProvider(
+                modelId: kimiModel.modelId,
+                baseURL: baseURL,
+                configuration: configuration,
+                apiKey: apiKey,
+                capabilities: ModelCapabilities(
+                    supportsVision: kimiModel.supportsVision,
+                    supportsTools: kimiModel.supportsTools,
+                    supportsStreaming: true,
+                    contextLength: kimiModel.contextLength,
+                    maxOutputTokens: 32_768,
+                ),
+            )
+
         case let .openRouter(modelId):
             return try OpenRouterProvider(modelId: modelId, configuration: configuration)
 

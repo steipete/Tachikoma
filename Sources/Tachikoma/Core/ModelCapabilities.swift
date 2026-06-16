@@ -210,6 +210,8 @@ public final class ModelCapabilityRegistry: @unchecked Sendable {
             "minimax:\(submodel.modelId)"
         case let .minimaxCN(submodel):
             "minimax-cn:\(submodel.modelId)"
+        case let .kimi(submodel):
+            "kimi:\(submodel.modelId)"
         case let .openRouter(modelId):
             "openrouter:\(modelId)"
         case let .together(modelId):

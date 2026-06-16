@@ -16,6 +16,7 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
     case lmstudio(LMStudio)
     case minimax(MiniMax)
     case minimaxCN(MiniMax)
+    case kimi(Kimi)
     case azureOpenAI(deployment: String, resource: String? = nil, apiVersion: String? = nil, endpoint: String? = nil)
 
     // Third-party aggregators
@@ -385,6 +386,38 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
 
         public var contextLength: Int {
             204_800
+        }
+    }
+
+    /// Kimi (Moonshot AI) models exposed via the OpenAI-compatible coding endpoint.
+    public enum Kimi: String, Sendable, Hashable, CaseIterable {
+        /// Kimi K2.6 (api id `k2p6`, family kimi-thinking). Multimodal: text/image/video input.
+        case k26 = "k2p6"
+        /// Kimi K2.7 Code (api id `k2p7`, family kimi-k2). Multimodal: text/image/video input.
+        case k27 = "k2p7"
+
+        public var modelId: String {
+            self.rawValue
+        }
+
+        public var supportsVision: Bool {
+            true
+        }
+
+        public var supportsTools: Bool {
+            true
+        }
+
+        public var supportsAudioInput: Bool {
+            false
+        }
+
+        public var supportsAudioOutput: Bool {
+            false
+        }
+
+        public var contextLength: Int {
+            262_144
         }
     }
 
@@ -763,6 +796,8 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
             return "MiniMax/\(model.modelId)"
         case let .minimaxCN(model):
             return "MiniMax China/\(model.modelId)"
+        case let .kimi(model):
+            return "Kimi/\(model.modelId)"
         case let .azureOpenAI(deployment, resource, apiVersion, endpoint):
             let host = endpoint ?? resource ?? "endpoint"
             let version = apiVersion ?? "api-version-default"
@@ -804,6 +839,8 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
             model.modelId
         case let .minimaxCN(model):
             model.modelId
+        case let .kimi(model):
+            model.modelId
         case let .azureOpenAI(deployment, _, _, _):
             deployment
         case let .openRouter(modelId):
@@ -842,6 +879,8 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
         case let .minimax(model):
             model.supportsVision
         case let .minimaxCN(model):
+            model.supportsVision
+        case let .kimi(model):
             model.supportsVision
         case .azureOpenAI:
             true // Azure mirrors OpenAI models with vision support when available
@@ -916,6 +955,8 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
             "MiniMax"
         case .minimaxCN:
             "MiniMax China"
+        case .kimi:
+            "Kimi"
         case .openRouter:
             "OpenRouter"
         case .together:
@@ -974,6 +1015,8 @@ extension LanguageModel {
             model.supportsAudioInput
         case let .minimaxCN(model):
             model.supportsAudioInput
+        case let .kimi(model):
+            model.supportsAudioInput
         case .azureOpenAI:
             false // Azure chat endpoints currently omit audio input
         case .openRouter, .together, .replicate:
@@ -1006,6 +1049,8 @@ extension LanguageModel {
         case let .minimax(model):
             model.supportsAudioOutput
         case let .minimaxCN(model):
+            model.supportsAudioOutput
+        case let .kimi(model):
             model.supportsAudioOutput
         case .azureOpenAI:
             false // Azure chat endpoints currently omit audio output
@@ -1040,6 +1085,8 @@ extension LanguageModel {
             model.supportsTools
         case let .minimaxCN(model):
             model.supportsTools
+        case let .kimi(model):
+            model.supportsTools
         case .azureOpenAI:
             true // Azure OpenAI mirrors OpenAI tool support
         case .openRouter, .together, .replicate:
@@ -1072,6 +1119,8 @@ extension LanguageModel {
         case let .minimax(model):
             model.contextLength
         case let .minimaxCN(model):
+            model.contextLength
+        case let .kimi(model):
             model.contextLength
         case .azureOpenAI:
             128_000 // conservative default matching OpenAI tier
@@ -1124,6 +1173,9 @@ extension LanguageModel {
         case let .minimaxCN(model):
             hasher.combine("minimax-cn")
             hasher.combine(model)
+        case let .kimi(model):
+            hasher.combine("kimi")
+            hasher.combine(model)
         case let .openRouter(modelId):
             hasher.combine("openRouter")
             hasher.combine(modelId)
@@ -1175,6 +1227,8 @@ extension LanguageModel {
         case let (.minimax(lhsModel), .minimax(rhsModel)):
             lhsModel == rhsModel
         case let (.minimaxCN(lhsModel), .minimaxCN(rhsModel)):
+            lhsModel == rhsModel
+        case let (.kimi(lhsModel), .kimi(rhsModel)):
             lhsModel == rhsModel
         case let (.openRouter(lhsId), .openRouter(rhsId)):
             lhsId == rhsId
@@ -1252,6 +1306,13 @@ extension LanguageModel {
             ["minimax-cn", "minimax_cn", "minimaxi"].contains(qualified.provider.lowercased())
         {
             return Self.parseMiniMaxModelIdentifier(qualified.model).map(LanguageModel.minimaxCN)
+        }
+
+        if
+            let qualified,
+            ["kimi", "moonshot"].contains(qualified.provider.lowercased())
+        {
+            return Self.parseKimiModelIdentifier(qualified.model).map(LanguageModel.kimi)
         }
 
         if let qualified {
@@ -1559,6 +1620,34 @@ extension LanguageModel {
             return .minimax(.m27)
         }
 
+        // MARK: Kimi (Moonshot) models
+
+        if
+            dashed.contains("kimi-k2.7") ||
+            dotted.contains("kimi-k2-7") ||
+            compact.contains("kimik27") ||
+            compact.contains("k2p7") ||
+            dashed == "k2p7" ||
+            dashed == "k2.7" ||
+            dotted == "k2-7"
+        {
+            return .kimi(.k27)
+        }
+
+        if
+            dashed.contains("kimi-k2.6") ||
+            dotted.contains("kimi-k2-6") ||
+            compact.contains("kimik26") ||
+            compact.contains("k2p6") ||
+            dashed == "k2p6" ||
+            dashed == "k2.6" ||
+            dotted == "k2-6" ||
+            normalized == "kimi" ||
+            normalized == "moonshot"
+        {
+            return .kimi(.k26)
+        }
+
         // MARK: Grok models
 
         let unsupportedGrok = normalized.contains("grok-4.20-multi-agent") ||
@@ -1793,6 +1882,19 @@ extension LanguageModel {
             return .m27
         case "minimax-m2.7-highspeed", "minimax-m2-7-highspeed", "m2.7-highspeed", "m2-7-highspeed":
             return .m27Highspeed
+        default:
+            return nil
+        }
+    }
+
+    private static func parseKimiModelIdentifier(_ modelString: String) -> Kimi? {
+        let normalized = modelString.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+
+        switch normalized {
+        case "k2p6", "kimi-k2.6", "kimi-k2-6", "kimi-k2p6", "kimi-k2.6-code", "k2.6":
+            return .k26
+        case "k2p7", "kimi-k2.7", "kimi-k2-7", "kimi-k2p7", "kimi-k2p7-code", "kimi-k2.7-code", "k2.7", "kimi-k2.7-code-free":
+            return .k27
         default:
             return nil
         }

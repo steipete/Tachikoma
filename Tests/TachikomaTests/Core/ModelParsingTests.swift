@@ -131,6 +131,25 @@ struct ModelParsingTests {
     }
 
     @Test
+    func `parse Kimi (Moonshot) model ids`() throws {
+        #expect(LanguageModel.parse(from: "kimi/k2p6") == .kimi(.k26))
+        #expect(LanguageModel.parse(from: "kimi/MiniMax-K2.6") == nil)
+        #expect(LanguageModel.parse(from: "kimi/kimi-k2.6") == .kimi(.k26))
+        #expect(LanguageModel.parse(from: "kimi/k2p7") == .kimi(.k27))
+        #expect(LanguageModel.parse(from: "kimi/kimi-k2.7-code") == .kimi(.k27))
+        #expect(LanguageModel.parse(from: "moonshot/k2p7") == .kimi(.k27))
+        #expect(LanguageModel.parse(from: "kimi-k2.6") == .kimi(.k26))
+        #expect(LanguageModel.parse(from: "kimi-k2.7") == .kimi(.k27))
+        #expect(LanguageModel.parse(from: "k2p6") == .kimi(.k26))
+        #expect(LanguageModel.parse(from: "k2p7") == .kimi(.k27))
+        #expect(LanguageModel.parse(from: "kimi") == .kimi(.k26))
+        #expect(LanguageModel.Kimi.k26.supportsVision == true)
+        #expect(LanguageModel.Kimi.k27.supportsVision == true)
+        #expect(LanguageModel.Kimi.k27.modelId == "k2p7")
+        #expect(LanguageModel.Kimi.k27.contextLength == 262_144)
+    }
+
+    @Test
     func `parse OpenRouter model ids`() throws {
         #expect(LanguageModel
             .parse(from: "openrouter/xiaomi/mimo-v2.5-pro") == .openRouter(modelId: "xiaomi/mimo-v2.5-pro"))
