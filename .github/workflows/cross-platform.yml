@@ -90,15 +90,13 @@ jobs:
       
       - name: Create release info
         run: |
-          echo "✅ All platforms tested successfully" >> release-info.txt
+          echo "✅ Linux validation completed successfully" >> release-info.txt
           echo "" >> release-info.txt
           echo "Tested Platforms:" >> release-info.txt
-          echo "• macOS 14 (Sonoma) ✅" >> release-info.txt
-          echo "• macOS 15 (Sequoia) ✅" >> release-info.txt
           echo "• Ubuntu 22.04 LTS ✅" >> release-info.txt
           echo "• Ubuntu 24.04 LTS ✅" >> release-info.txt
           echo "" >> release-info.txt
-          echo "Total: 4 platform configurations tested in parallel" >> release-info.txt
+          echo "Total: 2 Linux configurations tested in parallel" >> release-info.txt
       
       - name: Upload release info
         uses: actions/upload-artifact@v7
