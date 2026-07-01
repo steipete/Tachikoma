@@ -104,6 +104,8 @@ Common picks:
 - OpenAI: `gpt-5.5` (`LanguageModel.defaultStreaming`), `gpt-5.4` / `gpt-5.4-mini` / `gpt-5.4-nano`, `gpt-5`
 - Google: `gemini-3.1-pro-preview`, `gemini-3-flash`
 - Grok: `grok-4.3`
+- MiniMax: `MiniMax-M2.7`, `MiniMax-M2.7-highspeed`
+- Kimi: `kimi-k2.6`, `kimi-k2.7-code`, `kimi-k2.7-code-highspeed`
 - Local: `ollama/llama3.3`
 
 Full catalog (including enum case names + provider notes): [`docs/models.md`](docs/models.md).
@@ -115,6 +117,8 @@ Set API keys via env vars (or use `TKAuthManager`):
 - Anthropic: `ANTHROPIC_API_KEY`
 - Gemini: `GEMINI_API_KEY` (alias: `GOOGLE_API_KEY`)
 - Grok: `X_AI_API_KEY` (aliases: `XAI_API_KEY`, `GROK_API_KEY`)
+- MiniMax: `MINIMAX_API_KEY`
+- Kimi (Moonshot AI): `MOONSHOT_API_KEY` (alias: `KIMI_API_KEY`)
 
 Hosts can change the credential storage root:
 - `TachikomaConfiguration.profileDirectoryName` (Peekaboo uses `.peekaboo`)

@@ -132,21 +132,25 @@ struct ModelParsingTests {
 
     @Test
     func `parse Kimi (Moonshot) model ids`() throws {
-        #expect(LanguageModel.parse(from: "kimi/k2p6") == .kimi(.k26))
         #expect(LanguageModel.parse(from: "kimi/MiniMax-K2.6") == nil)
         #expect(LanguageModel.parse(from: "kimi/kimi-k2.6") == .kimi(.k26))
-        #expect(LanguageModel.parse(from: "kimi/k2p7") == .kimi(.k27))
-        #expect(LanguageModel.parse(from: "kimi/kimi-k2.7-code") == .kimi(.k27))
-        #expect(LanguageModel.parse(from: "moonshot/k2p7") == .kimi(.k27))
+        #expect(LanguageModel.parse(from: "kimi/kimi-k2.7-code") == .kimi(.k27Code))
+        #expect(LanguageModel.parse(from: "moonshot/kimi-k2.7-code") == .kimi(.k27Code))
+        #expect(LanguageModel.parse(from: "kimi/kimi-k2.7-code-highspeed") == .kimi(.k27CodeHighspeed))
         #expect(LanguageModel.parse(from: "kimi-k2.6") == .kimi(.k26))
-        #expect(LanguageModel.parse(from: "kimi-k2.7") == .kimi(.k27))
-        #expect(LanguageModel.parse(from: "k2p6") == .kimi(.k26))
-        #expect(LanguageModel.parse(from: "k2p7") == .kimi(.k27))
+        #expect(LanguageModel.parse(from: "kimi-k2.7-code") == .kimi(.k27Code))
         #expect(LanguageModel.parse(from: "kimi") == .kimi(.k26))
+        #expect(try ModelSelector.parseModel("kimi/kimi-k2.6") == .kimi(.k26))
+        #expect(try ModelSelector.parseModel("moonshot/kimi-k2.7-code") == .kimi(.k27Code))
         #expect(LanguageModel.Kimi.k26.supportsVision == true)
-        #expect(LanguageModel.Kimi.k27.supportsVision == true)
-        #expect(LanguageModel.Kimi.k27.modelId == "k2p7")
-        #expect(LanguageModel.Kimi.k27.contextLength == 262_144)
+        #expect(LanguageModel.Kimi.k27Code.supportsVision == true)
+        #expect(LanguageModel.Kimi.k27Code.modelId == "kimi-k2.7-code")
+        #expect(LanguageModel.Kimi.k27CodeHighspeed.contextLength == 262_144)
+        #expect(ModelSelector.availableModels(for: "moonshot") == [
+            "kimi-k2.7-code",
+            "kimi-k2.7-code-highspeed",
+            "kimi-k2.6",
+        ])
     }
 
     @Test
@@ -229,6 +233,22 @@ struct ModelParsingTests {
                 )
 
                 #expect(model == .minimaxCN(.m27))
+            }
+        }
+    }
+
+    @Test
+    func `ProviderParser accepts Kimi provider aliases`() {
+        if #available(macOS 13.0, iOS 16.0, tvOS 16.0, watchOS 9.0, *) {
+            for provider in ["kimi", "moonshot"] {
+                let model = ProviderParser.determineDefaultModel(
+                    from: "\(provider)/kimi-k2.7-code",
+                    hasOpenAI: false,
+                    hasAnthropic: false,
+                    hasKimi: true,
+                )
+
+                #expect(model == .kimi(.k27Code))
             }
         }
     }

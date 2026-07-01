@@ -79,12 +79,14 @@ struct OpenAIChatMessage: Codable {
     let toolCalls: [AgentToolCall]?
     let reasoning: String?
     let reasoningDetails: [JSONValue]?
+    let reasoningContent: String?
 
     enum CodingKeys: String, CodingKey {
         case role, content, reasoning
         case toolCallId = "tool_call_id"
         case toolCalls = "tool_calls"
         case reasoningDetails = "reasoning_details"
+        case reasoningContent = "reasoning_content"
     }
 
     struct AgentToolCall: Codable {
@@ -105,6 +107,7 @@ struct OpenAIChatMessage: Codable {
         self.toolCalls = nil
         self.reasoning = nil
         self.reasoningDetails = nil
+        self.reasoningContent = nil
     }
 
     init(role: String, content: [OpenAIChatMessageContent], toolCallId: String? = nil) {
@@ -114,6 +117,7 @@ struct OpenAIChatMessage: Codable {
         self.toolCalls = nil
         self.reasoning = nil
         self.reasoningDetails = nil
+        self.reasoningContent = nil
     }
 
     init(
@@ -122,6 +126,7 @@ struct OpenAIChatMessage: Codable {
         toolCalls: [AgentToolCall]?,
         reasoning: String? = nil,
         reasoningDetails: [JSONValue]? = nil,
+        reasoningContent: String? = nil,
     ) {
         self.role = role
         self.content = content.map { .left($0) }
@@ -129,6 +134,7 @@ struct OpenAIChatMessage: Codable {
         self.toolCalls = toolCalls
         self.reasoning = reasoning
         self.reasoningDetails = reasoningDetails
+        self.reasoningContent = reasoningContent
     }
 }
 
@@ -263,11 +269,13 @@ struct OpenAIChatResponse: Codable {
         let toolCalls: [AgentToolCall]?
         let reasoning: String?
         let reasoningDetails: [JSONValue]?
+        let reasoningContent: String?
 
         enum CodingKeys: String, CodingKey {
             case role, content, reasoning
             case toolCalls = "tool_calls"
             case reasoningDetails = "reasoning_details"
+            case reasoningContent = "reasoning_content"
         }
     }
 
@@ -313,10 +321,12 @@ struct OpenAIStreamChunk: Codable {
     struct Delta: Codable {
         let role: String?
         let content: String?
+        let reasoningContent: String?
         let toolCalls: [ToolCall]?
 
         enum CodingKeys: String, CodingKey {
             case role, content
+            case reasoningContent = "reasoning_content"
             case toolCalls = "tool_calls"
         }
 

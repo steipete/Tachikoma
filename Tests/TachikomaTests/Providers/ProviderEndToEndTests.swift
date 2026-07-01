@@ -517,6 +517,72 @@ struct ProviderEndToEndTests {
         }
     }
 
+    @Test
+    func `Kimi provider uses official endpoint and preserves reasoning content`() async throws {
+        let image = ModelMessage.ContentPart.ImageContent(data: "aW1hZ2U=", mimeType: "image/png")
+        let request = ProviderRequest(messages: [ModelMessage.user(text: "Inspect", images: [image])])
+
+        try await NetworkMocking.withMockedNetwork { request in
+            #expect(request.url?.absoluteString == "https://api.moonshot.cn/v1/chat/completions")
+            #expect(request.value(forHTTPHeaderField: "Authorization") == "Bearer live-kimi")
+            let body = try #require(self.bodyData(from: request))
+            let json = try #require(JSONSerialization.jsonObject(with: body) as? [String: Any])
+            #expect(json["model"] as? String == "kimi-k2.7-code")
+            let messages = try #require(json["messages"] as? [[String: Any]])
+            let content = try #require(messages.first?["content"] as? [[String: Any]])
+            #expect(content.contains { $0["type"] as? String == "image_url" })
+            return NetworkMocking.jsonResponse(
+                for: request,
+                data: Self.kimiPayload(text: "", reasoning: "native Kimi thought"),
+            )
+        } operation: {
+            let config = Self.makeConfiguration { config in
+                config.setAPIKey("live-kimi", for: .kimi)
+            }
+            let provider = try KimiProvider(model: .k27Code, configuration: config)
+            let response = try await provider.generateText(request: request)
+            #expect(response.reasoning.first?.type == "kimi_reasoning_content")
+            #expect(response.reasoning.first?.text == "native Kimi thought")
+            #expect(response.toolCalls?.first?.name == "lookup")
+            #expect(provider.capabilities.contextLength == 262_144)
+            #expect(provider.capabilities.maxOutputTokens == 32768)
+        }
+    }
+
+    @Test
+    func `MiniMax rate limit does not contaminate Kimi routing`() async throws {
+        try await NetworkMocking.withMockedNetwork { request in
+            switch request.url?.host {
+            case "api.minimax.io":
+                return NetworkMocking.jsonResponse(
+                    for: request,
+                    data: #"{"error":{"message":"rate limited","type":"rate_limit_error"}}"#.utf8Data(),
+                    statusCode: 429,
+                )
+            case "api.moonshot.cn":
+                return NetworkMocking.jsonResponse(
+                    for: request,
+                    data: Self.chatCompletionPayload(text: "Kimi remained available"),
+                )
+            default:
+                throw TachikomaError.invalidConfiguration("Unexpected host")
+            }
+        } operation: {
+            let config = Self.makeConfiguration { config in
+                config.setAPIKey("live-minimax", for: .minimax)
+                config.setAPIKey("live-kimi", for: .kimi)
+            }
+            let miniMax = try ProviderFactory.createProvider(for: .minimax(.m27), configuration: config)
+            let kimi = try ProviderFactory.createProvider(for: .kimi(.k26), configuration: config)
+
+            await #expect(throws: TachikomaError.self) {
+                _ = try await miniMax.generateText(request: Self.basicRequest)
+            }
+            let response = try await kimi.generateText(request: Self.basicRequest)
+            #expect(response.text == "Kimi remained available")
+        }
+    }
+
     // MARK: - Helpers
 
     private func assertOpenAICompatibleProvider(_ model: LanguageModel, provider: Provider) async throws {
@@ -600,6 +666,28 @@ struct ProviderEndToEndTests {
                 "completion_tokens": 5,
                 "total_tokens": 15,
             ],
+        ]
+        return try! JSONSerialization.data(withJSONObject: dict)
+    }
+
+    private static func kimiPayload(text: String, reasoning: String) -> Data {
+        let dict: [String: Any] = [
+            "id": "chatcmpl-kimi",
+            "choices": [[
+                "index": 0,
+                "message": [
+                    "role": "assistant",
+                    "content": text,
+                    "reasoning_content": reasoning,
+                    "tool_calls": [[
+                        "id": "call-1",
+                        "type": "function",
+                        "function": ["name": "lookup", "arguments": "{}"],
+                    ]],
+                ],
+                "finish_reason": "tool_calls",
+            ]],
+            "usage": ["prompt_tokens": 10, "completion_tokens": 5, "total_tokens": 15],
         ]
         return try! JSONSerialization.data(withJSONObject: dict)
     }

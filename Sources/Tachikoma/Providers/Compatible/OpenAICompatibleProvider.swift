@@ -19,7 +19,6 @@ public final class OpenAICompatibleProvider: ModelProvider {
         configuration: TachikomaConfiguration,
         apiKey: String? = nil,
         additionalHeaders: [String: String] = [:],
-        capabilities: ModelCapabilities? = nil,
         session: URLSession = .shared,
     ) throws {
         self.modelId = modelId
@@ -42,7 +41,7 @@ public final class OpenAICompatibleProvider: ModelProvider {
         }
 
         let isFable = LanguageModel.Anthropic.isFable(modelId: modelId)
-        self.capabilities = capabilities ?? ModelCapabilities(
+        self.capabilities = ModelCapabilities(
             supportsVision: false,
             supportsTools: true,
             supportsStreaming: !LanguageModel.Anthropic.hasStreamingRefusalRisk(modelId: modelId),

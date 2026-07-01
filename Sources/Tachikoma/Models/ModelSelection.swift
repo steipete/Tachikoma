@@ -39,6 +39,10 @@ public struct ModelSelector {
             return .minimax(miniMaxModel)
         }
 
+        if let kimiModel = parseKimiModel(normalized) {
+            return .kimi(kimiModel)
+        }
+
         // Grok shortcuts and models
         if let grokModel = parseGrokModel(normalized) {
             return .grok(grokModel)
@@ -307,6 +311,22 @@ public struct ModelSelector {
         }
     }
 
+    private static func parseKimiModel(_ input: String) -> Model.Kimi? {
+        switch input {
+        case "kimi-k2.7-code-highspeed", "kimi-k2-7-code-highspeed", "k2.7-code-highspeed", "k2-7-code-highspeed",
+             "kimi/kimi-k2.7-code-highspeed", "moonshot/kimi-k2.7-code-highspeed":
+            .k27CodeHighspeed
+        case "kimi-k2.7-code", "kimi-k2-7-code", "k2.7-code", "k2-7-code", "kimi/kimi-k2.7-code",
+             "moonshot/kimi-k2.7-code":
+            .k27Code
+        case "kimi-k2.6", "kimi-k2-6", "k2.6", "k2-6", "kimi/kimi-k2.6", "moonshot/kimi-k2.6",
+             "kimi", "moonshot":
+            .k26
+        default:
+            nil
+        }
+    }
+
     private static func isUnsupportedLegacyGrokModel(_ input: String) -> Bool {
         let normalized = input.lowercased()
         return normalized.contains("grok-4.20-multi-agent") ||
@@ -418,6 +438,8 @@ public struct ModelSelector {
             return Model.Google.allCases.map(\.userFacingModelId)
         case "minimax", "minimax-cn", "minimaxi":
             return Model.MiniMax.allCases.map(\.modelId)
+        case "kimi", "moonshot":
+            return Model.Kimi.allCases.map(\.modelId)
         case "ollama":
             return Model.Ollama.allCases.compactMap {
                 if case .custom = $0 { return nil }
@@ -509,6 +531,11 @@ public func getAllAvailableModels() -> String {
     )
 
     output += formatModelList(
+        title: "Kimi (Moonshot AI)",
+        models: ModelSelector.availableModels(for: "kimi"),
+    )
+
+    output += formatModelList(
         title: "Grok (xAI)",
         models: ModelSelector.availableModels(for: "grok"),
     )
@@ -525,6 +552,7 @@ public func getAllAvailableModels() -> String {
     output += "  • gemini → gemini-3.5-flash\n"
     output += "  • minimax → MiniMax-M2.7\n"
     output += "  • minimax-cn → MiniMax-M2.7 via api.minimaxi.com\n"
+    output += "  • kimi, moonshot → kimi-k2.6\n"
     output += "  • grok → grok-4.3\n"
     output += "  • llama, llama3 → llama3.3\n"
 

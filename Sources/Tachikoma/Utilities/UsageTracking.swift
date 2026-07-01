@@ -574,7 +574,12 @@ public struct ModelCostCalculator: Sendable {
             case .custom: (2.00, 8.00)
             }
         case .minimax, .minimaxCN: (0.30, 1.20)
-        case .kimi: (0.60, 2.40) // Estimate; verify against Moonshot/Kimi pricing
+        case let .kimi(kimiModel):
+            // Approximate USD equivalents of Moonshot's published CNY prices.
+            switch kimiModel {
+            case .k27CodeHighspeed: (1.80, 7.50)
+            case .k27Code, .k26: (0.90, 3.75)
+            }
         case .ollama: (0.00, 0.00) // Local inference
         case .lmstudio: (0.00, 0.00) // Local inference
         case .openRouter, .together, .replicate: (1.00, 3.00) // Typical aggregator pricing

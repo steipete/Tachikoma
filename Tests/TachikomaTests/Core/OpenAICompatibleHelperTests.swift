@@ -165,6 +165,51 @@ struct OpenAICompatibleHelperTests {
     }
 
     @Test
+    func `streamText emits Kimi reasoning content`() async throws {
+        let request = ProviderRequest(messages: [.user("stream")])
+
+        let deltas = try await self.withMockedSession { urlRequest in
+            let sse = """
+            data: {"id":"chunk_1","choices":[{"delta":{"reasoning_content":"thinking"},"index":0,"finish_reason":null}]}
+
+            data: {"id":"chunk_2","choices":[{"delta":{"content":"answer"},"index":0,"finish_reason":null}]}
+
+            data: {"id":"chunk_3","choices":[{"delta":{},"index":0,"finish_reason":"stop"}]}
+
+            data: [DONE]
+
+            """.utf8Data()
+            let response = HTTPURLResponse(
+                url: urlRequest.url!,
+                statusCode: 200,
+                httpVersion: nil,
+                headerFields: ["Content-Type": "text/event-stream"],
+            )!
+            return (response, sse)
+        } operation: { session in
+            let stream = try await OpenAICompatibleHelper.streamText(
+                request: request,
+                modelId: "kimi-k2.7-code",
+                baseURL: "https://api.moonshot.cn/v1",
+                apiKey: "sk-test",
+                providerName: "Kimi",
+                session: session,
+            )
+
+            var deltas: [TextStreamDelta] = []
+            for try await delta in stream {
+                deltas.append(delta)
+            }
+            return deltas
+        }
+
+        #expect(deltas.contains {
+            $0.type == .reasoning && $0.content == "thinking" && $0.reasoningType == "kimi_reasoning_content"
+        })
+        #expect(deltas.contains { $0.type == .textDelta && $0.content == "answer" })
+    }
+
+    @Test
     func `OpenAI-compatible provider forwards configured headers`() async throws {
         let request = ProviderRequest(
             messages: [ModelMessage(role: .user, content: [.text("ping")])],
@@ -235,6 +280,90 @@ struct OpenAICompatibleHelperTests {
         #expect(reasoning.type == "openrouter_reasoning_details")
         #expect(reasoning.rawJSON?.contains("reasoning.encrypted") == true)
         #expect(response.toolCalls?.first?.id == "call-1")
+    }
+
+    @Test
+    func `generateText decodes Kimi reasoning content`() async throws {
+        let response = try await self.withMockedSession { urlRequest in
+            let payload: [String: Any] = [
+                "id": "chatcmpl-kimi",
+                "choices": [[
+                    "index": 0,
+                    "message": [
+                        "role": "assistant",
+                        "content": NSNull(),
+                        "reasoning_content": "native Kimi thought",
+                        "tool_calls": [[
+                            "id": "call-1",
+                            "type": "function",
+                            "function": ["name": "lookup", "arguments": "{}"],
+                        ]],
+                    ],
+                    "finish_reason": "tool_calls",
+                ]],
+            ]
+            return try self.jsonResponse(for: urlRequest, data: JSONSerialization.data(withJSONObject: payload))
+        } operation: { session in
+            try await OpenAICompatibleHelper.generateText(
+                request: ProviderRequest(messages: [.user("hi")]),
+                modelId: "kimi-k2.7-code",
+                baseURL: "https://api.moonshot.cn/v1",
+                apiKey: "sk-test",
+                providerName: "Kimi",
+                session: session,
+            )
+        }
+
+        let reasoning = try #require(response.reasoning.first)
+        #expect(reasoning.type == "kimi_reasoning_content")
+        #expect(reasoning.text == "native Kimi thought")
+        #expect(response.toolCalls?.first?.id == "call-1")
+    }
+
+    @Test
+    func `generateText replays Kimi reasoning only for matching model and endpoint`() async throws {
+        let capture = CapturedRequest()
+        let call = AgentToolCall(id: "call-1", name: "lookup", arguments: [:])
+        let endpoint = "https://api.moonshot.cn/v1"
+        let request = try ProviderRequest(messages: [
+            .user("hi"),
+            ModelMessage(
+                role: .assistant,
+                content: [.text("native Kimi thought")],
+                channel: .thinking,
+                metadata: .init(customData: [
+                    "kimi.reasoning_content": "native Kimi thought",
+                    "tachikoma.reasoning.provider": "kimi",
+                    "tachikoma.reasoning.model": "kimi-k2.7-code",
+                    "tachikoma.reasoning.base_url": #require(ReasoningEndpointIdentity.canonical(endpoint)),
+                ]),
+            ),
+            ModelMessage(role: .assistant, content: [.toolCall(call)]),
+            ModelMessage(
+                role: .tool,
+                content: [.toolResult(.success(toolCallId: "call-1", result: AnyAgentToolValue(string: "ok")))],
+            ),
+        ])
+
+        _ = try await self.withMockedSession { urlRequest in
+            capture.body = self.bodyData(from: urlRequest)
+            return self.jsonResponse(for: urlRequest, data: Self.chatCompletionPayload(text: "done"))
+        } operation: { session in
+            try await OpenAICompatibleHelper.generateText(
+                request: request,
+                modelId: "kimi-k2.7-code",
+                baseURL: endpoint,
+                apiKey: "sk-test",
+                providerName: "Kimi",
+                session: session,
+            )
+        }
+
+        let bodyJSON = try #require(capture.body).jsonObject()
+        let messages = try #require(bodyJSON["messages"] as? [[String: Any]])
+        let assistant = try #require(messages.first { $0["role"] as? String == "assistant" })
+        #expect(assistant["reasoning_content"] as? String == "native Kimi thought")
+        #expect(assistant["tool_calls"] != nil)
     }
 
     @Test

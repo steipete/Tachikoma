@@ -1907,6 +1907,36 @@ struct GenerationTests {
         #expect(thinking.metadata?.customData?["openrouter.reasoning_details"]?.contains("sealed") == true)
     }
 
+    @Test
+    func `GenerateText tags Kimi reasoning with configured endpoint`() async throws {
+        let config = TachikomaConfiguration(loadFromEnvironment: false)
+        config.setBaseURL("https://kimi-proxy.example.test/v1?tenant=a", for: .kimi)
+        config.setProviderFactoryOverride { _, _ in
+            StaticProvider(response: ProviderResponse(
+                text: "",
+                finishReason: .toolCalls,
+                toolCalls: [AgentToolCall(id: "call-1", name: "lookup", arguments: [:])],
+                reasoning: [ProviderReasoningBlock(
+                    text: "native Kimi thought",
+                    type: "kimi_reasoning_content",
+                )],
+            ))
+        }
+
+        let result = try await generateText(
+            model: .kimi(.k27Code),
+            messages: [.user("hi")],
+            configuration: config,
+        )
+
+        let thinking = try #require(result.messages.first { $0.channel == .thinking })
+        #expect(thinking.metadata?.customData?["kimi.reasoning_content"] == "native Kimi thought")
+        #expect(thinking.metadata?.customData?["tachikoma.reasoning.provider"] == "kimi")
+        #expect(thinking.metadata?.customData?["tachikoma.reasoning.model"] == "kimi-k2.7-code")
+        #expect(thinking.metadata?.customData?["tachikoma.reasoning.base_url"] == ReasoningEndpointIdentity
+            .canonical("https://kimi-proxy.example.test/v1?tenant=a"))
+    }
+
     // MARK: - Image Input Type Tests
 
     @Test

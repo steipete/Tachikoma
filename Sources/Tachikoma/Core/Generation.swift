@@ -789,6 +789,7 @@ extension LanguageModel {
              .mistral,
              .groq,
              .grok,
+             .kimi,
              .azureOpenAI:
             return true
         case let .custom(provider):
@@ -939,6 +940,29 @@ extension [ModelMessage] {
             return sanitized
         }
 
+        if let target = model.kimiReasoningReplayTarget(configuration: configuration) {
+            var sanitized: [ModelMessage] = []
+            for message in self {
+                if message.isSyntheticReasoningBoundary {
+                    if sanitized.last?.channel == .thinking {
+                        sanitized.append(message)
+                    }
+                    continue
+                }
+                guard message.channel == .thinking else {
+                    sanitized.append(message)
+                    continue
+                }
+                guard message.hasKimiReasoningReplayMetadata else {
+                    continue
+                }
+                if target.matches(message.metadata?.customData ?? [:]) {
+                    sanitized.append(message)
+                }
+            }
+            return sanitized
+        }
+
         return self.filter { !$0.isSyntheticReasoningBoundary && $0.channel != .thinking }
     }
 }
@@ -957,8 +981,13 @@ extension ModelMessage {
             customData["openrouter.reasoning"] != nil
     }
 
+    fileprivate var hasKimiReasoningReplayMetadata: Bool {
+        self.metadata?.customData?["kimi.reasoning_content"] != nil
+    }
+
     private var hasProviderReasoningReplayMetadata: Bool {
-        self.hasAnthropicThinkingReplayMetadata || self.hasOpenRouterReasoningReplayMetadata
+        self.hasAnthropicThinkingReplayMetadata || self.hasOpenRouterReasoningReplayMetadata ||
+            self.hasKimiReasoningReplayMetadata
     }
 
     fileprivate var isSyntheticReasoningBoundary: Bool {
@@ -1142,12 +1171,41 @@ extension LanguageModel {
         }
     }
 
+    fileprivate func kimiReasoningReplayTarget(configuration: TachikomaConfiguration) -> ReasoningReplayTarget? {
+        switch self {
+        case let .kimi(model):
+            ReasoningReplayTarget(
+                provider: "kimi",
+                modelId: model.modelId,
+                baseURL: configuration.getBaseURL(for: .kimi) ?? Provider.kimi.defaultBaseURL,
+                allowsLegacyUnknown: false,
+            )
+        default:
+            nil
+        }
+    }
+
     private func anthropicThinkingMetadata(
         for reasoning: ProviderReasoningBlock,
         configuration: TachikomaConfiguration,
     )
         -> [String: String]
     {
+        if
+            reasoning.type == "kimi_reasoning_content",
+            let target = self.kimiReasoningReplayTarget(configuration: configuration)
+        {
+            var metadata = [
+                "kimi.reasoning_content": reasoning.text,
+                "tachikoma.reasoning.type": reasoning.type,
+                "tachikoma.reasoning.provider": target.provider,
+                "tachikoma.reasoning.model": target.modelId,
+            ]
+            if let endpointIdentity = target.endpointIdentity {
+                metadata["tachikoma.reasoning.base_url"] = endpointIdentity
+            }
+            return metadata
+        }
         if
             let rawJSON = reasoning.rawJSON,
             let target = self.openRouterReasoningReplayTarget(configuration: configuration)

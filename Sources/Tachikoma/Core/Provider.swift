@@ -47,7 +47,7 @@ public enum Provider: Sendable, Hashable, Codable {
     /// MiniMax China provider (Anthropic-compatible hosted models)
     case minimaxCN
 
-    /// Kimi provider (Moonshot AI, OpenAI-compatible coding endpoint)
+    /// Kimi provider (Moonshot AI, OpenAI-compatible API)
     case kimi
 
     /// Ollama provider (local model hosting)
@@ -125,7 +125,7 @@ public enum Provider: Sendable, Hashable, Codable {
         case .grok: ["XAI_API_KEY", "GROK_API_KEY"] // Additional Grok aliases
         case .google: ["GOOGLE_API_KEY"] // Backwards compatibility
         case .minimaxCN: ["MINIMAX_API_KEY"]
-        case .kimi: ["KIMI_API_KEY", "MOONSHOT_KEY"] // Additional Kimi/Moonshot aliases
+        case .kimi: ["KIMI_API_KEY"]
         case .azureOpenAI: ["AZURE_OPENAI_TOKEN", "AZURE_OPENAI_BEARER_TOKEN"]
         default: []
         }
@@ -142,7 +142,7 @@ public enum Provider: Sendable, Hashable, Codable {
         case .google: "https://generativelanguage.googleapis.com/v1beta"
         case .minimax: "https://api.minimax.io/anthropic"
         case .minimaxCN: "https://api.minimaxi.com/anthropic"
-        case .kimi: "https://api.kimi.com/coding/v1"
+        case .kimi: "https://api.moonshot.cn/v1"
         case .ollama: "http://localhost:11434"
         case .lmstudio: "http://localhost:1234/v1"
         case .azureOpenAI: nil // Requires resource or endpoint

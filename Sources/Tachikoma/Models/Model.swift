@@ -389,12 +389,11 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
         }
     }
 
-    /// Kimi (Moonshot AI) models exposed via the OpenAI-compatible coding endpoint.
+    /// Kimi (Moonshot AI) models exposed via the OpenAI-compatible API.
     public enum Kimi: String, Sendable, Hashable, CaseIterable {
-        /// Kimi K2.6 (api id `k2p6`, family kimi-thinking). Multimodal: text/image/video input.
-        case k26 = "k2p6"
-        /// Kimi K2.7 Code (api id `k2p7`, family kimi-k2). Multimodal: text/image/video input.
-        case k27 = "k2p7"
+        case k27Code = "kimi-k2.7-code"
+        case k27CodeHighspeed = "kimi-k2.7-code-highspeed"
+        case k26 = "kimi-k2.6"
 
         public var modelId: String {
             self.rawValue
@@ -1623,23 +1622,27 @@ extension LanguageModel {
         // MARK: Kimi (Moonshot) models
 
         if
-            dashed.contains("kimi-k2.7") ||
-            dotted.contains("kimi-k2-7") ||
-            compact.contains("kimik27") ||
-            compact.contains("k2p7") ||
-            dashed == "k2p7" ||
-            dashed == "k2.7" ||
-            dotted == "k2-7"
+            dashed.contains("kimi-k2.7-code-highspeed") ||
+            dotted.contains("kimi-k2-7-code-highspeed") ||
+            compact.contains("kimik27codehighspeed")
         {
-            return .kimi(.k27)
+            return .kimi(.k27CodeHighspeed)
+        }
+
+        if
+            dashed.contains("kimi-k2.7-code") ||
+            dotted.contains("kimi-k2-7-code") ||
+            compact.contains("kimik27code") ||
+            dashed == "k2.7-code" ||
+            dotted == "k2-7-code"
+        {
+            return .kimi(.k27Code)
         }
 
         if
             dashed.contains("kimi-k2.6") ||
             dotted.contains("kimi-k2-6") ||
             compact.contains("kimik26") ||
-            compact.contains("k2p6") ||
-            dashed == "k2p6" ||
             dashed == "k2.6" ||
             dotted == "k2-6" ||
             normalized == "kimi" ||
@@ -1891,10 +1894,12 @@ extension LanguageModel {
         let normalized = modelString.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
 
         switch normalized {
-        case "k2p6", "kimi-k2.6", "kimi-k2-6", "kimi-k2p6", "kimi-k2.6-code", "k2.6":
+        case "kimi-k2.6", "kimi-k2-6", "k2.6", "k2-6":
             return .k26
-        case "k2p7", "kimi-k2.7", "kimi-k2-7", "kimi-k2p7", "kimi-k2p7-code", "kimi-k2.7-code", "k2.7", "kimi-k2.7-code-free":
-            return .k27
+        case "kimi-k2.7-code", "kimi-k2-7-code", "k2.7-code", "k2-7-code":
+            return .k27Code
+        case "kimi-k2.7-code-highspeed", "kimi-k2-7-code-highspeed", "k2.7-code-highspeed", "k2-7-code-highspeed":
+            return .k27CodeHighspeed
         default:
             return nil
         }

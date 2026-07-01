@@ -7,6 +7,7 @@ All notable changes to the Tachikoma project will be documented in this file.
 ### Added
 - Added first-class OpenAI `chat-latest` support with parsing aliases, Responses API routing, model capabilities, and usage estimates.
 - Added first-class MiniMax support with the `MiniMax-M2.7` catalog models, `MINIMAX_API_KEY` / `MINIMAX_BASE_URL` configuration, bearer-token Anthropic-compatible transport, model parsing shortcuts, usage estimates, and provider tests.
+- Added first-class Kimi support for the official K2.6 and K2.7 Code model IDs, Moonshot's OpenAI-compatible endpoint, multimodal/tool capabilities, and provider-bound `reasoning_content` replay. Thanks @Tugser.
 - Added explicit LM Studio model shortcuts such as `lmstudio` and `lmstudio/openai/gpt-oss-120b` so local provider selections no longer fall through to Ollama custom IDs.
 
 ### Changed

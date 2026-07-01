@@ -96,6 +96,7 @@ public enum ProviderParser {
     ///   - hasGrok: Whether Grok API key is available
     ///   - hasGoogle: Whether Google/Gemini API key is available
     ///   - hasMiniMax: Whether MiniMax API key is available
+    ///   - hasKimi: Whether Moonshot/Kimi API key is available
     ///   - hasOllama: Whether Ollama is available (always true as it doesn't require API key)
     ///   - configuredDefault: Optional default from configuration
     ///   - isEnvironmentProvided: Whether the providers string came from environment variable
@@ -107,6 +108,7 @@ public enum ProviderParser {
         hasGrok: Bool = false,
         hasGoogle: Bool? = nil,
         hasMiniMax: Bool = false,
+        hasKimi: Bool = false,
         hasOllama: Bool = true,
         configuredDefault: LanguageModel? = nil,
         isEnvironmentProvided: Bool = false,
@@ -132,6 +134,8 @@ public enum ProviderParser {
                 environmentModel = self.parseMiniMaxModel(config.model)
             case "minimax-cn" where hasMiniMax, "minimax_cn" where hasMiniMax, "minimaxi" where hasMiniMax:
                 environmentModel = self.parseMiniMaxCNModel(config.model)
+            case "kimi" where hasKimi, "moonshot" where hasKimi:
+                environmentModel = self.parseKimiModel(config.model)
             case "grok" where hasGrok, "xai" where hasGrok:
                 environmentModel = self.parseGrokModel(config.model)
             case "ollama" where hasOllama:
@@ -164,6 +168,7 @@ public enum ProviderParser {
                 hasGrok: hasGrok,
                 hasGoogle: canFallbackToGoogle,
                 hasMiniMax: hasMiniMax,
+                hasKimi: hasKimi,
                 hasOllama: hasOllama,
             )
         }
@@ -184,6 +189,7 @@ public enum ProviderParser {
         hasGrok: Bool = false,
         hasGoogle: Bool? = nil,
         hasMiniMax: Bool = false,
+        hasKimi: Bool = false,
         hasOllama: Bool = true,
         configuredDefault: LanguageModel? = nil,
     )
@@ -197,6 +203,7 @@ public enum ProviderParser {
             hasGrok: hasGrok,
             hasGoogle: hasGoogle,
             hasMiniMax: hasMiniMax,
+            hasKimi: hasKimi,
             hasOllama: hasOllama,
             configuredDefault: configuredDefault,
             isEnvironmentProvided: false,
@@ -337,6 +344,19 @@ public enum ProviderParser {
         }
     }
 
+    private static func parseKimiModel(_ modelString: String) -> LanguageModel? {
+        switch modelString.lowercased() {
+        case "kimi-k2.7-code-highspeed", "kimi-k2-7-code-highspeed", "k2.7-code-highspeed", "k2-7-code-highspeed":
+            .kimi(.k27CodeHighspeed)
+        case "kimi-k2.7-code", "kimi-k2-7-code", "k2.7-code", "k2-7-code":
+            .kimi(.k27Code)
+        case "kimi-k2.6", "kimi-k2-6", "k2.6", "k2-6":
+            .kimi(.k26)
+        default:
+            nil
+        }
+    }
+
     private static func parseGrokModel(_ modelString: String) -> LanguageModel? {
         switch modelString.lowercased() {
         case "grok-4.3", "grok-4-3", "grok43", "grok-4.3-latest", "grok-4-latest", "grok-4", "grok-latest":
@@ -386,6 +406,7 @@ public enum ProviderParser {
         hasGrok: Bool,
         hasGoogle: Bool,
         hasMiniMax: Bool,
+        hasKimi: Bool,
         hasOllama _: Bool,
     )
         -> LanguageModel
@@ -400,6 +421,8 @@ public enum ProviderParser {
             .google(.gemini35Flash)
         } else if hasMiniMax {
             .minimax(.m27)
+        } else if hasKimi {
+            .kimi(.k26)
         } else {
             .ollama(.llama33)
         }

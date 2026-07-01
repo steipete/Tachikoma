@@ -357,6 +357,7 @@ public final class TachikomaConfiguration: @unchecked Sendable {
             .anthropic: "ANTHROPIC_BASE_URL",
             .minimax: "MINIMAX_BASE_URL",
             .minimaxCN: "MINIMAX_CN_BASE_URL",
+            .kimi: "MOONSHOT_BASE_URL",
             .ollama: "OLLAMA_BASE_URL",
             .azureOpenAI: "AZURE_OPENAI_ENDPOINT",
         ]
