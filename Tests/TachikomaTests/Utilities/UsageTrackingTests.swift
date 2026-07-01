@@ -160,6 +160,14 @@ struct UsageTrackingTests {
         #expect(grok420Cost.output == 2.50)
         #expect(grok420Cost.total == 3.75)
 
+        let kimiCost = calculator.calculateCost(for: .kimi(.k26), usage: usage)
+        #expect(kimiCost.input == 0.95)
+        #expect(kimiCost.output == 4.00)
+
+        let kimiHighspeedCost = calculator.calculateCost(for: .kimi(.k27CodeHighspeed), usage: usage)
+        #expect(kimiHighspeedCost.input == 1.90)
+        #expect(kimiHighspeedCost.output == 8.00)
+
         // Test Ollama (should be free)
         let ollamaCost = calculator.calculateCost(for: .ollama(.llama33), usage: usage)
         #expect(ollamaCost.input == 0.0)
