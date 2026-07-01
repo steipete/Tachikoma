@@ -10,9 +10,10 @@ struct OpenAIChatRequest: Codable {
     let tools: [OpenAITool]?
     let stream: Bool?
     let stop: [String]? // Native stop sequences support
+    let thinking: OpenAIThinkingConfiguration?
 
     enum CodingKeys: String, CodingKey {
-        case model, messages, temperature, tools, stream, stop
+        case model, messages, temperature, tools, stream, stop, thinking
         case maxTokens = "max_tokens"
         case maxCompletionTokens = "max_completion_tokens"
     }
@@ -25,6 +26,7 @@ struct OpenAIChatRequest: Codable {
         tools: [OpenAITool]? = nil,
         stream: Bool? = nil,
         stop: [String]? = nil,
+        thinking: OpenAIThinkingConfiguration? = nil,
     ) {
         self.model = model
         self.messages = messages
@@ -33,6 +35,7 @@ struct OpenAIChatRequest: Codable {
         self.tools = tools
         self.stream = stream
         self.stop = stop
+        self.thinking = thinking
     }
 
     init(from decoder: Decoder) throws {
@@ -51,6 +54,7 @@ struct OpenAIChatRequest: Codable {
         self.tools = try container.decodeIfPresent([OpenAITool].self, forKey: .tools)
         self.stream = try container.decodeIfPresent(Bool.self, forKey: .stream)
         self.stop = try container.decodeIfPresent([String].self, forKey: .stop)
+        self.thinking = try container.decodeIfPresent(OpenAIThinkingConfiguration.self, forKey: .thinking)
     }
 
     func encode(to encoder: Encoder) throws {
@@ -69,7 +73,13 @@ struct OpenAIChatRequest: Codable {
         try container.encodeIfPresent(self.tools, forKey: .tools)
         try container.encodeIfPresent(self.stream, forKey: .stream)
         try container.encodeIfPresent(self.stop, forKey: .stop)
+        try container.encodeIfPresent(self.thinking, forKey: .thinking)
     }
+}
+
+struct OpenAIThinkingConfiguration: Codable {
+    let type: String
+    let keep: String?
 }
 
 struct OpenAIChatMessage: Codable {

@@ -368,6 +368,51 @@ struct OpenAICompatibleHelperTests {
         let assistant = try #require(messages.first { $0["role"] as? String == "assistant" })
         #expect(assistant["reasoning_content"] as? String == "native Kimi thought")
         #expect(assistant["tool_calls"] != nil)
+        #expect(bodyJSON["thinking"] == nil)
+    }
+
+    @Test
+    func `generateText enables preserved thinking when replaying Kimi K2_6 reasoning`() async throws {
+        let capture = CapturedRequest()
+        let endpoint = "https://api.moonshot.cn/v1"
+        let request = try ProviderRequest(messages: [
+            .user("first"),
+            ModelMessage(
+                role: .assistant,
+                content: [.text("native Kimi thought")],
+                channel: .thinking,
+                metadata: .init(customData: [
+                    "kimi.reasoning_content": "native Kimi thought",
+                    "tachikoma.reasoning.provider": "kimi",
+                    "tachikoma.reasoning.model": "kimi-k2.6",
+                    "tachikoma.reasoning.base_url": #require(ReasoningEndpointIdentity.canonical(endpoint)),
+                ]),
+            ),
+            .assistant("answer"),
+            .user("continue"),
+        ])
+
+        _ = try await self.withMockedSession { urlRequest in
+            capture.body = self.bodyData(from: urlRequest)
+            return self.jsonResponse(for: urlRequest, data: Self.chatCompletionPayload(text: "done"))
+        } operation: { session in
+            try await OpenAICompatibleHelper.generateText(
+                request: request,
+                modelId: "kimi-k2.6",
+                baseURL: endpoint,
+                apiKey: "sk-test",
+                providerName: "Kimi",
+                session: session,
+            )
+        }
+
+        let bodyJSON = try #require(capture.body).jsonObject()
+        let thinking = try #require(bodyJSON["thinking"] as? [String: String])
+        #expect(thinking["type"] == "enabled")
+        #expect(thinking["keep"] == "all")
+        let messages = try #require(bodyJSON["messages"] as? [[String: Any]])
+        let assistant = try #require(messages.first { $0["role"] as? String == "assistant" })
+        #expect(assistant["reasoning_content"] as? String == "native Kimi thought")
     }
 
     @Test

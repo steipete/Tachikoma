@@ -45,20 +45,22 @@ struct OpenAICompatibleHelper {
         let stopSequences = Self.extractStopSequences(from: settings.stopConditions)
 
         // Convert request to OpenAI-compatible format
+        let messages = try self.convertMessages(
+            request.messages,
+            replayOpenRouterReasoningForModel: providerName == "OpenRouter" ? modelId : nil,
+            replayOpenRouterReasoningForBaseURL: providerName == "OpenRouter" ? baseURL : nil,
+            replayKimiReasoningForModel: providerName == "Kimi" ? modelId : nil,
+            replayKimiReasoningForBaseURL: providerName == "Kimi" ? baseURL : nil,
+        )
         let openAIRequest = try OpenAIChatRequest(
             model: modelId,
-            messages: convertMessages(
-                request.messages,
-                replayOpenRouterReasoningForModel: providerName == "OpenRouter" ? modelId : nil,
-                replayOpenRouterReasoningForBaseURL: providerName == "OpenRouter" ? baseURL : nil,
-                replayKimiReasoningForModel: providerName == "Kimi" ? modelId : nil,
-                replayKimiReasoningForBaseURL: providerName == "Kimi" ? baseURL : nil,
-            ),
+            messages: messages,
             temperature: settings.temperature,
             maxTokens: settings.maxTokens,
             tools: request.tools?.compactMap { try self.convertTool($0) },
             stream: false,
             stop: stopSequences.isEmpty ? nil : stopSequences,
+            thinking: Self.kimiThinkingConfiguration(providerName: providerName, modelId: modelId, messages: messages),
         )
 
         let encoder = JSONEncoder()
@@ -193,20 +195,22 @@ struct OpenAICompatibleHelper {
         let stopSequences = Self.extractStopSequences(from: settings.stopConditions)
 
         // Convert request to OpenAI-compatible format
+        let messages = try self.convertMessages(
+            request.messages,
+            replayOpenRouterReasoningForModel: providerName == "OpenRouter" ? modelId : nil,
+            replayOpenRouterReasoningForBaseURL: providerName == "OpenRouter" ? baseURL : nil,
+            replayKimiReasoningForModel: providerName == "Kimi" ? modelId : nil,
+            replayKimiReasoningForBaseURL: providerName == "Kimi" ? baseURL : nil,
+        )
         let openAIRequest = try OpenAIChatRequest(
             model: modelId,
-            messages: convertMessages(
-                request.messages,
-                replayOpenRouterReasoningForModel: providerName == "OpenRouter" ? modelId : nil,
-                replayOpenRouterReasoningForBaseURL: providerName == "OpenRouter" ? baseURL : nil,
-                replayKimiReasoningForModel: providerName == "Kimi" ? modelId : nil,
-                replayKimiReasoningForBaseURL: providerName == "Kimi" ? baseURL : nil,
-            ),
+            messages: messages,
             temperature: settings.temperature,
             maxTokens: settings.maxTokens,
             tools: request.tools?.compactMap { try self.convertTool($0) },
             stream: true,
             stop: stopSequences.isEmpty ? nil : stopSequences,
+            thinking: Self.kimiThinkingConfiguration(providerName: providerName, modelId: modelId, messages: messages),
         )
 
         let encoder = JSONEncoder()
@@ -595,6 +599,24 @@ struct OpenAICompatibleHelper {
         } else {
             return "unknown"
         }
+    }
+
+    private static func kimiThinkingConfiguration(
+        providerName: String,
+        modelId: String,
+        messages: [OpenAIChatMessage],
+    )
+        -> OpenAIThinkingConfiguration?
+    {
+        guard
+            providerName == "Kimi",
+            modelId == LanguageModel.Kimi.k26.modelId,
+            messages.contains(where: { $0.reasoningContent?.isEmpty == false }) else
+        {
+            return nil
+        }
+
+        return OpenAIThinkingConfiguration(type: "enabled", keep: "all")
     }
 
     private static func convertMessages(
