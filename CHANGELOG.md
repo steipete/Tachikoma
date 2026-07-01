@@ -5,6 +5,7 @@ All notable changes to the Tachikoma project will be documented in this file.
 ## [Unreleased]
 
 ### Added
+- Added `MiniMax-M3` with 1M context, image input, provider/model parsing, and Anthropic-compatible routing. Thanks @Tugser.
 - Added first-class OpenAI `chat-latest` support with parsing aliases, Responses API routing, model capabilities, and usage estimates.
 - Added first-class MiniMax support with the `MiniMax-M2.7` catalog models, `MINIMAX_API_KEY` / `MINIMAX_BASE_URL` configuration, bearer-token Anthropic-compatible transport, model parsing shortcuts, usage estimates, and provider tests.
 - Added explicit LM Studio model shortcuts such as `lmstudio` and `lmstudio/openai/gpt-oss-120b` so local provider selections no longer fall through to Ollama custom IDs.

@@ -370,8 +370,8 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
 
         public var supportsVision: Bool {
             switch self {
-            case .m3: return true
-            case .m27, .m27Highspeed: return false
+            case .m3: true
+            case .m27, .m27Highspeed: false
             }
         }
 
@@ -388,7 +388,10 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
         }
 
         public var contextLength: Int {
-            204_800
+            switch self {
+            case .m3: 1_000_000
+            case .m27, .m27Highspeed: 204_800
+            }
         }
     }
 
@@ -1521,6 +1524,15 @@ extension LanguageModel {
         }
 
         // MARK: MiniMax models
+
+        if
+            dashed.contains("minimax-cn-m3") ||
+            dotted.contains("minimax-cn-m-3") ||
+            compact.contains("minimaxcnm3") ||
+            compact.contains("minimaxim3")
+        {
+            return .minimaxCN(.m3)
+        }
 
         if
             dashed.contains("minimax-cn-m2.7-highspeed") ||

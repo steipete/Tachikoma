@@ -278,6 +278,8 @@ public struct ModelSelector {
              "minimax/m2.7-highspeed", "minimax/m2-7-highspeed", "minimax/minimax-m2.7-highspeed",
              "minimax/minimax-m2-7-highspeed":
             .m27Highspeed
+        case "minimax-m3", "m3", "minimax/m3", "minimax/minimax-m3":
+            .m3
         case "minimax":
             .m27
         default:
@@ -300,6 +302,9 @@ public struct ModelSelector {
              "minimax-cn/minimax-m2.7-highspeed", "minimax-cn/minimax-m2-7-highspeed",
              "minimaxi/m2.7-highspeed", "minimaxi/m2-7-highspeed":
             .m27Highspeed
+        case "minimax-cn-m3", "minimaxi-m3", "minimax-cn/m3", "minimax_cn/m3", "minimaxi/m3",
+             "minimax-cn/minimax-m3", "minimax_cn/minimax-m3":
+            .m3
         case "minimax-cn", "minimax_cn", "minimaxi":
             .m27
         default:

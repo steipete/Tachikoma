@@ -321,6 +321,8 @@ public enum ProviderParser {
             .minimax(.m27)
         case "minimax-m2.7-highspeed", "minimax-m2-7-highspeed", "m2.7-highspeed", "m2-7-highspeed":
             .minimax(.m27Highspeed)
+        case "minimax-m3", "m3":
+            .minimax(.m3)
         default:
             nil
         }
@@ -332,6 +334,8 @@ public enum ProviderParser {
             .minimaxCN(.m27)
         case "minimax-m2.7-highspeed", "minimax-m2-7-highspeed", "m2.7-highspeed", "m2-7-highspeed":
             .minimaxCN(.m27Highspeed)
+        case "minimax-m3", "m3":
+            .minimaxCN(.m3)
         default:
             nil
         }
