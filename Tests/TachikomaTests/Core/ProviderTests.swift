@@ -119,7 +119,7 @@ enum ProviderTests {
             #expect(Provider.google.defaultBaseURL == "https://generativelanguage.googleapis.com/v1beta")
             #expect(Provider.minimax.defaultBaseURL == "https://api.minimax.io/anthropic")
             #expect(Provider.minimaxCN.defaultBaseURL == "https://api.minimaxi.com/anthropic")
-            #expect(Provider.kimi.defaultBaseURL == "https://api.moonshot.cn/v1")
+            #expect(Provider.kimi.defaultBaseURL == "https://api.moonshot.ai/v1")
             #expect(Provider.ollama.defaultBaseURL == "http://localhost:11434")
             #expect(Provider.azureOpenAI.defaultBaseURL == nil)
             #expect(Provider.custom("test").defaultBaseURL == nil)

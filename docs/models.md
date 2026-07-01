@@ -45,7 +45,7 @@ Notes:
 - `kimi-k2.7-code`
 - `kimi-k2.7-code-highspeed`
 
-Kimi uses Moonshot's OpenAI-compatible endpoint at `https://api.moonshot.cn/v1`. Configure
+Kimi uses Moonshot's OpenAI-compatible endpoint at `https://api.moonshot.ai/v1`. Configure
 `MOONSHOT_API_KEY` (or `KIMI_API_KEY`); override the endpoint with `MOONSHOT_BASE_URL`. K2.7 tool-call
 turns preserve Moonshot's provider-native `reasoning_content` when replaying assistant history.
 

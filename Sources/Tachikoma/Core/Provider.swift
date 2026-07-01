@@ -142,7 +142,7 @@ public enum Provider: Sendable, Hashable, Codable {
         case .google: "https://generativelanguage.googleapis.com/v1beta"
         case .minimax: "https://api.minimax.io/anthropic"
         case .minimaxCN: "https://api.minimaxi.com/anthropic"
-        case .kimi: "https://api.moonshot.cn/v1"
+        case .kimi: "https://api.moonshot.ai/v1"
         case .ollama: "http://localhost:11434"
         case .lmstudio: "http://localhost:1234/v1"
         case .azureOpenAI: nil // Requires resource or endpoint

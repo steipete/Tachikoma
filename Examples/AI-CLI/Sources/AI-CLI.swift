@@ -418,7 +418,7 @@ struct AICLI {
         case .kimi:
             print("Set your Moonshot AI API key:")
             print("export MOONSHOT_API_KEY='your-key-here'")
-            print("Setup guide: https://platform.kimi.com/docs/guide/start-using-kimi-api")
+            print("Setup guide: https://platform.kimi.ai/docs/guide/start-using-kimi-api")
         case .mistral:
             print("Set your Mistral API key:")
             print("export MISTRAL_API_KEY='your-key-here'")

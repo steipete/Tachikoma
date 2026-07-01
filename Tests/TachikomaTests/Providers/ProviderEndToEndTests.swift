@@ -523,7 +523,7 @@ struct ProviderEndToEndTests {
         let request = ProviderRequest(messages: [ModelMessage.user(text: "Inspect", images: [image])])
 
         try await NetworkMocking.withMockedNetwork { request in
-            #expect(request.url?.absoluteString == "https://api.moonshot.cn/v1/chat/completions")
+            #expect(request.url?.absoluteString == "https://api.moonshot.ai/v1/chat/completions")
             #expect(request.value(forHTTPHeaderField: "Authorization") == "Bearer live-kimi")
             let body = try #require(self.bodyData(from: request))
             let json = try #require(JSONSerialization.jsonObject(with: body) as? [String: Any])
@@ -559,7 +559,7 @@ struct ProviderEndToEndTests {
                     data: #"{"error":{"message":"rate limited","type":"rate_limit_error"}}"#.utf8Data(),
                     statusCode: 429,
                 )
-            case "api.moonshot.cn":
+            case "api.moonshot.ai":
                 return NetworkMocking.jsonResponse(
                     for: request,
                     data: Self.chatCompletionPayload(text: "Kimi remained available"),
