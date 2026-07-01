@@ -5,6 +5,7 @@ All notable changes to the Tachikoma project will be documented in this file.
 ## [Unreleased]
 
 ### Added
+- Added `MiniMax-M3` with 1M context, image input, provider/model parsing, and Anthropic-compatible routing. Thanks @Tugser.
 - Added first-class OpenAI `chat-latest` support with parsing aliases, Responses API routing, model capabilities, and usage estimates.
 - Added first-class MiniMax support with the `MiniMax-M2.7` catalog models, `MINIMAX_API_KEY` / `MINIMAX_BASE_URL` configuration, bearer-token Anthropic-compatible transport, model parsing shortcuts, usage estimates, and provider tests.
 - Added first-class Kimi support for the official K2.6 and K2.7 Code model IDs, Moonshot's OpenAI-compatible endpoint, multimodal/tool capabilities, and provider-bound `reasoning_content` replay. Thanks @Tugser.

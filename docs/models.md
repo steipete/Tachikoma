@@ -36,6 +36,7 @@ Notes:
 
 ## MiniMax (`LanguageModel.MiniMax`)
 
+- `MiniMax-M3` (1M context, multimodal image input)
 - `MiniMax-M2.7`
 - `MiniMax-M2.7-highspeed`
 

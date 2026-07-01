@@ -122,12 +122,22 @@ struct ModelParsingTests {
         #expect(LanguageModel.parse(from: "minimax/m2.7-highspeed") == .minimax(.m27Highspeed))
         #expect(try ModelSelector.parseModel("minimax/m2-7-highspeed") == .minimax(.m27Highspeed))
         #expect(LanguageModel.parse(from: "minimax") == .minimax(.m27))
+        #expect(LanguageModel.parse(from: "MiniMax-M3") == .minimax(.m3))
+        #expect(LanguageModel.parse(from: "minimax/MiniMax-M3") == .minimax(.m3))
+        #expect(LanguageModel.parse(from: "minimax/m3") == .minimax(.m3))
+        #expect(LanguageModel.parse(from: "minimax/minimax-m3") == .minimax(.m3))
+        #expect(try ModelSelector.parseModel("minimax/m3") == .minimax(.m3))
+        #expect(LanguageModel.MiniMax.m3.supportsVision == true)
+        #expect(LanguageModel.MiniMax.m27.supportsVision == false)
+        #expect(LanguageModel.MiniMax.m3.contextLength == 1_000_000)
         #expect(LanguageModel.parse(from: "minimax-cn/MiniMax-M2.7") == .minimaxCN(.m27))
         #expect(LanguageModel.parse(from: "minimax-cn/m2.7-highspeed") == .minimaxCN(.m27Highspeed))
         #expect(try ModelSelector.parseModel("minimax-cn/m2-7") == .minimaxCN(.m27))
         #expect(try ModelSelector.parseModel("minimax_cn/m2.7") == .minimaxCN(.m27))
         #expect(LanguageModel.parse(from: "minimaxi/m2.7") == .minimaxCN(.m27))
         #expect(LanguageModel.parse(from: "minimax-cn") == .minimaxCN(.m27))
+        #expect(LanguageModel.parse(from: "minimax-cn/m3") == .minimaxCN(.m3))
+        #expect(try ModelSelector.parseModel("minimax-cn/m3") == .minimaxCN(.m3))
     }
 
     @Test
@@ -250,6 +260,27 @@ struct ModelParsingTests {
 
                 #expect(model == .kimi(.k27Code))
             }
+        }
+    }
+
+    @Test
+    func `ProviderParser accepts MiniMax M3`() {
+        if #available(macOS 13.0, iOS 16.0, tvOS 16.0, watchOS 9.0, *) {
+            let global = ProviderParser.determineDefaultModel(
+                from: "minimax/MiniMax-M3",
+                hasOpenAI: false,
+                hasAnthropic: false,
+                hasMiniMax: true,
+            )
+            let china = ProviderParser.determineDefaultModel(
+                from: "minimax-cn/MiniMax-M3",
+                hasOpenAI: false,
+                hasAnthropic: false,
+                hasMiniMax: true,
+            )
+
+            #expect(global == .minimax(.m3))
+            #expect(china == .minimaxCN(.m3))
         }
     }
 

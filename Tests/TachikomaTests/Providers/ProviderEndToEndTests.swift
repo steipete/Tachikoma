@@ -450,6 +450,42 @@ struct ProviderEndToEndTests {
     }
 
     @Test
+    func `MiniMax M3 sends multimodal requests to the Anthropic endpoint`() async throws {
+        let image = ModelMessage.ContentPart.ImageContent(
+            data: Data("test-image".utf8).base64EncodedString(),
+            mimeType: "image/png",
+        )
+        let request = ProviderRequest(messages: [ModelMessage.user(text: "Describe this", images: [image])])
+
+        try await NetworkMocking.withMockedNetwork { request in
+            #expect(request.url?.host == "api.minimax.io")
+            self.expectPath(request, endsWith: "/anthropic/v1/messages")
+            #expect(request.value(forHTTPHeaderField: "Authorization") == "Bearer live-minimax")
+
+            let body = try #require(self.bodyData(from: request))
+            let json = try #require(JSONSerialization.jsonObject(with: body) as? [String: Any])
+            #expect(json["model"] as? String == "MiniMax-M3")
+            let messages = try #require(json["messages"] as? [[String: Any]])
+            let content = try #require(messages.first?["content"] as? [[String: Any]])
+            let source = try #require(content.first { $0["type"] as? String == "image" }?["source"] as? [String: Any])
+            #expect(source["media_type"] as? String == "image/png")
+            #expect(source["data"] as? String == image.data)
+
+            return NetworkMocking.jsonResponse(for: request, data: Self.anthropicPayload(text: "MiniMax M3 ok"))
+        } operation: {
+            let config = Self.makeConfiguration { config in
+                config.setAPIKey("live-minimax", for: .minimax)
+            }
+            let provider = try ProviderFactory.createProvider(for: .minimax(.m3), configuration: config)
+            #expect(provider.capabilities.supportsVision)
+            #expect(provider.capabilities.contextLength == 1_000_000)
+
+            let response = try await provider.generateText(request: request)
+            #expect(response.text == "MiniMax M3 ok")
+        }
+    }
+
+    @Test
     func `MiniMax reasoning metadata is bound to configured endpoint`() async throws {
         let baseURL = "https://minimax-proxy.test/anthropic?tenant=a"
         try await NetworkMocking.withMockedNetwork { request in
