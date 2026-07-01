@@ -1916,10 +1916,12 @@ struct GenerationTests {
                 text: "",
                 finishReason: .toolCalls,
                 toolCalls: [AgentToolCall(id: "call-1", name: "lookup", arguments: [:])],
-                reasoning: [ProviderReasoningBlock(
-                    text: "native Kimi thought",
-                    type: "kimi_reasoning_content",
-                )],
+                reasoning: [
+                    ProviderReasoningBlock(
+                        text: "native Kimi thought",
+                        type: "kimi_reasoning_content",
+                    ),
+                ],
             ))
         }
 

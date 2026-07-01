@@ -287,20 +287,24 @@ struct OpenAICompatibleHelperTests {
         let response = try await self.withMockedSession { urlRequest in
             let payload: [String: Any] = [
                 "id": "chatcmpl-kimi",
-                "choices": [[
-                    "index": 0,
-                    "message": [
-                        "role": "assistant",
-                        "content": NSNull(),
-                        "reasoning_content": "native Kimi thought",
-                        "tool_calls": [[
-                            "id": "call-1",
-                            "type": "function",
-                            "function": ["name": "lookup", "arguments": "{}"],
-                        ]],
+                "choices": [
+                    [
+                        "index": 0,
+                        "message": [
+                            "role": "assistant",
+                            "content": NSNull(),
+                            "reasoning_content": "native Kimi thought",
+                            "tool_calls": [
+                                [
+                                    "id": "call-1",
+                                    "type": "function",
+                                    "function": ["name": "lookup", "arguments": "{}"],
+                                ],
+                            ],
+                        ],
+                        "finish_reason": "tool_calls",
                     ],
-                    "finish_reason": "tool_calls",
-                ]],
+                ],
             ]
             return try self.jsonResponse(for: urlRequest, data: JSONSerialization.data(withJSONObject: payload))
         } operation: { session in

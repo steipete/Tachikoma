@@ -673,20 +673,24 @@ struct ProviderEndToEndTests {
     private static func kimiPayload(text: String, reasoning: String) -> Data {
         let dict: [String: Any] = [
             "id": "chatcmpl-kimi",
-            "choices": [[
-                "index": 0,
-                "message": [
-                    "role": "assistant",
-                    "content": text,
-                    "reasoning_content": reasoning,
-                    "tool_calls": [[
-                        "id": "call-1",
-                        "type": "function",
-                        "function": ["name": "lookup", "arguments": "{}"],
-                    ]],
+            "choices": [
+                [
+                    "index": 0,
+                    "message": [
+                        "role": "assistant",
+                        "content": text,
+                        "reasoning_content": reasoning,
+                        "tool_calls": [
+                            [
+                                "id": "call-1",
+                                "type": "function",
+                                "function": ["name": "lookup", "arguments": "{}"],
+                            ],
+                        ],
+                    ],
+                    "finish_reason": "tool_calls",
                 ],
-                "finish_reason": "tool_calls",
-            ]],
+            ],
             "usage": ["prompt_tokens": 10, "completion_tokens": 5, "total_tokens": 15],
         ]
         return try! JSONSerialization.data(withJSONObject: dict)
