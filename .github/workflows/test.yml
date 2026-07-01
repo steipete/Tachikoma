@@ -25,7 +25,7 @@ jobs:
 
     steps:
     - name: Checkout
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
 
     - name: Fetch Commander dependency
       shell: bash
@@ -37,7 +37,7 @@ jobs:
         xcode-version: '26.1'
 
     - name: Cache Swift Package Manager
-      uses: actions/cache@v4
+      uses: actions/cache@v6
       with:
         path: .build
         key: ${{ runner.os }}-spm-${{ hashFiles('**/Package.resolved') }}
@@ -75,7 +75,7 @@ jobs:
 
     steps:
     - name: Checkout
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
 
     - name: Fetch Commander dependency
       shell: bash
@@ -87,7 +87,7 @@ jobs:
         swift-version: ${{ matrix.swift-version }}
 
     - name: Cache Swift Package Manager
-      uses: actions/cache@v4
+      uses: actions/cache@v6
       with:
         path: .build
         key: ${{ runner.os }}-spm-${{ matrix.swift-version }}-${{ hashFiles('**/Package.resolved') }}
@@ -122,7 +122,7 @@ jobs:
     runs-on: macos-15
     steps:
     - name: Checkout
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
 
     - name: Fetch Commander dependency
       shell: bash
@@ -155,7 +155,7 @@ jobs:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     steps:
     - name: Checkout
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
 
     - name: Fetch Commander dependency
       shell: bash

@@ -27,7 +27,7 @@ jobs:
     name: Ubuntu 22.04 LTS
     container: swift:6.2
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Fetch Commander dependency
         shell: bash
         run: git clone --depth 1 https://github.com/steipete/Commander.git ../Commander
@@ -56,7 +56,7 @@ jobs:
     name: Ubuntu 24.04 LTS
     container: swift:6.2
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Fetch Commander dependency
         shell: bash
         run: git clone --depth 1 https://github.com/steipete/Commander.git ../Commander
@@ -86,22 +86,20 @@ jobs:
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       
       - name: Create release info
         run: |
-          echo "✅ All platforms tested successfully" >> release-info.txt
+          echo "✅ Linux validation completed successfully" >> release-info.txt
           echo "" >> release-info.txt
           echo "Tested Platforms:" >> release-info.txt
-          echo "• macOS 14 (Sonoma) ✅" >> release-info.txt
-          echo "• macOS 15 (Sequoia) ✅" >> release-info.txt
           echo "• Ubuntu 22.04 LTS ✅" >> release-info.txt
           echo "• Ubuntu 24.04 LTS ✅" >> release-info.txt
           echo "" >> release-info.txt
-          echo "Total: 4 platform configurations tested in parallel" >> release-info.txt
+          echo "Total: 2 Linux configurations tested in parallel" >> release-info.txt
       
       - name: Upload release info
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: cross-platform-validation
           path: release-info.txt
