@@ -11,12 +11,6 @@ enum TestHelpers {
     )
         -> TachikomaConfiguration
     {
-        // For tests that rely on profile fixtures, keep a deterministic dir unless empty config
-        if apiKeys.isEmpty {
-            TachikomaConfiguration.profileDirectoryName = ".tachikoma-tests-\(UUID().uuidString)"
-        } else {
-            // leave profileDirectoryName as-is so registry tests can load fixtures
-        }
         let config = TachikomaConfiguration(loadFromEnvironment: false)
         for (provider, key) in apiKeys {
             config.setAPIKey(key, for: provider)
@@ -82,12 +76,16 @@ enum TestHelpers {
         -> T
     {
         try await TestEnvironmentMutex.shared.withLock {
+            let previousProfileDirectory = TachikomaConfiguration.profileDirectoryName
             let previousIgnore = TKAuthManager.shared.setIgnoreEnvironment(true)
             let previousIgnoreStore = TKAuthManager.shared.setIgnoreCredentialStore(true)
             defer {
+                TachikomaConfiguration.profileDirectoryName = previousProfileDirectory
                 TKAuthManager.shared.setIgnoreEnvironment(previousIgnore)
                 TKAuthManager.shared.setIgnoreCredentialStore(previousIgnoreStore)
             }
+
+            TachikomaConfiguration.profileDirectoryName = ".tachikoma-tests-\(UUID().uuidString)"
 
             let envKeys = [
                 "OPENAI_API_KEY",
