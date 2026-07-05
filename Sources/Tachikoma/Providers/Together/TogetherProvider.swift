@@ -28,12 +28,13 @@ public final class TogetherProvider: ModelProvider {
         }
 
         let hasLargeClaudeLimits = LanguageModel.Anthropic.hasMillionTokenContext(modelId: modelId)
+        let gpt56Model = LanguageModel.OpenAI.gpt56Model(for: modelId)
         self.capabilities = ModelCapabilities(
             supportsVision: true,
             supportsTools: true,
             supportsStreaming: !LanguageModel.Anthropic.hasStreamingRefusalRisk(modelId: modelId),
-            contextLength: hasLargeClaudeLimits ? 1_000_000 : 128_000,
-            maxOutputTokens: hasLargeClaudeLimits ? 128_000 : 4096,
+            contextLength: hasLargeClaudeLimits ? 1_000_000 : (gpt56Model?.contextLength ?? 128_000),
+            maxOutputTokens: hasLargeClaudeLimits || gpt56Model != nil ? 128_000 : 4096,
         )
     }
 

@@ -157,6 +157,31 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
             }
         }
 
+        /// Resolves a GPT-5.6 model ID, including provider-qualified IDs used by compatible APIs.
+        public static func gpt56Model(for modelId: String) -> OpenAI? {
+            let trimmed = modelId.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !trimmed.isEmpty else { return nil }
+
+            let parsedModel = ProviderParser.parse(trimmed)?.model
+            for candidate in [parsedModel, trimmed].compactMap(\.self) {
+                let compact = candidate.lowercased()
+                    .replacingOccurrences(of: "-", with: "")
+                    .replacingOccurrences(of: ".", with: "")
+                    .replacingOccurrences(of: "_", with: "")
+                switch compact {
+                case "gpt56", "gpt56sol":
+                    return .gpt56Sol
+                case "gpt56terra":
+                    return .gpt56Terra
+                case "gpt56luna":
+                    return .gpt56Luna
+                default:
+                    continue
+                }
+            }
+            return nil
+        }
+
         public var isUnsupportedLegacyFamily: Bool {
             let normalized = self.modelId.lowercased()
             let compact = normalized.replacingOccurrences(of: "-", with: "")
@@ -1184,11 +1209,19 @@ extension LanguageModel {
         case .azureOpenAI:
             128_000 // conservative default matching OpenAI tier
         case let .openRouter(modelId), let .together(modelId):
-            Anthropic.hasMillionTokenContext(modelId: modelId) ? 1_000_000 : 128_000
+            if Anthropic.hasMillionTokenContext(modelId: modelId) {
+                1_000_000
+            } else {
+                OpenAI.gpt56Model(for: modelId)?.contextLength ?? 128_000
+            }
         case .replicate:
             128_000 // Common default
         case let .openaiCompatible(modelId, _):
-            Anthropic.hasMillionTokenContext(modelId: modelId) ? 1_000_000 : 128_000
+            if Anthropic.hasMillionTokenContext(modelId: modelId) {
+                1_000_000
+            } else {
+                OpenAI.gpt56Model(for: modelId)?.contextLength ?? 128_000
+            }
         case let .anthropicCompatible(modelId, _):
             Anthropic.hasMillionTokenContext(modelId: modelId) ? 1_000_000 : 128_000
         case let .custom(provider):
