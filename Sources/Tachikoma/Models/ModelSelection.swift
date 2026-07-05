@@ -123,6 +123,14 @@ public struct ModelSelector {
             return .chatLatest
         case "gpt-5-chat-latest", "gpt5-chat-latest", "gpt5chatlatest":
             return .gpt5ChatLatest
+        // GPT-5.6 preview models
+        case "gpt-5.6", "gpt5.6", "gpt-5-6", "gpt5-6", "gpt56",
+             "gpt-5.6-sol", "gpt5.6-sol", "gpt-5-6-sol", "gpt5-6-sol", "gpt56-sol", "gpt56sol":
+            return .gpt56Sol
+        case "gpt-5.6-terra", "gpt5.6-terra", "gpt-5-6-terra", "gpt5-6-terra", "gpt56-terra", "gpt56terra":
+            return .gpt56Terra
+        case "gpt-5.6-luna", "gpt5.6-luna", "gpt-5-6-luna", "gpt5-6-luna", "gpt56-luna", "gpt56luna":
+            return .gpt56Luna
         // GPT-5.5 models
         case "gpt-5.5", "gpt5.5", "gpt-5-5", "gpt5-5", "gpt55":
             return .gpt55
@@ -168,6 +176,8 @@ public struct ModelSelector {
         // Direct matches
         case "claude-fable-5", "claude-fable-5-latest", "fable-5", "fable.5", "fable5", "fable":
             return .fable5
+        case "claude-sonnet-5", "sonnet-5", "sonnet.5", "sonnet5":
+            return .sonnet5
         case "claude-opus-4-8", "claude-opus-4.8", "opus-4-8", "opus-4.8", "opus48",
              "claude-opus-4-8-latest":
             return .opus48
@@ -185,7 +195,7 @@ public struct ModelSelector {
         case "claude-opus", "opus":
             return .opus48
         case "claude-sonnet", "sonnet":
-            return .sonnet46
+            return .sonnet5
         case "claude-haiku", "haiku":
             return .haiku45
         case "anthropic":

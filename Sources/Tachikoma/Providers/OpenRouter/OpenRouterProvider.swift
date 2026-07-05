@@ -33,13 +33,13 @@ public final class OpenRouterProvider: ModelProvider {
             throw TachikomaError.authenticationFailed("OPENROUTER_API_KEY not found")
         }
 
-        let isFable = LanguageModel.Anthropic.isFable(modelId: modelId)
+        let hasLargeClaudeLimits = LanguageModel.Anthropic.hasMillionTokenContext(modelId: modelId)
         self.capabilities = ModelCapabilities(
             supportsVision: true,
             supportsTools: true,
             supportsStreaming: !LanguageModel.Anthropic.hasStreamingRefusalRisk(modelId: modelId),
-            contextLength: isFable ? 1_000_000 : 128_000,
-            maxOutputTokens: isFable ? 128_000 : 4096,
+            contextLength: hasLargeClaudeLimits ? 1_000_000 : 128_000,
+            maxOutputTokens: hasLargeClaudeLimits ? 128_000 : 4096,
         )
 
         self.defaultHeaders = [

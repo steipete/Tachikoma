@@ -61,14 +61,14 @@ public final class AnthropicCompatibleProvider: ModelProvider {
             self.auth = nil
         }
 
-        let isFable = LanguageModel.Anthropic.isFable(modelId: modelId)
+        let hasLargeClaudeLimits = LanguageModel.Anthropic.hasMillionTokenContext(modelId: modelId)
         let supportsSafeStreaming = !LanguageModel.Anthropic.hasStreamingRefusalRisk(modelId: modelId)
         let baseCapabilities = capabilities ?? ModelCapabilities(
             supportsVision: true,
             supportsTools: true,
             supportsStreaming: supportsSafeStreaming,
-            contextLength: isFable ? 1_000_000 : 200_000,
-            maxOutputTokens: isFable ? 128_000 : 8192,
+            contextLength: hasLargeClaudeLimits ? 1_000_000 : 200_000,
+            maxOutputTokens: hasLargeClaudeLimits ? 128_000 : 8192,
         )
         self.capabilities = supportsSafeStreaming ? baseCapabilities : ModelCapabilities(
             supportsVision: baseCapabilities.supportsVision,

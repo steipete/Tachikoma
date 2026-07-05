@@ -242,9 +242,14 @@ public final class ModelCapabilityRegistry: @unchecked Sendable {
             ),
             excludedParameters: ["temperature", "topP", "frequencyPenalty", "presencePenalty"],
         )
+        var gpt56Capabilities = gpt5Capabilities
+        gpt56Capabilities.supportedProviderOptions.supportsReasoningEffort = true
 
         self.capabilities["openai:chat-latest"] = gpt5Capabilities
         self.capabilities["openai:gpt-5-chat-latest"] = gpt5Capabilities
+        self.capabilities["openai:gpt-5.6-sol"] = gpt56Capabilities
+        self.capabilities["openai:gpt-5.6-terra"] = gpt56Capabilities
+        self.capabilities["openai:gpt-5.6-luna"] = gpt56Capabilities
         self.capabilities["openai:gpt-5.5"] = gpt5Capabilities
         self.capabilities["openai:gpt-5.4"] = gpt5Capabilities
         self.capabilities["openai:gpt-5.4-mini"] = gpt5Capabilities
@@ -262,7 +267,7 @@ public final class ModelCapabilityRegistry: @unchecked Sendable {
             ),
         )
 
-        // Fable 5 and Opus 4.7+ map requested thinking to Anthropic's adaptive thinking request shape.
+        // Current Claude models map requested thinking to Anthropic's adaptive thinking request shape.
         let claudeAdaptiveThinkingCapabilities = ModelParameterCapabilities(
             supportsTemperature: false,
             supportsTopP: false,
@@ -274,6 +279,7 @@ public final class ModelCapabilityRegistry: @unchecked Sendable {
             excludedParameters: ["temperature", "topP", "topK"],
         )
         self.capabilities["anthropic:claude-fable-5"] = claudeAdaptiveThinkingCapabilities
+        self.capabilities["anthropic:claude-sonnet-5"] = claudeAdaptiveThinkingCapabilities
         self.capabilities["anthropic:claude-opus-4-8"] = claudeAdaptiveThinkingCapabilities
         self.capabilities["anthropic:claude-opus-4-7"] = claudeAdaptiveThinkingCapabilities
         self.capabilities["anthropic:claude-opus-4-5"] = claude4Capabilities
@@ -361,7 +367,7 @@ public final class ModelCapabilityRegistry: @unchecked Sendable {
             return registered
         }
 
-        if self.isAnthropicFableCompatible(model) {
+        if self.isAnthropicAdaptiveThinkingModel(model) {
             return ModelParameterCapabilities(
                 supportsTemperature: false,
                 supportsTopP: false,
@@ -413,20 +419,25 @@ public final class ModelCapabilityRegistry: @unchecked Sendable {
         }
     }
 
-    private func isAnthropicFableCompatible(_ model: LanguageModel) -> Bool {
+    private func isAnthropicAdaptiveThinkingModel(_ model: LanguageModel) -> Bool {
+        func matches(_ modelId: String) -> Bool {
+            LanguageModel.Anthropic.isFable(modelId: modelId) ||
+                LanguageModel.Anthropic.isSonnet5(modelId: modelId)
+        }
+
         switch model {
         case let .anthropic(anthropic):
-            return LanguageModel.Anthropic.isFable(modelId: anthropic.modelId)
+            return matches(anthropic.modelId)
         case let .anthropicCompatible(modelId, _):
-            return LanguageModel.Anthropic.isFable(modelId: modelId)
+            return matches(modelId)
         case let .openRouter(modelId),
              let .openaiCompatible(modelId, _),
              let .together(modelId):
-            return LanguageModel.Anthropic.isFable(modelId: modelId)
+            return matches(modelId)
         case let .custom(provider):
             guard
                 let parsed = ProviderParser.parse(provider.modelId),
-                LanguageModel.Anthropic.isFable(modelId: parsed.model),
+                matches(parsed.model),
                 CustomProviderRegistry.shared.get(parsed.provider)?.kind == .anthropic else
             {
                 return false

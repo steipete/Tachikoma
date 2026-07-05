@@ -9,6 +9,7 @@ Tachikoma ships with a built-in model catalog (`CaseIterable` enums) plus suppor
 
 ## OpenAI (`LanguageModel.OpenAI`)
 
+- `gpt-5.6-sol`, `gpt-5.6-terra`, `gpt-5.6-luna` (preview; bare `gpt-5.6` selects Sol)
 - `gpt-5.5`
 - `gpt-5.4`, `gpt-5.4-mini`, `gpt-5.4-nano`
 - `gpt-5`, `gpt-5-pro`, `gpt-5-mini`, `gpt-5-nano`
@@ -18,6 +19,7 @@ Notes:
 
 ## Anthropic (`LanguageModel.Anthropic`)
 
+- `claude-sonnet-5` (1M context, 128K max output)
 - `claude-fable-5` (1M context, 128K max output, non-streaming, explicit opt-in)
 - `claude-opus-4-8` (1M context, 128K max output, non-streaming until refusal rollback is streaming-safe)
 - `claude-opus-4-7`

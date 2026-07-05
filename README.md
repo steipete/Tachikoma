@@ -100,8 +100,8 @@ print(result.text)
 ## Models
 
 Common picks:
-- Anthropic: `claude-opus-4-8` (`LanguageModel.default`, non-streaming), `claude-fable-5` (explicit opt-in)
-- OpenAI: `gpt-5.5` (`LanguageModel.defaultStreaming`), `gpt-5.4` / `gpt-5.4-mini` / `gpt-5.4-nano`, `gpt-5`
+- Anthropic: `claude-opus-4-8` (`LanguageModel.default`, non-streaming), `claude-sonnet-5`, `claude-fable-5` (explicit opt-in)
+- OpenAI: `gpt-5.5` (`LanguageModel.defaultStreaming`), `gpt-5.6-sol` / `gpt-5.6-terra` / `gpt-5.6-luna` (preview), `gpt-5.4` / `gpt-5.4-mini` / `gpt-5.4-nano`, `gpt-5`
 - Google: `gemini-3.1-pro-preview`, `gemini-3-flash`
 - Grok: `grok-4.3`
 - MiniMax: `MiniMax-M2.7`, `MiniMax-M2.7-highspeed`

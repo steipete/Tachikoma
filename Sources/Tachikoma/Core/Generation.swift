@@ -1092,14 +1092,14 @@ extension LanguageModel {
                 provider: "anthropic",
                 modelId: model.modelId,
                 baseURL: configuration.getBaseURL(for: .anthropic) ?? Provider.anthropic.defaultBaseURL,
-                allowsLegacyUnknown: !LanguageModel.Anthropic.isFable(modelId: model.modelId),
+                allowsLegacyUnknown: !LanguageModel.Anthropic.hasDefaultAdaptiveThinking(modelId: model.modelId),
             )
         case let .anthropicCompatible(modelId, baseURL):
             return ReasoningReplayTarget(
                 provider: "anthropic-compatible",
                 modelId: modelId,
                 baseURL: baseURL,
-                allowsLegacyUnknown: !LanguageModel.Anthropic.isFable(modelId: modelId),
+                allowsLegacyUnknown: !LanguageModel.Anthropic.hasDefaultAdaptiveThinking(modelId: modelId),
             )
         case let .minimax(model):
             return ReasoningReplayTarget(
@@ -1121,7 +1121,8 @@ extension LanguageModel {
                     provider: "anthropic",
                     modelId: directAnthropicProvider.modelId,
                     baseURL: directAnthropicProvider.baseURL ?? Provider.anthropic.defaultBaseURL,
-                    allowsLegacyUnknown: !LanguageModel.Anthropic.isFable(modelId: directAnthropicProvider.modelId),
+                    allowsLegacyUnknown: !LanguageModel.Anthropic
+                        .hasDefaultAdaptiveThinking(modelId: directAnthropicProvider.modelId),
                 )
             }
             if let compatibleProvider = provider as? AnthropicCompatibleProvider {
@@ -1129,7 +1130,8 @@ extension LanguageModel {
                     provider: "anthropic-compatible",
                     modelId: compatibleProvider.modelId,
                     baseURL: compatibleProvider.baseURL,
-                    allowsLegacyUnknown: !LanguageModel.Anthropic.isFable(modelId: compatibleProvider.modelId),
+                    allowsLegacyUnknown: !LanguageModel.Anthropic
+                        .hasDefaultAdaptiveThinking(modelId: compatibleProvider.modelId),
                 )
             }
             guard
@@ -1142,7 +1144,8 @@ extension LanguageModel {
                         provider: "custom-anthropic",
                         modelId: provider.modelId,
                         baseURL: provider.baseURL,
-                        allowsLegacyUnknown: !LanguageModel.Anthropic.isFable(modelId: provider.modelId),
+                        allowsLegacyUnknown: !LanguageModel.Anthropic
+                            .hasDefaultAdaptiveThinking(modelId: provider.modelId),
                     )
                     : nil
             }
@@ -1150,7 +1153,7 @@ extension LanguageModel {
                 provider: "custom-anthropic",
                 modelId: parsed.model,
                 baseURL: registeredProvider.baseURL,
-                allowsLegacyUnknown: !LanguageModel.Anthropic.isFable(modelId: parsed.model),
+                allowsLegacyUnknown: !LanguageModel.Anthropic.hasDefaultAdaptiveThinking(modelId: parsed.model),
             )
         default:
             return nil

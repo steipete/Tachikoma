@@ -244,6 +244,13 @@ public enum ProviderParser {
             .openai(.chatLatest)
         case "gpt-5-chat-latest", "gpt5-chat-latest", "gpt5chatlatest":
             .openai(.gpt5ChatLatest)
+        case "gpt-5.6", "gpt5.6", "gpt-5-6", "gpt5-6", "gpt56",
+             "gpt-5.6-sol", "gpt5.6-sol", "gpt-5-6-sol", "gpt5-6-sol", "gpt56-sol", "gpt56sol":
+            .openai(.gpt56Sol)
+        case "gpt-5.6-terra", "gpt5.6-terra", "gpt-5-6-terra", "gpt5-6-terra", "gpt56-terra", "gpt56terra":
+            .openai(.gpt56Terra)
+        case "gpt-5.6-luna", "gpt5.6-luna", "gpt-5-6-luna", "gpt5-6-luna", "gpt56-luna", "gpt56luna":
+            .openai(.gpt56Luna)
         case "gpt-5.5", "gpt5.5", "gpt-5-5", "gpt5-5", "gpt55": .openai(.gpt55)
         case "gpt-5.5-mini", "gpt5.5-mini", "gpt-5-5-mini", "gpt5-5-mini", "gpt55-mini", "gpt55mini":
             .openai(.gpt5Mini)
@@ -279,6 +286,8 @@ public enum ProviderParser {
         return switch normalized {
         case "claude-fable-5", "claude-fable-5-latest", "fable-5", "fable.5", "fable5", "fable":
             .anthropic(.fable5)
+        case "claude-sonnet-5", "sonnet-5", "sonnet.5", "sonnet5", "sonnet":
+            .anthropic(.sonnet5)
         case "claude-opus-4-8", "claude-opus-4.8", "claude-opus-4-8-latest", "opus-4-8", "opus-4.8",
              "opus48", "claude", "claude-latest", "claude_latest", "claudelatest", "claude-default", "claude_default":
             .anthropic(.opus48)

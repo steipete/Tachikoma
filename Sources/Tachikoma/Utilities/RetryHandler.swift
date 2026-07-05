@@ -215,7 +215,7 @@ extension RetryHandler {
     /// Create a retry handler based on generation settings
     public static func from(settings: GenerationSettings) -> RetryHandler {
         // Use aggressive retry for high reasoning effort (important queries)
-        if settings.reasoningEffort == .high {
+        if let effort = settings.reasoningEffort, [.high, .xhigh, .max].contains(effort) {
             RetryHandler(policy: .aggressive)
         } else if settings.reasoningEffort == .low {
             RetryHandler(policy: .conservative)

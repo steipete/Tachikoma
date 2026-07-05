@@ -187,6 +187,7 @@ public enum OpenAIAPIMode: String, Sendable, CaseIterable {
         // Determine default API mode for a given model
         switch model {
         case .chatLatest, .gpt5ChatLatest,
+             .gpt56Sol, .gpt56Terra, .gpt56Luna,
              .gpt5, .gpt5Pro, .gpt5Mini, .gpt5Nano, .gpt54, .gpt54Mini, .gpt54Nano, .gpt55:
             .responses // GPT-5 defaults to Responses API
         default:
@@ -650,6 +651,8 @@ public enum ReasoningEffort: String, Sendable, Codable, CaseIterable {
     case low
     case medium
     case high
+    case xhigh
+    case max
 }
 
 /// Metadata for messages (conversation context, etc.)

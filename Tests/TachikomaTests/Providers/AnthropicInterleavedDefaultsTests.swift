@@ -401,6 +401,150 @@ struct AnthropicInterleavedDefaultsTests {
     }
 
     @Test
+    func `Sonnet 5 request keeps adaptive thinking payload`() throws {
+        let config = TachikomaConfiguration(apiKeys: ["anthropic": "test-key"])
+        let provider = try AnthropicProvider(model: .sonnet5, configuration: config)
+
+        let settings = GenerationSettings(
+            maxTokens: 64,
+            temperature: 0.7,
+            reasoningEffort: .high,
+            providerOptions: .init(anthropic: .init(thinking: .adaptive)),
+        )
+
+        let request = ProviderRequest(
+            messages: [.user("hi")],
+            settings: settings,
+        )
+
+        let urlRequest = try provider.makeURLRequest(for: request, stream: false)
+        let body = try #require(urlRequest.httpBody)
+        let json = try #require(try JSONSerialization.jsonObject(with: body) as? [String: Any])
+        let thinking = try #require(json["thinking"] as? [String: Any])
+        let outputConfig = try #require(json["output_config"] as? [String: Any])
+
+        #expect(json["model"] as? String == "claude-sonnet-5")
+        #expect(json["temperature"] == nil)
+        #expect(thinking["type"] as? String == "adaptive")
+        #expect(outputConfig["effort"] as? String == "high")
+    }
+
+    @Test
+    func `Sonnet 5 encodes extended effort levels`() throws {
+        let config = TachikomaConfiguration(apiKeys: ["anthropic": "test-key"])
+        let provider = try AnthropicProvider(model: .sonnet5, configuration: config)
+
+        for effort in [ReasoningEffort.xhigh, .max] {
+            let request = ProviderRequest(
+                messages: [.user("hi")],
+                settings: GenerationSettings(maxTokens: 64, reasoningEffort: effort),
+            )
+            let body = try #require(provider.makeURLRequest(for: request, stream: false).httpBody)
+            let json = try #require(try JSONSerialization.jsonObject(with: body) as? [String: Any])
+            let outputConfig = try #require(json["output_config"] as? [String: Any])
+
+            #expect(outputConfig["effort"] as? String == effort.rawValue)
+        }
+    }
+
+    @Test
+    func `Extended effort levels follow the Anthropic model support matrix`() throws {
+        let config = TachikomaConfiguration(apiKeys: ["anthropic": "test-key"])
+        for (model, effort) in [
+            (LanguageModel.Anthropic.fable5, ReasoningEffort.xhigh),
+            (.opus48, .xhigh),
+            (.opus47, .xhigh),
+            (.sonnet46, .max),
+        ] {
+            let provider = try AnthropicProvider(model: model, configuration: config)
+            let request = ProviderRequest(
+                messages: [.user("hi")],
+                settings: GenerationSettings(maxTokens: 64, reasoningEffort: effort),
+            )
+            let body = try #require(provider.makeURLRequest(for: request, stream: false).httpBody)
+            let json = try #require(try JSONSerialization.jsonObject(with: body) as? [String: Any])
+            let outputConfig = try #require(json["output_config"] as? [String: Any])
+
+            #expect(outputConfig["effort"] as? String == effort.rawValue)
+        }
+
+        for (model, effort) in [
+            (LanguageModel.Anthropic.sonnet46, ReasoningEffort.xhigh),
+            (.opus45, .max),
+        ] {
+            let provider = try AnthropicProvider(model: model, configuration: config)
+            let request = ProviderRequest(
+                messages: [.user("hi")],
+                settings: GenerationSettings(maxTokens: 64, reasoningEffort: effort),
+            )
+
+            #expect(throws: TachikomaError.self) {
+                _ = try provider.makeURLRequest(for: request, stream: false)
+            }
+        }
+    }
+
+    @Test
+    func `Sonnet 5 maps manual thinking to adaptive and encodes disabled thinking`() throws {
+        let config = TachikomaConfiguration(apiKeys: ["anthropic": "test-key"])
+        let provider = try AnthropicProvider(model: .sonnet5, configuration: config)
+
+        let enabledRequest = ProviderRequest(
+            messages: [.user("hi")],
+            settings: GenerationSettings(
+                maxTokens: 64,
+                providerOptions: .init(anthropic: .init(thinking: .enabled(budgetTokens: 12000))),
+            ),
+        )
+        let disabledRequest = ProviderRequest(
+            messages: [.user("hi")],
+            settings: GenerationSettings(
+                maxTokens: 64,
+                reasoningEffort: .max,
+                providerOptions: .init(anthropic: .init(thinking: .disabled)),
+            ),
+        )
+
+        let enabledBody = try #require(provider.makeURLRequest(for: enabledRequest, stream: false).httpBody)
+        let enabledJSON = try #require(try JSONSerialization.jsonObject(with: enabledBody) as? [String: Any])
+        let enabledThinking = try #require(enabledJSON["thinking"] as? [String: Any])
+        #expect(enabledThinking["type"] as? String == "adaptive")
+        #expect(enabledThinking["budget_tokens"] == nil)
+
+        let disabledBody = try #require(provider.makeURLRequest(for: disabledRequest, stream: false).httpBody)
+        let disabledJSON = try #require(try JSONSerialization.jsonObject(with: disabledBody) as? [String: Any])
+        let disabledThinking = try #require(disabledJSON["thinking"] as? [String: Any])
+        let disabledOutputConfig = try #require(disabledJSON["output_config"] as? [String: Any])
+        #expect(disabledThinking["type"] as? String == "disabled")
+        #expect(disabledOutputConfig["effort"] as? String == "max")
+    }
+
+    @Test
+    func `Sonnet 5 uses an adaptive-thinking output budget by default`() throws {
+        let config = TachikomaConfiguration(apiKeys: ["anthropic": "test-key"])
+        let provider = try AnthropicProvider(model: .sonnet5, configuration: config)
+        let request = ProviderRequest(messages: [.user("hi")])
+
+        let urlRequest = try provider.makeURLRequest(for: request, stream: false)
+        let body = try #require(urlRequest.httpBody)
+        let json = try #require(try JSONSerialization.jsonObject(with: body) as? [String: Any])
+
+        #expect(json["max_tokens"] as? Int == 16384)
+        #expect(urlRequest.timeoutInterval == 1800)
+    }
+
+    @Test
+    func `Sonnet 5 rejects assistant prefill requests`() throws {
+        let config = TachikomaConfiguration(apiKeys: ["anthropic": "test-key"])
+        let provider = try AnthropicProvider(model: .sonnet5, configuration: config)
+        let request = ProviderRequest(messages: [.user("hi"), .assistant("prefix")])
+
+        #expect(throws: TachikomaError.self) {
+            _ = try provider.makeURLRequest(for: request, stream: false)
+        }
+    }
+
+    @Test
     func `Custom Anthropic request keeps thinking payload`() throws {
         let config = TachikomaConfiguration(apiKeys: ["anthropic": "test-key"])
         let provider = try AnthropicProvider(model: .custom("claude-opus-4-5-latest"), configuration: config)
@@ -567,6 +711,42 @@ struct AnthropicInterleavedDefaultsTests {
         #expect(assistant.first?["type"] as? String == "thinking")
         #expect(assistant.first?["thinking"] as? String == "fable thinking")
         #expect(assistant.first?["signature"] as? String == "sig-fable")
+    }
+
+    @Test
+    func `Sonnet 5 preserves default adaptive thinking history`() throws {
+        let config = TachikomaConfiguration(apiKeys: ["anthropic": "test-key"])
+        let provider = try AnthropicProvider(model: .sonnet5, configuration: config)
+        let signedThinking = try ModelMessage(
+            role: .assistant,
+            content: [.text("")],
+            channel: .thinking,
+            metadata: .init(customData: [
+                "anthropic.thinking.model": "claude-sonnet-5",
+                "anthropic.thinking.signature": "sig-sonnet",
+                "anthropic.thinking.type": "thinking",
+                "tachikoma.reasoning.provider": "anthropic",
+                "tachikoma.reasoning.model": "claude-sonnet-5",
+                "tachikoma.reasoning.base_url": #require(ReasoningEndpointIdentity
+                    .canonical("https://api.anthropic.com")),
+            ]),
+        )
+
+        let request = ProviderRequest(
+            messages: [.user("hi"), signedThinking, .assistant("hello"), .user("continue")],
+            settings: GenerationSettings(maxTokens: 64),
+        )
+
+        let urlRequest = try provider.makeURLRequest(for: request, stream: false)
+        let body = try #require(urlRequest.httpBody)
+        let json = try #require(try JSONSerialization.jsonObject(with: body) as? [String: Any])
+        let messages = try #require(json["messages"] as? [[String: Any]])
+        let assistant = try #require(messages[1]["content"] as? [[String: Any]])
+
+        #expect(json["thinking"] == nil)
+        #expect(assistant.first?["type"] as? String == "thinking")
+        #expect((assistant.first?["thinking"] as? String)?.isEmpty == true)
+        #expect(assistant.first?["signature"] as? String == "sig-sonnet")
     }
 
     @Test
@@ -759,6 +939,7 @@ struct AnthropicInterleavedDefaultsTests {
     @Test
     func `Current Anthropic models expose documented output caps`() {
         #expect(LanguageModel.Anthropic.fable5.maxOutputTokens == 128_000)
+        #expect(LanguageModel.Anthropic.sonnet5.maxOutputTokens == 128_000)
         #expect(LanguageModel.Anthropic.opus47.maxOutputTokens == 128_000)
         #expect(LanguageModel.Anthropic.opus48.maxOutputTokens == 128_000)
         #expect(LanguageModel.Anthropic.sonnet46.maxOutputTokens == 64000)
@@ -766,21 +947,27 @@ struct AnthropicInterleavedDefaultsTests {
     }
 
     @Test
-    func `Fable and Opus 4_8 streaming are disabled until rollback is supported`() async throws {
+    func `Refusal-prone Anthropic streaming is disabled until rollback is supported`() async throws {
         let config = TachikomaConfiguration(apiKeys: ["anthropic": "test-key"])
         let provider = try AnthropicProvider(model: .fable5, configuration: config)
+        let sonnetProvider = try AnthropicProvider(model: .sonnet5, configuration: config)
         let opusProvider = try AnthropicProvider(model: .opus48, configuration: config)
 
         #expect(provider.capabilities.supportsStreaming == false)
         #expect(LanguageModel.anthropic(.fable5).supportsStreaming == false)
+        #expect(sonnetProvider.capabilities.supportsStreaming == false)
         #expect(opusProvider.capabilities.supportsStreaming == false)
         #expect(LanguageModel.anthropic(.opus47).supportsStreaming == true)
         #expect(LanguageModel.anthropic(.opus48).supportsStreaming == false)
+        #expect(LanguageModel.anthropic(.sonnet5).supportsStreaming == false)
         #expect(LanguageModel.anthropic(.sonnet46).supportsStreaming == true)
         #expect(LanguageModel.anthropic(.sonnet45).supportsStreaming == true)
         #expect(LanguageModel.anthropic(.haiku45).supportsStreaming == true)
         await #expect(throws: TachikomaError.self) {
             _ = try await provider.streamText(request: ProviderRequest(messages: [.user("hi")]))
+        }
+        await #expect(throws: TachikomaError.self) {
+            _ = try await sonnetProvider.streamText(request: ProviderRequest(messages: [.user("hi")]))
         }
         await #expect(throws: TachikomaError.self) {
             _ = try await opusProvider.streamText(request: ProviderRequest(messages: [.user("hi")]))
@@ -801,6 +988,14 @@ struct AnthropicInterleavedDefaultsTests {
         #expect(LanguageModel.Anthropic.isFable(modelId: "anthropic/claude-fable-5") == true)
         #expect(LanguageModel.Anthropic.isFable(modelId: "vendor/claude-fable-50") == false)
         #expect(LanguageModel.Anthropic.isFable(modelId: "my-claude-fable-5-distill") == false)
+    }
+
+    @Test
+    func `Sonnet 5 detection avoids substring false positives`() {
+        #expect(LanguageModel.Anthropic.isSonnet5(modelId: "claude-sonnet-5") == true)
+        #expect(LanguageModel.Anthropic.isSonnet5(modelId: "anthropic/claude-sonnet-5") == true)
+        #expect(LanguageModel.Anthropic.isSonnet5(modelId: "vendor/claude-sonnet-50") == false)
+        #expect(LanguageModel.Anthropic.isSonnet5(modelId: "my-claude-sonnet-5-distill") == false)
     }
 
     @Test

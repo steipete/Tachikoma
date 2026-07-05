@@ -508,11 +508,17 @@ public final class OpenAIResponsesProvider: ModelProvider {
         // Determine reasoning configuration
         let reasoning: ReasoningConfig?
         if Self.isReasoningModel(self.model) || Self.isGPT5Model(self.model) {
-            let effort: OpenAIReasoningEffort = if let optionEffort = openaiOptions?.reasoningEffort {
+            let effort: OpenAIReasoningEffort
+            if let optionEffort = openaiOptions?.reasoningEffort {
+                if Self.isGPT56Model(self.model), optionEffort == .minimal {
+                    throw TachikomaError.invalidConfiguration(
+                        "GPT-5.6 does not support 'minimal' reasoning effort; use 'low' or higher",
+                    )
+                }
                 // Convert from public API to internal type
-                OpenAIReasoningEffort(rawValue: optionEffort.rawValue) ?? .medium
+                effort = OpenAIReasoningEffort(rawValue: optionEffort.rawValue) ?? .medium
             } else {
-                .medium // Default
+                effort = .medium // Default
             }
             reasoning = ReasoningConfig(
                 effort: effort,
@@ -1043,7 +1049,10 @@ public final class OpenAIResponsesProvider: ModelProvider {
 
     private static func isGPT5Model(_ model: LanguageModel.OpenAI) -> Bool {
         switch model {
-        case .gpt55,
+        case .gpt56Sol,
+             .gpt56Terra,
+             .gpt56Luna,
+             .gpt55,
              .gpt54,
              .gpt54Mini,
              .gpt54Nano,
@@ -1051,6 +1060,15 @@ public final class OpenAIResponsesProvider: ModelProvider {
              .gpt5Pro,
              .gpt5Mini,
              .gpt5Nano:
+            true
+        default:
+            false
+        }
+    }
+
+    private static func isGPT56Model(_ model: LanguageModel.OpenAI) -> Bool {
+        switch model {
+        case .gpt56Sol, .gpt56Terra, .gpt56Luna:
             true
         default:
             false

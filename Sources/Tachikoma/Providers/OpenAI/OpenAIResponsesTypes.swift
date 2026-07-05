@@ -75,6 +75,8 @@ enum OpenAIReasoningEffort: String, Codable {
     case low
     case medium
     case high
+    case xhigh
+    case max
 }
 
 /// Reasoning summary modes for reasoning models

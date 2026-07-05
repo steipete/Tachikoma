@@ -65,6 +65,7 @@ enum ModelCapabilitiesTests {
         func `Claude models support thinking`() {
             let models: [LanguageModel] = [
                 .anthropic(.fable5),
+                .anthropic(.sonnet5),
                 .anthropic(.opus47),
                 .anthropic(.opus4),
                 .anthropic(.sonnet46),
@@ -81,8 +82,14 @@ enum ModelCapabilitiesTests {
         }
 
         @Test
-        func `Claude Fable 5 and Opus 4_7 plus 4_8 advertise adaptive thinking without sampling options`() {
-            for model in [LanguageModel.anthropic(.fable5), .anthropic(.opus47), .anthropic(.opus48)] {
+        func `Current adaptive Claude models reject sampling options`() {
+            for model in [
+                LanguageModel.anthropic(.fable5),
+                .anthropic(.sonnet5),
+                .anthropic(.opus47),
+                .anthropic(.opus48),
+                .openRouter(modelId: "anthropic/claude-sonnet-5"),
+            ] {
                 let capabilities = ModelCapabilityRegistry.shared.capabilities(for: model)
 
                 #expect(!capabilities.supportsTemperature)
@@ -230,6 +237,23 @@ enum ModelCapabilitiesTests {
             #expect(validated.topP == nil) // Excluded
             #expect(validated.providerOptions.openai?.reasoningEffort == nil) // Removed
             #expect(validated.providerOptions.openai?.verbosity == .medium) // Kept
+        }
+
+        @Test
+        func `Validate settings preserves GPT-5_6 reasoning effort`() {
+            for model in [
+                LanguageModel.OpenAI.gpt56Sol,
+                .gpt56Terra,
+                .gpt56Luna,
+            ] {
+                let settings = GenerationSettings(
+                    providerOptions: .init(openai: .init(reasoningEffort: .max)),
+                )
+
+                let validated = settings.validated(for: .openai(model))
+
+                #expect(validated.providerOptions.openai?.reasoningEffort == .max)
+            }
         }
 
         @Test

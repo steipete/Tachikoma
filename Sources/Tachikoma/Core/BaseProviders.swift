@@ -157,6 +157,9 @@ public final class AnthropicProvider: ModelProvider {
         guard let mode else { return nil }
         switch mode {
         case .disabled:
+            if LanguageModel.Anthropic.isSonnet5(modelId: model.modelId) {
+                return AnthropicThinking(type: "disabled", budgetTokens: nil)
+            }
             return nil
         case .adaptive:
             if Self.isFable(model: model) { return nil }
@@ -165,6 +168,9 @@ public final class AnthropicProvider: ModelProvider {
         case let .enabled(budgetTokens):
             if Self.isFable(model: model) {
                 return nil
+            }
+            if LanguageModel.Anthropic.isSonnet5(modelId: model.modelId) {
+                return AnthropicThinking(type: "adaptive", budgetTokens: nil)
             }
             if case .opus48 = model {
                 return AnthropicThinking(type: "adaptive", budgetTokens: nil)
@@ -181,11 +187,16 @@ public final class AnthropicProvider: ModelProvider {
         settings: GenerationSettings,
         model: LanguageModel.Anthropic,
     )
-        -> AnthropicOutputConfig?
+        throws -> AnthropicOutputConfig?
     {
         guard self.supportsEffort(model: model) else { return nil }
-        if let effort = settings.reasoningEffort?.rawValue {
-            return AnthropicOutputConfig(effort: effort)
+        if let effort = settings.reasoningEffort {
+            if !self.supports(effort: effort, model: model) {
+                throw TachikomaError.invalidConfiguration(
+                    "Reasoning effort '\(effort.rawValue)' is not supported by \(model.modelId)",
+                )
+            }
+            return AnthropicOutputConfig(effort: effort.rawValue)
         }
         if case .disabled = mode { return nil }
 
@@ -193,8 +204,24 @@ public final class AnthropicProvider: ModelProvider {
         return effort.map { AnthropicOutputConfig(effort: $0) }
     }
 
+    private func supports(effort: ReasoningEffort, model: LanguageModel.Anthropic) -> Bool {
+        switch effort {
+        case .low, .medium, .high:
+            true
+        case .xhigh:
+            Self.isFable(model: model) ||
+                LanguageModel.Anthropic.isSonnet5(modelId: model.modelId) ||
+                model == .opus48 || model == .opus47
+        case .max:
+            Self.isFable(model: model) ||
+                LanguageModel.Anthropic.isSonnet5(modelId: model.modelId) ||
+                model == .opus48 || model == .opus47 || model == .sonnet46
+        }
+    }
+
     private func usesAdaptiveThinking(model: LanguageModel.Anthropic) -> Bool {
         if Self.isFable(model: model) { return true }
+        if LanguageModel.Anthropic.isSonnet5(modelId: model.modelId) { return true }
         if case .opus48 = model { return true }
         if case .opus47 = model { return true }
         if case .sonnet46 = model { return true }
@@ -203,6 +230,7 @@ public final class AnthropicProvider: ModelProvider {
 
     private func supportsEffort(model: LanguageModel.Anthropic) -> Bool {
         if Self.isFable(model: model) { return true }
+        if LanguageModel.Anthropic.isSonnet5(modelId: model.modelId) { return true }
         switch model {
         case .opus48, .opus47, .opus45, .sonnet46:
             return true
@@ -250,37 +278,43 @@ public final class AnthropicProvider: ModelProvider {
         }
 
         let validatedSettings = request.settings.validated(for: .anthropic(self.model))
+        let thinkingMode = validatedSettings.providerOptions.anthropic?.thinking
         if
             Self.isFable(model: self.model),
-            case .disabled = validatedSettings.providerOptions.anthropic?.thinking
+            case .disabled = thinkingMode
         {
             throw TachikomaError.invalidConfiguration(
                 "Claude Fable 5 always uses adaptive thinking; disabled thinking is not supported",
             )
         }
-        if Self.isFable(model: self.model), request.messages.last?.role == .assistant {
+        if
+            LanguageModel.Anthropic.hasDefaultAdaptiveThinking(modelId: self.model.modelId),
+            request.messages.last?.role == .assistant
+        {
             throw TachikomaError.invalidConfiguration(
-                "Claude Fable 5 does not support assistant prefill requests",
+                "This Claude model does not support assistant prefill requests",
             )
         }
         let requestedThinking = self.anthropicThinking(
-            from: validatedSettings.providerOptions.anthropic?.thinking,
+            from: thinkingMode,
             model: self.model,
         )
-        let outputConfig = self.anthropicOutputConfig(
-            from: validatedSettings.providerOptions.anthropic?.thinking,
+        let outputConfig = try self.anthropicOutputConfig(
+            from: thinkingMode,
             settings: validatedSettings,
             model: self.model,
         )
         var thinking: AnthropicThinking?
         let systemMessage: String?
         let messages: [AnthropicMessage]
-        let preserveSignedThinking = requestedThinking != nil || self.requiresSignedThinkingReplay(model: self.model)
+        let thinkingDisabled = if case .disabled = thinkingMode { true } else { false }
+        let requiresSignedThinkingReplay = self.requiresSignedThinkingReplay(model: self.model)
+        let preserveSignedThinking = !thinkingDisabled && (requestedThinking != nil || requiresSignedThinkingReplay)
         let reasoningTarget = AnthropicReasoningReplayTarget(
             provider: self.reasoningProvider,
             modelId: self.reasoningModelId,
             endpointIdentity: self.reasoningBaseURL,
-            allowsLegacyUnknown: !Self.isFable(model: self.model),
+            allowsLegacyUnknown: !requiresSignedThinkingReplay,
         )
         do {
             thinking = requestedThinking
@@ -291,7 +325,7 @@ public final class AnthropicProvider: ModelProvider {
             )
         } catch {
             // If we can't provide signed thinking blocks for a cached/history session, fall back to non-thinking mode.
-            if requestedThinking != nil {
+            if requestedThinking != nil, !requiresSignedThinkingReplay {
                 thinking = nil
                 (systemMessage, messages) = try AnthropicMessageConversion.convertMessagesToAnthropic(
                     request.messages,
@@ -496,11 +530,13 @@ public final class AnthropicProvider: ModelProvider {
     }
 
     private func requiresSignedThinkingReplay(model: LanguageModel.Anthropic) -> Bool {
-        Self.isFable(model: model)
+        LanguageModel.Anthropic.hasDefaultAdaptiveThinking(modelId: model.modelId)
     }
 
     private func defaultMaxTokens(for model: LanguageModel.Anthropic) -> Int {
-        if Self.isFable(model: model) { return min(128_000, 16384) }
+        if LanguageModel.Anthropic.hasDefaultAdaptiveThinking(modelId: model.modelId) {
+            return min(model.maxOutputTokens, 16384)
+        }
         return 1024
     }
 
@@ -513,7 +549,7 @@ public final class AnthropicProvider: ModelProvider {
     }
 
     private static func requiresExtendedNonStreamingTimeout(model: LanguageModel.Anthropic, maxTokens: Int) -> Bool {
-        self.isFable(model: model) || maxTokens >= 64000
+        LanguageModel.Anthropic.hasDefaultAdaptiveThinking(modelId: model.modelId) || maxTokens >= 64000
     }
 
     static func mapFinishReason(_ stopReason: String?) -> FinishReason? {

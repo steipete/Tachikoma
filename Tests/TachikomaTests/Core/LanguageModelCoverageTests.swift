@@ -7,6 +7,9 @@ struct LanguageModelCoverageTests {
         let models = LanguageModel.OpenAI.allCases
         #expect(!models.isEmpty)
         #expect(models.contains(.gpt5ChatLatest))
+        #expect(models.contains(.gpt56Sol))
+        #expect(models.contains(.gpt56Terra))
+        #expect(models.contains(.gpt56Luna))
         for model in models {
             #expect(!model.modelId.isEmpty)
             _ = model.supportsVision
@@ -19,7 +22,19 @@ struct LanguageModelCoverageTests {
     }
 
     @Test
+    func `GPT-5.6 models default to Responses API`() {
+        for model in [
+            LanguageModel.OpenAI.gpt56Sol,
+            .gpt56Terra,
+            .gpt56Luna,
+        ] {
+            #expect(OpenAIAPIMode.defaultMode(for: model) == .responses)
+        }
+    }
+
+    @Test
     func `Anthropic enum exposes properties`() {
+        #expect(LanguageModel.Anthropic.allCases.contains(.sonnet5))
         for model in LanguageModel.Anthropic.allCases {
             #expect(!model.modelId.isEmpty)
             _ = model.supportsVision

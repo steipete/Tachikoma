@@ -5,10 +5,12 @@ struct ReasoningEffortTests {
     @Test
     func `ReasoningEffort enum has all expected cases`() {
         let allCases = ReasoningEffort.allCases
-        #expect(allCases.count == 3)
+        #expect(allCases.count == 5)
         #expect(allCases.contains(.low))
         #expect(allCases.contains(.medium))
         #expect(allCases.contains(.high))
+        #expect(allCases.contains(.xhigh))
+        #expect(allCases.contains(.max))
     }
 
     @Test
@@ -16,6 +18,8 @@ struct ReasoningEffortTests {
         #expect(ReasoningEffort.low.rawValue == "low")
         #expect(ReasoningEffort.medium.rawValue == "medium")
         #expect(ReasoningEffort.high.rawValue == "high")
+        #expect(ReasoningEffort.xhigh.rawValue == "xhigh")
+        #expect(ReasoningEffort.max.rawValue == "max")
     }
 
     @Test
@@ -124,12 +128,14 @@ struct ReasoningEffortTests {
     @Test
     func `All reasoning effort levels properly ordered`() {
         // Ensure we have the expected reasoning levels
-        let levels: [ReasoningEffort] = [.low, .medium, .high]
+        let levels: [ReasoningEffort] = [.low, .medium, .high, .xhigh, .max]
 
         // Just verify the levels are in the expected order
         #expect(levels[0] == .low)
         #expect(levels[1] == .medium)
         #expect(levels[2] == .high)
+        #expect(levels[3] == .xhigh)
+        #expect(levels[4] == .max)
 
         // Verify all cases are covered
         #expect(Set(levels) == Set(ReasoningEffort.allCases))

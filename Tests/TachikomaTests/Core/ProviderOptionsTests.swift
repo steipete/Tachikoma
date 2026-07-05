@@ -284,6 +284,8 @@ enum ProviderOptionsTests {
             #expect(OpenAIOptions.ReasoningEffort.low.rawValue == "low")
             #expect(OpenAIOptions.ReasoningEffort.medium.rawValue == "medium")
             #expect(OpenAIOptions.ReasoningEffort.high.rawValue == "high")
+            #expect(OpenAIOptions.ReasoningEffort.xhigh.rawValue == "xhigh")
+            #expect(OpenAIOptions.ReasoningEffort.max.rawValue == "max")
         }
 
         @Test

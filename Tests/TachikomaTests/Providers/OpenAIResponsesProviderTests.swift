@@ -24,6 +24,9 @@ struct OpenAIResponsesProviderTests {
 
         let gpt5Models: [LanguageModel.OpenAI] = [
             .chatLatest,
+            .gpt56Sol,
+            .gpt56Terra,
+            .gpt56Luna,
             .gpt55,
             .gpt54,
             .gpt54Mini,
@@ -84,6 +87,9 @@ struct OpenAIResponsesProviderTests {
 
         let responsesModels: [LanguageModel.OpenAI] = [
             .chatLatest,
+            .gpt56Sol,
+            .gpt56Terra,
+            .gpt56Luna,
             .gpt55,
             .gpt54,
             .gpt54Mini,
@@ -398,6 +404,70 @@ struct OpenAIResponsesProviderTests {
             let provider = try OpenAIResponsesProvider(model: .gpt5Mini, configuration: config, session: session)
             let response = try await provider.generateText(request: self.sampleRequest)
             #expect(response.text.contains("GPT-5") || response.text.contains("pong"))
+        }
+    }
+
+    @Test
+    func `GPT-5_6 Responses payload preserves requested reasoning effort`() async throws {
+        let config = TachikomaConfiguration(loadFromEnvironment: false)
+        config.setAPIKey("live-openai", for: .openai)
+
+        try await self.withMockedSession { request in
+            let body = try #require(Self.bodyData(from: request))
+            let json = try #require(try JSONSerialization.jsonObject(with: body) as? [String: Any])
+            let reasoning = try #require(json["reasoning"] as? [String: Any])
+
+            #expect(json["model"] as? String == "gpt-5.6-sol")
+            #expect(reasoning["effort"] as? String == "max")
+
+            return NetworkMocking.jsonResponse(for: request, data: Self.responsesPayload(text: "pong"))
+        } operation: { session in
+            let provider = try OpenAIResponsesProvider(model: .gpt56Sol, configuration: config, session: session)
+            let request = ProviderRequest(
+                messages: [.user("ping")],
+                settings: .init(
+                    maxTokens: 32,
+                    providerOptions: .init(openai: .init(reasoningEffort: .max)),
+                ),
+            )
+            _ = try await provider.generateText(request: request)
+        }
+    }
+
+    @Test
+    func `GPT-5_6 Responses payload preserves xhigh reasoning effort`() async throws {
+        let config = TachikomaConfiguration(loadFromEnvironment: false)
+        config.setAPIKey("live-openai", for: .openai)
+
+        try await self.withMockedSession { request in
+            let body = try #require(Self.bodyData(from: request))
+            let json = try #require(try JSONSerialization.jsonObject(with: body) as? [String: Any])
+            let reasoning = try #require(json["reasoning"] as? [String: Any])
+
+            #expect(reasoning["effort"] as? String == "xhigh")
+
+            return NetworkMocking.jsonResponse(for: request, data: Self.responsesPayload(text: "pong"))
+        } operation: { session in
+            let provider = try OpenAIResponsesProvider(model: .gpt56Sol, configuration: config, session: session)
+            let request = ProviderRequest(
+                messages: [.user("ping")],
+                settings: .init(providerOptions: .init(openai: .init(reasoningEffort: .xhigh))),
+            )
+            _ = try await provider.generateText(request: request)
+        }
+    }
+
+    @Test
+    func `GPT-5_6 Responses payload rejects minimal reasoning effort`() async throws {
+        let config = TachikomaConfiguration(loadFromEnvironment: false)
+        config.setAPIKey("live-openai", for: .openai)
+
+        let provider = try OpenAIResponsesProvider(model: .gpt56Sol, configuration: config)
+        await #expect(throws: TachikomaError.self) {
+            _ = try await provider.generateText(request: ProviderRequest(
+                messages: [.user("ping")],
+                settings: .init(providerOptions: .init(openai: .init(reasoningEffort: .minimal))),
+            ))
         }
     }
 
