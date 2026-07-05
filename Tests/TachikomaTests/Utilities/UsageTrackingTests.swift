@@ -113,7 +113,8 @@ struct UsageTrackingTests {
 
     @Test
     func `Cost Calculation for Different Models`() {
-        let calculator = ModelCostCalculator()
+        let introductoryDate = Date(timeIntervalSince1970: 1_788_220_799)
+        let calculator = ModelCostCalculator { introductoryDate }
         let usage = Usage(inputTokens: 1_000_000, outputTokens: 1_000_000) // 1M tokens each for easy calculation
 
         // Test OpenAI pricing
@@ -202,6 +203,22 @@ struct UsageTrackingTests {
         #expect(ollamaCost.input == 0.0)
         #expect(ollamaCost.output == 0.0)
         #expect(ollamaCost.total == 0.0)
+    }
+
+    @Test
+    func `Sonnet 5 standard pricing starts September 2026`() {
+        let standardPricingDate = Date(timeIntervalSince1970: 1_788_220_800)
+        let calculator = ModelCostCalculator { standardPricingDate }
+        let usage = Usage(inputTokens: 1_000_000, outputTokens: 1_000_000)
+
+        for model in [
+            LanguageModel.anthropic(.sonnet5),
+            .anthropic(.custom("claude-sonnet-5")),
+        ] {
+            let cost = calculator.calculateCost(for: model, usage: usage)
+            #expect(cost.input == 3.00)
+            #expect(cost.output == 15.00)
+        }
     }
 
     // MARK: - Total Usage Tests
