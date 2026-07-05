@@ -15,6 +15,19 @@ struct ModelParsingTests {
     }
 
     @Test
+    func `parse GPT-5.6 preview models`() throws {
+        #expect(LanguageModel.parse(from: "gpt-5.6") == .openai(.gpt56Sol))
+        #expect(LanguageModel.parse(from: "gpt-5.6-sol") == .openai(.gpt56Sol))
+        #expect(LanguageModel.parse(from: "openai/gpt-5.6-terra") == .openai(.gpt56Terra))
+        #expect(LanguageModel.parse(from: "gpt56luna") == .openai(.gpt56Luna))
+        #expect(LanguageModel.parse(from: "my-gpt56-distill") == nil)
+        #expect(LanguageModel.parse(from: "gpt-5.60") == nil)
+        #expect(LanguageModel.parse(from: "vendor-gpt-5-6-model") == nil)
+        #expect(try ModelSelector.parseModel("gpt-5.6-sol") == .openai(.gpt56Sol))
+        #expect(try ModelSelector.parseModel("openai/gpt-5.6-terra") == .openai(.gpt56Terra))
+    }
+
+    @Test
     func `parse chat latest OpenAI alias`() throws {
         #expect(LanguageModel.parse(from: "chat-latest") == .openai(.chatLatest))
         #expect(LanguageModel.parse(from: "gpt-5-chat-latest") == .openai(.gpt5ChatLatest))
@@ -49,6 +62,16 @@ struct ModelParsingTests {
         #expect(LanguageModel.parse(from: "fable") == .anthropic(.fable5))
         #expect(try ModelSelector.parseModel("fable5") == .anthropic(.fable5))
         #expect(LanguageModel.parse(from: "my-fable5-7b") == nil)
+    }
+
+    @Test
+    func `parse Claude Sonnet 5 model id`() throws {
+        #expect(LanguageModel.parse(from: "claude-sonnet-5") == .anthropic(.sonnet5))
+        #expect(LanguageModel.parse(from: "anthropic/claude-sonnet-5") == .anthropic(.sonnet5))
+        #expect(try ModelSelector.parseModel("sonnet5") == .anthropic(.sonnet5))
+        #expect(try ModelSelector.parseModel("sonnet") == .anthropic(.sonnet5))
+        #expect(LanguageModel.parse(from: "claude-sonnet-5-latest") == nil)
+        #expect(LanguageModel.parse(from: "my-sonnet5-distill") == nil)
     }
 
     @Test
@@ -215,6 +238,25 @@ struct ModelParsingTests {
             )
 
             #expect(model == .google(.gemini31ProPreview))
+        }
+    }
+
+    @Test
+    func `ProviderParser accepts GPT-5.6 and Claude Sonnet 5`() {
+        if #available(macOS 13.0, iOS 16.0, tvOS 16.0, watchOS 9.0, *) {
+            let openAI = ProviderParser.determineDefaultModel(
+                from: "openai/gpt-5.6-luna",
+                hasOpenAI: true,
+                hasAnthropic: false,
+            )
+            let anthropic = ProviderParser.determineDefaultModel(
+                from: "anthropic/claude-sonnet-5",
+                hasOpenAI: false,
+                hasAnthropic: true,
+            )
+
+            #expect(openAI == .openai(.gpt56Luna))
+            #expect(anthropic == .anthropic(.sonnet5))
         }
     }
 

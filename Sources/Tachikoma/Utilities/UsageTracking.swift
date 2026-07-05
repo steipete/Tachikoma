@@ -530,6 +530,9 @@ public struct ModelCostCalculator: Sendable {
             switch openaiModel {
             case .chatLatest: (5.00, 30.00) // ChatGPT Instant alias pricing estimate
             case .gpt5ChatLatest: (1.25, 10.00)
+            case .gpt56Sol: (5.00, 30.00)
+            case .gpt56Terra: (2.50, 15.00)
+            case .gpt56Luna: (1.00, 6.00)
             case .gpt55: (5.00, 20.00) // GPT-5.5 pricing estimate
             case .gpt54: (5.00, 20.00) // GPT-5.4 pricing estimate
             case .gpt54Mini: (1.00, 4.00)
@@ -538,12 +541,19 @@ public struct ModelCostCalculator: Sendable {
             case .gpt5Pro: (12.00, 48.00) // Higher reasoning budget
             case .gpt5Mini: (1.00, 4.00) // GPT-5 Mini pricing estimate
             case .gpt5Nano: (0.50, 2.00) // GPT-5 Nano pricing estimate
-            case .custom: (2.50, 10.00) // Default estimate
+            case let .custom(id):
+                switch LanguageModel.parse(from: id) {
+                case .openai(.gpt56Sol): (5.00, 30.00)
+                case .openai(.gpt56Terra): (2.50, 15.00)
+                case .openai(.gpt56Luna): (1.00, 6.00)
+                default: (2.50, 10.00) // Default estimate
+                }
             }
         // Anthropic Pricing (as of 2026)
         case let .anthropic(anthropicModel):
             switch anthropicModel {
             case .fable5: (10.00, 50.00)
+            case .sonnet5: (2.00, 10.00) // Introductory pricing through August 31, 2026
             case .opus48: (5.00, 25.00)
             case .opus47: (5.00, 25.00)
             case .opus45: (5.00, 25.00)
@@ -552,7 +562,13 @@ public struct ModelCostCalculator: Sendable {
             case .sonnet45: (4.00, 18.00)
             case .haiku45: (1.20, 6.00)
             case let .custom(id):
-                id.lowercased().contains("claude-fable-5") ? (10.00, 50.00) : (3.00, 15.00)
+                if LanguageModel.Anthropic.isFable(modelId: id) {
+                    (10.00, 50.00)
+                } else if LanguageModel.Anthropic.isSonnet5(modelId: id) {
+                    (2.00, 10.00)
+                } else {
+                    (3.00, 15.00)
+                }
             }
         // Google Pricing (standard tier, as of 2026)
         case let .google(googleModel):

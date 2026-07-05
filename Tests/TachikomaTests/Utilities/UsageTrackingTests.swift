@@ -122,11 +122,40 @@ struct UsageTrackingTests {
         #expect(gpt5MiniCost.output == 4.00)
         #expect(gpt5MiniCost.total == 5.00)
 
+        let gpt56Costs = [
+            (LanguageModel.openai(.gpt56Sol), 5.00, 30.00),
+            (.openai(.gpt56Terra), 2.50, 15.00),
+            (.openai(.gpt56Luna), 1.00, 6.00),
+        ]
+        for (model, expectedInput, expectedOutput) in gpt56Costs {
+            let cost = calculator.calculateCost(for: model, usage: usage)
+            #expect(cost.input == expectedInput)
+            #expect(cost.output == expectedOutput)
+        }
+
+        let customGPT56Cost = calculator.calculateCost(
+            for: .openai(.custom("gpt-5.6-sol")),
+            usage: usage,
+        )
+        #expect(customGPT56Cost.input == 5.00)
+        #expect(customGPT56Cost.output == 30.00)
+
         // Test Anthropic pricing
         let claudeFableCost = calculator.calculateCost(for: .anthropic(.fable5), usage: usage)
         #expect(claudeFableCost.input == 10.00)
         #expect(claudeFableCost.output == 50.00)
         #expect(claudeFableCost.total == 60.00)
+
+        let claudeSonnet5Cost = calculator.calculateCost(for: .anthropic(.sonnet5), usage: usage)
+        #expect(claudeSonnet5Cost.input == 2.00)
+        #expect(claudeSonnet5Cost.output == 10.00)
+
+        let customClaudeSonnet5Cost = calculator.calculateCost(
+            for: .anthropic(.custom("claude-sonnet-5")),
+            usage: usage,
+        )
+        #expect(customClaudeSonnet5Cost.input == 2.00)
+        #expect(customClaudeSonnet5Cost.output == 10.00)
 
         let customClaudeFableCost = calculator.calculateCost(for: .anthropic(.custom("claude-fable-5")), usage: usage)
         #expect(customClaudeFableCost.input == 10.00)

@@ -41,6 +41,11 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
         /// GPT-5.5 Series
         case gpt55 // Flagship GPT-5.5
 
+        /// GPT-5.6 preview series
+        case gpt56Sol
+        case gpt56Terra
+        case gpt56Luna
+
         /// GPT-5.4 Series
         case gpt54
         case gpt54Mini
@@ -59,6 +64,9 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
             [
                 .chatLatest,
                 .gpt5ChatLatest,
+                .gpt56Sol,
+                .gpt56Terra,
+                .gpt56Luna,
                 .gpt55,
                 .gpt54,
                 .gpt54Mini,
@@ -75,6 +83,9 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
             case let .custom(id): id
             case .chatLatest: "chat-latest"
             case .gpt5ChatLatest: "gpt-5-chat-latest"
+            case .gpt56Sol: "gpt-5.6-sol"
+            case .gpt56Terra: "gpt-5.6-terra"
+            case .gpt56Luna: "gpt-5.6-luna"
             case .gpt55: "gpt-5.5"
             case .gpt54: "gpt-5.4"
             case .gpt54Mini: "gpt-5.4-mini"
@@ -90,6 +101,7 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
             switch self {
             case .chatLatest,
                  .gpt5ChatLatest,
+                 .gpt56Sol, .gpt56Terra, .gpt56Luna,
                  .gpt55,
                  .gpt54, .gpt54Mini, .gpt54Nano,
                  .gpt5, .gpt5Pro, .gpt5Mini, .gpt5Nano: true // GPT-5+ supports multimodal
@@ -101,6 +113,7 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
             switch self {
             case .chatLatest,
                  .gpt5ChatLatest,
+                 .gpt56Sol, .gpt56Terra, .gpt56Luna,
                  .gpt55,
                  .gpt54, .gpt54Mini, .gpt54Nano,
                  .gpt5, .gpt5Pro, .gpt5Mini, .gpt5Nano: true // GPT-5+ excels at tool calling
@@ -135,6 +148,8 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
             switch self {
             case .gpt5ChatLatest:
                 128_000
+            case .gpt56Sol, .gpt56Terra, .gpt56Luna:
+                372_000
             case .chatLatest, .gpt55,
                  .gpt54, .gpt54Mini, .gpt54Nano,
                  .gpt5, .gpt5Pro, .gpt5Mini, .gpt5Nano: 400_000 // 272k input + 128k output
@@ -158,6 +173,7 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
     public enum Anthropic: Sendable, Hashable, CaseIterable {
         // Claude 5 / 4.x Series
         case fable5
+        case sonnet5
         case opus48
         case opus47
         case opus45
@@ -172,6 +188,7 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
         public static var allCases: [Anthropic] {
             [
                 .fable5,
+                .sonnet5,
                 .opus48,
                 .opus47,
                 .opus45,
@@ -186,6 +203,7 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
             switch self {
             case let .custom(id): id
             case .fable5: "claude-fable-5"
+            case .sonnet5: "claude-sonnet-5"
             case .opus48: "claude-opus-4-8"
             case .opus47: "claude-opus-4-7"
             case .opus45: "claude-opus-4-5"
@@ -198,7 +216,7 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
 
         public var supportsVision: Bool {
             switch self {
-            case .fable5, .opus48, .opus47, .opus45, .opus4, .sonnet46, .sonnet45, .haiku45:
+            case .fable5, .sonnet5, .opus48, .opus47, .opus45, .opus4, .sonnet46, .sonnet45, .haiku45:
                 true
             case .custom: true // Assume custom models support vision
             }
@@ -220,20 +238,20 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
 
         public var contextLength: Int {
             switch self {
-            case .fable5, .opus48, .opus47, .sonnet46: 1_000_000
+            case .fable5, .sonnet5, .opus48, .opus47, .sonnet46: 1_000_000
             case .haiku45: 200_000
             case .opus45, .opus4, .sonnet45: 500_000
             case let .custom(id):
-                Self.isFable(modelId: id) ? 1_000_000 : 200_000 // Default assumption
+                Self.hasMillionTokenContext(modelId: id) ? 1_000_000 : 200_000 // Default assumption
             }
         }
 
         public var maxOutputTokens: Int {
             switch self {
-            case .fable5, .opus48, .opus47: 128_000
+            case .fable5, .sonnet5, .opus48, .opus47: 128_000
             case .sonnet46, .haiku45: 64000
             case let .custom(id):
-                Self.isFable(modelId: id) ? 128_000 : 8192
+                Self.has128KOutput(modelId: id) ? 128_000 : 8192
             case .opus45, .opus4, .sonnet45: 4096
             }
         }
@@ -266,6 +284,41 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
             }
         }
 
+        public static func isSonnet5(modelId: String) -> Bool {
+            let normalized = modelId.lowercased()
+            let pathSegments = normalized
+                .components(separatedBy: CharacterSet(charactersIn: "/:@"))
+                .filter { !$0.isEmpty }
+            let dotSegments = pathSegments.flatMap { $0.components(separatedBy: ".") }
+                .filter { !$0.isEmpty }
+            let segments = pathSegments + dotSegments
+            let canonicalSegments: Set = [
+                "claude-sonnet-5",
+                "sonnet-5",
+                "sonnet5",
+            ]
+            return normalized == Self.sonnet5.modelId || segments.contains { segment in
+                if canonicalSegments.contains(segment) { return true }
+                let compactSegment = segment
+                    .replacingOccurrences(of: "-", with: "")
+                    .replacingOccurrences(of: "_", with: "")
+                    .replacingOccurrences(of: ".", with: "")
+                return compactSegment == "claudesonnet5" || compactSegment == "sonnet5"
+            }
+        }
+
+        public static func hasMillionTokenContext(modelId: String) -> Bool {
+            self.isFable(modelId: modelId) || self.isSonnet5(modelId: modelId)
+        }
+
+        public static func hasDefaultAdaptiveThinking(modelId: String) -> Bool {
+            self.isFable(modelId: modelId) || self.isSonnet5(modelId: modelId)
+        }
+
+        public static func has128KOutput(modelId: String) -> Bool {
+            self.hasMillionTokenContext(modelId: modelId)
+        }
+
         public static func isOpus48(modelId: String) -> Bool {
             let normalized = modelId.lowercased()
             let compactExact = normalized
@@ -294,7 +347,7 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
         }
 
         public static func hasStreamingRefusalRisk(modelId: String) -> Bool {
-            self.isFable(modelId: modelId) || self.isOpus48(modelId: modelId)
+            self.isFable(modelId: modelId) || self.isSonnet5(modelId: modelId) || self.isOpus48(modelId: modelId)
         }
     }
 
@@ -1131,13 +1184,13 @@ extension LanguageModel {
         case .azureOpenAI:
             128_000 // conservative default matching OpenAI tier
         case let .openRouter(modelId), let .together(modelId):
-            Anthropic.isFable(modelId: modelId) ? 1_000_000 : 128_000
+            Anthropic.hasMillionTokenContext(modelId: modelId) ? 1_000_000 : 128_000
         case .replicate:
             128_000 // Common default
         case let .openaiCompatible(modelId, _):
-            Anthropic.isFable(modelId: modelId) ? 1_000_000 : 128_000
+            Anthropic.hasMillionTokenContext(modelId: modelId) ? 1_000_000 : 128_000
         case let .anthropicCompatible(modelId, _):
-            Anthropic.isFable(modelId: modelId) ? 1_000_000 : 128_000
+            Anthropic.hasMillionTokenContext(modelId: modelId) ? 1_000_000 : 128_000
         case let .custom(provider):
             provider.capabilities.contextLength
         }
@@ -1372,6 +1425,20 @@ extension LanguageModel {
             return .openai(.gpt5ChatLatest)
         }
 
+        switch compact {
+        case "gpt56", "gpt56sol":
+            return .openai(.gpt56Sol)
+        case "gpt56terra":
+            return .openai(.gpt56Terra)
+        case "gpt56luna":
+            return .openai(.gpt56Luna)
+        default:
+            break
+        }
+        if compact.contains("gpt56") {
+            return nil
+        }
+
         if dashed == "gpt-5-pro" || compact == "gpt5pro" {
             return .openai(.gpt5Pro)
         }
@@ -1435,6 +1502,20 @@ extension LanguageModel {
             )
         {
             return .anthropic(.fable5)
+        }
+
+        if
+            matchesExactAlias(
+                [
+                    "claude-sonnet-5",
+                    "sonnet-5",
+                    "sonnet.5",
+                    "sonnet5",
+                ],
+                compactAliases: ["claudesonnet5", "sonnet5"],
+            )
+        {
+            return .anthropic(.sonnet5)
         }
 
         if

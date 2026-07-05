@@ -19,6 +19,9 @@ public struct ProviderFactory {
             switch openaiModel {
             case .chatLatest,
                  .gpt5ChatLatest,
+                 .gpt56Sol,
+                 .gpt56Terra,
+                 .gpt56Luna,
                  .gpt55,
                  .gpt54,
                  .gpt54Mini,

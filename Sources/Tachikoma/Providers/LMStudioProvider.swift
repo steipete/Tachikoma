@@ -308,7 +308,7 @@ public actor LMStudioProvider: ModelProvider {
 
     private func mapReasoningEffortToParams(_ effort: ReasoningEffort) -> [String: Any] {
         switch effort {
-        case .high:
+        case .high, .xhigh, .max:
             [
                 "repeat_penalty": 1.1,
                 "presence_penalty": 0.1,
@@ -340,7 +340,7 @@ public actor LMStudioProvider: ModelProvider {
         guard let effort else { return base }
 
         switch effort {
-        case .high:
+        case .high, .xhigh, .max:
             return min(base * 1.2, 1.5) // Increase temperature for exploration
         case .medium:
             return base

@@ -120,6 +120,8 @@ public struct OpenAIOptions: Sendable, Codable {
         case low
         case medium
         case high
+        case xhigh
+        case max
     }
 }
 
