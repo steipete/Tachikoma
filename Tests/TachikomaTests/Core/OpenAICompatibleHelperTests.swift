@@ -13,6 +13,34 @@ struct OpenAICompatibleHelperTests {}
 @Suite(.serialized)
 struct OpenAICompatibleHelperTests {
     @Test
+    func `Compatible providers infer GPT-5.6 limits`() throws {
+        let compatible = try OpenAICompatibleProvider(
+            modelId: "gpt-5.6-sol",
+            baseURL: "https://mock.compatible",
+            configuration: TachikomaConfiguration(apiKeys: ["openai_compatible": "sk-test"]),
+        )
+        let openRouter = try OpenRouterProvider(
+            modelId: "openai/gpt-5.6-terra",
+            configuration: TachikomaConfiguration(apiKeys: ["openrouter": "sk-test"]),
+        )
+        let together = try TogetherProvider(
+            modelId: "gpt-5.6-luna",
+            configuration: TachikomaConfiguration(apiKeys: ["together": "sk-test"]),
+        )
+
+        for provider in [compatible, openRouter, together] as [any ModelProvider] {
+            #expect(provider.capabilities.contextLength == 372_000)
+            #expect(provider.capabilities.maxOutputTokens == 128_000)
+        }
+        #expect(LanguageModel.openaiCompatible(
+            modelId: "openai/gpt-5.6-sol",
+            baseURL: "https://mock.compatible",
+        ).contextLength == 372_000)
+        #expect(LanguageModel.openRouter(modelId: "openai/gpt-5.6-terra").contextLength == 372_000)
+        #expect(LanguageModel.together(modelId: "gpt-5.6-luna").contextLength == 372_000)
+    }
+
+    @Test
     func `generateText encodes stop sequences, headers, and tool definitions`() async throws {
         let tool = AgentTool(
             name: "lookup",
