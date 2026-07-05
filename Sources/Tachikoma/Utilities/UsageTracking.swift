@@ -510,6 +510,20 @@ public struct UsageReport: Sendable {
 /// Calculates costs for different AI models
 @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public struct ModelCostCalculator: Sendable {
+    private static let sonnet5StandardPricingStart = Date(
+        timeIntervalSince1970: 1_788_220_800,
+    ) // 2026-09-01 00:00:00 UTC
+
+    private let now: @Sendable () -> Date
+
+    public init() {
+        self.now = { Date() }
+    }
+
+    init(now: @escaping @Sendable () -> Date) {
+        self.now = now
+    }
+
     /// Calculate cost for a model usage
     public func calculateCost(for model: LanguageModel, usage: Usage) -> Usage.Cost {
         // Calculate cost for a model usage
@@ -553,7 +567,7 @@ public struct ModelCostCalculator: Sendable {
         case let .anthropic(anthropicModel):
             switch anthropicModel {
             case .fable5: (10.00, 50.00)
-            case .sonnet5: (2.00, 10.00) // Introductory pricing through August 31, 2026
+            case .sonnet5: self.sonnet5Pricing()
             case .opus48: (5.00, 25.00)
             case .opus47: (5.00, 25.00)
             case .opus45: (5.00, 25.00)
@@ -565,7 +579,7 @@ public struct ModelCostCalculator: Sendable {
                 if LanguageModel.Anthropic.isFable(modelId: id) {
                     (10.00, 50.00)
                 } else if LanguageModel.Anthropic.isSonnet5(modelId: id) {
-                    (2.00, 10.00)
+                    self.sonnet5Pricing()
                 } else {
                     (3.00, 15.00)
                 }
@@ -601,5 +615,9 @@ public struct ModelCostCalculator: Sendable {
         case .openaiCompatible, .anthropicCompatible, .azureOpenAI: (2.00, 6.00)
         case .custom: (2.00, 6.00)
         }
+    }
+
+    private func sonnet5Pricing() -> (input: Double, output: Double) {
+        self.now() < Self.sonnet5StandardPricingStart ? (2.00, 10.00) : (3.00, 15.00)
     }
 }
