@@ -511,7 +511,8 @@ public struct UsageReport: Sendable {
 @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public struct ModelCostCalculator: Sendable {
     private static let sonnet5StandardPricingStart = Date(
-        timeIntervalSince1970: 1_788_220_800) // 2026-09-01 00:00:00 UTC
+        timeIntervalSince1970: 1_788_220_800,
+    ) // 2026-09-01 00:00:00 UTC
 
     private let now: @Sendable () -> Date
 
