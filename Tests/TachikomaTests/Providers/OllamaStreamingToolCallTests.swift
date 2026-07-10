@@ -24,7 +24,8 @@ struct OllamaStreamingToolCallTests {
         let chunk = try JSONDecoder().decode(OllamaStreamChunk.self, from: data)
 
         #expect(chunk.done == false)
-        #expect(chunk.message.content == "")
+        // Ollama pairs an empty content string with the tool calls.
+        #expect(chunk.message.content?.isEmpty == true)
         let calls = try #require(chunk.message.toolCalls)
         #expect(calls.count == 1)
         #expect(calls[0].function.name == "get_weather")
