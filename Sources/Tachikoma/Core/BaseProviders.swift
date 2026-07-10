@@ -1179,25 +1179,7 @@ public final class OllamaProvider: ModelProvider {
         urlRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
         urlRequest.timeoutInterval = 300 // 5 minutes for local processing
 
-        // Convert messages to Ollama format
-        let messages = request.messages.map { message in
-            let images = message.content.compactMap { part in
-                if case let .image(image) = part {
-                    return image.data
-                }
-                return nil
-            }
-            return OllamaChatMessage(
-                role: message.role.rawValue,
-                content: message.content.compactMap { part in
-                    if case let .text(text) = part {
-                        return text
-                    }
-                    return nil
-                }.joined(),
-                images: images.isEmpty ? nil : images,
-            )
-        }
+        let messages = try self.convertMessagesToOllama(request.messages)
 
         var options: OllamaChatRequest.OllamaOptions?
         if request.settings.temperature != nil || request.settings.maxTokens != nil {
@@ -1252,8 +1234,6 @@ public final class OllamaProvider: ModelProvider {
             outputTokens: text.count / 4,
         )
 
-        let finishReason: FinishReason = ollamaResponse.done ? .stop : .other
-
         // Handle tool calls - Ollama might return them in different formats
         var toolCalls: [AgentToolCall]?
         if let messageCalls = ollamaResponse.message.toolCalls {
@@ -1292,6 +1272,14 @@ public final class OllamaProvider: ModelProvider {
             }
         }
 
+        let finishReason: FinishReason = if toolCalls?.isEmpty == false {
+            .toolCalls
+        } else if ollamaResponse.done {
+            .stop
+        } else {
+            .other
+        }
+
         return ProviderResponse(
             text: text,
             usage: usage,
@@ -1311,25 +1299,7 @@ public final class OllamaProvider: ModelProvider {
         urlRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
         urlRequest.timeoutInterval = 300 // 5 minutes for local processing
 
-        // Convert messages to Ollama format
-        let messages = request.messages.map { message in
-            let images = message.content.compactMap { part in
-                if case let .image(image) = part {
-                    return image.data
-                }
-                return nil
-            }
-            return OllamaChatMessage(
-                role: message.role.rawValue,
-                content: message.content.compactMap { part in
-                    if case let .text(text) = part {
-                        return text
-                    }
-                    return nil
-                }.joined(),
-                images: images.isEmpty ? nil : images,
-            )
-        }
+        let messages = try self.convertMessagesToOllama(request.messages)
 
         var options: OllamaChatRequest.OllamaOptions?
         if request.settings.temperature != nil || request.settings.maxTokens != nil {
@@ -1371,6 +1341,13 @@ public final class OllamaProvider: ModelProvider {
                 for line in lines {
                     guard let data = line.data(using: .utf8) else { continue }
 
+                    if let errorResponse = try? JSONDecoder().decode(OllamaErrorResponse.self, from: data) {
+                        continuation.finish(
+                            throwing: TachikomaError.apiError("Ollama Error: \(errorResponse.error)"),
+                        )
+                        return
+                    }
+
                     do {
                         let chunk = try JSONDecoder().decode(OllamaStreamChunk.self, from: data)
 
@@ -1401,44 +1378,131 @@ public final class OllamaProvider: ModelProvider {
     /// Shared by the streaming and non-streaming paths so both surface Ollama's
     /// native tool calls identically.
     static func convertOllamaToolCall(_ ollamaCall: OllamaToolCall) -> AgentToolCall {
-        var arguments: [String: AnyAgentToolValue] = [:]
-        for (key, value) in ollamaCall.function.arguments {
-            do {
-                arguments[key] = try AnyAgentToolValue.fromJSON(value)
-            } catch {
-                // Log warning and skip arguments that can't be converted
-                print("[WARNING] Failed to convert tool argument '\(key)': \(error)")
-                continue
-            }
-        }
-
-        return AgentToolCall(
+        AgentToolCall(
             id: "ollama_\(UUID().uuidString)",
             name: ollamaCall.function.name,
-            arguments: arguments,
+            arguments: ollamaCall.function.arguments,
         )
     }
 
+    private func convertMessagesToOllama(_ messages: [ModelMessage]) throws -> [OllamaChatMessage] {
+        var toolNamesByCallID: [String: String] = [:]
+        var converted: [OllamaChatMessage] = []
+
+        for message in messages {
+            let text = message.content.compactMap { part in
+                if case let .text(text) = part {
+                    return text
+                }
+                return nil
+            }.joined()
+            let images = message.content.compactMap { part in
+                if case let .image(image) = part {
+                    return image.data
+                }
+                return nil
+            }
+
+            let toolCalls = message.content.compactMap { part -> AgentToolCall? in
+                if case let .toolCall(call) = part {
+                    return call
+                }
+                return nil
+            }
+            for call in toolCalls {
+                toolNamesByCallID[call.id] = call.name
+            }
+
+            if message.role == .tool {
+                let toolResults = message.content.compactMap { part -> AgentToolResult? in
+                    if case let .toolResult(result) = part {
+                        return result
+                    }
+                    return nil
+                }
+
+                if !toolResults.isEmpty {
+                    for result in toolResults {
+                        guard let toolName = toolNamesByCallID[result.toolCallId] else {
+                            throw TachikomaError.invalidInput(
+                                "Ollama tool result references unknown call ID '\(result.toolCallId)'",
+                            )
+                        }
+                        try converted.append(OllamaChatMessage(
+                            role: message.role.rawValue,
+                            content: Self.ollamaToolResultContent(result.result),
+                            toolName: toolName,
+                        ))
+                    }
+                    continue
+                }
+            }
+
+            let ollamaCalls = toolCalls.enumerated().map { index, call in
+                OllamaToolCall(
+                    function: OllamaToolCall.Function(
+                        index: index,
+                        name: call.name,
+                        arguments: call.arguments,
+                    ),
+                )
+            }
+            converted.append(OllamaChatMessage(
+                role: message.role.rawValue,
+                content: text,
+                images: images.isEmpty ? nil : images,
+                toolCalls: ollamaCalls.isEmpty ? nil : ollamaCalls,
+            ))
+        }
+
+        return converted
+    }
+
+    private static func ollamaToolResultContent(_ result: AnyAgentToolValue) throws -> String {
+        if let string = result.stringValue {
+            return string
+        }
+
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.sortedKeys]
+        let data = try encoder.encode(result)
+        guard let content = String(bytes: data, encoding: .utf8) else {
+            throw TachikomaError.invalidInput("Could not encode Ollama tool result as UTF-8")
+        }
+        return content
+    }
+
     private func convertToolToOllama(_ tool: AgentTool) throws -> OllamaTool {
-        // Convert AgentToolParameters to [String: Any]
-        var properties: [String: Any] = [:]
+        var properties: [String: AnyAgentToolValue] = [:]
         for (key, prop) in tool.parameters.properties {
-            var propDict: [String: Any] = [
-                "type": prop.type.rawValue,
-                "description": prop.description,
+            var propDict: [String: AnyAgentToolValue] = [
+                "type": AnyAgentToolValue(string: prop.type.rawValue),
+                "description": AnyAgentToolValue(string: prop.description),
             ]
 
             if let enumValues = prop.enumValues {
-                propDict["enum"] = enumValues
+                propDict["enum"] = AnyAgentToolValue(array: enumValues.map { AnyAgentToolValue(string: $0) })
             }
 
-            properties[key] = propDict
+            if let items = prop.items {
+                var itemSchema = [
+                    "type": AnyAgentToolValue(string: items.type),
+                ]
+                if let description = items.description {
+                    itemSchema["description"] = AnyAgentToolValue(string: description)
+                }
+                propDict["items"] = AnyAgentToolValue(object: itemSchema)
+            }
+
+            properties[key] = AnyAgentToolValue(object: propDict)
         }
 
-        let parameters: [String: Any] = [
-            "type": tool.parameters.type,
-            "properties": properties,
-            "required": tool.parameters.required,
+        let parameters: [String: AnyAgentToolValue] = [
+            "type": AnyAgentToolValue(string: tool.parameters.type),
+            "properties": AnyAgentToolValue(object: properties),
+            "required": AnyAgentToolValue(
+                array: tool.parameters.required.map { AnyAgentToolValue(string: $0) },
+            ),
         ]
 
         return OllamaTool(
