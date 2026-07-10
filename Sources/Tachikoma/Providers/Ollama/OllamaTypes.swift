@@ -247,6 +247,16 @@ struct OllamaStreamChunk: Codable {
     struct Delta: Codable {
         let role: String?
         let content: String?
+        /// Ollama emits native tool calls on the streaming `/api/chat` response
+        /// (`{"message":{"content":"","tool_calls":[…]},"done":false}`). Without
+        /// this the caller sees zero tool calls and models fall back to printing
+        /// tool-call JSON as plain text.
+        let toolCalls: [OllamaToolCall]?
+
+        enum CodingKeys: String, CodingKey {
+            case role, content
+            case toolCalls = "tool_calls"
+        }
     }
 }
 

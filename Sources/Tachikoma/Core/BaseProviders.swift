@@ -162,7 +162,9 @@ public final class AnthropicProvider: ModelProvider {
             }
             return nil
         case .adaptive:
-            if Self.isFable(model: model) { return nil }
+            if Self.isFable(model: model) {
+                return nil
+            }
             guard self.usesAdaptiveThinking(model: model) else { return nil }
             return AnthropicThinking(type: "adaptive", budgetTokens: nil)
         case let .enabled(budgetTokens):
@@ -198,7 +200,9 @@ public final class AnthropicProvider: ModelProvider {
             }
             return AnthropicOutputConfig(effort: effort.rawValue)
         }
-        if case .disabled = mode { return nil }
+        if case .disabled = mode {
+            return nil
+        }
 
         let effort = self.usesAdaptiveThinking(model: model) ? self.adaptiveEffort(from: mode) : nil
         return effort.map { AnthropicOutputConfig(effort: $0) }
@@ -220,17 +224,31 @@ public final class AnthropicProvider: ModelProvider {
     }
 
     private func usesAdaptiveThinking(model: LanguageModel.Anthropic) -> Bool {
-        if Self.isFable(model: model) { return true }
-        if LanguageModel.Anthropic.isSonnet5(modelId: model.modelId) { return true }
-        if case .opus48 = model { return true }
-        if case .opus47 = model { return true }
-        if case .sonnet46 = model { return true }
+        if Self.isFable(model: model) {
+            return true
+        }
+        if LanguageModel.Anthropic.isSonnet5(modelId: model.modelId) {
+            return true
+        }
+        if case .opus48 = model {
+            return true
+        }
+        if case .opus47 = model {
+            return true
+        }
+        if case .sonnet46 = model {
+            return true
+        }
         return false
     }
 
     private func supportsEffort(model: LanguageModel.Anthropic) -> Bool {
-        if Self.isFable(model: model) { return true }
-        if LanguageModel.Anthropic.isSonnet5(modelId: model.modelId) { return true }
+        if Self.isFable(model: model) {
+            return true
+        }
+        if LanguageModel.Anthropic.isSonnet5(modelId: model.modelId) {
+            return true
+        }
         switch model {
         case .opus48, .opus47, .opus45, .sonnet46:
             return true
@@ -242,8 +260,12 @@ public final class AnthropicProvider: ModelProvider {
     private func adaptiveEffort(from mode: AnthropicOptions.ThinkingMode?) -> String? {
         guard case let .enabled(budgetTokens) = mode else { return nil }
 
-        if budgetTokens <= 4096 { return ReasoningEffort.low.rawValue }
-        if budgetTokens <= 12000 { return ReasoningEffort.medium.rawValue }
+        if budgetTokens <= 4096 {
+            return ReasoningEffort.low.rawValue
+        }
+        if budgetTokens <= 12000 {
+            return ReasoningEffort.medium.rawValue
+        }
         return ReasoningEffort.high.rawValue
     }
 
@@ -307,7 +329,11 @@ public final class AnthropicProvider: ModelProvider {
         var thinking: AnthropicThinking?
         let systemMessage: String?
         let messages: [AnthropicMessage]
-        let thinkingDisabled = if case .disabled = thinkingMode { true } else { false }
+        let thinkingDisabled = if case .disabled = thinkingMode {
+            true
+        } else {
+            false
+        }
         let requiresSignedThinkingReplay = self.requiresSignedThinkingReplay(model: self.model)
         let preserveSignedThinking = !thinkingDisabled && (requestedThinking != nil || requiresSignedThinkingReplay)
         let reasoningTarget = AnthropicReasoningReplayTarget(
@@ -1156,13 +1182,17 @@ public final class OllamaProvider: ModelProvider {
         // Convert messages to Ollama format
         let messages = request.messages.map { message in
             let images = message.content.compactMap { part in
-                if case let .image(image) = part { return image.data }
+                if case let .image(image) = part {
+                    return image.data
+                }
                 return nil
             }
             return OllamaChatMessage(
                 role: message.role.rawValue,
                 content: message.content.compactMap { part in
-                    if case let .text(text) = part { return text }
+                    if case let .text(text) = part {
+                        return text
+                    }
                     return nil
                 }.joined(),
                 images: images.isEmpty ? nil : images,
@@ -1214,7 +1244,9 @@ public final class OllamaProvider: ModelProvider {
         // Ollama doesn't provide detailed token usage, estimate based on content
         let usage = Usage(
             inputTokens: request.messages.map { $0.content.compactMap { part in
-                if case let .text(text) = part { return text }
+                if case let .text(text) = part {
+                    return text
+                }
                 return nil
             }.joined().count / 4 }.reduce(0, +),
             outputTokens: text.count / 4,
@@ -1225,25 +1257,7 @@ public final class OllamaProvider: ModelProvider {
         // Handle tool calls - Ollama might return them in different formats
         var toolCalls: [AgentToolCall]?
         if let messageCalls = ollamaResponse.message.toolCalls {
-            toolCalls = messageCalls.compactMap { ollamaCall in
-                // Convert arguments dictionary to AnyAgentToolValue format
-                var arguments: [String: AnyAgentToolValue] = [:]
-                for (key, value) in ollamaCall.function.arguments {
-                    do {
-                        arguments[key] = try AnyAgentToolValue.fromJSON(value)
-                    } catch {
-                        // Log warning and skip arguments that can't be converted
-                        print("[WARNING] Failed to convert tool argument '\(key)': \(error)")
-                        continue
-                    }
-                }
-
-                return AgentToolCall(
-                    id: "ollama_\(UUID().uuidString)",
-                    name: ollamaCall.function.name,
-                    arguments: arguments,
-                )
-            }
+            toolCalls = messageCalls.map { Self.convertOllamaToolCall($0) }
         }
 
         // Some Ollama models output tool calls as JSON in the content
@@ -1300,13 +1314,17 @@ public final class OllamaProvider: ModelProvider {
         // Convert messages to Ollama format
         let messages = request.messages.map { message in
             let images = message.content.compactMap { part in
-                if case let .image(image) = part { return image.data }
+                if case let .image(image) = part {
+                    return image.data
+                }
                 return nil
             }
             return OllamaChatMessage(
                 role: message.role.rawValue,
                 content: message.content.compactMap { part in
-                    if case let .text(text) = part { return text }
+                    if case let .text(text) = part {
+                        return text
+                    }
                     return nil
                 }.joined(),
                 images: images.isEmpty ? nil : images,
@@ -1360,6 +1378,10 @@ public final class OllamaProvider: ModelProvider {
                             continuation.yield(TextStreamDelta.text(content))
                         }
 
+                        for ollamaCall in chunk.message.toolCalls ?? [] {
+                            continuation.yield(TextStreamDelta.tool(Self.convertOllamaToolCall(ollamaCall)))
+                        }
+
                         if chunk.done {
                             continuation.yield(TextStreamDelta.done())
                             break
@@ -1375,6 +1397,27 @@ public final class OllamaProvider: ModelProvider {
     }
 
     // MARK: - Helper Methods
+
+    /// Shared by the streaming and non-streaming paths so both surface Ollama's
+    /// native tool calls identically.
+    static func convertOllamaToolCall(_ ollamaCall: OllamaToolCall) -> AgentToolCall {
+        var arguments: [String: AnyAgentToolValue] = [:]
+        for (key, value) in ollamaCall.function.arguments {
+            do {
+                arguments[key] = try AnyAgentToolValue.fromJSON(value)
+            } catch {
+                // Log warning and skip arguments that can't be converted
+                print("[WARNING] Failed to convert tool argument '\(key)': \(error)")
+                continue
+            }
+        }
+
+        return AgentToolCall(
+            id: "ollama_\(UUID().uuidString)",
+            name: ollamaCall.function.name,
+            arguments: arguments,
+        )
+    }
 
     private func convertToolToOllama(_ tool: AgentTool) throws -> OllamaTool {
         // Convert AgentToolParameters to [String: Any]
