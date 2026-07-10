@@ -83,6 +83,11 @@ public struct ModelSelector {
             if provider == "openrouter" {
                 return .openRouter(modelId: qualified.model)
             }
+            if provider == "ollama" {
+                // Ollama is an open registry: pass unknown names through as custom
+                // model ids instead of gating on the known-model list.
+                return .ollama(parseOllamaModel(qualified.model.lowercased()) ?? .custom(qualified.model.lowercased()))
+            }
             if !["ollama", "lmstudio", "lm-studio"].contains(provider) {
                 return .openRouter(modelId: normalized)
             }

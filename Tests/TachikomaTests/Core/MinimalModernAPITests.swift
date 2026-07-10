@@ -789,34 +789,32 @@ private struct AgentRefusalTests {
 
     private func withRegisteredCustomProvider(
         _ configJSON: String,
-        operation: () async throws -> Void,
+        operation: @Sendable () async throws -> Void,
     ) async throws {
-        let originalProfile = TachikomaConfiguration.profileDirectoryName
-        let tempProfile = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
-        let emptyProfile = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try await TestEnvironmentMutex.shared.withLock {
+            let originalProfile = TachikomaConfiguration.profileDirectoryName
+            let tempProfile = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+            let emptyProfile = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
 
-        try FileManager.default.createDirectory(at: tempProfile, withIntermediateDirectories: true)
-        try FileManager.default.createDirectory(at: emptyProfile, withIntermediateDirectories: true)
-        try configJSON.write(to: tempProfile.appendingPathComponent("config.json"), atomically: true, encoding: .utf8)
-        try #"{"customProviders":{}}"#.write(
-            to: emptyProfile.appendingPathComponent("config.json"),
-            atomically: true,
-            encoding: .utf8,
-        )
+            try FileManager.default.createDirectory(at: tempProfile, withIntermediateDirectories: true)
+            try FileManager.default.createDirectory(at: emptyProfile, withIntermediateDirectories: true)
+            try configJSON.write(to: tempProfile.appendingPathComponent("config.json"), atomically: true, encoding: .utf8)
+            try #"{"customProviders":{}}"#.write(
+                to: emptyProfile.appendingPathComponent("config.json"),
+                atomically: true,
+                encoding: .utf8,
+            )
 
-        TachikomaConfiguration.profileDirectoryName = tempProfile.path
-        CustomProviderRegistry.shared.loadFromProfile()
+            TachikomaConfiguration.profileDirectoryName = tempProfile.path
+            CustomProviderRegistry.shared.loadFromProfile()
 
-        do {
+            defer {
+                TachikomaConfiguration.profileDirectoryName = emptyProfile.path
+                CustomProviderRegistry.shared.loadFromProfile()
+                TachikomaConfiguration.profileDirectoryName = originalProfile
+            }
+
             try await operation()
-            TachikomaConfiguration.profileDirectoryName = emptyProfile.path
-            CustomProviderRegistry.shared.loadFromProfile()
-            TachikomaConfiguration.profileDirectoryName = originalProfile
-        } catch {
-            TachikomaConfiguration.profileDirectoryName = emptyProfile.path
-            CustomProviderRegistry.shared.loadFromProfile()
-            TachikomaConfiguration.profileDirectoryName = originalProfile
-            throw error
         }
     }
 }
