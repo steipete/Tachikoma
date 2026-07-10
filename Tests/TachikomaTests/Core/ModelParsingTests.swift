@@ -211,6 +211,18 @@ struct ModelParsingTests {
     }
 
     @Test
+    func `ModelSelector strips the ollama prefix from provider-qualified custom models`() throws {
+        // Regression: parseModel fell through to the bare-name fallback with the
+        // prefix still attached, producing .custom("ollama/qwen2.5vl:latest") —
+        // a model id that does not exist on the Ollama server.
+        #expect(try ModelSelector.parseModel("ollama/qwen2.5vl:latest") == .ollama(.custom("qwen2.5vl:latest")))
+        #expect(try ModelSelector
+            .parseModel("ollama/some-future-model:tag") == .ollama(.custom("some-future-model:tag")))
+        // Known shortcut names keep resolving to their typed cases.
+        #expect(try ModelSelector.parseModel("ollama/llama3.3") == .ollama(.llama33))
+    }
+
+    @Test
     func `parse local provider shortcuts`() {
         #expect(LanguageModel.parse(from: "ollama") == .ollama(.llama33))
         #expect(LanguageModel.parse(from: "lmstudio") == .lmstudio(.gptOSS120B))
