@@ -18,6 +18,17 @@ struct OllamaStreamingToolCallTests {
     "message":{"role":"assistant","content":""},"done":true,"done_reason":"stop"}
     """
 
+    private static let recursiveToolCallChunk = """
+    {"model":"llama3.1:8b","message":{"role":"assistant","content":"","tool_calls":[{"function":{
+    "index":0,"name":"run_plan","arguments":{"enabled":true,"metadata":{"attempt":2,"note":null},
+    "steps":["inspect",3,false,null,{"kind":"finish"}]}}}]},"done":false}
+    """
+
+    private static let zeroArgumentToolCallChunk = """
+    {"model":"llama3.1:8b","message":{"role":"assistant","content":"","tool_calls":[{"function":{
+    "index":0,"name":"get_status"}}]},"done":false}
+    """
+
     @Test
     func `stream chunk decodes native tool calls`() throws {
         let data = try #require(Self.toolCallChunk.data(using: .utf8))
@@ -29,7 +40,7 @@ struct OllamaStreamingToolCallTests {
         let calls = try #require(chunk.message.toolCalls)
         #expect(calls.count == 1)
         #expect(calls[0].function.name == "get_weather")
-        #expect(calls[0].function.arguments["city"] as? String == "Paris")
+        #expect(calls[0].function.arguments["city"]?.stringValue == "Paris")
     }
 
     @Test
@@ -52,5 +63,38 @@ struct OllamaStreamingToolCallTests {
         #expect(agentCall.name == "get_weather")
         #expect(agentCall.arguments["city"]?.stringValue == "Paris")
         #expect(agentCall.id.hasPrefix("ollama_"))
+    }
+
+    @Test
+    func `stream chunk preserves recursive tool arguments`() throws {
+        let data = try #require(Self.recursiveToolCallChunk.data(using: .utf8))
+        let chunk = try JSONDecoder().decode(OllamaStreamChunk.self, from: data)
+        let call = try #require(chunk.message.toolCalls?.first)
+
+        #expect(call.function.index == 0)
+        #expect(call.function.arguments["enabled"]?.boolValue == true)
+        #expect(call.function.arguments["metadata"]?.objectValue?["attempt"]?.intValue == 2)
+        #expect(call.function.arguments["metadata"]?.objectValue?["note"]?.isNull == true)
+
+        let steps = try #require(call.function.arguments["steps"]?.arrayValue)
+        #expect(steps[0].stringValue == "inspect")
+        #expect(steps[1].intValue == 3)
+        #expect(steps[2].boolValue == false)
+        #expect(steps[3].isNull)
+        #expect(steps[4].objectValue?["kind"]?.stringValue == "finish")
+
+        let converted = OllamaProvider.convertOllamaToolCall(call)
+        #expect(converted.arguments == call.function.arguments)
+    }
+
+    @Test
+    func `stream chunk defaults omitted tool arguments to empty`() throws {
+        let data = try #require(Self.zeroArgumentToolCallChunk.data(using: .utf8))
+        let chunk = try JSONDecoder().decode(OllamaStreamChunk.self, from: data)
+        let call = try #require(chunk.message.toolCalls?.first)
+
+        #expect(call.function.name == "get_status")
+        #expect(call.function.arguments.isEmpty)
+        #expect(OllamaProvider.convertOllamaToolCall(call).arguments.isEmpty)
     }
 }

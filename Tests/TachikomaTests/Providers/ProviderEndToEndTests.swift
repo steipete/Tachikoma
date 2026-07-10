@@ -298,6 +298,159 @@ struct ProviderEndToEndTests {
         }
     }
 
+    @Test
+    func `Ollama provider replays tool history and recursive schemas`() async throws {
+        let toolCall = AgentToolCall(
+            id: "call_plan",
+            name: "run_plan",
+            arguments: [
+                "metadata": AnyAgentToolValue(object: [
+                    "attempt": AnyAgentToolValue(int: 2),
+                    "note": AnyAgentToolValue(null: ()),
+                ]),
+                "steps": AnyAgentToolValue(array: [
+                    AnyAgentToolValue(string: "inspect"),
+                    AnyAgentToolValue(int: 3),
+                    AnyAgentToolValue(bool: false),
+                ]),
+            ],
+        )
+        let result = AgentToolResult.success(
+            toolCallId: toolCall.id,
+            result: AnyAgentToolValue(object: [
+                "completed": AnyAgentToolValue(bool: true),
+                "outputs": AnyAgentToolValue(array: [
+                    AnyAgentToolValue(string: "alpha"),
+                    AnyAgentToolValue(int: 4),
+                ]),
+            ]),
+        )
+        let tool = AgentTool(
+            name: "run_plan",
+            description: "Run a plan",
+            parameters: AgentToolParameters(
+                properties: [
+                    "steps": AgentToolParameterProperty(
+                        name: "steps",
+                        type: .array,
+                        description: "Plan steps",
+                        items: AgentToolParameterItems(type: "object", description: "One step"),
+                    ),
+                ],
+                required: ["steps"],
+            ),
+        ) { _ in
+            AnyAgentToolValue(string: "unused")
+        }
+        let providerRequest = ProviderRequest(
+            messages: [
+                .user("Run it"),
+                ModelMessage(role: .assistant, content: [.text("Working."), .toolCall(toolCall)]),
+                ModelMessage(role: .tool, content: [.toolResult(result)]),
+            ],
+            tools: [tool],
+            settings: .init(maxTokens: 32),
+        )
+
+        try await NetworkMocking.withMockedNetwork { request in
+            let body = try #require(self.bodyData(from: request))
+            let json = try #require(JSONSerialization.jsonObject(with: body) as? [String: Any])
+            let messages = try #require(json["messages"] as? [[String: Any]])
+
+            #expect(messages.count == 3)
+            let assistantCalls = try #require(messages[1]["tool_calls"] as? [[String: Any]])
+            #expect(assistantCalls.first?["type"] as? String == "function")
+            let function = try #require(assistantCalls.first?["function"] as? [String: Any])
+            #expect(function["index"] as? Int == 0)
+            #expect(function["name"] as? String == "run_plan")
+            let arguments = try #require(function["arguments"] as? [String: Any])
+            let metadata = try #require(arguments["metadata"] as? [String: Any])
+            #expect(metadata["attempt"] as? Int == 2)
+            #expect(metadata["note"] is NSNull)
+            let steps = try #require(arguments["steps"] as? [Any])
+            #expect(steps[0] as? String == "inspect")
+            #expect(steps[1] as? Int == 3)
+            #expect(steps[2] as? Bool == false)
+
+            #expect(messages[2]["role"] as? String == "tool")
+            #expect(messages[2]["tool_name"] as? String == "run_plan")
+            let resultText = try #require(messages[2]["content"] as? String)
+            let resultData = try #require(resultText.data(using: .utf8))
+            let resultJSON = try #require(JSONSerialization.jsonObject(with: resultData) as? [String: Any])
+            #expect(resultJSON["completed"] as? Bool == true)
+            #expect(resultJSON["outputs"] as? [AnyHashable] == ["alpha", 4])
+
+            let tools = try #require(json["tools"] as? [[String: Any]])
+            let toolFunction = try #require(tools.first?["function"] as? [String: Any])
+            let parameters = try #require(toolFunction["parameters"] as? [String: Any])
+            let properties = try #require(parameters["properties"] as? [String: Any])
+            let stepsSchema = try #require(properties["steps"] as? [String: Any])
+            let items = try #require(stepsSchema["items"] as? [String: Any])
+            #expect(items["type"] as? String == "object")
+            #expect(items["description"] as? String == "One step")
+
+            return NetworkMocking.jsonResponse(for: request, data: Self.ollamaPayload(text: "Finished"))
+        } operation: {
+            let config = Self.makeConfiguration { config in
+                config.setBaseURL("http://localhost:11434", for: .ollama)
+            }
+            let provider = try OllamaProvider(model: .llama33, configuration: config)
+            let response = try await provider.generateText(request: providerRequest)
+            #expect(response.text == "Finished")
+        }
+    }
+
+    @Test
+    func `Ollama provider marks native tool responses as tool calls`() async throws {
+        let payload = Data("""
+        {"model":"llama3.3","message":{"role":"assistant","content":"","tool_calls":[{"function":{
+        "index":0,"name":"lookup","arguments":{"filters":{"active":true},"limit":2}}}]},"done":true}
+        """.utf8)
+
+        try await NetworkMocking.withMockedNetwork { request in
+            NetworkMocking.jsonResponse(for: request, data: payload)
+        } operation: {
+            let config = Self.makeConfiguration { config in
+                config.setBaseURL("http://localhost:11434", for: .ollama)
+            }
+            let provider = try OllamaProvider(model: .llama33, configuration: config)
+            let response = try await provider.generateText(request: Self.basicRequest)
+            #expect(response.finishReason == .toolCalls)
+            #expect(response.toolCalls?.first?.name == "lookup")
+            #expect(response.toolCalls?.first?.arguments["filters"]?.objectValue?["active"]?.boolValue == true)
+            #expect(response.toolCalls?.first?.arguments["limit"]?.intValue == 2)
+        }
+    }
+
+    @Test
+    func `Ollama stream surfaces HTTP 200 NDJSON errors`() async throws {
+        let payload = Data("""
+        {"model":"llama3.3","message":{"role":"assistant","content":"prefix"},"done":false}
+        {"error":"mock streamed failure"}
+        """.utf8)
+
+        try await NetworkMocking.withMockedNetwork { request in
+            NetworkMocking.streamResponse(for: request, data: payload)
+        } operation: {
+            let config = Self.makeConfiguration { config in
+                config.setBaseURL("http://localhost:11434", for: .ollama)
+            }
+            let provider = try OllamaProvider(model: .llama33, configuration: config)
+            let stream = try await provider.streamText(request: Self.basicRequest)
+
+            var collected = ""
+            do {
+                for try await delta in stream where delta.type == .textDelta {
+                    collected.append(delta.content ?? "")
+                }
+                Issue.record("Expected Ollama's HTTP 200 stream error")
+            } catch {
+                #expect(error.localizedDescription.contains("mock streamed failure"))
+            }
+            #expect(collected == "prefix")
+        }
+    }
+
     // MARK: - LMStudio
 
     @Test
