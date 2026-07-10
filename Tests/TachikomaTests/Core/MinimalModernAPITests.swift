@@ -798,7 +798,11 @@ private struct AgentRefusalTests {
 
             try FileManager.default.createDirectory(at: tempProfile, withIntermediateDirectories: true)
             try FileManager.default.createDirectory(at: emptyProfile, withIntermediateDirectories: true)
-            try configJSON.write(to: tempProfile.appendingPathComponent("config.json"), atomically: true, encoding: .utf8)
+            try configJSON.write(
+                to: tempProfile.appendingPathComponent("config.json"),
+                atomically: true,
+                encoding: .utf8,
+            )
             try #"{"customProviders":{}}"#.write(
                 to: emptyProfile.appendingPathComponent("config.json"),
                 atomically: true,

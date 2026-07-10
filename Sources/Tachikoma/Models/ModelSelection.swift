@@ -86,7 +86,8 @@ public struct ModelSelector {
             if provider == "ollama" {
                 // Ollama is an open registry: pass unknown names through as custom
                 // model ids instead of gating on the known-model list.
-                return .ollama(parseOllamaModel(qualified.model.lowercased()) ?? .custom(qualified.model.lowercased()))
+                return .ollama(self
+                    .parseOllamaModel(qualified.model.lowercased()) ?? .custom(qualified.model.lowercased()))
             }
             if !["ollama", "lmstudio", "lm-studio"].contains(provider) {
                 return .openRouter(modelId: normalized)
@@ -441,17 +442,23 @@ public struct ModelSelector {
         switch normalizedProvider {
         case "openai":
             return Model.OpenAI.allCases.compactMap {
-                if case .custom = $0 { return nil }
+                if case .custom = $0 {
+                    return nil
+                }
                 return $0.modelId
             }
         case "anthropic", "claude":
             return Model.Anthropic.allCases.compactMap {
-                if case .custom = $0 { return nil }
+                if case .custom = $0 {
+                    return nil
+                }
                 return $0.modelId
             }
         case "grok", "xai":
             return Model.Grok.allCases.compactMap {
-                if case .custom = $0 { return nil }
+                if case .custom = $0 {
+                    return nil
+                }
                 return $0.modelId
             }
         case "google", "gemini":
@@ -462,12 +469,16 @@ public struct ModelSelector {
             return Model.Kimi.allCases.map(\.modelId)
         case "ollama":
             return Model.Ollama.allCases.compactMap {
-                if case .custom = $0 { return nil }
+                if case .custom = $0 {
+                    return nil
+                }
                 return $0.modelId
             }
         case "lmstudio", "lm-studio":
             return Model.LMStudio.allCases.compactMap {
-                if case .custom = $0 { return nil }
+                if case .custom = $0 {
+                    return nil
+                }
                 return $0.modelId
             }
         default:
@@ -501,9 +512,15 @@ public struct ModelCapabilityInfo {
     /// Format capabilities for CLI display
     public var description: String {
         var capabilities: [String] = []
-        if self.supportsVision { capabilities.append("vision") }
-        if self.supportsTools { capabilities.append("tools") }
-        if self.supportsStreaming { capabilities.append("streaming") }
+        if self.supportsVision {
+            capabilities.append("vision")
+        }
+        if self.supportsTools {
+            capabilities.append("tools")
+        }
+        if self.supportsStreaming {
+            capabilities.append("streaming")
+        }
 
         let capabilityString = capabilities.isEmpty ? "basic" : capabilities.joined(separator: ", ")
         return "\(self.provider)/\(self.modelId) (\(capabilityString))"

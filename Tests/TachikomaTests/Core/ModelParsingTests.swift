@@ -216,7 +216,8 @@ struct ModelParsingTests {
         // prefix still attached, producing .custom("ollama/qwen2.5vl:latest") —
         // a model id that does not exist on the Ollama server.
         #expect(try ModelSelector.parseModel("ollama/qwen2.5vl:latest") == .ollama(.custom("qwen2.5vl:latest")))
-        #expect(try ModelSelector.parseModel("ollama/some-future-model:tag") == .ollama(.custom("some-future-model:tag")))
+        #expect(try ModelSelector
+            .parseModel("ollama/some-future-model:tag") == .ollama(.custom("some-future-model:tag")))
         // Known shortcut names keep resolving to their typed cases.
         #expect(try ModelSelector.parseModel("ollama/llama3.3") == .ollama(.llama33))
     }
