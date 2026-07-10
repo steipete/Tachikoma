@@ -28,6 +28,31 @@ struct ModelParsingTests {
     }
 
     @Test
+    func `infer GPT-5.6 models through OpenRouter routing suffixes`() throws {
+        let models: [(id: String, expected: LanguageModel.OpenAI)] = [
+            ("gpt-5.6-sol", .gpt56Sol),
+            ("gpt-5.6-terra", .gpt56Terra),
+            ("gpt-5.6-luna", .gpt56Luna),
+        ]
+        let variants = ["online", "nitro", "floor", "exacto"]
+
+        for model in models {
+            for variant in variants {
+                let routedModelId = "openai/\(model.id):\(variant)"
+                #expect(LanguageModel.OpenAI.gpt56Model(for: routedModelId) == model.expected)
+                #expect(LanguageModel.OpenAI.gpt56Model(for: "openrouter/\(routedModelId)") == model.expected)
+                #expect(
+                    try ModelSelector.parseModel("openrouter/\(routedModelId)") ==
+                        .openRouter(modelId: routedModelId),
+                )
+            }
+        }
+
+        #expect(LanguageModel.OpenAI.gpt56Model(for: "openai/gpt-5.60:online") == nil)
+        #expect(LanguageModel.OpenAI.gpt56Model(for: "openai/not-gpt-5.6-sol:nitro") == nil)
+    }
+
+    @Test
     func `parse chat latest OpenAI alias`() throws {
         #expect(LanguageModel.parse(from: "chat-latest") == .openai(.chatLatest))
         #expect(LanguageModel.parse(from: "gpt-5-chat-latest") == .openai(.gpt5ChatLatest))
