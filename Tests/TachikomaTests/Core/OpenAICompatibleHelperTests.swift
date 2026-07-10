@@ -41,6 +41,26 @@ struct OpenAICompatibleHelperTests {
     }
 
     @Test
+    func `OpenRouter GPT-5.6 variants retain limits and routed model ids`() throws {
+        let models = ["gpt-5.6-sol", "gpt-5.6-terra", "gpt-5.6-luna"]
+        let variants = ["online", "nitro", "floor", "exacto"]
+        let configuration = TachikomaConfiguration(apiKeys: ["openrouter": "sk-test"])
+
+        for model in models {
+            for variant in variants {
+                let routedModelId = "openai/\(model):\(variant)"
+                let provider = try OpenRouterProvider(modelId: routedModelId, configuration: configuration)
+
+                #expect(provider.modelId == routedModelId)
+                #expect(provider.capabilities.contextLength == 372_000)
+                #expect(provider.capabilities.maxOutputTokens == 128_000)
+                #expect(LanguageModel.openRouter(modelId: routedModelId).modelId == routedModelId)
+                #expect(LanguageModel.openRouter(modelId: routedModelId).contextLength == 372_000)
+            }
+        }
+    }
+
+    @Test
     func `generateText encodes stop sequences, headers, and tool definitions`() async throws {
         let tool = AgentTool(
             name: "lookup",

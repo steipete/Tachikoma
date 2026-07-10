@@ -162,24 +162,32 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
             let trimmed = modelId.trimmingCharacters(in: .whitespacesAndNewlines)
             guard !trimmed.isEmpty else { return nil }
 
-            let parsedModel = ProviderParser.parse(trimmed)?.model
-            for candidate in [parsedModel, trimmed].compactMap(\.self) {
-                let compact = candidate.lowercased()
-                    .replacingOccurrences(of: "-", with: "")
-                    .replacingOccurrences(of: ".", with: "")
-                    .replacingOccurrences(of: "_", with: "")
-                switch compact {
-                case "gpt56", "gpt56sol":
-                    return .gpt56Sol
-                case "gpt56terra":
-                    return .gpt56Terra
-                case "gpt56luna":
-                    return .gpt56Luna
-                default:
-                    continue
-                }
+            let modelComponent = trimmed.split(separator: "/", omittingEmptySubsequences: false).last ?? ""
+            guard !modelComponent.isEmpty else { return nil }
+
+            // OpenRouter routing variants are terminal metadata; ignore them only for capability inference.
+            let baseModel = if
+                let suffixSeparator = modelComponent.firstIndex(of: ":"),
+                modelComponent.index(after: suffixSeparator) < modelComponent.endIndex
+            {
+                modelComponent[..<suffixSeparator]
+            } else {
+                modelComponent[...]
             }
-            return nil
+            let compact = baseModel.lowercased()
+                .replacingOccurrences(of: "-", with: "")
+                .replacingOccurrences(of: ".", with: "")
+                .replacingOccurrences(of: "_", with: "")
+            switch compact {
+            case "gpt56", "gpt56sol":
+                return .gpt56Sol
+            case "gpt56terra":
+                return .gpt56Terra
+            case "gpt56luna":
+                return .gpt56Luna
+            default:
+                return nil
+            }
         }
 
         public var isUnsupportedLegacyFamily: Bool {
