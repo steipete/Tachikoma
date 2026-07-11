@@ -18,6 +18,7 @@ All notable changes to the Tachikoma project will be documented in this file.
 - Removed stale direct model support for retired or non-canonical IDs including GPT-5.1/5.2/pseudo-thinking models, deprecated Claude Sonnet/Opus 4 snapshots, Grok 2/3/4-fast rows, old Groq Llama/Mixtral/Gemma aliases, stale Mistral aliases, and invalid LM Studio `current`.
 
 ### Fixed
+- Ollama now applies configured bearer auth, requests and exposes thinking, safely preserves same-endpoint history without persisting authentication material, maps terminal reasons without executing truncated tool calls, and streams strict NDJSON incrementally across supported platforms.
 - Ollama tool conversations now replay assistant calls and named results, preserve recursive arguments and array schemas, report tool-call finishes, and surface HTTP-200 stream errors instead of silently succeeding.
 - Sonnet 5 usage estimates now switch from introductory to standard pricing after August 31, 2026.
 - GPT-5.6 models now retain their 372K context and 128K output limits through OpenAI-compatible, OpenRouter, and Together endpoints.

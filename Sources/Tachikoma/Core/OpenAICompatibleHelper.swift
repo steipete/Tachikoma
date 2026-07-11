@@ -285,7 +285,9 @@ struct OpenAICompatibleHelper {
                         var errorBody = ""
                         for try await line in bytes.lines {
                             errorBody += line
-                            if errorBody.count > 1000 { break }
+                            if errorBody.count > 1000 {
+                                break
+                            }
                         }
                         let errorText = errorBody.isEmpty ? "Unknown error" : errorBody
                         throw TachikomaError
@@ -638,6 +640,7 @@ struct OpenAICompatibleHelper {
         for message in messages {
             if
                 message.channel == .thinking,
+                let endpointIdentity,
                 let customData = message.metadata?.customData,
                 customData["tachikoma.reasoning.provider"] == "openrouter",
                 customData["tachikoma.reasoning.model"] == modelId,
@@ -649,6 +652,7 @@ struct OpenAICompatibleHelper {
             }
             if
                 message.channel == .thinking,
+                let kimiEndpointIdentity,
                 let customData = message.metadata?.customData,
                 customData["tachikoma.reasoning.provider"] == "kimi",
                 customData["tachikoma.reasoning.model"] == kimiModelId,
@@ -660,6 +664,7 @@ struct OpenAICompatibleHelper {
             }
             if
                 message.channel == .thinking,
+                let endpointIdentity,
                 let customData = message.metadata?.customData,
                 customData["tachikoma.reasoning.provider"] == "openrouter",
                 customData["tachikoma.reasoning.model"] == modelId,
@@ -676,7 +681,9 @@ struct OpenAICompatibleHelper {
             switch message.role {
             case .system:
                 converted.append(OpenAIChatMessage(role: "system", content: message.content.compactMap { part in
-                    if case let .text(text) = part { return text }
+                    if case let .text(text) = part {
+                        return text
+                    }
                     return nil
                 }.joined()))
             case .user:
@@ -724,7 +731,9 @@ struct OpenAICompatibleHelper {
 
                 // Extract text content
                 let textContent = message.content.compactMap { part in
-                    if case let .text(text) = part { return text }
+                    if case let .text(text) = part {
+                        return text
+                    }
                     return nil
                 }.joined()
 

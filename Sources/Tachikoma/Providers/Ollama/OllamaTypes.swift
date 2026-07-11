@@ -7,7 +7,32 @@ struct OllamaChatRequest: Codable {
     let messages: [OllamaChatMessage]
     let tools: [OllamaTool]?
     let stream: Bool?
+    let think: OllamaThink?
     let options: OllamaOptions?
+
+    enum OllamaThink: Codable, Equatable {
+        case enabled(Bool)
+        case level(String)
+
+        init(from decoder: any Decoder) throws {
+            let container = try decoder.singleValueContainer()
+            if let enabled = try? container.decode(Bool.self) {
+                self = .enabled(enabled)
+                return
+            }
+            self = try .level(container.decode(String.self))
+        }
+
+        func encode(to encoder: any Encoder) throws {
+            var container = encoder.singleValueContainer()
+            switch self {
+            case let .enabled(enabled):
+                try container.encode(enabled)
+            case let .level(level):
+                try container.encode(level)
+            }
+        }
+    }
 
     struct OllamaOptions: Codable {
         let temperature: Double?
@@ -25,12 +50,13 @@ struct OllamaChatRequest: Codable {
 struct OllamaChatMessage: Codable {
     let role: String
     let content: String
+    let thinking: String?
     let images: [String]?
     let toolCalls: [OllamaToolCall]?
     let toolName: String?
 
     enum CodingKeys: String, CodingKey {
-        case role, content, images
+        case role, content, thinking, images
         case toolCalls = "tool_calls"
         case toolName = "tool_name"
     }
@@ -38,12 +64,14 @@ struct OllamaChatMessage: Codable {
     init(
         role: String,
         content: String,
+        thinking: String? = nil,
         images: [String]? = nil,
         toolCalls: [OllamaToolCall]? = nil,
         toolName: String? = nil,
     ) {
         self.role = role
         self.content = content
+        self.thinking = thinking
         self.images = images
         self.toolCalls = toolCalls
         self.toolName = toolName
@@ -101,6 +129,7 @@ struct OllamaChatResponse: Codable {
     let model: String
     let message: Message
     let done: Bool
+    let doneReason: String?
     let totalDuration: Int?
     let loadDuration: Int?
     let promptEvalCount: Int?
@@ -110,6 +139,7 @@ struct OllamaChatResponse: Codable {
 
     enum CodingKeys: String, CodingKey {
         case model, message, done
+        case doneReason = "done_reason"
         case totalDuration = "total_duration"
         case loadDuration = "load_duration"
         case promptEvalCount = "prompt_eval_count"
@@ -121,10 +151,11 @@ struct OllamaChatResponse: Codable {
     struct Message: Codable {
         let role: String
         let content: String
+        let thinking: String?
         let toolCalls: [OllamaToolCall]?
 
         enum CodingKeys: String, CodingKey {
-            case role, content
+            case role, content, thinking
             case toolCalls = "tool_calls"
         }
     }
@@ -134,10 +165,17 @@ struct OllamaStreamChunk: Codable {
     let model: String
     let message: Delta
     let done: Bool
+    let doneReason: String?
+
+    enum CodingKeys: String, CodingKey {
+        case model, message, done
+        case doneReason = "done_reason"
+    }
 
     struct Delta: Codable {
         let role: String?
         let content: String?
+        let thinking: String?
         /// Ollama emits native tool calls on the streaming `/api/chat` response
         /// (`{"message":{"content":"","tool_calls":[…]},"done":false}`). Without
         /// this the caller sees zero tool calls and models fall back to printing
@@ -145,7 +183,7 @@ struct OllamaStreamChunk: Codable {
         let toolCalls: [OllamaToolCall]?
 
         enum CodingKeys: String, CodingKey {
-            case role, content
+            case role, content, thinking
             case toolCalls = "tool_calls"
         }
     }

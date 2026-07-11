@@ -134,13 +134,21 @@ struct GenerationTests {
 
     @Test
     func `StreamText rejects refusal-prone aggregator models`() async throws {
+        let factoryInvocation = MessageBox()
+        let configuration = TachikomaConfiguration(loadFromEnvironment: false)
+        configuration.setProviderFactoryOverride { _, _ in
+            factoryInvocation.messages = []
+            return StaticProvider(response: ProviderResponse(text: "unexpected"))
+        }
+
         await #expect(throws: TachikomaError.self) {
             _ = try await streamText(
                 model: .openRouter(modelId: "anthropic/claude-fable-5"),
                 messages: [.user("hi")],
-                configuration: TachikomaConfiguration(loadFromEnvironment: false),
+                configuration: configuration,
             )
         }
+        #expect(factoryInvocation.messages == nil)
 
         await #expect(throws: TachikomaError.self) {
             _ = try await streamText(
@@ -563,6 +571,33 @@ struct GenerationTests {
     }
 
     @Test
+    func `GenerateText executes tool calls when finish reason is omitted`() async throws {
+        let call = AgentToolCall(id: "call-1", name: "lookup", arguments: [:])
+        let config = TachikomaConfiguration(loadFromEnvironment: false)
+        config.setProviderFactoryOverride { _, _ in
+            StaticProvider(response: ProviderResponse(text: "", toolCalls: [call]))
+        }
+        let tool = AgentTool(
+            name: "lookup",
+            description: "Lookup",
+            parameters: AgentToolParameters(),
+        ) { _ in
+            AnyAgentToolValue(string: "result")
+        }
+
+        let result = try await generateText(
+            model: .custom(provider: StaticProvider(response: ProviderResponse(text: ""))),
+            messages: [.user("go")],
+            tools: [tool],
+            maxSteps: 1,
+            configuration: config,
+        )
+
+        #expect(result.steps.first?.finishReason == nil)
+        #expect(result.steps.first?.toolResults.count == 1)
+    }
+
+    @Test
     func `GenerateText merges fallback fields into partial assistant messages`() async throws {
         let call = AgentToolCall(id: "call-1", name: "inspect_context", arguments: [:])
         let thinking = ModelMessage(
@@ -620,6 +655,38 @@ struct GenerationTests {
                 return false
             }
         })
+    }
+
+    @Test
+    func `GenerateText strips native tool calls from abnormal response history`() async throws {
+        let call = AgentToolCall(id: "partial-call", name: "lookup", arguments: [:])
+        let providerResponse = ProviderResponse(
+            text: "partial",
+            finishReason: .length,
+            toolCalls: [call],
+            assistantMessages: [
+                ModelMessage(role: .assistant, content: [.text("partial"), .toolCall(call)]),
+            ],
+        )
+        let config = TachikomaConfiguration(loadFromEnvironment: false)
+        config.setProviderFactoryOverride { _, _ in StaticProvider(response: providerResponse) }
+
+        let result = try await generateText(
+            model: .anthropic(.fable5),
+            messages: [.user("go")],
+            maxSteps: 1,
+            configuration: config,
+        )
+
+        #expect(result.steps.first?.toolCalls == [call])
+        #expect(result.messages.flatMap(\.content).contains { part in
+            if case .toolCall = part {
+                true
+            } else {
+                false
+            }
+        } == false)
+        #expect(result.messages.flatMap(\.content).contains(.text("partial")))
     }
 
     @Test
@@ -1129,7 +1196,7 @@ struct GenerationTests {
     }
 
     @Test
-    func `GenerateText preserves direct custom Anthropic thinking for same model`() async throws {
+    func `GenerateText drops direct custom Anthropic thinking without endpoint identity`() async throws {
         let seenMessages = MessageBox()
         let provider = StaticProvider(
             modelId: "claude-fable-5",
@@ -1159,8 +1226,8 @@ struct GenerationTests {
         )
 
         let messages = try #require(seenMessages.messages)
-        #expect(messages.count == 3)
-        #expect(messages[1].channel == .thinking)
+        #expect(messages.count == 2)
+        #expect(messages.allSatisfy { $0.channel != .thinking })
     }
 
     @Test
@@ -1384,6 +1451,63 @@ struct GenerationTests {
         let messages = try #require(seenMessages.messages)
         #expect(messages.count == 2)
         #expect(messages.allSatisfy { $0.channel != .thinking })
+    }
+}
+
+extension GenerationTests {
+    @Test
+    func `StreamText uses the caller supplied provider instance`() async throws {
+        let embeddedProvider = StaticProvider(
+            response: ProviderResponse(text: "unused", finishReason: .stop),
+            streamDeltas: [
+                .text("embedded"),
+                .done(finishReason: .stop),
+            ],
+        )
+        let suppliedProvider = StaticProvider(
+            response: ProviderResponse(text: "unused", finishReason: .stop),
+            streamDeltas: [
+                .text("supplied"),
+                .done(finishReason: .stop),
+            ],
+        )
+
+        let result = try await streamText(
+            model: .custom(provider: embeddedProvider),
+            provider: suppliedProvider,
+            messages: [.user("hi")],
+            configuration: TachikomaConfiguration(loadFromEnvironment: false),
+        )
+
+        var text = ""
+        for try await delta in result.stream where delta.type == .textDelta {
+            text += delta.content ?? ""
+        }
+        #expect(text == "supplied")
+    }
+
+    @Test
+    func `StreamText cancellation reaches the provider stream`() async throws {
+        let probe = StreamCancellationProbe()
+        let provider = CancellationAwareProvider(probe: probe)
+        let config = TachikomaConfiguration(loadFromEnvironment: false)
+        config.setProviderFactoryOverride { _, _ in provider }
+
+        let result = try await streamText(
+            model: .custom(provider: provider),
+            messages: [.user("hi")],
+            configuration: config,
+        )
+        let consumer = Task {
+            for try await delta in result.stream where delta.type == .textDelta {
+                await probe.markDelivered()
+            }
+        }
+
+        #expect(await probe.waitForDelivery())
+        consumer.cancel()
+        _ = try? await consumer.value
+        #expect(await probe.waitForTermination())
     }
 
     @Test
@@ -1899,11 +2023,7 @@ struct GenerationTests {
         let thinking = try #require(result.messages.first { $0.channel == .thinking })
         #expect(thinking.metadata?.customData?["tachikoma.reasoning.provider"] == "openrouter")
         #expect(thinking.metadata?.customData?["tachikoma.reasoning.model"] == "anthropic/claude-fable-5")
-        let endpointIdentity = try #require(thinking.metadata?.customData?["tachikoma.reasoning.base_url"])
-        #expect(endpointIdentity == ReasoningEndpointIdentity
-            .canonical("https://proxy.example.test/api/v1?token=secret"))
-        #expect(endpointIdentity.contains("secret") == false)
-        #expect(endpointIdentity.contains("token") == false)
+        #expect(thinking.metadata?.customData?["tachikoma.reasoning.base_url"] == nil)
         #expect(thinking.metadata?.customData?["openrouter.reasoning_details"]?.contains("sealed") == true)
     }
 
@@ -1935,8 +2055,7 @@ struct GenerationTests {
         #expect(thinking.metadata?.customData?["kimi.reasoning_content"] == "native Kimi thought")
         #expect(thinking.metadata?.customData?["tachikoma.reasoning.provider"] == "kimi")
         #expect(thinking.metadata?.customData?["tachikoma.reasoning.model"] == "kimi-k2.7-code")
-        #expect(thinking.metadata?.customData?["tachikoma.reasoning.base_url"] == ReasoningEndpointIdentity
-            .canonical("https://kimi-proxy.example.test/v1?tenant=a"))
+        #expect(thinking.metadata?.customData?["tachikoma.reasoning.base_url"] == nil)
     }
 
     // MARK: - Image Input Type Tests
@@ -2077,4 +2196,57 @@ private final class ResponseQueue: @unchecked Sendable {
 
 private final class MessageBox: @unchecked Sendable {
     var messages: [ModelMessage]?
+}
+
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
+private struct CancellationAwareProvider: ModelProvider {
+    let modelId = "cancellation-aware"
+    let baseURL: String? = nil
+    let apiKey: String? = nil
+    let capabilities = ModelCapabilities(supportsStreaming: true)
+    let probe: StreamCancellationProbe
+
+    func generateText(request _: ProviderRequest) async throws -> ProviderResponse {
+        ProviderResponse(text: "unused", finishReason: .stop)
+    }
+
+    func streamText(request _: ProviderRequest) async throws -> AsyncThrowingStream<TextStreamDelta, Error> {
+        AsyncThrowingStream { continuation in
+            continuation.onTermination = { _ in
+                Task { await self.probe.markTerminated() }
+            }
+            continuation.yield(.text("first"))
+        }
+    }
+}
+
+private actor StreamCancellationProbe {
+    private var delivered = false
+    private var terminated = false
+
+    func markDelivered() {
+        self.delivered = true
+    }
+
+    func markTerminated() {
+        self.terminated = true
+    }
+
+    func waitForDelivery() async -> Bool {
+        await self.wait { self.delivered }
+    }
+
+    func waitForTermination() async -> Bool {
+        await self.wait { self.terminated }
+    }
+
+    private func wait(until condition: () -> Bool) async -> Bool {
+        for _ in 0..<100 {
+            if condition() {
+                return true
+            }
+            try? await Task.sleep(for: .milliseconds(10))
+        }
+        return condition()
+    }
 }

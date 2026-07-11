@@ -26,16 +26,21 @@ struct AnthropicInterleavedDefaultsTests {
     }
 
     @Test
-    func `Endpoint identity includes routing query without exposing raw values`() {
+    func `Endpoint identity rejects query and userinfo credentials`() {
         let tenantA = ReasoningEndpointIdentity.canonical("https://gateway.test/v1?tenant=a")
         let tenantB = ReasoningEndpointIdentity.canonical("https://gateway.test/v1?tenant=b")
 
-        #expect(tenantA != tenantB)
-        #expect(tenantA?.hasPrefix("sha256:") == true)
-        #expect(tenantA?.contains("tenant") == false)
-        #expect(tenantA?.contains("gateway") == false)
-        #expect(ReasoningEndpointIdentity.canonical("https://gateway.test/v1/?tenant=a") == tenantA)
-        #expect(ReasoningEndpointIdentity.canonical("https://user:secret@gateway.test/v1?tenant=a#frag") == tenantA)
+        #expect(tenantA == nil)
+        #expect(tenantB == nil)
+        #expect(ReasoningEndpointIdentity.canonical("https://gateway.test/v1/") != nil)
+        let credentialA = ReasoningEndpointIdentity.canonical(
+            "https://user:secret@gateway.test/v1?tenant=a#frag",
+        )
+        let credentialB = ReasoningEndpointIdentity.canonical(
+            "https://user:rotated@gateway.test/v1?tenant=a#other",
+        )
+        #expect(credentialA == nil)
+        #expect(credentialB == nil)
     }
 
     @Test
@@ -1015,12 +1020,7 @@ struct AnthropicInterleavedDefaultsTests {
         let thinking = try #require(response.assistantMessages.first { $0.channel == .thinking })
         #expect(thinking.metadata?.customData?["tachikoma.reasoning.provider"] == "anthropic-compatible")
         #expect(thinking.metadata?.customData?["tachikoma.reasoning.model"] == "claude-fable-5")
-        let endpointIdentity = thinking.metadata?.customData?["tachikoma.reasoning.base_url"]
-        #expect(endpointIdentity == ReasoningEndpointIdentity.canonical("https://example.test/path?token=secret"))
-        #expect(endpointIdentity?.hasPrefix("sha256:") == true)
-        #expect(endpointIdentity?.contains("path") == false)
-        #expect(endpointIdentity?.contains("secret") == false)
-        #expect(endpointIdentity?.contains("token") == false)
+        #expect(thinking.metadata?.customData?["tachikoma.reasoning.base_url"] == nil)
         #expect(thinking.metadata?.customData?["anthropic.thinking.signature"] == "sig")
     }
 

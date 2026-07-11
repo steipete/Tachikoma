@@ -517,7 +517,7 @@ struct ResponseCacheTests {
     }
 
     @Test
-    func `CachedProvider keys include provider endpoint identity`() async throws {
+    func `CachedProvider bypasses cache for query-bearing endpoints`() async throws {
         let cache = ResponseCache()
         let callCountA = Box(value: 0)
         let callCountB = Box(value: 0)
@@ -544,8 +544,68 @@ struct ResponseCacheTests {
         #expect(try await cachedB.generateText(request: request).text == "tenant-b")
         #expect(try await cachedA.generateText(request: request).text == "tenant-a")
         #expect(try await cachedB.generateText(request: request).text == "tenant-b")
-        #expect(callCountA.value == 1)
-        #expect(callCountB.value == 1)
+        #expect(callCountA.value == 2)
+        #expect(callCountB.value == 2)
+    }
+
+    @Test
+    func `CachedProvider bypasses cache for credential-bearing endpoint URLs`() async throws {
+        let cache = ResponseCache()
+        let callCount = Box(value: 0)
+        var provider = ResponseCacheMockProvider(
+            model: .openaiCompatible(modelId: "shared-model", baseURL: "https://user:secret@gateway.test/v1"),
+            response: ProviderResponse(text: "uncached", usage: nil, finishReason: .stop),
+            mockModelId: "shared-model",
+            mockBaseURL: "https://user:secret@gateway.test/v1",
+        )
+        provider.onGenerateText = { _ in callCount.value += 1 }
+
+        let cachedProvider = await cache.wrapProvider(provider)
+        let request = ProviderRequest(messages: [ModelMessage.user("Test")], tools: nil, settings: .default)
+
+        #expect(try await cachedProvider.generateText(request: request).text == "uncached")
+        #expect(try await cachedProvider.generateText(request: request).text == "uncached")
+        #expect(callCount.value == 2)
+    }
+
+    @Test
+    func `CachedProvider bypasses cache for API-key-authenticated providers`() async throws {
+        let cache = ResponseCache()
+        let callCount = Box(value: 0)
+        var provider = ResponseCacheMockProvider(
+            model: .ollama(.llama33),
+            response: ProviderResponse(text: "tenant response", usage: nil, finishReason: .stop),
+            mockModelId: "llama3.3",
+            mockBaseURL: "https://ollama.example.test",
+            mockAPIKey: UUID().uuidString,
+        )
+        provider.onGenerateText = { _ in callCount.value += 1 }
+
+        let cachedProvider = await cache.wrapProvider(provider)
+        let request = ProviderRequest(messages: [ModelMessage.user("Test")], tools: nil, settings: .default)
+
+        #expect(try await cachedProvider.generateText(request: request).text == "tenant response")
+        #expect(try await cachedProvider.generateText(request: request).text == "tenant response")
+        #expect(callCount.value == 2)
+    }
+
+    @Test
+    func `CachedProvider bypasses providers without a stable authentication boundary`() async throws {
+        let cache = ResponseCache()
+        let callCount = Box(value: 0)
+        var provider = ResponseCacheMockProvider(
+            model: .ollama(.llama33),
+            response: ProviderResponse(text: "uncached", usage: nil, finishReason: .stop),
+            mockResponseCacheSafe: false,
+        )
+        provider.onGenerateText = { _ in callCount.value += 1 }
+
+        let cachedProvider = await cache.wrapProvider(provider)
+        let request = ProviderRequest(messages: [ModelMessage.user("Test")], tools: nil, settings: .default)
+
+        #expect(try await cachedProvider.generateText(request: request).text == "uncached")
+        #expect(try await cachedProvider.generateText(request: request).text == "uncached")
+        #expect(callCount.value == 2)
     }
 
     @Test
@@ -580,11 +640,13 @@ struct ResponseCacheTests {
 
 // MARK: - Mock Provider for Testing
 
-private struct ResponseCacheMockProvider: ModelProvider {
+private struct ResponseCacheMockProvider: ModelProvider, ResponseCacheSafetyProviding {
     let model: LanguageModel
     let response: ProviderResponse
     let mockModelId: String
     let mockBaseURL: String?
+    let mockAPIKey: String?
+    let mockResponseCacheSafe: Bool
     var onGenerateText: (@Sendable (ProviderRequest) -> Void)?
     var onStreamText: (@Sendable (ProviderRequest) -> Void)?
 
@@ -597,11 +659,15 @@ private struct ResponseCacheMockProvider: ModelProvider {
     }
 
     var apiKey: String? {
-        nil
+        self.mockAPIKey
     }
 
     var capabilities: ModelCapabilities {
         ModelCapabilities()
+    }
+
+    var isResponseCacheSafe: Bool {
+        self.mockResponseCacheSafe
     }
 
     init(
@@ -609,6 +675,8 @@ private struct ResponseCacheMockProvider: ModelProvider {
         response: ProviderResponse,
         mockModelId: String = "mock-model",
         mockBaseURL: String? = nil,
+        mockAPIKey: String? = nil,
+        mockResponseCacheSafe: Bool = true,
         onGenerateText: (@Sendable (ProviderRequest) -> Void)? = nil,
         onStreamText: (@Sendable (ProviderRequest) -> Void)? = nil,
     ) {
@@ -616,6 +684,8 @@ private struct ResponseCacheMockProvider: ModelProvider {
         self.response = response
         self.mockModelId = mockModelId
         self.mockBaseURL = mockBaseURL
+        self.mockAPIKey = mockAPIKey
+        self.mockResponseCacheSafe = mockResponseCacheSafe
         self.onGenerateText = onGenerateText
         self.onStreamText = onStreamText
     }
