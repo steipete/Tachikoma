@@ -251,6 +251,13 @@ public final class TachikomaConfiguration: @unchecked Sendable {
         }
     }
 
+    /// Get only an explicitly configured base URL, without applying provider defaults.
+    func configuredBaseURL(for provider: Provider) -> String? {
+        self.lock.withLock {
+            self._baseURLs[provider.identifier]
+        }
+    }
+
     /// Remove a custom base URL for a provider (type-safe)
     public func removeBaseURL(for provider: Provider) {
         // Remove a custom base URL for a provider (type-safe)

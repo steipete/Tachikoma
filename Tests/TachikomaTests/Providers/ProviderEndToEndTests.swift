@@ -247,14 +247,204 @@ struct ProviderEndToEndTests {
     func `Ollama provider handles local responses`() async throws {
         try await NetworkMocking.withMockedNetwork { request in
             self.expectPath(request, endsWith: "/api/chat")
+            let body = try #require(self.bodyData(from: request))
+            let decoded = try JSONDecoder().decode(OllamaChatRequest.self, from: body)
+            #expect(decoded.think == nil)
             return NetworkMocking.jsonResponse(for: request, data: Self.ollamaPayload(text: "Ollama local reply"))
         } operation: {
             let config = Self.makeConfiguration { config in
                 config.setBaseURL("http://localhost:11434", for: .ollama)
             }
             let provider = try OllamaProvider(model: .llama33, configuration: config)
+            #expect(provider.isResponseCacheSafe == false)
             let response = try await provider.generateText(request: Self.basicRequest)
             #expect(response.text == "Ollama local reply")
+            #expect(response.finishReason == .stop)
+        }
+    }
+
+    @Test
+    func `Ollama provider normalizes documented and prefixed API base paths`() async throws {
+        let cases = [
+            ("https://ollama.example.test/api", "/api/chat"),
+            ("https://ollama.example.test/api/", "/api/chat"),
+            ("https://ollama.example.test/api/chat", "/api/chat"),
+            ("https://ollama.example.test/prefix/api", "/prefix/api/chat"),
+            ("https://ollama.example.test/prefix", "/prefix/api/chat"),
+        ]
+
+        for (baseURL, expectedPath) in cases {
+            try await NetworkMocking.withMockedNetwork { request in
+                #expect(request.url?.path == expectedPath)
+                return NetworkMocking.jsonResponse(for: request, data: Self.ollamaPayload(text: "ok"))
+            } operation: {
+                let config = Self.makeConfiguration { config in
+                    config.setBaseURL(baseURL, for: .ollama)
+                }
+                let provider = try OllamaProvider(model: .llama33, configuration: config)
+                _ = try await provider.generateText(request: Self.basicRequest)
+            }
+        }
+    }
+
+    @Test(arguments: [
+        LanguageModel.Ollama.deepseekR18b,
+        LanguageModel.Ollama.custom("qwen3:8b"),
+    ])
+    func `Ollama provider enables thinking for known boolean models`(model: LanguageModel.Ollama) async throws {
+        let request = ProviderRequest(
+            messages: Self.basicRequest.messages,
+            settings: GenerationSettings(reasoningEffort: .low),
+        )
+
+        try await NetworkMocking.withMockedNetwork { urlRequest in
+            let body = try #require(self.bodyData(from: urlRequest))
+            let decoded = try JSONDecoder().decode(OllamaChatRequest.self, from: body)
+            #expect(decoded.think == .enabled(true))
+            return NetworkMocking.jsonResponse(for: urlRequest, data: Self.ollamaPayload(text: "Reasoned"))
+        } operation: {
+            let config = Self.makeConfiguration { config in
+                config.setBaseURL("http://localhost:11434", for: .ollama)
+            }
+            let provider = try OllamaProvider(model: model, configuration: config)
+            _ = try await provider.generateText(request: request)
+        }
+    }
+
+    @Test
+    func `Ollama provider omits thinking for unsupported built-in models`() async throws {
+        let request = ProviderRequest(
+            messages: Self.basicRequest.messages,
+            settings: GenerationSettings(reasoningEffort: .low),
+        )
+
+        try await NetworkMocking.withMockedNetwork { urlRequest in
+            let body = try #require(self.bodyData(from: urlRequest))
+            let decoded = try JSONDecoder().decode(OllamaChatRequest.self, from: body)
+            #expect(decoded.think == nil)
+            return NetworkMocking.jsonResponse(for: urlRequest, data: Self.ollamaPayload(text: "Plain reply"))
+        } operation: {
+            let config = Self.makeConfiguration { config in
+                config.setBaseURL("http://localhost:11434", for: .ollama)
+            }
+            let provider = try OllamaProvider(model: .llama33, configuration: config)
+            _ = try await provider.generateText(request: request)
+        }
+    }
+
+    @Test
+    func `Ollama reasoning identity fails closed for API keys and session headers`() throws {
+        let baseURL = "https://ollama.example.test/v1"
+        let firstConfiguration = Self.makeConfiguration { config in
+            config.setBaseURL(baseURL, for: .ollama)
+            config.setAPIKey("api-key-one", for: .ollama)
+        }
+        let rotatedKeyConfiguration = Self.makeConfiguration { config in
+            config.setBaseURL(baseURL, for: .ollama)
+            config.setAPIKey("api-key-two", for: .ollama)
+        }
+        let firstSessionConfiguration = URLSessionConfiguration.ephemeral
+        firstSessionConfiguration.httpAdditionalHeaders = ["X-Tenant": "tenant-one"]
+        let rotatedHeaderConfiguration = URLSessionConfiguration.ephemeral
+        rotatedHeaderConfiguration.httpAdditionalHeaders = ["X-Tenant": "tenant-two"]
+        let firstSession = URLSession(configuration: firstSessionConfiguration)
+        let rotatedKeySession = URLSession(configuration: firstSessionConfiguration)
+        let rotatedHeaderSession = URLSession(configuration: rotatedHeaderConfiguration)
+        defer {
+            firstSession.invalidateAndCancel()
+            rotatedKeySession.invalidateAndCancel()
+            rotatedHeaderSession.invalidateAndCancel()
+        }
+
+        let first = try OllamaProvider(
+            model: .llama33,
+            configuration: firstConfiguration,
+            urlSession: firstSession,
+        )
+        let rotatedKey = try OllamaProvider(
+            model: .llama33,
+            configuration: rotatedKeyConfiguration,
+            urlSession: rotatedKeySession,
+        )
+        let rotatedHeader = try OllamaProvider(
+            model: .llama33,
+            configuration: firstConfiguration,
+            urlSession: rotatedHeaderSession,
+        )
+
+        #expect(first.reasoningReplayIdentity == nil)
+        #expect(rotatedKey.reasoningReplayIdentity == nil)
+        #expect(rotatedHeader.reasoningReplayIdentity == nil)
+        #expect(first.isResponseCacheSafe == false)
+        #expect(rotatedKey.isResponseCacheSafe == false)
+        #expect(rotatedHeader.isResponseCacheSafe == false)
+    }
+
+    @Test
+    func `Ollama provider sends configured API key as bearer auth`() async throws {
+        try await NetworkMocking.withMockedNetwork { request in
+            #expect(request.value(forHTTPHeaderField: "Authorization") == "Bearer ollama-test-key")
+            return NetworkMocking.jsonResponse(for: request, data: Self.ollamaPayload(text: "Authenticated"))
+        } operation: {
+            let config = Self.makeConfiguration { config in
+                config.setBaseURL("https://ollama.example.test", for: .ollama)
+                config.setAPIKey("ollama-test-key", for: .ollama)
+            }
+            let provider = try OllamaProvider(model: .llama33, configuration: config)
+            let response = try await provider.generateText(request: Self.basicRequest)
+            #expect(response.text == "Authenticated")
+        }
+    }
+
+    @Test
+    func `Ollama stream clamps GPT OSS thinking effort to a supported level`() async throws {
+        let payload = Data("""
+        {"model":"gpt-oss:20b","message":{"role":"assistant","content":"answer"},"done":true,"done_reason":"stop"}
+
+        """.utf8)
+        let request = ProviderRequest(
+            messages: Self.basicRequest.messages,
+            settings: GenerationSettings(reasoningEffort: .xhigh),
+        )
+
+        try await NetworkMocking.withMockedNetwork { urlRequest in
+            let body = try #require(self.bodyData(from: urlRequest))
+            let decoded = try JSONDecoder().decode(OllamaChatRequest.self, from: body)
+            #expect(decoded.think == .level("high"))
+            return NetworkMocking.streamResponse(for: urlRequest, data: payload)
+        } operation: {
+            let config = Self.makeConfiguration { config in
+                config.setBaseURL("http://localhost:11434", for: .ollama)
+            }
+            let provider = try Self.mockedOllamaProvider(model: .gptOSS20B, configuration: config)
+            let stream = try await provider.streamText(request: request)
+            for try await _ in stream {}
+        }
+    }
+
+    @Test
+    func `Ollama stream clamps GPT OSS maximum thinking effort to high`() async throws {
+        let payload = Data("""
+        {"model":"gpt-oss:20b","message":{"role":"assistant","content":"answer"},"done":true,"done_reason":"stop"}
+
+        """.utf8)
+        let request = ProviderRequest(
+            messages: Self.basicRequest.messages,
+            settings: GenerationSettings(reasoningEffort: .max),
+        )
+
+        try await NetworkMocking.withMockedNetwork { urlRequest in
+            let body = try #require(self.bodyData(from: urlRequest))
+            let decoded = try JSONDecoder().decode(OllamaChatRequest.self, from: body)
+            #expect(decoded.think == .level("high"))
+            return NetworkMocking.streamResponse(for: urlRequest, data: payload)
+        } operation: {
+            let config = Self.makeConfiguration { config in
+                config.setBaseURL("http://localhost:11434", for: .ollama)
+            }
+            let provider = try Self.mockedOllamaProvider(model: .gptOSS20B, configuration: config)
+            let stream = try await provider.streamText(request: request)
+            for try await _ in stream {}
         }
     }
 
@@ -422,6 +612,508 @@ struct ProviderEndToEndTests {
         }
     }
 
+    @Test(arguments: [
+        ("length", FinishReason.length),
+        ("unexpected_reason", FinishReason.other),
+    ])
+    func `Ollama provider preserves abnormal done reasons on tool responses`(
+        doneReason: String,
+        expected: FinishReason,
+    ) async throws {
+        let payload = Data("""
+        {"model":"llama3.3","message":{"role":"assistant","content":"","tool_calls":[
+        {"function":{"index":0,"name":"lookup","arguments":{}}}]},"done":true,"done_reason":"\(
+            doneReason
+        )"}
+        """.utf8)
+
+        try await NetworkMocking.withMockedNetwork { request in
+            NetworkMocking.jsonResponse(for: request, data: payload)
+        } operation: {
+            let config = Self.makeConfiguration { config in
+                config.setBaseURL("http://localhost:11434", for: .ollama)
+            }
+            let provider = try OllamaProvider(model: .llama33, configuration: config)
+            let response = try await provider.generateText(request: Self.basicRequest)
+            #expect(response.finishReason == expected)
+            #expect(response.toolCalls?.first?.name == "lookup")
+        }
+    }
+
+    @Test(arguments: [
+        ("length", FinishReason.length),
+        ("unexpected_reason", FinishReason.other),
+    ])
+    func `Ollama abnormal tool responses are not executed`(
+        doneReason: String,
+        expected: FinishReason,
+    ) async throws {
+        let payload = Data("""
+        {"model":"llama3.3","message":{"role":"assistant","content":"","tool_calls":[
+        {"function":{"index":0,"name":"lookup","arguments":{}}}]},"done":true,"done_reason":"\(
+            doneReason
+        )"}
+        """.utf8)
+        let probe = ToolInvocationProbe()
+        let tool = AgentTool(
+            name: "lookup",
+            description: "Lookup",
+            parameters: AgentToolParameters(),
+        ) { _ in
+            await probe.recordInvocation()
+            return AnyAgentToolValue(string: "should not run")
+        }
+
+        try await NetworkMocking.withMockedNetwork { request in
+            NetworkMocking.jsonResponse(for: request, data: payload)
+        } operation: {
+            let config = Self.makeConfiguration { config in
+                config.setBaseURL("http://localhost:11434", for: .ollama)
+            }
+            let result = try await generateText(
+                model: .ollama(.llama33),
+                messages: [.user("Look it up")],
+                tools: [tool],
+                maxSteps: 2,
+                configuration: config,
+            )
+
+            let invocationCount = await probe.invocationCount
+            #expect(invocationCount == 0)
+            #expect(result.finishReason == expected)
+            #expect(result.steps.first?.toolCalls.first?.name == "lookup")
+            #expect(result.steps.first?.toolResults.isEmpty == true)
+            #expect(result.messages.flatMap(\.content).contains { part in
+                if case .toolCall = part {
+                    true
+                } else {
+                    false
+                }
+            } == false)
+        }
+    }
+
+    @Test
+    func `Ollama provider requires terminal done status`() async throws {
+        let payload = Data("""
+        {"model":"llama3.3","message":{"role":"assistant","content":"partial"},"done":false}
+        """.utf8)
+
+        try await NetworkMocking.withMockedNetwork { request in
+            NetworkMocking.jsonResponse(for: request, data: payload)
+        } operation: {
+            let config = Self.makeConfiguration { config in
+                config.setBaseURL("http://localhost:11434", for: .ollama)
+            }
+            let provider = try OllamaProvider(model: .llama33, configuration: config)
+            do {
+                _ = try await provider.generateText(request: Self.basicRequest)
+                Issue.record("Expected incomplete Ollama response failure")
+            } catch {
+                #expect(error.localizedDescription.contains("before terminal done"))
+            }
+        }
+    }
+
+    @Test(arguments: [
+        ("length", FinishReason.length),
+        ("unexpected_reason", FinishReason.other),
+    ])
+    func `Ollama provider maps done reasons`(doneReason: String, expected: FinishReason) async throws {
+        let payload = Data("""
+        {"model":"llama3.3","message":{"role":"assistant","content":"partial"},"done":true,"done_reason":"\(
+            doneReason
+        )"}
+        """.utf8)
+
+        try await NetworkMocking.withMockedNetwork { request in
+            NetworkMocking.jsonResponse(for: request, data: payload)
+        } operation: {
+            let config = Self.makeConfiguration { config in
+                config.setBaseURL("http://localhost:11434", for: .ollama)
+            }
+            let provider = try OllamaProvider(model: .llama33, configuration: config)
+            let response = try await provider.generateText(request: Self.basicRequest)
+            #expect(response.finishReason == expected)
+        }
+    }
+
+    @Test(arguments: [
+        ("length", FinishReason.length),
+        ("unexpected_reason", FinishReason.other),
+    ])
+    func `Ollama stream maps done reasons and thinking`(doneReason: String, expected: FinishReason) async throws {
+        let payload = Data("""
+        {"model":"llama3.3","message":{"role":"assistant","content":"","thinking":"considering"},"done":false}
+        {"model":"llama3.3","message":{"role":"assistant","content":"partial"},"done":true,"done_reason":"\(
+            doneReason
+        )"}
+
+        """.utf8)
+
+        try await NetworkMocking.withMockedNetwork { request in
+            NetworkMocking.streamResponse(for: request, data: payload)
+        } operation: {
+            let config = Self.makeConfiguration { config in
+                config.setBaseURL("http://localhost:11434", for: .ollama)
+            }
+            let provider = try Self.mockedOllamaProvider(configuration: config)
+            let stream = try await provider.streamText(request: Self.basicRequest)
+
+            var thinking = ""
+            var finishReason: FinishReason?
+            for try await delta in stream {
+                if delta.type == .reasoning {
+                    thinking.append(delta.content ?? "")
+                    #expect(delta.reasoningType == "ollama_thinking")
+                } else if delta.type == .done {
+                    finishReason = delta.finishReason
+                }
+            }
+
+            #expect(thinking == "considering")
+            #expect(finishReason == expected)
+        }
+    }
+
+    @Test
+    func `Ollama thinking survives response history replay`() async throws {
+        let config = Self.makeConfiguration { config in
+            config.setBaseURL("http://localhost:11434", for: .ollama)
+        }
+        let firstPayload = Data("""
+        {"model":"llama3.3","message":{"role":"assistant","thinking":"private plan","content":"answer"},
+        "done":true,"done_reason":"stop"}
+        """.utf8)
+        let first = try await NetworkMocking.withMockedNetwork { request in
+            NetworkMocking.jsonResponse(for: request, data: firstPayload)
+        } operation: {
+            try await generateText(
+                model: .ollama(.llama33),
+                messages: [.user("Question")],
+                configuration: config,
+            )
+        }
+
+        let thinkingMessage = try #require(first.messages.first { $0.channel == .thinking })
+        #expect(thinkingMessage.content == [.text("private plan")])
+        #expect(thinkingMessage.metadata?.customData?["ollama.thinking"] == "private plan")
+
+        let replayMessages = first.messages + [.user("Follow up")]
+        try await NetworkMocking.withMockedNetwork { request in
+            let body = try #require(self.bodyData(from: request))
+            let decoded = try JSONDecoder().decode(OllamaChatRequest.self, from: body)
+            let replayedAssistant = try #require(decoded.messages.first { $0.role == "assistant" })
+            #expect(replayedAssistant.thinking == "private plan")
+            #expect(replayedAssistant.content == "answer")
+            return NetworkMocking.jsonResponse(for: request, data: Self.ollamaPayload(text: "next"))
+        } operation: {
+            _ = try await generateText(
+                model: .ollama(.llama33),
+                messages: replayMessages,
+                configuration: config,
+            )
+        }
+    }
+
+    @Test
+    func `Ollama direct provider only replays endpoint-bound thinking`() async throws {
+        let config = Self.makeConfiguration { config in
+            config.setBaseURL("http://localhost:11434", for: .ollama)
+        }
+        let provider = try OllamaProvider(model: .llama33, configuration: config)
+        let endpointIdentity = try #require(provider.reasoningReplayIdentity)
+        let boundThinking = ModelMessage(
+            role: .assistant,
+            content: [.text("bound plan")],
+            channel: .thinking,
+            metadata: .init(customData: [
+                "ollama.thinking": "bound plan",
+                "tachikoma.reasoning.provider": "ollama",
+                "tachikoma.reasoning.model": provider.modelId,
+                "tachikoma.reasoning.base_url": endpointIdentity,
+            ]),
+        )
+        let unboundThinking = ModelMessage(
+            role: .assistant,
+            content: [.text("unbound plan")],
+            channel: .thinking,
+        )
+
+        try await NetworkMocking.withMockedNetwork { request in
+            let body = try #require(self.bodyData(from: request))
+            let decoded = try JSONDecoder().decode(OllamaChatRequest.self, from: body)
+            #expect(decoded.messages.contains { $0.thinking == "bound plan" })
+            #expect(decoded.messages.contains { $0.thinking == "unbound plan" } == false)
+            return NetworkMocking.jsonResponse(for: request, data: Self.ollamaPayload(text: "next"))
+        } operation: {
+            _ = try await provider.generateText(request: ProviderRequest(messages: [
+                .user("Question"),
+                unboundThinking,
+                boundThinking,
+                .assistant("answer"),
+                .user("Follow up"),
+            ]))
+        }
+    }
+
+    @Test
+    func `Ollama reasoning identity stays pinned to the instantiated provider`() async throws {
+        let firstURL = "https://first.example.test/ollama"
+        let changedURL = "https://changed.example.test/ollama"
+        let config = Self.makeConfiguration { config in
+            config.setBaseURL(firstURL, for: .ollama)
+        }
+        let firstPayload = Data("""
+        {"model":"llama3.3","message":{"role":"assistant","thinking":"first plan","content":"answer"},
+        "done":true,"done_reason":"stop"}
+        """.utf8)
+        let first = try await NetworkMocking.withMockedNetwork { request in
+            #expect(request.url?.host == "first.example.test")
+            return NetworkMocking.jsonResponse(for: request, data: firstPayload)
+        } operation: {
+            try await generateText(
+                model: .ollama(.llama33),
+                messages: [.user("Question")],
+                configuration: config,
+            )
+        }
+
+        config.setProviderFactoryOverride { model, configuration in
+            guard case let .ollama(ollamaModel) = model else {
+                throw TachikomaError.invalidConfiguration("Expected Ollama model")
+            }
+            let provider = try Self.mockedOllamaProvider(model: ollamaModel, configuration: configuration)
+            configuration.setBaseURL(changedURL, for: .ollama)
+            return provider
+        }
+
+        let nextPayload = Data("""
+        {"model":"llama3.3","message":{"role":"assistant","thinking":"next plan","content":"next"},
+        "done":true,"done_reason":"stop"}
+        """.utf8)
+        let replayMessages = first.messages + [.user("Follow up")]
+        let next = try await NetworkMocking.withMockedNetwork { request in
+            #expect(request.url?.host == "first.example.test")
+            let body = try #require(self.bodyData(from: request))
+            let decoded = try JSONDecoder().decode(OllamaChatRequest.self, from: body)
+            let replayedAssistant = try #require(decoded.messages.first { $0.role == "assistant" })
+            #expect(replayedAssistant.thinking == "first plan")
+            return NetworkMocking.jsonResponse(for: request, data: nextPayload)
+        } operation: {
+            try await generateText(
+                model: .ollama(.llama33),
+                messages: replayMessages,
+                configuration: config,
+            )
+        }
+
+        #expect(config.getBaseURL(for: .ollama) == changedURL)
+        let nextThinking = try #require(next.messages.last { $0.content == [.text("next plan")] })
+        #expect(nextThinking.metadata?.customData?["tachikoma.reasoning.base_url"] == ReasoningEndpointIdentity
+            .canonical(firstURL))
+    }
+
+    @Test
+    func `Ollama credential changes prevent thinking replay without leaking its URL`() async throws {
+        try await TestEnvironmentMutex.shared.withLock {
+            let environmentKey = "PEEKABOO_OLLAMA_BASE_URL"
+            let previousValue = getenv(environmentKey).map { String(cString: $0) }
+            defer {
+                if let previousValue {
+                    setenv(environmentKey, previousValue, 1)
+                } else {
+                    unsetenv(environmentKey)
+                }
+            }
+
+            let firstURL = "https://ollama-user:private-secret@first.example.test/v1?token=hidden#local"
+            let secondURL = "https://ollama-user:rotated-secret@first.example.test/v1?token=hidden#changed"
+            setenv(environmentKey, firstURL, 1)
+
+            let config = Self.makeConfiguration { _ in }
+            let provider = try OllamaProvider(model: .llama33, configuration: config)
+            #expect(provider.baseURL == firstURL)
+
+            let explicitConfig = Self.makeConfiguration { configuration in
+                configuration.setBaseURL("https://explicit.example.test", for: .ollama)
+            }
+            let explicitProvider = try OllamaProvider(model: .llama33, configuration: explicitConfig)
+            #expect(explicitProvider.baseURL == "https://explicit.example.test")
+
+            let firstPayload = Data("""
+            {"model":"llama3.3","message":{"role":"assistant","thinking":"private plan","content":"answer"},
+            "done":true,"done_reason":"stop"}
+            """.utf8)
+            let first = try await NetworkMocking.withMockedNetwork { request in
+                #expect(request.url?.host == "first.example.test")
+                #expect(request.url?.path == "/v1/api/chat")
+                #expect(request.url?.query == "token=hidden")
+                #expect(request.url?.fragment == nil)
+                return NetworkMocking.jsonResponse(for: request, data: firstPayload)
+            } operation: {
+                try await generateText(
+                    model: .ollama(.llama33),
+                    messages: [.user("Question")],
+                    settings: GenerationSettings(reasoningEffort: .medium),
+                    configuration: config,
+                )
+            }
+
+            let thinkingMessage = try #require(first.messages.first { $0.channel == .thinking })
+            #expect(thinkingMessage.metadata?.customData?["tachikoma.reasoning.base_url"] == nil)
+            #expect(thinkingMessage.metadata?.customData?["ollama.thinking"] == nil)
+            #expect(ReasoningEndpointIdentity.canonical(firstURL) == nil)
+            #expect(ReasoningEndpointIdentity.canonical(secondURL) == nil)
+
+            setenv(environmentKey, secondURL, 1)
+            let replayMessages = first.messages + [.user("Follow up")]
+            try await NetworkMocking.withMockedNetwork { request in
+                #expect(request.url?.host == "first.example.test")
+                #expect(request.url?.path == "/v1/api/chat")
+                #expect(request.url?.query == "token=hidden")
+                let body = try #require(self.bodyData(from: request))
+                let decoded = try JSONDecoder().decode(OllamaChatRequest.self, from: body)
+                let replayedAssistant = try #require(decoded.messages.first { $0.role == "assistant" })
+                #expect(replayedAssistant.content == "answer")
+                #expect(replayedAssistant.thinking == nil)
+                return NetworkMocking.jsonResponse(for: request, data: Self.ollamaPayload(text: "next"))
+            } operation: {
+                _ = try await generateText(
+                    model: .ollama(.llama33),
+                    messages: replayMessages,
+                    settings: GenerationSettings(reasoningEffort: .medium),
+                    configuration: config,
+                )
+            }
+        }
+    }
+
+    @Test
+    func `Ollama stream gives tool calls precedence over stop`() async throws {
+        let payload = Data("""
+        {"model":"m","message":{"tool_calls":[{"function":{"name":"lookup"}}]},"done":false}
+        {"model":"llama3.3","message":{"role":"assistant","content":""},"done":true,"done_reason":"stop"}
+
+        """.utf8)
+
+        try await NetworkMocking.withMockedNetwork { request in
+            NetworkMocking.streamResponse(for: request, data: payload)
+        } operation: {
+            let config = Self.makeConfiguration { config in
+                config.setBaseURL("http://localhost:11434", for: .ollama)
+            }
+            let provider = try Self.mockedOllamaProvider(configuration: config)
+            let stream = try await provider.streamText(request: Self.basicRequest)
+
+            var toolName: String?
+            var finishReason: FinishReason?
+            for try await delta in stream {
+                if delta.type == .toolCall {
+                    toolName = delta.toolCall?.name
+                } else if delta.type == .done {
+                    finishReason = delta.finishReason
+                }
+            }
+            #expect(toolName == "lookup")
+            #expect(finishReason == .toolCalls)
+        }
+    }
+
+    @Test(arguments: [
+        ("length", FinishReason.length),
+        ("unexpected_reason", FinishReason.other),
+    ])
+    func `Ollama stream preserves abnormal done reasons after tool calls`(
+        doneReason: String,
+        expected: FinishReason,
+    ) async throws {
+        let payload = Data("""
+        {"model":"m","message":{"tool_calls":[{"function":{"name":"lookup"}}]},"done":false}
+        {"model":"llama3.3","message":{"role":"assistant","content":""},"done":true,"done_reason":"\(
+            doneReason
+        )"}
+
+        """.utf8)
+
+        try await NetworkMocking.withMockedNetwork { request in
+            NetworkMocking.streamResponse(for: request, data: payload)
+        } operation: {
+            let config = Self.makeConfiguration { config in
+                config.setBaseURL("http://localhost:11434", for: .ollama)
+            }
+            let provider = try Self.mockedOllamaProvider(configuration: config)
+            let stream = try await provider.streamText(request: Self.basicRequest)
+
+            var toolName: String?
+            var finishReason: FinishReason?
+            for try await delta in stream {
+                if delta.type == .toolCall {
+                    toolName = delta.toolCall?.name
+                } else if delta.type == .done {
+                    finishReason = delta.finishReason
+                }
+            }
+            #expect(toolName == "lookup")
+            #expect(finishReason == expected)
+        }
+    }
+
+    @Test
+    func `Ollama stream rejects malformed nonblank chunks`() async throws {
+        let payload = Data("""
+        {"model":"llama3.3","message":{"role":"assistant","content":"prefix"},"done":false}
+        this is not json
+
+        """.utf8)
+
+        try await NetworkMocking.withMockedNetwork { request in
+            NetworkMocking.streamResponse(for: request, data: payload)
+        } operation: {
+            let config = Self.makeConfiguration { config in
+                config.setBaseURL("http://localhost:11434", for: .ollama)
+            }
+            let provider = try Self.mockedOllamaProvider(configuration: config)
+            let stream = try await provider.streamText(request: Self.basicRequest)
+
+            var collected = ""
+            do {
+                for try await delta in stream where delta.type == .textDelta {
+                    collected.append(delta.content ?? "")
+                }
+                Issue.record("Expected malformed Ollama stream failure")
+            } catch {
+                #expect(error.localizedDescription.contains("malformed NDJSON"))
+            }
+            #expect(collected == "prefix")
+        }
+    }
+
+    @Test
+    func `Ollama stream requires a terminal done chunk`() async throws {
+        let payload = Data("""
+        {"model":"llama3.3","message":{"role":"assistant","content":"prefix"},"done":false}
+
+        """.utf8)
+
+        try await NetworkMocking.withMockedNetwork { request in
+            NetworkMocking.streamResponse(for: request, data: payload)
+        } operation: {
+            let config = Self.makeConfiguration { config in
+                config.setBaseURL("http://localhost:11434", for: .ollama)
+            }
+            let provider = try Self.mockedOllamaProvider(configuration: config)
+            let stream = try await provider.streamText(request: Self.basicRequest)
+
+            do {
+                for try await _ in stream {}
+                Issue.record("Expected truncated Ollama stream failure")
+            } catch {
+                #expect(error.localizedDescription.contains("before terminal done"))
+            }
+        }
+    }
+
     @Test
     func `Ollama stream surfaces HTTP 200 NDJSON errors`() async throws {
         let payload = Data("""
@@ -435,7 +1127,7 @@ struct ProviderEndToEndTests {
             let config = Self.makeConfiguration { config in
                 config.setBaseURL("http://localhost:11434", for: .ollama)
             }
-            let provider = try OllamaProvider(model: .llama33, configuration: config)
+            let provider = try Self.mockedOllamaProvider(configuration: config)
             let stream = try await provider.streamText(request: Self.basicRequest)
 
             var collected = ""
@@ -665,7 +1357,7 @@ struct ProviderEndToEndTests {
             #expect(metadata["tachikoma.reasoning.provider"] == "minimax")
             #expect(metadata["tachikoma.reasoning.model"] == "MiniMax-M2.7")
             #expect(metadata["anthropic.thinking.signature"] == "sig-mm")
-            #expect(metadata["tachikoma.reasoning.base_url"] == ReasoningEndpointIdentity.canonical(baseURL))
+            #expect(metadata["tachikoma.reasoning.base_url"] == nil)
         }
     }
 
@@ -958,6 +1650,19 @@ struct ProviderEndToEndTests {
         return config
     }
 
+    private static func mockedOllamaProvider(
+        model: LanguageModel.Ollama = .llama33,
+        configuration: TachikomaConfiguration,
+    ) throws
+        -> OllamaProvider
+    {
+        try OllamaProvider(
+            model: model,
+            configuration: configuration,
+            urlSession: URLSession(configuration: self.mockedSessionConfiguration()),
+        )
+    }
+
     private func bodyData(from request: URLRequest) -> Data? {
         if let body = request.httpBody {
             return body
@@ -1005,6 +1710,14 @@ struct ProviderEndToEndTests {
         allowAudioTranscriptions: Bool = false,
     ) {
         self.expectPath(request, endsWithAny: [suffix], allowAudioTranscriptions: allowAudioTranscriptions)
+    }
+}
+
+private actor ToolInvocationProbe {
+    private(set) var invocationCount = 0
+
+    func recordInvocation() {
+        self.invocationCount += 1
     }
 }
 #endif

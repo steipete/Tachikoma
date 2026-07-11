@@ -39,7 +39,11 @@ public func generateText(
 
     for stepIndex in 0..<maxSteps {
         let request = ProviderRequest(
-            messages: currentMessages.sanitizedForProvider(model, configuration: resolvedConfiguration),
+            messages: currentMessages.sanitizedForProvider(
+                model,
+                provider: provider,
+                configuration: resolvedConfiguration,
+            ),
             tools: tools,
             settings: settings,
         )
@@ -57,13 +61,37 @@ public func generateText(
         let responseToolCalls = isContentFiltered ? [] : (response.toolCalls ?? [])
         let responseReasoning = isContentFiltered ? [] : response.reasoning
         let responseAssistantMessages = isContentFiltered ? [] : response.assistantMessages
+        // Providers historically may omit a finish reason for valid tool calls.
+        // Explicit non-tool terminal reasons must never trigger or persist side effects.
+        let canExecuteToolCalls = response.finishReason == nil || response.finishReason == .toolCalls
+        let historyAssistantMessages = canExecuteToolCalls
+            ? responseAssistantMessages
+            : responseAssistantMessages.compactMap { message in
+                let safeContent = message.content.filter { part in
+                    if case .toolCall = part {
+                        false
+                    } else {
+                        true
+                    }
+                }
+                guard !safeContent.isEmpty else { return nil }
+                return ModelMessage(
+                    id: message.id,
+                    role: message.role,
+                    content: safeContent,
+                    timestamp: message.timestamp,
+                    channel: message.channel,
+                    metadata: message.metadata,
+                )
+            }
         let responseMessageStartIndex = currentMessages.count
         finalResponseStartIndex = responseMessageStartIndex
         let responseHistoryMessages = model.responseHistoryMessages(
-            nativeMessages: responseAssistantMessages,
+            nativeMessages: historyAssistantMessages,
             text: responseText,
             reasoning: responseReasoning,
-            toolCalls: responseToolCalls,
+            toolCalls: canExecuteToolCalls ? responseToolCalls : [],
+            provider: provider,
             configuration: resolvedConfiguration,
         )
 
@@ -126,8 +154,7 @@ public func generateText(
             }
         }
 
-        // Handle tool calls
-        if !responseToolCalls.isEmpty {
+        if !responseToolCalls.isEmpty, canExecuteToolCalls {
             // Execute tools
             var toolResults: [AgentToolResult] = []
             for toolCall in responseToolCalls {
@@ -191,13 +218,9 @@ public func generateText(
                 usage: response.usage,
                 finishReason: response.finishReason,
             )
-
-            // Continue to next step if not done
-            if response.finishReason != .toolCalls, response.finishReason != .stop {
-                break
-            }
         } else {
-            // No tool calls, we're done
+            // Providers can expose partial calls alongside length or error-like
+            // terminal reasons. Preserve them for diagnostics without executing.
             break
         }
     }
@@ -272,6 +295,51 @@ public func streamText(
     messages: [ModelMessage],
     tools: [AgentTool]? = nil,
     settings: GenerationSettings = .default,
+    maxSteps: Int = 1,
+    timeout: TimeInterval? = nil,
+    configuration: TachikomaConfiguration = .current,
+    sessionId: String? = nil,
+) async throws
+    -> StreamTextResult
+{
+    guard model.supportsStreaming else {
+        throw TachikomaError.invalidConfiguration("\(model.modelId) does not support streaming")
+    }
+    let resolvedConfiguration = TachikomaConfiguration.resolve(configuration)
+    let provider = try resolvedConfiguration.makeProvider(for: model)
+    return try await streamText(
+        model: model,
+        provider: provider,
+        messages: messages,
+        tools: tools,
+        settings: settings,
+        maxSteps: maxSteps,
+        timeout: timeout,
+        configuration: resolvedConfiguration,
+        sessionId: sessionId,
+    )
+}
+
+/// Stream text generation through an already-resolved provider.
+///
+/// Use this overload when the caller must pin one verified provider instance across
+/// multiple turns while retaining the standard message sanitization and usage tracking.
+///
+/// - Parameters:
+///   - model: The language model represented by the supplied provider
+///   - provider: The exact provider instance to use without rebuilding it from configuration
+///   - messages: Array of conversation messages
+///   - tools: Optional tools the model can call
+///   - settings: Generation settings (temperature, maxTokens, etc.)
+///   - maxSteps: Maximum number of tool calling steps (default: 1)
+/// - Returns: StreamTextResult with async sequence and metadata
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
+public func streamText(
+    model: LanguageModel,
+    provider: any ModelProvider,
+    messages: [ModelMessage],
+    tools: [AgentTool]? = nil,
+    settings: GenerationSettings = .default,
     maxSteps _: Int = 1,
     timeout: TimeInterval? = nil,
     configuration: TachikomaConfiguration = .current,
@@ -287,14 +355,13 @@ public func streamText(
     let debugEnabled = ProcessInfo.processInfo.environment["DEBUG_TACHIKOMA"] != nil ||
         resolvedConfiguration.verbose
     if debugEnabled {
-        print("\n🔵 DEBUG streamText: Creating provider for model: \(model)")
+        print("\n🔵 DEBUG streamText: Using provider for model: \(model)")
         print("🔵 DEBUG streamText: Model details: \(model.description)")
         if case let .openai(openaiModel) = model {
             print("🔵 DEBUG streamText: OpenAI model enum case: \(openaiModel)")
             print("🔵 DEBUG streamText: OpenAI model modelId: \(openaiModel.modelId)")
         }
     }
-    let provider = try resolvedConfiguration.makeProvider(for: model)
     if debugEnabled {
         let providerModelId = (provider as? AnthropicProvider)?.modelId ??
             (provider as? OpenAIProvider)?.modelId ??
@@ -305,7 +372,11 @@ public func streamText(
     }
 
     let request = ProviderRequest(
-        messages: messages.sanitizedForProvider(model, configuration: resolvedConfiguration),
+        messages: messages.sanitizedForProvider(
+            model,
+            provider: provider,
+            configuration: resolvedConfiguration,
+        ),
         tools: tools,
         settings: settings,
     )
@@ -344,7 +415,13 @@ public func streamText(
     let capturedStopCondition = buffersUntilDone ? settings.stopConditions : nil
 
     let trackedStream = AsyncThrowingStream<TextStreamDelta, Error> { continuation in
-        Task {
+        let forwardingTask = Task {
+            defer {
+                if shouldEndSession {
+                    _ = UsageTracker.shared.endSession(capturedSessionId)
+                }
+            }
+
             do {
                 let totalInputTokens = 0
                 var totalOutputTokens = 0
@@ -427,9 +504,6 @@ public func streamText(
                             usage: usage,
                             operation: .textStreaming,
                         )
-                        if shouldEndSession {
-                            _ = UsageTracker.shared.endSession(capturedSessionId)
-                        }
                     }
                 }
 
@@ -439,12 +513,10 @@ public func streamText(
 
                 continuation.finish()
             } catch {
-                if shouldEndSession {
-                    _ = UsageTracker.shared.endSession(capturedSessionId)
-                }
                 continuation.finish(throwing: error)
             }
         }
+        continuation.onTermination = { _ in forwardingTask.cancel() }
     }
 
     return StreamTextResult(
@@ -481,7 +553,11 @@ public func generateObject<T: Codable & Sendable>(
     let provider = try resolvedConfiguration.makeProvider(for: model)
 
     let request = ProviderRequest(
-        messages: messages.sanitizedForProvider(model, configuration: resolvedConfiguration),
+        messages: messages.sanitizedForProvider(
+            model,
+            provider: provider,
+            configuration: resolvedConfiguration,
+        ),
         tools: nil,
         settings: settings,
         outputFormat: .json,
@@ -546,7 +622,11 @@ public func streamObject<T: Codable & Sendable>(
 
     // Create request with JSON output format
     let request = ProviderRequest(
-        messages: messages.sanitizedForProvider(model, configuration: resolvedConfiguration),
+        messages: messages.sanitizedForProvider(
+            model,
+            provider: provider,
+            configuration: resolvedConfiguration,
+        ),
         tools: nil,
         settings: settings,
         outputFormat: .json,
@@ -814,21 +894,42 @@ extension LanguageModel {
 private struct ReasoningReplayTarget {
     let provider: String
     let modelId: String
-    let baseURL: String?
+    let endpointIdentity: String?
     let allowsLegacyUnknown: Bool
 
+    init(
+        provider: String,
+        modelId: String,
+        baseURL: String?,
+        allowsLegacyUnknown: Bool,
+    ) {
+        self.provider = provider
+        self.modelId = modelId
+        self.endpointIdentity = ReasoningEndpointIdentity.canonical(baseURL)
+        self.allowsLegacyUnknown = allowsLegacyUnknown
+    }
+
+    init(
+        provider: String,
+        modelId: String,
+        endpointIdentity: String?,
+        allowsLegacyUnknown: Bool,
+    ) {
+        self.provider = provider
+        self.modelId = modelId
+        self.endpointIdentity = endpointIdentity
+        self.allowsLegacyUnknown = allowsLegacyUnknown
+    }
+
     func matches(_ customData: [String: String]) -> Bool {
+        guard let endpointIdentity = self.endpointIdentity else { return false }
         guard customData["tachikoma.reasoning.provider"] == self.provider else {
             return false
         }
         guard customData["tachikoma.reasoning.model"] == self.modelId else {
             return false
         }
-        return customData["tachikoma.reasoning.base_url"] == self.endpointIdentity
-    }
-
-    var endpointIdentity: String? {
-        ReasoningEndpointIdentity.canonical(self.baseURL)
+        return customData["tachikoma.reasoning.base_url"] == endpointIdentity
     }
 }
 
@@ -880,10 +981,34 @@ extension [ModelMessage] {
 extension [ModelMessage] {
     fileprivate func sanitizedForProvider(
         _ model: LanguageModel,
+        provider: any ModelProvider,
         configuration: TachikomaConfiguration,
     )
         -> [ModelMessage]
     {
+        if let target = model.ollamaReasoningReplayTarget(provider: provider) {
+            var sanitized: [ModelMessage] = []
+            for message in self {
+                if message.isSyntheticReasoningBoundary {
+                    if sanitized.last?.channel == .thinking {
+                        sanitized.append(message)
+                    }
+                    continue
+                }
+                guard message.channel == .thinking else {
+                    sanitized.append(message)
+                    continue
+                }
+                guard message.hasOllamaThinkingReplayMetadata else {
+                    continue
+                }
+                if target.matches(message.metadata?.customData ?? [:]) {
+                    sanitized.append(message)
+                }
+            }
+            return sanitized
+        }
+
         if let target = model.anthropicThinkingReplayTarget(configuration: configuration) {
             var sanitized: [ModelMessage] = []
             for message in self {
@@ -985,9 +1110,13 @@ extension ModelMessage {
         self.metadata?.customData?["kimi.reasoning_content"] != nil
     }
 
+    fileprivate var hasOllamaThinkingReplayMetadata: Bool {
+        self.metadata?.customData?["ollama.thinking"] != nil
+    }
+
     private var hasProviderReasoningReplayMetadata: Bool {
         self.hasAnthropicThinkingReplayMetadata || self.hasOpenRouterReasoningReplayMetadata ||
-            self.hasKimiReasoningReplayMetadata
+            self.hasKimiReasoningReplayMetadata || self.hasOllamaThinkingReplayMetadata
     }
 
     fileprivate var isSyntheticReasoningBoundary: Bool {
@@ -1047,6 +1176,7 @@ extension LanguageModel {
         text: String,
         reasoning: [ProviderReasoningBlock],
         toolCalls: [AgentToolCall],
+        provider: any ModelProvider,
         configuration: TachikomaConfiguration,
     )
         -> [ModelMessage]
@@ -1060,6 +1190,7 @@ extension LanguageModel {
                 channel: .thinking,
                 metadata: .init(customData: self.anthropicThinkingMetadata(
                     for: reasoningBlock,
+                    provider: provider,
                     configuration: configuration,
                 )),
             ))
@@ -1188,12 +1319,48 @@ extension LanguageModel {
         }
     }
 
+    fileprivate func ollamaReasoningReplayTarget(provider: any ModelProvider) -> ReasoningReplayTarget? {
+        switch self {
+        case .ollama:
+            guard
+                let ollamaProvider = provider as? OllamaProvider,
+                let endpointIdentity = ollamaProvider.reasoningReplayIdentity else
+            {
+                return nil
+            }
+            return ReasoningReplayTarget(
+                provider: "ollama",
+                modelId: provider.modelId,
+                endpointIdentity: endpointIdentity,
+                allowsLegacyUnknown: false,
+            )
+        default:
+            return nil
+        }
+    }
+
     private func anthropicThinkingMetadata(
         for reasoning: ProviderReasoningBlock,
+        provider: any ModelProvider,
         configuration: TachikomaConfiguration,
     )
         -> [String: String]
     {
+        if
+            reasoning.type == "ollama_thinking",
+            let target = self.ollamaReasoningReplayTarget(provider: provider)
+        {
+            var metadata = [
+                "ollama.thinking": reasoning.text,
+                "tachikoma.reasoning.type": reasoning.type,
+                "tachikoma.reasoning.provider": target.provider,
+                "tachikoma.reasoning.model": target.modelId,
+            ]
+            if let endpointIdentity = target.endpointIdentity {
+                metadata["tachikoma.reasoning.base_url"] = endpointIdentity
+            }
+            return metadata
+        }
         if
             reasoning.type == "kimi_reasoning_content",
             let target = self.kimiReasoningReplayTarget(configuration: configuration)

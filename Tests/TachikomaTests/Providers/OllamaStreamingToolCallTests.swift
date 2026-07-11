@@ -1,6 +1,134 @@
 import Foundation
+#if canImport(FoundationNetworking)
+import FoundationNetworking
+#endif
 import Testing
 @testable import Tachikoma
+
+private final class IncrementalOllamaTransportURLProtocol: URLProtocol {
+    private static let terminalGate = DispatchSemaphore(value: 0)
+
+    override class func canInit(with _: URLRequest) -> Bool {
+        true
+    }
+
+    override class func canonicalRequest(for request: URLRequest) -> URLRequest {
+        request
+    }
+
+    override func startLoading() {
+        let response = HTTPURLResponse(
+            url: self.request.url ?? URL(string: "http://localhost:11434/api/chat")!,
+            statusCode: 200,
+            httpVersion: nil,
+            headerFields: ["Content-Type": "application/x-ndjson"],
+        )!
+        self.client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
+        self.client?.urlProtocol(self, didLoad: Data("""
+        {"model":"llama3.3","message":{"role":"assistant","content":"first"},"done":false}
+
+        """.utf8))
+
+        _ = Self.terminalGate.wait(timeout: .now() + 2)
+        self.client?.urlProtocol(self, didLoad: Data("""
+        {"model":"llama3.3","message":{"role":"assistant","content":" second"},"done":true,"done_reason":"stop"}
+
+        """.utf8))
+        self.client?.urlProtocolDidFinishLoading(self)
+    }
+
+    override func stopLoading() {}
+
+    static func releaseTerminalChunk() {
+        self.terminalGate.signal()
+    }
+}
+
+private final class DelegatedOllamaTransportURLProtocol: URLProtocol {
+    override class func canInit(with _: URLRequest) -> Bool {
+        true
+    }
+
+    override class func canonicalRequest(for request: URLRequest) -> URLRequest {
+        request
+    }
+
+    override func startLoading() {
+        let challengeSender = OllamaAuthenticationChallengeSender()
+        let protectionSpace = URLProtectionSpace(
+            host: "localhost",
+            port: 11434,
+            protocol: "http",
+            realm: "ollama-test",
+            authenticationMethod: NSURLAuthenticationMethodHTTPBasic,
+        )
+        let challenge = URLAuthenticationChallenge(
+            protectionSpace: protectionSpace,
+            proposedCredential: nil,
+            previousFailureCount: 0,
+            failureResponse: nil,
+            error: nil,
+            sender: challengeSender,
+        )
+        self.client?.urlProtocol(self, didReceive: challenge)
+
+        let response = HTTPURLResponse(
+            url: self.request.url ?? URL(string: "http://localhost:11434/api/chat")!,
+            statusCode: 200,
+            httpVersion: nil,
+            headerFields: ["Content-Type": "application/x-ndjson"],
+        )!
+        self.client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
+        self.client?.urlProtocol(self, didLoad: Data("""
+        {"model":"llama3.3","message":{"role":"assistant","content":"delegated"},\
+        "done":true,"done_reason":"stop"}
+
+        """.utf8))
+        self.client?.urlProtocolDidFinishLoading(self)
+    }
+
+    override func stopLoading() {}
+}
+
+private final class OllamaAuthenticationChallengeSender: NSObject, URLAuthenticationChallengeSender {
+    func use(_: URLCredential, for _: URLAuthenticationChallenge) {}
+
+    func continueWithoutCredential(for _: URLAuthenticationChallenge) {}
+
+    func cancel(_: URLAuthenticationChallenge) {}
+
+    func performDefaultHandling(for _: URLAuthenticationChallenge) {}
+
+    func rejectProtectionSpaceAndContinue(with _: URLAuthenticationChallenge) {}
+}
+
+private final class OllamaSessionDelegateProbe: NSObject, URLSessionDataDelegate, @unchecked Sendable {
+    private let lock = NSLock()
+    private var receivedChallenge = false
+
+    func urlSession(
+        _: URLSession,
+        task _: URLSessionTask,
+        didReceive _: URLAuthenticationChallenge,
+        completionHandler: @escaping @Sendable (URLSession.AuthChallengeDisposition, URLCredential?) -> Void,
+    ) {
+        self.lock.withLock { self.receivedChallenge = true }
+        completionHandler(
+            .useCredential,
+            URLCredential(user: "test-user", password: "pw", persistence: .none),
+        )
+    }
+
+    func waitForChallenge() async -> Bool {
+        for _ in 0..<100 {
+            if self.lock.withLock({ self.receivedChallenge }) {
+                return true
+            }
+            try? await Task.sleep(for: .milliseconds(10))
+        }
+        return self.lock.withLock { self.receivedChallenge }
+    }
+}
 
 struct OllamaStreamingToolCallTests {
     /// Captured verbatim from a live `POST /api/chat` with `"stream": true` and a
@@ -49,6 +177,7 @@ struct OllamaStreamingToolCallTests {
         let chunk = try JSONDecoder().decode(OllamaStreamChunk.self, from: data)
 
         #expect(chunk.done == true)
+        #expect(chunk.doneReason == "stop")
         #expect(chunk.message.toolCalls == nil)
     }
 
@@ -96,5 +225,57 @@ struct OllamaStreamingToolCallTests {
         #expect(call.function.name == "get_status")
         #expect(call.function.arguments.isEmpty)
         #expect(OllamaProvider.convertOllamaToolCall(call).arguments.isEmpty)
+    }
+
+    @Test
+    func `delegate transport emits a line before the response completes`() async throws {
+        let sessionConfiguration = URLSessionConfiguration.ephemeral
+        sessionConfiguration.protocolClasses = [IncrementalOllamaTransportURLProtocol.self]
+        let session = URLSession(configuration: sessionConfiguration)
+        defer { session.invalidateAndCancel() }
+
+        let configuration = TachikomaConfiguration(loadFromEnvironment: false)
+        configuration.setBaseURL("http://localhost:11434", for: .ollama)
+        let provider = try OllamaProvider(model: .llama33, configuration: configuration, urlSession: session)
+        let clock = ContinuousClock()
+        let startedAt = clock.now
+        let stream = try await provider.streamText(request: ProviderRequest(messages: [.user("Hello")]))
+        var iterator = stream.makeAsyncIterator()
+
+        let first = try #require(try await iterator.next())
+        #expect(first.type == .textDelta)
+        #expect(first.content == "first")
+        #expect(startedAt.duration(to: clock.now) < .seconds(1))
+
+        IncrementalOllamaTransportURLProtocol.releaseTerminalChunk()
+        let second = try #require(try await iterator.next())
+        let done = try #require(try await iterator.next())
+        #expect(second.content == " second")
+        #expect(done.finishReason == .stop)
+        #expect(try await iterator.next() == nil)
+    }
+
+    @Test
+    func `streaming preserves the supplied session delegate`() async throws {
+        let sessionConfiguration = URLSessionConfiguration.ephemeral
+        sessionConfiguration.protocolClasses = [DelegatedOllamaTransportURLProtocol.self]
+        let delegate = OllamaSessionDelegateProbe()
+        let session = URLSession(configuration: sessionConfiguration, delegate: delegate, delegateQueue: nil)
+        defer { session.invalidateAndCancel() }
+
+        let configuration = TachikomaConfiguration(loadFromEnvironment: false)
+        configuration.setBaseURL("http://localhost:11434", for: .ollama)
+        let provider = try OllamaProvider(model: .llama33, configuration: configuration, urlSession: session)
+        #expect(provider.reasoningReplayIdentity == nil)
+
+        let stream = try await provider.streamText(request: ProviderRequest(messages: [.user("Hello")]))
+        var text = ""
+        for try await delta in stream where delta.type == .textDelta {
+            text += delta.content ?? ""
+        }
+
+        #expect(text == "delegated")
+        let preservedDelegate = await delegate.waitForChallenge()
+        #expect(preservedDelegate)
     }
 }

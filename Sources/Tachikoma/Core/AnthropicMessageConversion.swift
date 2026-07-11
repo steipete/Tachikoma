@@ -7,13 +7,14 @@ struct AnthropicReasoningReplayTarget {
     let allowsLegacyUnknown: Bool
 
     func matches(_ customData: [String: String]) -> Bool {
+        guard let endpointIdentity = self.endpointIdentity else { return false }
         guard customData["tachikoma.reasoning.provider"] == self.provider else {
             return false
         }
         guard customData["tachikoma.reasoning.model"] == self.modelId else {
             return false
         }
-        return customData["tachikoma.reasoning.base_url"] == self.endpointIdentity
+        return customData["tachikoma.reasoning.base_url"] == endpointIdentity
     }
 }
 
@@ -56,7 +57,9 @@ enum AnthropicMessageConversion {
             case .system:
                 // Anthropic uses a separate system field
                 systemMessage = message.content.compactMap { part in
-                    if case let .text(text) = part { return text }
+                    if case let .text(text) = part {
+                        return text
+                    }
                     return nil
                 }.joined()
             case .user:
@@ -81,7 +84,9 @@ enum AnthropicMessageConversion {
             case .assistant:
                 if message.channel == .thinking {
                     let text = message.content.compactMap { part -> String? in
-                        if case let .text(text) = part { return text }
+                        if case let .text(text) = part {
+                            return text
+                        }
                         return nil
                     }.joined()
                     let signature = message.metadata?.customData?[thinkingSignatureKey]

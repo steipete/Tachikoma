@@ -3,6 +3,10 @@ import Foundation
 import UIKit
 #endif
 
+protocol ResponseCacheSafetyProviding {
+    var isResponseCacheSafe: Bool { get }
+}
+
 // MARK: - Cache Key
 
 /// Hashable key for cache entries
@@ -11,11 +15,13 @@ public struct CacheProviderIdentity: Hashable, Sendable {
     public let providerKind: String
     public let modelId: String
     public let endpointIdentity: String?
+    public let isCacheable: Bool
 
-    public init(providerKind: String, modelId: String, baseURL: String?) {
+    public init(providerKind: String, modelId: String, baseURL: String?, hasAuthentication: Bool = false) {
         self.providerKind = providerKind
         self.modelId = modelId
         self.endpointIdentity = ReasoningEndpointIdentity.canonical(baseURL)
+        self.isCacheable = !hasAuthentication && (baseURL == nil || self.endpointIdentity != nil)
     }
 }
 
@@ -27,6 +33,11 @@ struct CacheKey: Hashable {
 
     init(from request: ProviderRequest, providerIdentity: CacheProviderIdentity? = nil, model: String? = nil) {
         self.model = providerIdentity?.modelId ?? model
+        if providerIdentity?.isCacheable == false {
+            self.hash = ""
+            self.isCacheable = false
+            return
+        }
         // Create a unique hash from the request
         var hasher = Hasher()
         if let providerIdentity {
@@ -654,6 +665,8 @@ public struct CacheAwareProvider<Base: ModelProvider>: ModelProvider {
             providerKind: String(reflecting: Base.self),
             modelId: provider.modelId,
             baseURL: provider.baseURL,
+            hasAuthentication: provider.apiKey?.isEmpty == false ||
+                (provider as? any ResponseCacheSafetyProviding)?.isResponseCacheSafe == false,
         )
     }
 
