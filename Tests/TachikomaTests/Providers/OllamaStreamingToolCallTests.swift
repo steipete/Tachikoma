@@ -96,6 +96,10 @@ private final class OllamaAuthenticationChallengeSender: NSObject, URLAuthentica
     func continueWithoutCredential(for _: URLAuthenticationChallenge) {}
 
     func cancel(_: URLAuthenticationChallenge) {}
+
+    func performDefaultHandling(for _: URLAuthenticationChallenge) {}
+
+    func rejectProtectionSpaceAndContinue(with _: URLAuthenticationChallenge) {}
 }
 
 private final class OllamaSessionDelegateProbe: NSObject, URLSessionDataDelegate, @unchecked Sendable {
