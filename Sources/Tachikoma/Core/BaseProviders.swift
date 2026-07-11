@@ -1267,7 +1267,7 @@ public final class OllamaProvider: ModelProvider {
     private let model: LanguageModel.Ollama
     private let urlSession: URLSession
 
-    var reasoningReplayIdentity: String? {
+    public var reasoningReplayIdentity: String? {
         guard let baseURL else { return nil }
         return Self.reasoningReplayIdentity(
             baseURL: baseURL,
