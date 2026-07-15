@@ -9,7 +9,8 @@ let localCommanderPath = packageDirectory
     .deletingLastPathComponent()
     .appendingPathComponent("Commander")
     .appendingPathComponent("Package.swift")
-let commanderDependency: Package.Dependency = FileManager.default.fileExists(atPath: localCommanderPath.path)
+let isDependencyCheckout = packageDirectory.deletingLastPathComponent().lastPathComponent == "checkouts"
+let commanderDependency: Package.Dependency = !isDependencyCheckout && FileManager.default.fileExists(atPath: localCommanderPath.path)
     ? .package(path: "../Commander")
     : .package(url: "https://github.com/steipete/Commander.git", from: "0.2.2")
 

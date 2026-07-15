@@ -2,6 +2,11 @@
 
 All notable changes to the Tachikoma project will be documented in this file.
 
+## [0.2.2] - 2026-07-15
+
+### Fixed
+- SwiftPM dependency checkouts no longer mistake another resolved Commander checkout for a sibling development package, avoiding conflicting package identities and a future resolution error.
+
 ## [0.2.1] - 2026-07-15
 
 ### Added
