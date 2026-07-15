@@ -2,7 +2,7 @@
 
 All notable changes to the Tachikoma project will be documented in this file.
 
-## [Unreleased]
+## [0.2.1] - 2026-07-15
 
 ### Added
 - Added first-class Claude Sonnet 5 and OpenAI GPT-5.6 Sol/Terra/Luna support with parsing aliases, capabilities, provider routing, and usage estimates.
