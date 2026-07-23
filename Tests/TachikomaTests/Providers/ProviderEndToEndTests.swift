@@ -36,11 +36,7 @@ struct ProviderEndToEndTests {
             let config = Self.makeConfiguration { config in
                 config.setAPIKey("sk-live-openai", for: .openai)
             }
-            let provider = try OpenAIResponsesProvider(
-                model: .gpt5Mini,
-                configuration: config,
-                session: URLSession(configuration: Self.mockedSessionConfiguration()),
-            )
+            let provider = try OpenAIResponsesProvider(model: .gpt5Mini, configuration: config)
             let response = try await provider.generateText(request: Self.basicRequest)
             #expect(response.text.contains("GPT-5"))
             #expect(response.usage?.outputTokens == 5)

@@ -469,7 +469,7 @@ public final class TKAuthManager: @unchecked Sendable {
             "refresh_token": refreshToken,
         ])
 
-        let (data, response) = try await (session ?? TKURLSessionFactory.make()).data(for: request)
+        let (data, response) = try await (session ?? .shared).data(for: request)
         guard let httpResponse = response as? HTTPURLResponse else {
             throw TachikomaError.networkError(NSError(domain: "Invalid OAuth response", code: 0))
         }
@@ -1082,7 +1082,7 @@ extension HTTP {
         let config = URLSessionConfiguration.ephemeral
         config.timeoutIntervalForRequest = timeoutSeconds
         config.timeoutIntervalForResource = timeoutSeconds
-        return TKURLSessionFactory.make(configuration: config)
+        return URLSession(configuration: config)
     }
 }
 

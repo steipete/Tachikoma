@@ -44,7 +44,7 @@ public final class OpenAIResponsesProvider: ModelProvider, ResponseCacheSafetyPr
     public init(
         model: LanguageModel.OpenAI,
         configuration: TachikomaConfiguration,
-        session: URLSession? = nil,
+        session: URLSession = .shared,
     ) throws {
         guard !model.isUnsupportedLegacyFamily else {
             throw TachikomaError.unsupportedOperation("OpenAI model '\(model.modelId)' is no longer supported")
@@ -53,7 +53,7 @@ public final class OpenAIResponsesProvider: ModelProvider, ResponseCacheSafetyPr
         self.model = model
         self.modelId = model.modelId
         self.configuration = configuration
-        self.session = session ?? TKURLSessionFactory.make()
+        self.session = session
 
         // Prefer API keys when explicitly configured. ChatGPT OAuth uses the Codex backend,
         // which is a different transport from the public OpenAI API.
