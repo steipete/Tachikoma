@@ -430,6 +430,42 @@ struct ProviderIntegrationTests {
         #expect(normalized.contains("red"))
     }
 
+    @Test
+    func `OpenAI Codex OAuth - GPT-5_6 Sol Vision Support`() async throws {
+        let previousProfileDirectory = TachikomaConfiguration.profileDirectoryName
+        if let profileDirectory = ProcessInfo.processInfo.environment["TACHIKOMA_INTEGRATION_PROFILE_DIR"] {
+            TachikomaConfiguration.profileDirectoryName = profileDirectory
+        }
+        defer {
+            TachikomaConfiguration.profileDirectoryName = previousProfileDirectory
+        }
+
+        guard TKAuthManager.shared.hasOpenAICodexCredentials() else {
+            throw TestSkipped("OpenAI Codex OAuth credentials are not configured")
+        }
+        guard TKAuthManager.shared.resolveAuth(for: .openai) == nil else {
+            throw TestSkipped("A configured OpenAI API key would take precedence over Codex OAuth")
+        }
+
+        let config = TachikomaConfiguration(loadFromEnvironment: false)
+        let provider = try OpenAIResponsesProvider(model: .gpt56Sol, configuration: config)
+        let redPixelPNG =
+            "iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAIAAACQkWg2AAAAF0lEQVR4nGP4z8BAEiJN9aiGUQ1DSgMAkPn/Afnh+ngAAAAASUVORK5CYII="
+        let request = ProviderRequest(
+            messages: [
+                ModelMessage.user(
+                    text: "Reply with the single lowercase word red if this image is red.",
+                    images: [.init(data: redPixelPNG, mimeType: "image/png")],
+                ),
+            ],
+            settings: .init(maxTokens: 32),
+        )
+
+        let response = try await provider.generateText(request: request)
+
+        #expect(response.text.lowercased().contains("red"))
+    }
+
     // MARK: - Helper Methods
 
     private static func warn(_ message: String) {

@@ -515,19 +515,86 @@ struct OpenAIResponsesProviderTests {
         }
     }
 
-    @Test
-    func `Responses provider resolves OAuth access token`() async throws {
+    @Test(arguments: [
+        (LanguageModel.OpenAI.gpt55, "gpt-5.5"),
+        (.gpt56Sol, "gpt-5.6-sol"),
+        (.gpt56Terra, "gpt-5.6-terra"),
+        (.gpt56Luna, "gpt-5.6-luna"),
+    ])
+    func `Codex OAuth provider sends image input through ChatGPT Responses transport`(
+        model: LanguageModel.OpenAI,
+        expectedModelID: String,
+    ) async throws {
         try await self.withIsolatedAuthState {
-            try TKAuthManager.shared.setCredential(key: "OPENAI_ACCESS_TOKEN", value: "oauth-access-token")
+            let accessToken = Self.openAIJWT(
+                accountID: "account-123",
+                expiration: Date().addingTimeInterval(3600),
+            )
+            try TKAuthManager.shared.setCredentials([
+                "OPENAI_ACCESS_TOKEN": accessToken,
+                "OPENAI_REFRESH_TOKEN": "oauth-refresh-token",
+                "OPENAI_ACCESS_EXPIRES": String(Int(Date().addingTimeInterval(3600).timeIntervalSince1970)),
+            ])
             let config = TachikomaConfiguration(loadFromEnvironment: false)
 
             try await self.withMockedSession { request in
-                #expect(request.value(forHTTPHeaderField: "Authorization") == "Bearer oauth-access-token")
-                return NetworkMocking.jsonResponse(for: request, data: Self.responsesPayload(text: "oauth ok"))
+                #expect(request.url?.host == "chatgpt.com")
+                #expect(request.url?.path == "/backend-api/codex/responses")
+                #expect(request.value(forHTTPHeaderField: "Authorization") == "Bearer \(accessToken)")
+                #expect(request.value(forHTTPHeaderField: "ChatGPT-Account-ID") == "account-123")
+                #expect(request.value(forHTTPHeaderField: "originator") == "peekaboo")
+                #expect(request.value(forHTTPHeaderField: "OpenAI-Beta") == "responses=experimental")
+                #expect(request.value(forHTTPHeaderField: "Accept") == "text/event-stream")
+
+                let body = try #require(Self.bodyData(from: request))
+                let json = try #require(JSONSerialization.jsonObject(with: body) as? [String: Any])
+                #expect(json["model"] as? String == expectedModelID)
+                #expect(json["stream"] as? Bool == true)
+                #expect(json["store"] as? Bool == false)
+                #expect(json["instructions"] as? String == "You are a helpful assistant.")
+                #expect(json["include"] as? [String] == ["reasoning.encrypted_content"])
+                #expect(json["reasoning"] == nil)
+                #expect((json["text"] as? [String: String])?["verbosity"] == "low")
+                #expect(json["truncation"] == nil)
+                #expect(json["max_output_tokens"] == nil)
+
+                let input = try #require(json["input"] as? [[String: Any]])
+                let content = try #require(input.first?["content"] as? [[String: Any]])
+                let image = try #require(content.first { $0["type"] as? String == "input_image" })
+                #expect(image["image_url"] as? String == "data:image/png;base64,BASE64DATA")
+
+                let payload = Self.responsesStreamPayload(chunks: [
+                    Self.streamChunkJSON(content: "vision through oauth", finishReason: nil),
+                    Self.streamEventJSON([
+                        "type": "response.completed",
+                        "response": [
+                            "usage": [
+                                "input_tokens": 12,
+                                "output_tokens": 4,
+                            ],
+                        ],
+                    ]),
+                ])
+                return NetworkMocking.streamResponse(for: request, data: payload)
             } operation: { session in
-                let provider = try OpenAIResponsesProvider(model: .gpt5Mini, configuration: config, session: session)
-                let response = try await provider.generateText(request: self.sampleRequest)
-                #expect(response.text.contains("oauth ok"))
+                let provider = try OpenAIResponsesProvider(model: model, configuration: config, session: session)
+                #expect(provider.isResponseCacheSafe == false)
+                let request = ProviderRequest(
+                    messages: [
+                        ModelMessage.user(
+                            text: "What do you see?",
+                            images: [ModelMessage.ContentPart.ImageContent(
+                                data: "BASE64DATA",
+                                mimeType: "image/png",
+                            )],
+                        ),
+                    ],
+                    settings: .init(maxTokens: 32),
+                )
+                let response = try await provider.generateText(request: request)
+                #expect(response.text == "vision through oauth")
+                #expect(response.finishReason == .stop)
+                #expect(response.usage == Usage(inputTokens: 12, outputTokens: 4))
             }
         }
     }
@@ -1066,6 +1133,23 @@ struct OpenAIResponsesProviderTests {
         return String(data: data, encoding: .utf8)!
     }
 
+    private static func openAIJWT(accountID: String, expiration: Date) -> String {
+        let header = ["alg": "none", "typ": "JWT"]
+        let payload: [String: Any] = [
+            "exp": Int(expiration.timeIntervalSince1970),
+            "https://api.openai.com/auth": ["chatgpt_account_id": accountID],
+        ]
+        return "\(self.base64URLJSON(header)).\(self.base64URLJSON(payload)).signature"
+    }
+
+    private static func base64URLJSON(_ value: Any) -> String {
+        let data = try! JSONSerialization.data(withJSONObject: value)
+        return data.base64EncodedString()
+            .replacingOccurrences(of: "+", with: "-")
+            .replacingOccurrences(of: "/", with: "_")
+            .replacingOccurrences(of: "=", with: "")
+    }
+
     private func withMockedSession<T>(
         handler: @Sendable @escaping (URLRequest) throws -> (HTTPURLResponse, Data),
         operation: (URLSession) async throws -> T,
@@ -1104,17 +1188,27 @@ struct OpenAIResponsesProviderTests {
             let profilePath = NSString(string: "~/" + profileDirectory).expandingTildeInPath
             let previousIgnoreEnvironment = TKAuthManager.shared.setIgnoreEnvironment(false)
             let previousIgnoreCredentialStore = TKAuthManager.shared.setIgnoreCredentialStore(false)
-            let savedOpenAIKey = getenv("OPENAI_API_KEY").map { String(cString: $0) }
+            let environmentKeys = [
+                "OPENAI_API_KEY",
+                "OPENAI_ACCESS_TOKEN",
+                "OPENAI_REFRESH_TOKEN",
+                "OPENAI_ACCESS_EXPIRES",
+            ]
+            let savedEnvironment = Dictionary(uniqueKeysWithValues: environmentKeys.map { key in
+                (key, getenv(key).map { String(cString: $0) })
+            })
 
             TachikomaConfiguration.profileDirectoryName = profileDirectory
-            unsetenv("OPENAI_API_KEY")
+            environmentKeys.forEach { unsetenv($0) }
             try? FileManager.default.removeItem(atPath: profilePath)
 
             defer {
-                if let savedOpenAIKey {
-                    setenv("OPENAI_API_KEY", savedOpenAIKey, 1)
-                } else {
-                    unsetenv("OPENAI_API_KEY")
+                for key in environmentKeys {
+                    if case let value?? = savedEnvironment[key] {
+                        setenv(key, value, 1)
+                    } else {
+                        unsetenv(key)
+                    }
                 }
                 TKAuthManager.shared.setIgnoreEnvironment(previousIgnoreEnvironment)
                 TKAuthManager.shared.setIgnoreCredentialStore(previousIgnoreCredentialStore)
