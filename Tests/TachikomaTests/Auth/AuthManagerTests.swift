@@ -191,7 +191,7 @@ struct AuthManagerTests {
 
     @Test
     @MainActor
-    func `OpenAI Codex OAuth refresh supersedes stale environment credentials`() async throws {
+    func `OpenAI Codex OAuth caches refreshed environment credentials without persisting`() async throws {
         let session = URLSession.oauthMock()
         try await self.withIsolatedAuthState {
             self.resetAuthEnv()
@@ -223,12 +223,13 @@ struct AuthManagerTests {
             #expect(first.accessToken == refreshedToken)
             #expect(second.accessToken == refreshedToken)
             #expect(OAuthMockURLProtocol.requestCount == 1)
+            #expect(TKCredentialStore().load().isEmpty)
         }
     }
 
     @Test
     @MainActor
-    func `OpenAI Codex OAuth continues a rotated refresh chain from the store`() async throws {
+    func `OpenAI Codex OAuth continues an environment refresh chain in memory`() async throws {
         let session = URLSession.oauthMock()
         try await self.withIsolatedAuthState {
             self.resetAuthEnv()
@@ -265,6 +266,102 @@ struct AuthManagerTests {
             let body = try #require(OAuthMockURLProtocol.lastBody)
             let json = try #require(JSONSerialization.jsonObject(with: body) as? [String: String])
             #expect(json["refresh_token"] == "rotated-refresh-token")
+            #expect(TKCredentialStore().load().isEmpty)
+        }
+    }
+
+    @Test
+    @MainActor
+    func `OpenAI Codex OAuth environment changes invalidate the in-memory refresh chain`() async throws {
+        let session = URLSession.oauthMock()
+        try await self.withIsolatedAuthState {
+            self.resetAuthEnv()
+            let firstExpiredToken = Self.openAIJWT(
+                accountID: "first-account",
+                expiration: Date().addingTimeInterval(-3600),
+            )
+            setenv("OPENAI_ACCESS_TOKEN", firstExpiredToken, 1)
+            setenv("OPENAI_REFRESH_TOKEN", "first-refresh-token", 1)
+
+            let firstRefreshedToken = Self.openAIJWT(
+                accountID: "first-account",
+                expiration: Date().addingTimeInterval(3600),
+            )
+            OAuthMockURLProtocol.reset()
+            OAuthMockURLProtocol.responseData = try JSONSerialization.data(withJSONObject: [
+                "access_token": firstRefreshedToken,
+                "refresh_token": "first-rotated-refresh-token",
+            ])
+            let firstAuth = try await TKAuthManager.shared.resolveOpenAICodexAuth(timeout: 5, session: session)
+
+            let secondExpiredToken = Self.openAIJWT(
+                accountID: "second-account",
+                expiration: Date().addingTimeInterval(-3600),
+            )
+            setenv("OPENAI_ACCESS_TOKEN", secondExpiredToken, 1)
+            setenv("OPENAI_REFRESH_TOKEN", "second-refresh-token", 1)
+            let secondRefreshedToken = Self.openAIJWT(
+                accountID: "second-account",
+                expiration: Date().addingTimeInterval(3600),
+            )
+            OAuthMockURLProtocol.responseData = try JSONSerialization.data(withJSONObject: [
+                "access_token": secondRefreshedToken,
+                "refresh_token": "second-rotated-refresh-token",
+            ])
+            let secondAuth = try await TKAuthManager.shared.resolveOpenAICodexAuth(timeout: 5, session: session)
+
+            #expect(firstAuth.accountID == "first-account")
+            #expect(secondAuth.accountID == "second-account")
+            #expect(OAuthMockURLProtocol.requestCount == 2)
+            let body = try #require(OAuthMockURLProtocol.lastBody)
+            let json = try #require(JSONSerialization.jsonObject(with: body) as? [String: String])
+            #expect(json["refresh_token"] == "second-refresh-token")
+            #expect(TKCredentialStore().load().isEmpty)
+        }
+    }
+
+    @Test
+    @MainActor
+    func `OpenAI Codex OAuth ignore-environment changes invalidate the in-memory refresh chain`() async throws {
+        let session = URLSession.oauthMock()
+        try await self.withIsolatedAuthState {
+            self.resetAuthEnv()
+            let expiredToken = Self.openAIJWT(
+                accountID: "ignored-environment-account",
+                expiration: Date().addingTimeInterval(-3600),
+            )
+            setenv("OPENAI_ACCESS_TOKEN", expiredToken, 1)
+            setenv("OPENAI_REFRESH_TOKEN", "ignored-environment-refresh-token", 1)
+
+            let firstRefreshedToken = Self.openAIJWT(
+                accountID: "ignored-environment-account",
+                expiration: Date().addingTimeInterval(3600),
+            )
+            OAuthMockURLProtocol.reset()
+            OAuthMockURLProtocol.responseData = try JSONSerialization.data(withJSONObject: [
+                "access_token": firstRefreshedToken,
+                "refresh_token": "rotated-refresh-token",
+            ])
+            _ = try await TKAuthManager.shared.resolveOpenAICodexAuth(timeout: 5, session: session)
+
+            TKAuthManager.shared.setIgnoreEnvironment(true)
+            TKAuthManager.shared.setIgnoreEnvironment(false)
+            let secondRefreshedToken = Self.openAIJWT(
+                accountID: "ignored-environment-account",
+                expiration: Date().addingTimeInterval(7200),
+            )
+            OAuthMockURLProtocol.responseData = try JSONSerialization.data(withJSONObject: [
+                "access_token": secondRefreshedToken,
+                "refresh_token": "second-rotated-refresh-token",
+            ])
+            let auth = try await TKAuthManager.shared.resolveOpenAICodexAuth(timeout: 5, session: session)
+
+            #expect(auth.accessToken == secondRefreshedToken)
+            #expect(OAuthMockURLProtocol.requestCount == 2)
+            let body = try #require(OAuthMockURLProtocol.lastBody)
+            let json = try #require(JSONSerialization.jsonObject(with: body) as? [String: String])
+            #expect(json["refresh_token"] == "ignored-environment-refresh-token")
+            #expect(TKCredentialStore().load().isEmpty)
         }
     }
 
@@ -306,6 +403,9 @@ struct AuthManagerTests {
             let body = try #require(OAuthMockURLProtocol.lastBody)
             let json = try #require(JSONSerialization.jsonObject(with: body) as? [String: String])
             #expect(json["refresh_token"] == "environment-refresh-token")
+            let storedCredentials = TKCredentialStore().load()
+            #expect(storedCredentials["OPENAI_ACCESS_TOKEN"] == storedToken)
+            #expect(storedCredentials["OPENAI_REFRESH_TOKEN"] == "stored-refresh-token")
         }
     }
 

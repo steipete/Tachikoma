@@ -114,6 +114,11 @@ private struct TKOpenAICodexCredentialSnapshot: Sendable, Equatable {
     }
 }
 
+private struct TKOpenAICodexEnvironmentCredentialCache: Sendable, Equatable {
+    let source: TKOpenAICodexCredentialSnapshot
+    let refreshed: TKOpenAICodexCredentialSnapshot
+}
+
 enum TKOpenAICodexJWT {
     private static let authClaim = "https://api.openai.com/auth"
 
@@ -254,6 +259,7 @@ public final class TKAuthManager: @unchecked Sendable {
     private var ignoreEnv = false
     private var ignoreStore = false
     private var credentialGeneration: UInt64 = 0
+    private var openAICodexEnvironmentCredentialCache: TKOpenAICodexEnvironmentCredentialCache?
 
     private init() {}
 
@@ -280,9 +286,14 @@ public final class TKAuthManager: @unchecked Sendable {
     @discardableResult
     public func setIgnoreEnvironment(_ value: Bool) -> Bool {
         self.lock.lock()
+        defer { self.lock.unlock() }
         let previous = self.ignoreEnv
+        guard previous != value else {
+            return previous
+        }
         self.ignoreEnv = value
-        self.lock.unlock()
+        self.openAICodexEnvironmentCredentialCache = nil
+        self.credentialGeneration &+= 1
         return previous
     }
 
@@ -444,7 +455,8 @@ public final class TKAuthManager: @unchecked Sendable {
     private func refreshOpenAICodexAuth(
         credentialState: (
             snapshots: [TKOpenAICodexCredentialSnapshot],
-            generation: UInt64),
+            generation: UInt64,
+            environmentSource: TKOpenAICodexCredentialSnapshot?),
         snapshot: TKOpenAICodexCredentialSnapshot,
         timeout: Double,
         session: URLSession?,
@@ -505,12 +517,27 @@ public final class TKAuthManager: @unchecked Sendable {
             throw TachikomaError.authenticationFailed("OpenAI OAuth credentials changed while refreshing; retry")
         }
 
-        let didPersist = try self.updateCredentials([
-            "OPENAI_ACCESS_TOKEN": accessToken,
-            "OPENAI_REFRESH_TOKEN": rotatedRefreshToken,
-            "OPENAI_ACCESS_EXPIRES": String(Int(expiration.timeIntervalSince1970)),
-        ], expectedGeneration: credentialState.generation)
-        guard didPersist else {
+        let refreshedSnapshot = TKOpenAICodexCredentialSnapshot(
+            source: snapshot.source,
+            accessToken: accessToken,
+            refreshToken: rotatedRefreshToken,
+            expiration: expiration,
+        )
+        let didUpdateCredentials = switch snapshot.source {
+        case .environment:
+            self.updateOpenAICodexEnvironmentCredentials(
+                refreshedSnapshot,
+                source: credentialState.environmentSource,
+                expectedGeneration: credentialState.generation,
+            )
+        case .store:
+            try self.updateCredentials([
+                "OPENAI_ACCESS_TOKEN": accessToken,
+                "OPENAI_REFRESH_TOKEN": rotatedRefreshToken,
+                "OPENAI_ACCESS_EXPIRES": String(Int(expiration.timeIntervalSince1970)),
+            ], expectedGeneration: credentialState.generation)
+        }
+        guard didUpdateCredentials else {
             if let currentAuth = try self.currentOpenAICodexAuth() {
                 return currentAuth
             }
@@ -551,30 +578,31 @@ public final class TKAuthManager: @unchecked Sendable {
 
     private func openAICodexCredentialState() -> (
         snapshots: [TKOpenAICodexCredentialSnapshot],
-        generation: UInt64)
+        generation: UInt64,
+        environmentSource: TKOpenAICodexCredentialSnapshot?)
     {
         self.lock.lock()
         let ignoreEnvironment = self.ignoreEnv
         let credentials = self.ignoreStore ? [:] : self.store.load()
+        let environmentSource = ignoreEnvironment ? nil : self.openAICodexEnvironmentSnapshot()
+        let environmentSnapshot: TKOpenAICodexCredentialSnapshot?
+        if let cache = self.openAICodexEnvironmentCredentialCache {
+            if cache.source == environmentSource {
+                environmentSnapshot = cache.refreshed
+            } else {
+                self.openAICodexEnvironmentCredentialCache = nil
+                self.credentialGeneration &+= 1
+                environmentSnapshot = environmentSource
+            }
+        } else {
+            environmentSnapshot = environmentSource
+        }
         let generation = self.credentialGeneration
         self.lock.unlock()
 
         var snapshots: [TKOpenAICodexCredentialSnapshot] = []
-        if !ignoreEnvironment {
-            let accessToken = self.environmentValue(for: "OPENAI_ACCESS_TOKEN", ignoringEnvironment: false)
-            let refreshToken = self.environmentValue(for: "OPENAI_REFRESH_TOKEN", ignoringEnvironment: false)
-            let expiration = self.environmentValue(for: "OPENAI_ACCESS_EXPIRES", ignoringEnvironment: false)
-                .flatMap(TimeInterval.init)
-                .map(Date.init(timeIntervalSince1970:))
-                ?? accessToken.flatMap(TKOpenAICodexJWT.expiration(from:))
-            if accessToken?.isEmpty == false || refreshToken?.isEmpty == false {
-                snapshots.append(TKOpenAICodexCredentialSnapshot(
-                    source: .environment,
-                    accessToken: accessToken,
-                    refreshToken: refreshToken,
-                    expiration: expiration,
-                ))
-            }
+        if let environmentSnapshot {
+            snapshots.append(environmentSnapshot)
         }
 
         let storedAccessToken = credentials["OPENAI_ACCESS_TOKEN"].flatMap { $0.isEmpty ? nil : $0 }
@@ -591,7 +619,48 @@ public final class TKAuthManager: @unchecked Sendable {
                 expiration: storedExpiration,
             ))
         }
-        return (snapshots, generation)
+        return (snapshots, generation, environmentSource)
+    }
+
+    private func openAICodexEnvironmentSnapshot() -> TKOpenAICodexCredentialSnapshot? {
+        let accessToken = self.environmentValue(for: "OPENAI_ACCESS_TOKEN", ignoringEnvironment: false)
+        let refreshToken = self.environmentValue(for: "OPENAI_REFRESH_TOKEN", ignoringEnvironment: false)
+        let expiration = self.environmentValue(for: "OPENAI_ACCESS_EXPIRES", ignoringEnvironment: false)
+            .flatMap(TimeInterval.init)
+            .map(Date.init(timeIntervalSince1970:))
+            ?? accessToken.flatMap(TKOpenAICodexJWT.expiration(from:))
+        guard accessToken?.isEmpty == false || refreshToken?.isEmpty == false else {
+            return nil
+        }
+        return TKOpenAICodexCredentialSnapshot(
+            source: .environment,
+            accessToken: accessToken,
+            refreshToken: refreshToken,
+            expiration: expiration,
+        )
+    }
+
+    private func updateOpenAICodexEnvironmentCredentials(
+        _ refreshed: TKOpenAICodexCredentialSnapshot,
+        source: TKOpenAICodexCredentialSnapshot?,
+        expectedGeneration: UInt64,
+    ) -> Bool {
+        self.lock.lock()
+        defer { self.lock.unlock() }
+        guard
+            expectedGeneration == self.credentialGeneration,
+            !self.ignoreEnv,
+            let source,
+            source == self.openAICodexEnvironmentSnapshot()
+        else {
+            return false
+        }
+        self.openAICodexEnvironmentCredentialCache = TKOpenAICodexEnvironmentCredentialCache(
+            source: source,
+            refreshed: refreshed,
+        )
+        self.credentialGeneration &+= 1
+        return true
     }
 
     // MARK: Validation
