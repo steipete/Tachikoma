@@ -4,6 +4,12 @@ All notable changes to the Tachikoma project will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+- Added ChatGPT OAuth-backed OpenAI Responses requests, including vision, token refresh, and concurrent refresh deduplication. Thanks @scotthuang.
+
+### Fixed
+- Preserved generic stored `OPENAI_ACCESS_TOKEN` routing for public and compatible Responses endpoints alongside ChatGPT OAuth sessions.
+
 ## [0.2.2] - 2026-07-15
 
 ### Fixed

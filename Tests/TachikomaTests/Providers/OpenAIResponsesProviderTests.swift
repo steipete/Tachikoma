@@ -579,14 +579,15 @@ struct OpenAIResponsesProviderTests {
             } operation: { session in
                 let provider = try OpenAIResponsesProvider(model: model, configuration: config, session: session)
                 #expect(provider.isResponseCacheSafe == false)
+                let image = ModelMessage.ContentPart.ImageContent(
+                    data: "BASE64DATA",
+                    mimeType: "image/png",
+                )
                 let request = ProviderRequest(
                     messages: [
                         ModelMessage.user(
                             text: "What do you see?",
-                            images: [ModelMessage.ContentPart.ImageContent(
-                                data: "BASE64DATA",
-                                mimeType: "image/png",
-                            )],
+                            images: [image],
                         ),
                     ],
                     settings: .init(maxTokens: 32),
@@ -595,6 +596,36 @@ struct OpenAIResponsesProviderTests {
                 #expect(response.text == "vision through oauth")
                 #expect(response.finishReason == .stop)
                 #expect(response.usage == Usage(inputTokens: 12, outputTokens: 4))
+            }
+        }
+    }
+
+    @Test
+    func `Responses provider preserves generic stored access token routing`() async throws {
+        try await self.withIsolatedAuthState {
+            try TKAuthManager.shared.setCredential(
+                key: "OPENAI_ACCESS_TOKEN",
+                value: "opaque-access-token",
+            )
+            let config = TachikomaConfiguration(loadFromEnvironment: false)
+            config.setBaseURL("https://openai-compatible.example.test/v1", for: .openai)
+
+            try await self.withMockedSession { request in
+                #expect(request.url?.absoluteString == "https://openai-compatible.example.test/v1/responses")
+                #expect(request.value(forHTTPHeaderField: "Authorization") == "Bearer opaque-access-token")
+                #expect(request.value(forHTTPHeaderField: "ChatGPT-Account-ID") == nil)
+                return NetworkMocking.jsonResponse(
+                    for: request,
+                    data: Self.responsesPayload(text: "generic bearer ok"),
+                )
+            } operation: { session in
+                let provider = try OpenAIResponsesProvider(
+                    model: .gpt5Mini,
+                    configuration: config,
+                    session: session,
+                )
+                let response = try await provider.generateText(request: self.sampleRequest)
+                #expect(response.text.contains("generic bearer ok"))
             }
         }
     }

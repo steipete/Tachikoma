@@ -29,7 +29,9 @@ public enum TKProviderId: String, CaseIterable, Sendable {
 
     public static func normalize(_ value: String) -> TKProviderId? {
         let lower = value.lowercased()
-        if lower == "xai" { return .grok }
+        if lower == "xai" {
+            return .grok
+        }
         return TKProviderId(rawValue: lower)
     }
 
@@ -45,13 +47,13 @@ public enum TKProviderId: String, CaseIterable, Sendable {
 
     public var credentialKeys: [String] {
         switch self {
+        // swiftformat:disable indent
         case .openai: [
             "OPENAI_API_KEY",
             "OPENAI_ACCESS_TOKEN",
             "OPENAI_REFRESH_TOKEN",
             "OPENAI_ACCESS_EXPIRES",
         ]
-        // swiftformat:disable indent
         case .anthropic: [
             "ANTHROPIC_API_KEY",
             "ANTHROPIC_ACCESS_TOKEN",
@@ -127,8 +129,8 @@ enum TKOpenAICodexJWT {
             let payload = self.payload(from: token),
             let auth = payload[self.authClaim] as? [String: Any],
             let accountID = auth["chatgpt_account_id"] as? String,
-            !accountID.isEmpty
-        else {
+            !accountID.isEmpty else
+        {
             return nil
         }
         return accountID
@@ -137,8 +139,8 @@ enum TKOpenAICodexJWT {
     static func expiration(from token: String) -> Date? {
         guard
             let payload = self.payload(from: token),
-            let expiration = payload["exp"] as? NSNumber
-        else {
+            let expiration = payload["exp"] as? NSNumber else
+        {
             return nil
         }
         return Date(timeIntervalSince1970: expiration.doubleValue)
@@ -157,8 +159,8 @@ enum TKOpenAICodexJWT {
         guard
             let data = Data(base64Encoded: encoded),
             let json = try? JSONSerialization.jsonObject(with: data),
-            let payload = json as? [String: Any]
-        else {
+            let payload = json as? [String: Any] else
+        {
             return nil
         }
         return payload
@@ -270,8 +272,12 @@ public final class TKAuthManager: @unchecked Sendable {
             let string = String(cString: cValue)
             return string.isEmpty ? nil : string
         }
-        if let value { return value }
-        if let value = ProcessInfo.processInfo.environment[key], !value.isEmpty { return value }
+        if let value {
+            return value
+        }
+        if let value = ProcessInfo.processInfo.environment[key], !value.isEmpty {
+            return value
+        }
         return nil
     }
 
@@ -308,7 +314,9 @@ public final class TKAuthManager: @unchecked Sendable {
 
     public func credentialValue(for key: String) -> String? {
         let state = self.authState()
-        if let env = self.environmentValue(for: key, ignoringEnvironment: state.ignoreEnv) { return env }
+        if let env = self.environmentValue(for: key, ignoringEnvironment: state.ignoreEnv) {
+            return env
+        }
         return state.creds[key]
     }
 
@@ -322,6 +330,15 @@ public final class TKAuthManager: @unchecked Sendable {
             }
             if let key = creds["OPENAI_API_KEY"], !key.isEmpty {
                 return .apiKey(key)
+            }
+            if
+                let access = creds["OPENAI_ACCESS_TOKEN"],
+                !access.isEmpty,
+                TKOpenAICodexJWT.accountID(from: access) == nil,
+                creds["OPENAI_REFRESH_TOKEN"]?.isEmpty != false,
+                creds["OPENAI_ACCESS_EXPIRES"]?.isEmpty != false
+            {
+                return .bearer(access, betaHeader: nil)
             }
         case .anthropic:
             if let env = self.environmentValue(for: "ANTHROPIC_API_KEY", ignoringEnvironment: state.ignoreEnv) {
@@ -342,13 +359,17 @@ public final class TKAuthManager: @unchecked Sendable {
                 }
             }
             for k in envOrder {
-                if let val = creds[k], !val.isEmpty { return .bearer(val, betaHeader: nil) }
+                if let val = creds[k], !val.isEmpty {
+                    return .bearer(val, betaHeader: nil)
+                }
             }
         case .gemini:
             if let env = self.environmentValue(for: "GEMINI_API_KEY", ignoringEnvironment: state.ignoreEnv) {
                 return .apiKey(env)
             }
-            if let val = creds["GEMINI_API_KEY"], !val.isEmpty { return .apiKey(val) }
+            if let val = creds["GEMINI_API_KEY"], !val.isEmpty {
+                return .apiKey(val)
+            }
         case .openrouter:
             if let env = self.environmentValue(for: "OPENROUTER_API_KEY", ignoringEnvironment: state.ignoreEnv) {
                 return .bearer(env, betaHeader: nil)
@@ -407,8 +428,8 @@ public final class TKAuthManager: @unchecked Sendable {
         let prioritizedSnapshots = self.prioritizedOpenAICodexSnapshots(credentialState.snapshots)
         guard
             let snapshot = prioritizedSnapshots.first(where: \.hasRefreshToken),
-            let refreshTaskKey = snapshot.refreshTaskKey
-        else {
+            let refreshTaskKey = snapshot.refreshTaskKey else
+        {
             throw TachikomaError.authenticationFailed("OpenAI OAuth token expired; sign in again")
         }
 
@@ -434,8 +455,8 @@ public final class TKAuthManager: @unchecked Sendable {
             guard
                 let accessToken = snapshot.accessToken,
                 snapshot.hasValidAccessToken(at: Date()),
-                let accountID = snapshot.accountID
-            else {
+                let accountID = snapshot.accountID else
+            {
                 continue
             }
             return TKOpenAICodexAuth(accessToken: accessToken, accountID: accountID)
@@ -456,7 +477,8 @@ public final class TKAuthManager: @unchecked Sendable {
         credentialState: (
             snapshots: [TKOpenAICodexCredentialSnapshot],
             generation: UInt64,
-            environmentSource: TKOpenAICodexCredentialSnapshot?),
+            environmentSource: TKOpenAICodexCredentialSnapshot?,
+        ),
         snapshot: TKOpenAICodexCredentialSnapshot,
         timeout: Double,
         session: URLSession?,
@@ -495,8 +517,8 @@ public final class TKAuthManager: @unchecked Sendable {
             let payload = try JSONSerialization.jsonObject(with: data) as? [String: Any],
             let accessToken = payload["access_token"] as? String,
             !accessToken.isEmpty,
-            let accountID = TKOpenAICodexJWT.accountID(from: accessToken)
-        else {
+            let accountID = TKOpenAICodexJWT.accountID(from: accessToken) else
+        {
             throw TachikomaError.authenticationFailed("OpenAI OAuth refresh returned an invalid token")
         }
 
@@ -512,8 +534,8 @@ public final class TKAuthManager: @unchecked Sendable {
         let latestCredentialState = self.openAICodexCredentialState()
         guard
             latestCredentialState.generation == credentialState.generation,
-            latestCredentialState.snapshots == credentialState.snapshots
-        else {
+            latestCredentialState.snapshots == credentialState.snapshots else
+        {
             throw TachikomaError.authenticationFailed("OpenAI OAuth credentials changed while refreshing; retry")
         }
 
@@ -549,7 +571,9 @@ public final class TKAuthManager: @unchecked Sendable {
 
     private func prioritizedOpenAICodexSnapshots(
         _ snapshots: [TKOpenAICodexCredentialSnapshot],
-    ) -> [TKOpenAICodexCredentialSnapshot] {
+    )
+        -> [TKOpenAICodexCredentialSnapshot]
+    {
         guard let environment = snapshots.first(where: { $0.source == .environment }) else {
             return snapshots
         }
@@ -557,8 +581,9 @@ public final class TKAuthManager: @unchecked Sendable {
             return [environment]
         }
 
-        if let environmentAccountID = environment.accountID,
-           environmentAccountID == stored.accountID
+        if
+            let environmentAccountID = environment.accountID,
+            environmentAccountID == stored.accountID
         {
             return [environment, stored].sorted { lhs, rhs in
                 let lhsExpiration = lhs.expiration ?? .distantPast
@@ -579,8 +604,8 @@ public final class TKAuthManager: @unchecked Sendable {
     private func openAICodexCredentialState() -> (
         snapshots: [TKOpenAICodexCredentialSnapshot],
         generation: UInt64,
-        environmentSource: TKOpenAICodexCredentialSnapshot?)
-    {
+        environmentSource: TKOpenAICodexCredentialSnapshot?,
+    ) {
         self.lock.lock()
         let ignoreEnvironment = self.ignoreEnv
         let credentials = self.ignoreStore ? [:] : self.store.load()
@@ -644,15 +669,17 @@ public final class TKAuthManager: @unchecked Sendable {
         _ refreshed: TKOpenAICodexCredentialSnapshot,
         source: TKOpenAICodexCredentialSnapshot?,
         expectedGeneration: UInt64,
-    ) -> Bool {
+    )
+        -> Bool
+    {
         self.lock.lock()
         defer { self.lock.unlock() }
         guard
             expectedGeneration == self.credentialGeneration,
             !self.ignoreEnv,
             let source,
-            source == self.openAICodexEnvironmentSnapshot()
-        else {
+            source == self.openAICodexEnvironmentSnapshot() else
+        {
             return false
         }
         self.openAICodexEnvironmentCredentialCache = TKOpenAICodexEnvironmentCredentialCache(
@@ -685,7 +712,9 @@ public final class TKAuthManager: @unchecked Sendable {
         guard let authorizeURL = config.authorizeURL else { return .failure(.general("Bad authorize URL")) }
 
         #if canImport(AppKit)
-        if !noBrowser { NSWorkspace.shared.open(authorizeURL) }
+        if !noBrowser {
+            NSWorkspace.shared.open(authorizeURL)
+        }
         #endif
 
         print("Open this URL in a browser if it did not open automatically:\n  \(authorizeURL.absoluteString)\n")
@@ -784,11 +813,15 @@ public final class TKAuthManager: @unchecked Sendable {
                 }
             }
 
-            if !code.isEmpty { return (code, state) }
+            if !code.isEmpty {
+                return (code, state)
+            }
         }
 
         let parts = trimmed.split(separator: "#", maxSplits: 1)
-        if parts.count > 1 { return (String(parts[0]), String(parts[1])) }
+        if parts.count > 1 {
+            return (String(parts[0]), String(parts[1]))
+        }
         return (trimmed, "")
     }
 
@@ -930,7 +963,9 @@ enum OAuthTokenExchanger {
             "code_verifier": pkce.verifier,
         ]
         if config.requiresStateInTokenExchange {
-            if state.isEmpty { return .failure("Missing OAuth state") }
+            if state.isEmpty {
+                return .failure("Missing OAuth state")
+            }
             body["state"] = state
         }
         config.extraToken.forEach { body[$0.key] = $0.value }
@@ -1089,7 +1124,9 @@ enum HTTP {
         do {
             let (_, response) = try await session.data(for: request)
             guard let http = response as? HTTPURLResponse else { return .failure("invalid response") }
-            if (200...299).contains(http.statusCode) { return .success }
+            if (200...299).contains(http.statusCode) {
+                return .success
+            }
             return .failure("status \(http.statusCode)")
         } catch {
             if (error as? URLError)?.code == .timedOut {
