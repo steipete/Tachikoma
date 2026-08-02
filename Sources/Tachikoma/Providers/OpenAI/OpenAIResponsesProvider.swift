@@ -5,7 +5,7 @@ import FoundationNetworking
 
 /// Provider for OpenAI Responses API (GPT-5)
 @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
-public final class OpenAIResponsesProvider: ModelProvider {
+public final class OpenAIResponsesProvider: ModelProvider, ResponseCacheSafetyProviding {
     public let modelId: String
     public let baseURL: String?
     public let apiKey: String?
@@ -14,9 +14,26 @@ public final class OpenAIResponsesProvider: ModelProvider {
     private let model: LanguageModel.OpenAI
     private let configuration: TachikomaConfiguration
     private let session: URLSession
-    private let auth: TKAuthValue
+    private let transport: Transport
+
+    private enum Transport: Sendable {
+        case platform(TKAuthValue)
+        case codexOAuth
+    }
+
+    private struct RequestAuthentication: Sendable {
+        let baseURL: String
+        let accessToken: String
+        let accountID: String?
+        let isCodex: Bool
+    }
+
+    private static let platformBaseURL = "https://api.openai.com/v1"
+    private static let codexBaseURL = "https://chatgpt.com/backend-api/codex"
 
     private static let debugLogURL = URL(fileURLWithPath: "/tmp/tachikoma-gpt5.log")
+
+    var isResponseCacheSafe: Bool { false }
 
     // Provider options (immutable for Sendable conformance)
     private let reasoningEffort: ReasoningEffort = .medium
@@ -37,22 +54,28 @@ public final class OpenAIResponsesProvider: ModelProvider {
         self.modelId = model.modelId
         self.configuration = configuration
         self.session = session
-        self.baseURL = configuration.getBaseURL(for: .openai) ?? "https://api.openai.com/v1"
 
-        // Prefer configuration-provided key first (test configs use this), then shared OAuth/API-key auth.
+        // Prefer API keys when explicitly configured. ChatGPT OAuth uses the Codex backend,
+        // which is a different transport from the public OpenAI API.
         if let key = configuration.getAPIKey(for: .openai) {
-            self.auth = .bearer(key, betaHeader: nil)
+            self.transport = .platform(.bearer(key, betaHeader: nil))
             self.apiKey = key
+            self.baseURL = configuration.getBaseURL(for: .openai) ?? Self.platformBaseURL
         } else if let auth = TKAuthManager.shared.resolveAuth(for: .openai) {
-            self.auth = auth
+            self.transport = .platform(auth)
             switch auth {
             case let .apiKey(key):
                 self.apiKey = key
             case let .bearer(token, _):
                 self.apiKey = token
             }
+            self.baseURL = configuration.getBaseURL(for: .openai) ?? Self.platformBaseURL
+        } else if TKAuthManager.shared.hasOpenAICodexCredentials() {
+            self.transport = .codexOAuth
+            self.apiKey = nil
+            self.baseURL = Self.codexBaseURL
         } else {
-            throw TachikomaError.authenticationFailed("OPENAI_API_KEY not found")
+            throw TachikomaError.authenticationFailed("OPENAI_API_KEY or OpenAI OAuth login not found")
         }
 
         // Set capabilities based on model
@@ -71,14 +94,21 @@ public final class OpenAIResponsesProvider: ModelProvider {
     }
 
     public func generateText(request: ProviderRequest) async throws -> ProviderResponse {
+        if case .codexOAuth = self.transport {
+            return try await self.generateCodexText(request: request)
+        }
+
         // Build Responses API request
-        let responsesRequest = try buildResponsesRequest(request: request)
+        let responsesRequest = try self.buildResponsesRequest(request: request)
 
         // Create URL for Responses API endpoint
-        let url = URL(string: "\(baseURL!)/responses")!
+        let url = URL(string: "\(self.baseURL!)/responses")!
         var urlRequest = URLRequest(url: url)
         urlRequest.httpMethod = "POST"
-        let (authHeaderName, prefix, secret) = self.authHeader()
+        guard case let .platform(auth) = self.transport else {
+            throw TachikomaError.authenticationFailed("Invalid OpenAI authentication transport")
+        }
+        let (authHeaderName, prefix, secret) = Self.authHeader(for: auth)
         urlRequest.setValue("\(prefix)\(secret)", forHTTPHeaderField: authHeaderName)
         urlRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
 
@@ -115,7 +145,7 @@ public final class OpenAIResponsesProvider: ModelProvider {
         }
         #else
         // macOS/iOS: Use async API
-        let (data, response) = try await session.data(for: urlRequest)
+        let (data, response) = try await self.session.data(for: urlRequest)
         #endif
 
         guard let httpResponse = response as? HTTPURLResponse else {
@@ -140,21 +170,32 @@ public final class OpenAIResponsesProvider: ModelProvider {
     }
 
     public func streamText(request: ProviderRequest) async throws -> AsyncThrowingStream<TextStreamDelta, Error> {
-        // Build Responses API request with streaming enabled
-        let responsesRequest = try buildResponsesRequest(request: request, streaming: true)
+        let requestAuthentication = try await self.resolveRequestAuthentication()
 
-        // Add streaming flag (though not explicitly in request, handled by SSE)
-        let url = URL(string: "\(baseURL!)/responses")!
+        // Build Responses API request with streaming enabled
+        let responsesRequest = try self.buildResponsesRequest(
+            request: request,
+            streaming: true,
+            codex: requestAuthentication.isCodex,
+        )
+
+        let url = URL(string: "\(requestAuthentication.baseURL)/responses")!
         let finalURLRequest: URLRequest = {
             var req = URLRequest(url: url)
             req.httpMethod = "POST"
-            let (authHeaderName, prefix, secret) = self.authHeader()
-            req.setValue("\(prefix)\(secret)", forHTTPHeaderField: authHeaderName)
+            req.setValue(
+                "Bearer \(requestAuthentication.accessToken)",
+                forHTTPHeaderField: "Authorization",
+            )
             req.setValue("application/json", forHTTPHeaderField: "Content-Type")
             req.setValue("text/event-stream", forHTTPHeaderField: "Accept")
 
-            // Add OpenAI-specific headers
-            if let orgId = ProcessInfo.processInfo.environment["OPENAI_ORG_ID"] {
+            if requestAuthentication.isCodex {
+                req.setValue(requestAuthentication.accountID, forHTTPHeaderField: "ChatGPT-Account-ID")
+                req.setValue("peekaboo", forHTTPHeaderField: "originator")
+                req.setValue("responses=experimental", forHTTPHeaderField: "OpenAI-Beta")
+                req.setValue("peekaboo", forHTTPHeaderField: "User-Agent")
+            } else if let orgId = ProcessInfo.processInfo.environment["OPENAI_ORG_ID"] {
                 req.setValue(orgId, forHTTPHeaderField: "OpenAI-Organization")
             }
 
@@ -281,6 +322,58 @@ public final class OpenAIResponsesProvider: ModelProvider {
         }
     }
 
+    private func generateCodexText(request: ProviderRequest) async throws -> ProviderResponse {
+        let stream = try await self.streamText(request: request)
+        var text = ""
+        var usage: Usage?
+        var finishReason: FinishReason?
+        var toolCalls: [AgentToolCall] = []
+
+        for try await delta in stream {
+            switch delta.type {
+            case .textDelta:
+                text.append(delta.content ?? "")
+            case .toolCall:
+                if let toolCall = delta.toolCall {
+                    toolCalls.append(toolCall)
+                }
+            case .done:
+                usage = delta.usage ?? usage
+                finishReason = delta.finishReason ?? finishReason
+            case .toolResult, .reasoning:
+                break
+            }
+        }
+
+        return ProviderResponse(
+            text: text,
+            usage: usage,
+            finishReason: finishReason,
+            toolCalls: toolCalls.isEmpty ? nil : toolCalls,
+        )
+    }
+
+    private func resolveRequestAuthentication() async throws -> RequestAuthentication {
+        switch self.transport {
+        case let .platform(auth):
+            let (_, _, accessToken) = Self.authHeader(for: auth)
+            return RequestAuthentication(
+                baseURL: self.baseURL ?? Self.platformBaseURL,
+                accessToken: accessToken,
+                accountID: nil,
+                isCodex: false,
+            )
+        case .codexOAuth:
+            let auth = try await TKAuthManager.shared.resolveOpenAICodexAuth(session: self.session)
+            return RequestAuthentication(
+                baseURL: self.baseURL ?? Self.codexBaseURL,
+                accessToken: auth.accessToken,
+                accountID: auth.accountID,
+                isCodex: true,
+            )
+        }
+    }
+
     private struct ResponsesStreamState {
         struct PartialToolCall {
             var id: String
@@ -402,13 +495,19 @@ public final class OpenAIResponsesProvider: ModelProvider {
                 let finishReason: FinishReason = state.didReceiveRefusal
                     ? .contentFilter
                     : (state.didYieldToolCall ? .toolCalls : .stop)
-                continuation.yield(.done(finishReason: finishReason))
+                continuation.yield(.done(
+                    usage: Self.usageForResponseStreamEvent(event),
+                    finishReason: finishReason,
+                ))
                 continuation.finish()
                 return true
 
             case "response.incomplete":
                 let finishReason = Self.finishReasonForIncompleteResponseEvent(event)
-                continuation.yield(.done(finishReason: finishReason))
+                continuation.yield(.done(
+                    usage: Self.usageForResponseStreamEvent(event),
+                    finishReason: finishReason,
+                ))
                 continuation.finish()
                 return true
 
@@ -463,6 +562,18 @@ public final class OpenAIResponsesProvider: ModelProvider {
         }
     }
 
+    private static func usageForResponseStreamEvent(_ event: [String: Any]) -> Usage? {
+        guard
+            let response = event["response"] as? [String: Any],
+            let usage = response["usage"] as? [String: Any],
+            let inputTokens = (usage["input_tokens"] as? NSNumber)?.intValue,
+            let outputTokens = (usage["output_tokens"] as? NSNumber)?.intValue
+        else {
+            return nil
+        }
+        return Usage(inputTokens: inputTokens, outputTokens: outputTokens)
+    }
+
     private static func errorMessageForResponseStreamEvent(_ event: [String: Any]) -> String {
         let eventType = event["type"] as? String ?? "error"
         let errorPayload = (event["error"] as? [String: Any]) ??
@@ -476,8 +587,8 @@ public final class OpenAIResponsesProvider: ModelProvider {
         return "OpenAI Responses API stream \(eventType)"
     }
 
-    private func authHeader() -> (String, String, String) {
-        switch self.auth {
+    private static func authHeader(for auth: TKAuthValue) -> (String, String, String) {
+        switch auth {
         case let .apiKey(key):
             ("Authorization", "Bearer ", key)
         case let .bearer(token, _):
@@ -490,11 +601,13 @@ public final class OpenAIResponsesProvider: ModelProvider {
     private func buildResponsesRequest(
         request: ProviderRequest,
         streaming: Bool = false,
+        codex: Bool = false,
     ) throws
         -> OpenAIResponsesRequest
     {
         // Convert messages to Responses API format
-        let messages = try sanitizeInputs(convertMessages(request.messages))
+        let inputMessages = codex ? request.messages.filter { $0.role != .system } : request.messages
+        let messages = try self.sanitizeInputs(self.convertMessages(inputMessages))
 
         // Convert tools if present
         let tools = try request.tools?.compactMap { tool in
@@ -508,22 +621,26 @@ public final class OpenAIResponsesProvider: ModelProvider {
         // Determine reasoning configuration
         let reasoning: ReasoningConfig?
         if Self.isReasoningModel(self.model) || Self.isGPT5Model(self.model) {
-            let effort: OpenAIReasoningEffort
-            if let optionEffort = openaiOptions?.reasoningEffort {
-                if Self.isGPT56Model(self.model), optionEffort == .minimal {
-                    throw TachikomaError.invalidConfiguration(
-                        "GPT-5.6 does not support 'minimal' reasoning effort; use 'low' or higher",
-                    )
-                }
-                // Convert from public API to internal type
-                effort = OpenAIReasoningEffort(rawValue: optionEffort.rawValue) ?? .medium
+            if codex, openaiOptions?.reasoningEffort == nil {
+                reasoning = nil
             } else {
-                effort = .medium // Default
+                let effort: OpenAIReasoningEffort
+                if let optionEffort = openaiOptions?.reasoningEffort {
+                    if Self.isGPT56Model(self.model), optionEffort == .minimal {
+                        throw TachikomaError.invalidConfiguration(
+                            "GPT-5.6 does not support 'minimal' reasoning effort; use 'low' or higher",
+                        )
+                    }
+                    // Convert from public API to internal type
+                    effort = OpenAIReasoningEffort(rawValue: optionEffort.rawValue) ?? .medium
+                } else {
+                    effort = .medium // Public API default
+                }
+                reasoning = ReasoningConfig(
+                    effort: effort,
+                    summary: .auto,
+                )
             }
-            reasoning = ReasoningConfig(
-                effort: effort,
-                summary: .auto,
-            )
         } else {
             reasoning = nil
         }
@@ -535,33 +652,34 @@ public final class OpenAIResponsesProvider: ModelProvider {
                 // Convert from public API to internal type
                 TextVerbosity(rawValue: optionVerbosity.rawValue) ?? .high
             } else {
-                .high // Default for preambles
+                codex ? .low : .high
             }
             textConfig = TextConfig(verbosity: verbosity)
         } else {
             textConfig = nil
         }
 
+        let hasTools = tools?.isEmpty == false
         let responsesRequest = OpenAIResponsesRequest(
-            model: modelId,
+            model: self.modelId,
             input: messages,
             temperature: validatedSettings.temperature,
             topP: validatedSettings.topP,
-            maxOutputTokens: validatedSettings.maxTokens,
+            maxOutputTokens: codex ? nil : validatedSettings.maxTokens,
             text: textConfig,
             tools: tools,
-            toolChoice: nil, // TODO: Add tool choice support
+            toolChoice: codex && hasTools ? "auto" : nil,
             metadata: nil,
-            parallelToolCalls: openaiOptions?.parallelToolCalls ?? true,
+            parallelToolCalls: codex && !hasTools ? nil : (openaiOptions?.parallelToolCalls ?? true),
             previousResponseId: openaiOptions?.previousResponseId ?? self.previousResponseId,
             store: false,
             user: nil,
-            instructions: nil,
+            instructions: codex ? self.codexInstructions(from: request.messages) : nil,
             serviceTier: nil,
-            include: nil,
+            include: codex ? ["reasoning.encrypted_content"] : nil,
             reasoning: reasoning,
-            truncation: Self.isReasoningModel(self.model) ? "auto" : nil,
-            stream: streaming,
+            truncation: !codex && Self.isReasoningModel(self.model) ? "auto" : nil,
+            stream: streaming || codex,
         )
 
         if
@@ -573,6 +691,18 @@ public final class OpenAIResponsesProvider: ModelProvider {
         }
 
         return responsesRequest
+    }
+
+    private func codexInstructions(from messages: [ModelMessage]) -> String {
+        let instructions = messages
+            .filter { $0.role == .system }
+            .flatMap(\.content)
+            .compactMap { part -> String? in
+                guard case let .text(text) = part, !text.isEmpty else { return nil }
+                return text
+            }
+            .joined(separator: "\n\n")
+        return instructions.isEmpty ? "You are a helpful assistant." : instructions
     }
 
     private func convertMessages(_ messages: [ModelMessage]) throws -> [ResponsesInputItem] {

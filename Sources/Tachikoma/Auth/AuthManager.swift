@@ -29,7 +29,9 @@ public enum TKProviderId: String, CaseIterable, Sendable {
 
     public static func normalize(_ value: String) -> TKProviderId? {
         let lower = value.lowercased()
-        if lower == "xai" { return .grok }
+        if lower == "xai" {
+            return .grok
+        }
         return TKProviderId(rawValue: lower)
     }
 
@@ -45,8 +47,13 @@ public enum TKProviderId: String, CaseIterable, Sendable {
 
     public var credentialKeys: [String] {
         switch self {
-        case .openai: ["OPENAI_API_KEY", "OPENAI_ACCESS_TOKEN"]
         // swiftformat:disable indent
+        case .openai: [
+            "OPENAI_API_KEY",
+            "OPENAI_ACCESS_TOKEN",
+            "OPENAI_REFRESH_TOKEN",
+            "OPENAI_ACCESS_EXPIRES",
+        ]
         case .anthropic: [
             "ANTHROPIC_API_KEY",
             "ANTHROPIC_ACCESS_TOKEN",
@@ -69,6 +76,123 @@ public enum TKProviderId: String, CaseIterable, Sendable {
 public enum TKAuthValue: Sendable {
     case apiKey(String)
     case bearer(String, betaHeader: String?)
+}
+
+struct TKOpenAICodexAuth: Sendable, Equatable {
+    let accessToken: String
+    let accountID: String
+}
+
+private struct TKOpenAICodexCredentialSnapshot: Sendable, Equatable {
+    enum Source: Sendable, Equatable {
+        case environment
+        case store
+    }
+
+    let source: Source
+    let accessToken: String?
+    let refreshToken: String?
+    let expiration: Date?
+
+    var accountID: String? {
+        self.accessToken.flatMap(TKOpenAICodexJWT.accountID(from:))
+    }
+
+    var hasRefreshToken: Bool {
+        self.refreshToken?.isEmpty == false
+    }
+
+    func hasValidAccessToken(at date: Date) -> Bool {
+        self.accessToken?.isEmpty == false &&
+            self.accountID != nil &&
+            (self.expiration.map { $0 > date.addingTimeInterval(60) } ?? true)
+    }
+
+    var refreshTaskKey: String? {
+        guard let refreshToken, !refreshToken.isEmpty else { return nil }
+        let digest = Data(TKHasher.hash(data: Data(refreshToken.utf8))).base64EncodedString()
+        let accountID = self.accountID ?? "unknown-account"
+        return "\(self.source)-\(accountID)-\(digest)"
+    }
+}
+
+private struct TKOpenAICodexEnvironmentCredentialCache: Sendable, Equatable {
+    let source: TKOpenAICodexCredentialSnapshot
+    let refreshed: TKOpenAICodexCredentialSnapshot
+}
+
+enum TKOpenAICodexJWT {
+    private static let authClaim = "https://api.openai.com/auth"
+
+    static func accountID(from token: String) -> String? {
+        guard
+            let payload = self.payload(from: token),
+            let auth = payload[self.authClaim] as? [String: Any],
+            let accountID = auth["chatgpt_account_id"] as? String,
+            !accountID.isEmpty else
+        {
+            return nil
+        }
+        return accountID
+    }
+
+    static func expiration(from token: String) -> Date? {
+        guard
+            let payload = self.payload(from: token),
+            let expiration = payload["exp"] as? NSNumber else
+        {
+            return nil
+        }
+        return Date(timeIntervalSince1970: expiration.doubleValue)
+    }
+
+    private static func payload(from token: String) -> [String: Any]? {
+        let parts = token.split(separator: ".", omittingEmptySubsequences: false)
+        guard parts.count == 3, !parts[1].isEmpty else { return nil }
+
+        var encoded = String(parts[1])
+            .replacingOccurrences(of: "-", with: "+")
+            .replacingOccurrences(of: "_", with: "/")
+        let padding = (4 - encoded.count % 4) % 4
+        encoded.append(String(repeating: "=", count: padding))
+
+        guard
+            let data = Data(base64Encoded: encoded),
+            let json = try? JSONSerialization.jsonObject(with: data),
+            let payload = json as? [String: Any] else
+        {
+            return nil
+        }
+        return payload
+    }
+}
+
+private actor TKOpenAICodexRefreshCoordinator {
+    static let shared = TKOpenAICodexRefreshCoordinator()
+
+    private var refreshTasks: [String: Task<TKOpenAICodexAuth, Error>] = [:]
+
+    func resolve(
+        key: String,
+        current: @Sendable () throws -> TKOpenAICodexAuth?,
+        refresh: @Sendable @escaping () async throws -> TKOpenAICodexAuth,
+    ) async throws
+        -> TKOpenAICodexAuth
+    {
+        if let auth = try current() {
+            return auth
+        }
+        if let refreshTask = self.refreshTasks[key] {
+            let auth = try await refreshTask.value
+            return try current() ?? auth
+        }
+
+        let refreshTask = Task { try await refresh() }
+        self.refreshTasks[key] = refreshTask
+        defer { self.refreshTasks[key] = nil }
+        let auth = try await refreshTask.value
+        return try current() ?? auth
+    }
 }
 
 public enum TKValidationResult: Sendable {
@@ -129,13 +253,15 @@ public struct TKCredentialStore {
     }
 }
 
-public final class TKAuthManager {
-    public nonisolated(unsafe) static let shared = TKAuthManager()
+public final class TKAuthManager: @unchecked Sendable {
+    public static let shared = TKAuthManager()
 
     private let store = TKCredentialStore()
     private let lock = NSLock()
     private var ignoreEnv = false
     private var ignoreStore = false
+    private var credentialGeneration: UInt64 = 0
+    private var openAICodexEnvironmentCredentialCache: TKOpenAICodexEnvironmentCredentialCache?
 
     private init() {}
 
@@ -146,8 +272,12 @@ public final class TKAuthManager {
             let string = String(cString: cValue)
             return string.isEmpty ? nil : string
         }
-        if let value { return value }
-        if let value = ProcessInfo.processInfo.environment[key], !value.isEmpty { return value }
+        if let value {
+            return value
+        }
+        if let value = ProcessInfo.processInfo.environment[key], !value.isEmpty {
+            return value
+        }
         return nil
     }
 
@@ -162,9 +292,14 @@ public final class TKAuthManager {
     @discardableResult
     public func setIgnoreEnvironment(_ value: Bool) -> Bool {
         self.lock.lock()
+        defer { self.lock.unlock() }
         let previous = self.ignoreEnv
+        guard previous != value else {
+            return previous
+        }
         self.ignoreEnv = value
-        self.lock.unlock()
+        self.openAICodexEnvironmentCredentialCache = nil
+        self.credentialGeneration &+= 1
         return previous
     }
 
@@ -179,7 +314,9 @@ public final class TKAuthManager {
 
     public func credentialValue(for key: String) -> String? {
         let state = self.authState()
-        if let env = self.environmentValue(for: key, ignoringEnvironment: state.ignoreEnv) { return env }
+        if let env = self.environmentValue(for: key, ignoringEnvironment: state.ignoreEnv) {
+            return env
+        }
         return state.creds[key]
     }
 
@@ -191,11 +328,17 @@ public final class TKAuthManager {
             if let env = self.environmentValue(for: "OPENAI_API_KEY", ignoringEnvironment: state.ignoreEnv) {
                 return .bearer(env, betaHeader: nil)
             }
-            if let access = creds["OPENAI_ACCESS_TOKEN"], !access.isEmpty {
-                return .bearer(access, betaHeader: nil)
-            }
             if let key = creds["OPENAI_API_KEY"], !key.isEmpty {
                 return .apiKey(key)
+            }
+            if
+                let access = creds["OPENAI_ACCESS_TOKEN"],
+                !access.isEmpty,
+                TKOpenAICodexJWT.accountID(from: access) == nil,
+                creds["OPENAI_REFRESH_TOKEN"]?.isEmpty != false,
+                creds["OPENAI_ACCESS_EXPIRES"]?.isEmpty != false
+            {
+                return .bearer(access, betaHeader: nil)
             }
         case .anthropic:
             if let env = self.environmentValue(for: "ANTHROPIC_API_KEY", ignoringEnvironment: state.ignoreEnv) {
@@ -216,13 +359,17 @@ public final class TKAuthManager {
                 }
             }
             for k in envOrder {
-                if let val = creds[k], !val.isEmpty { return .bearer(val, betaHeader: nil) }
+                if let val = creds[k], !val.isEmpty {
+                    return .bearer(val, betaHeader: nil)
+                }
             }
         case .gemini:
             if let env = self.environmentValue(for: "GEMINI_API_KEY", ignoringEnvironment: state.ignoreEnv) {
                 return .apiKey(env)
             }
-            if let val = creds["GEMINI_API_KEY"], !val.isEmpty { return .apiKey(val) }
+            if let val = creds["GEMINI_API_KEY"], !val.isEmpty {
+                return .apiKey(val)
+            }
         case .openrouter:
             if let env = self.environmentValue(for: "OPENROUTER_API_KEY", ignoringEnvironment: state.ignoreEnv) {
                 return .bearer(env, betaHeader: nil)
@@ -234,12 +381,313 @@ public final class TKAuthManager {
         return nil
     }
 
-    public func setCredential(key: String, value: String) throws {
+    @discardableResult
+    private func updateCredentials(
+        _ values: [String: String],
+        expectedGeneration: UInt64? = nil,
+    ) throws
+        -> Bool
+    {
         self.lock.lock()
+        defer { self.lock.unlock() }
+        if let expectedGeneration, expectedGeneration != self.credentialGeneration {
+            return false
+        }
         var creds = self.store.load()
-        creds[key] = value
+        values.forEach { creds[$0.key] = $0.value }
         try self.store.save(creds)
+        self.credentialGeneration &+= 1
+        return true
+    }
+
+    public func setCredentials(_ values: [String: String]) throws {
+        try self.updateCredentials(values)
+    }
+
+    public func setCredential(key: String, value: String) throws {
+        try self.setCredentials([key: value])
+    }
+
+    func hasOpenAICodexCredentials() -> Bool {
+        self.openAICodexCredentialState().snapshots.contains {
+            $0.accessToken?.isEmpty == false || $0.refreshToken?.isEmpty == false
+        }
+    }
+
+    func resolveOpenAICodexAuth(
+        timeout: Double = 30,
+        session: URLSession? = nil,
+    ) async throws
+        -> TKOpenAICodexAuth
+    {
+        if let auth = try self.currentOpenAICodexAuth() {
+            return auth
+        }
+
+        let credentialState = self.openAICodexCredentialState()
+        let prioritizedSnapshots = self.prioritizedOpenAICodexSnapshots(credentialState.snapshots)
+        guard
+            let snapshot = prioritizedSnapshots.first(where: \.hasRefreshToken),
+            let refreshTaskKey = snapshot.refreshTaskKey else
+        {
+            throw TachikomaError.authenticationFailed("OpenAI OAuth token expired; sign in again")
+        }
+
+        return try await TKOpenAICodexRefreshCoordinator.shared.resolve(
+            key: refreshTaskKey,
+            current: { try self.currentOpenAICodexAuth() },
+            refresh: {
+                try await self.refreshOpenAICodexAuth(
+                    credentialState: credentialState,
+                    snapshot: snapshot,
+                    timeout: timeout,
+                    session: session,
+                )
+            },
+        )
+    }
+
+    private func currentOpenAICodexAuth() throws -> TKOpenAICodexAuth? {
+        let snapshots = self.prioritizedOpenAICodexSnapshots(
+            self.openAICodexCredentialState().snapshots,
+        )
+        for snapshot in snapshots {
+            guard
+                let accessToken = snapshot.accessToken,
+                snapshot.hasValidAccessToken(at: Date()),
+                let accountID = snapshot.accountID else
+            {
+                continue
+            }
+            return TKOpenAICodexAuth(accessToken: accessToken, accountID: accountID)
+        }
+
+        if snapshots.contains(where: \.hasRefreshToken) {
+            return nil
+        }
+        if snapshots.contains(where: { $0.accessToken?.isEmpty == false }) {
+            throw TachikomaError.authenticationFailed(
+                "OpenAI OAuth token is missing the ChatGPT account identifier; sign in again",
+            )
+        }
+        return nil
+    }
+
+    private func refreshOpenAICodexAuth(
+        credentialState: (
+            snapshots: [TKOpenAICodexCredentialSnapshot],
+            generation: UInt64,
+            environmentSource: TKOpenAICodexCredentialSnapshot?,
+        ),
+        snapshot: TKOpenAICodexCredentialSnapshot,
+        timeout: Double,
+        session: URLSession?,
+    ) async throws
+        -> TKOpenAICodexAuth
+    {
+        guard let refreshToken = snapshot.refreshToken, !refreshToken.isEmpty else {
+            throw TachikomaError.authenticationFailed("OpenAI OAuth token expired; sign in again")
+        }
+        guard let url = URL(string: "https://auth.openai.com/oauth/token") else {
+            throw TachikomaError.invalidConfiguration("Invalid OpenAI OAuth token endpoint")
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.timeoutInterval = timeout
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        request.httpBody = try JSONSerialization.data(withJSONObject: [
+            "client_id": "app_EMoamEEZ73f0CkXaXp7hrann",
+            "grant_type": "refresh_token",
+            "refresh_token": refreshToken,
+        ])
+
+        let (data, response) = try await (session ?? .shared).data(for: request)
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw TachikomaError.networkError(NSError(domain: "Invalid OAuth response", code: 0))
+        }
+        guard (200...299).contains(httpResponse.statusCode) else {
+            let detail = String(data: data, encoding: .utf8) ?? "Unknown error"
+            throw TachikomaError.authenticationFailed(
+                "OpenAI OAuth refresh failed (HTTP \(httpResponse.statusCode)): \(detail.prefix(500))",
+            )
+        }
+        guard
+            let payload = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+            let accessToken = payload["access_token"] as? String,
+            !accessToken.isEmpty,
+            let accountID = TKOpenAICodexJWT.accountID(from: accessToken) else
+        {
+            throw TachikomaError.authenticationFailed("OpenAI OAuth refresh returned an invalid token")
+        }
+
+        let rotatedRefreshToken = (payload["refresh_token"] as? String).flatMap { $0.isEmpty ? nil : $0 }
+            ?? refreshToken
+        let expiresIn = (payload["expires_in"] as? NSNumber)?.doubleValue
+        let expiration = TKOpenAICodexJWT.expiration(from: accessToken)
+            ?? Date().addingTimeInterval(expiresIn ?? 3600)
+
+        if let currentAuth = try self.currentOpenAICodexAuth() {
+            return currentAuth
+        }
+        let latestCredentialState = self.openAICodexCredentialState()
+        guard
+            latestCredentialState.generation == credentialState.generation,
+            latestCredentialState.snapshots == credentialState.snapshots else
+        {
+            throw TachikomaError.authenticationFailed("OpenAI OAuth credentials changed while refreshing; retry")
+        }
+
+        let refreshedSnapshot = TKOpenAICodexCredentialSnapshot(
+            source: snapshot.source,
+            accessToken: accessToken,
+            refreshToken: rotatedRefreshToken,
+            expiration: expiration,
+        )
+        let didUpdateCredentials = switch snapshot.source {
+        case .environment:
+            self.updateOpenAICodexEnvironmentCredentials(
+                refreshedSnapshot,
+                source: credentialState.environmentSource,
+                expectedGeneration: credentialState.generation,
+            )
+        case .store:
+            try self.updateCredentials([
+                "OPENAI_ACCESS_TOKEN": accessToken,
+                "OPENAI_REFRESH_TOKEN": rotatedRefreshToken,
+                "OPENAI_ACCESS_EXPIRES": String(Int(expiration.timeIntervalSince1970)),
+            ], expectedGeneration: credentialState.generation)
+        }
+        guard didUpdateCredentials else {
+            if let currentAuth = try self.currentOpenAICodexAuth() {
+                return currentAuth
+            }
+            throw TachikomaError.authenticationFailed("OpenAI OAuth credentials changed while refreshing; retry")
+        }
+
+        return TKOpenAICodexAuth(accessToken: accessToken, accountID: accountID)
+    }
+
+    private func prioritizedOpenAICodexSnapshots(
+        _ snapshots: [TKOpenAICodexCredentialSnapshot],
+    )
+        -> [TKOpenAICodexCredentialSnapshot]
+    {
+        guard let environment = snapshots.first(where: { $0.source == .environment }) else {
+            return snapshots
+        }
+        guard let stored = snapshots.first(where: { $0.source == .store }) else {
+            return [environment]
+        }
+
+        if
+            let environmentAccountID = environment.accountID,
+            environmentAccountID == stored.accountID
+        {
+            return [environment, stored].sorted { lhs, rhs in
+                let lhsExpiration = lhs.expiration ?? .distantPast
+                let rhsExpiration = rhs.expiration ?? .distantPast
+                if lhsExpiration != rhsExpiration {
+                    return lhsExpiration > rhsExpiration
+                }
+                return lhs.source == .store && rhs.source != .store
+            }
+        }
+
+        if environment.hasValidAccessToken(at: Date()) || environment.hasRefreshToken {
+            return [environment]
+        }
+        return [stored, environment]
+    }
+
+    private func openAICodexCredentialState() -> (
+        snapshots: [TKOpenAICodexCredentialSnapshot],
+        generation: UInt64,
+        environmentSource: TKOpenAICodexCredentialSnapshot?,
+    ) {
+        self.lock.lock()
+        let ignoreEnvironment = self.ignoreEnv
+        let credentials = self.ignoreStore ? [:] : self.store.load()
+        let environmentSource = ignoreEnvironment ? nil : self.openAICodexEnvironmentSnapshot()
+        let environmentSnapshot: TKOpenAICodexCredentialSnapshot?
+        if let cache = self.openAICodexEnvironmentCredentialCache {
+            if cache.source == environmentSource {
+                environmentSnapshot = cache.refreshed
+            } else {
+                self.openAICodexEnvironmentCredentialCache = nil
+                self.credentialGeneration &+= 1
+                environmentSnapshot = environmentSource
+            }
+        } else {
+            environmentSnapshot = environmentSource
+        }
+        let generation = self.credentialGeneration
         self.lock.unlock()
+
+        var snapshots: [TKOpenAICodexCredentialSnapshot] = []
+        if let environmentSnapshot {
+            snapshots.append(environmentSnapshot)
+        }
+
+        let storedAccessToken = credentials["OPENAI_ACCESS_TOKEN"].flatMap { $0.isEmpty ? nil : $0 }
+        let storedRefreshToken = credentials["OPENAI_REFRESH_TOKEN"].flatMap { $0.isEmpty ? nil : $0 }
+        let storedExpiration = credentials["OPENAI_ACCESS_EXPIRES"]
+            .flatMap(TimeInterval.init)
+            .map(Date.init(timeIntervalSince1970:))
+            ?? storedAccessToken.flatMap(TKOpenAICodexJWT.expiration(from:))
+        if storedAccessToken != nil || storedRefreshToken != nil {
+            snapshots.append(TKOpenAICodexCredentialSnapshot(
+                source: .store,
+                accessToken: storedAccessToken,
+                refreshToken: storedRefreshToken,
+                expiration: storedExpiration,
+            ))
+        }
+        return (snapshots, generation, environmentSource)
+    }
+
+    private func openAICodexEnvironmentSnapshot() -> TKOpenAICodexCredentialSnapshot? {
+        let accessToken = self.environmentValue(for: "OPENAI_ACCESS_TOKEN", ignoringEnvironment: false)
+        let refreshToken = self.environmentValue(for: "OPENAI_REFRESH_TOKEN", ignoringEnvironment: false)
+        let expiration = self.environmentValue(for: "OPENAI_ACCESS_EXPIRES", ignoringEnvironment: false)
+            .flatMap(TimeInterval.init)
+            .map(Date.init(timeIntervalSince1970:))
+            ?? accessToken.flatMap(TKOpenAICodexJWT.expiration(from:))
+        guard accessToken?.isEmpty == false || refreshToken?.isEmpty == false else {
+            return nil
+        }
+        return TKOpenAICodexCredentialSnapshot(
+            source: .environment,
+            accessToken: accessToken,
+            refreshToken: refreshToken,
+            expiration: expiration,
+        )
+    }
+
+    private func updateOpenAICodexEnvironmentCredentials(
+        _ refreshed: TKOpenAICodexCredentialSnapshot,
+        source: TKOpenAICodexCredentialSnapshot?,
+        expectedGeneration: UInt64,
+    )
+        -> Bool
+    {
+        self.lock.lock()
+        defer { self.lock.unlock() }
+        guard
+            expectedGeneration == self.credentialGeneration,
+            !self.ignoreEnv,
+            let source,
+            source == self.openAICodexEnvironmentSnapshot() else
+        {
+            return false
+        }
+        self.openAICodexEnvironmentCredentialCache = TKOpenAICodexEnvironmentCredentialCache(
+            source: source,
+            refreshed: refreshed,
+        )
+        self.credentialGeneration &+= 1
+        return true
     }
 
     // MARK: Validation
@@ -264,7 +712,9 @@ public final class TKAuthManager {
         guard let authorizeURL = config.authorizeURL else { return .failure(.general("Bad authorize URL")) }
 
         #if canImport(AppKit)
-        if !noBrowser { NSWorkspace.shared.open(authorizeURL) }
+        if !noBrowser {
+            NSWorkspace.shared.open(authorizeURL)
+        }
         #endif
 
         print("Open this URL in a browser if it did not open automatically:\n  \(authorizeURL.absoluteString)\n")
@@ -305,7 +755,11 @@ public final class TKAuthManager {
                 clientId: "app_EMoamEEZ73f0CkXaXp7hrann",
                 scope: "openid profile email offline_access",
                 redirect: "http://localhost:1455/auth/callback",
-                extraAuthorize: [:],
+                extraAuthorize: [
+                    "id_token_add_organizations": "true",
+                    "codex_cli_simplified_flow": "true",
+                    "originator": "peekaboo",
+                ],
                 extraToken: [:],
                 betaHeader: nil,
                 pkce: pkce,
@@ -359,11 +813,15 @@ public final class TKAuthManager {
                 }
             }
 
-            if !code.isEmpty { return (code, state) }
+            if !code.isEmpty {
+                return (code, state)
+            }
         }
 
         let parts = trimmed.split(separator: "#", maxSplits: 1)
-        if parts.count > 1 { return (String(parts[0]), String(parts[1])) }
+        if parts.count > 1 {
+            return (String(parts[0]), String(parts[1]))
+        }
         return (trimmed, "")
     }
 
@@ -371,15 +829,15 @@ public final class TKAuthManager {
         switch result {
         case let .success(token):
             do {
-                try self.setCredential(key: "\(config.prefix)_ACCESS_TOKEN", value: token.access)
-                try self.setCredential(key: "\(config.prefix)_REFRESH_TOKEN", value: token.refresh)
-                try self.setCredential(
-                    key: "\(config.prefix)_ACCESS_EXPIRES",
-                    value: String(Int(token.expires.timeIntervalSince1970)),
-                )
+                var credentials = [
+                    "\(config.prefix)_ACCESS_TOKEN": token.access,
+                    "\(config.prefix)_REFRESH_TOKEN": token.refresh,
+                    "\(config.prefix)_ACCESS_EXPIRES": String(Int(token.expires.timeIntervalSince1970)),
+                ]
                 if let beta = config.betaHeader {
-                    try self.setCredential(key: "\(config.prefix)_BETA_HEADER", value: beta)
+                    credentials["\(config.prefix)_BETA_HEADER"] = beta
                 }
+                try self.setCredentials(credentials)
                 return .success(())
             } catch {
                 return .failure(.general("Failed to store tokens: \(error)"))
@@ -505,7 +963,9 @@ enum OAuthTokenExchanger {
             "code_verifier": pkce.verifier,
         ]
         if config.requiresStateInTokenExchange {
-            if state.isEmpty { return .failure("Missing OAuth state") }
+            if state.isEmpty {
+                return .failure("Missing OAuth state")
+            }
             body["state"] = state
         }
         config.extraToken.forEach { body[$0.key] = $0.value }
@@ -664,7 +1124,9 @@ enum HTTP {
         do {
             let (_, response) = try await session.data(for: request)
             guard let http = response as? HTTPURLResponse else { return .failure("invalid response") }
-            if (200...299).contains(http.statusCode) { return .success }
+            if (200...299).contains(http.statusCode) {
+                return .success
+            }
             return .failure("status \(http.statusCode)")
         } catch {
             if (error as? URLError)?.code == .timedOut {
