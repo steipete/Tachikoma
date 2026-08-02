@@ -4,6 +4,9 @@ All notable changes to the Tachikoma project will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+- Added ChatGPT OAuth (Codex Responses endpoint) support for OpenAI vision requests, with stored-login refresh persistence and process-local environment credential refresh. Thanks @scotthuang (#40).
+
 ### Changed
 - Updated Swift package requirements and refreshed transitive pins, including swift-crypto 4.5.1, swift-nio 2.101.3, and swift-system 1.7.5.
 
