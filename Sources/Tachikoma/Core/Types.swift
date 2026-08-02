@@ -218,6 +218,7 @@ public struct ModelMessage: Sendable, Codable, Equatable {
     public enum ContentPart: Sendable, Codable, Equatable {
         case text(String)
         case image(ImageContent)
+        case reasoning(ReasoningContent)
         case toolCall(AgentToolCall)
         case toolResult(AgentToolResult)
 
@@ -228,6 +229,29 @@ public struct ModelMessage: Sendable, Codable, Equatable {
             public init(data: String, mimeType: String = "image/png") {
                 self.data = data
                 self.mimeType = mimeType
+            }
+        }
+
+        /// Opaque reasoning state that a provider requires on subsequent turns.
+        public struct ReasoningContent: Sendable, Codable, Equatable {
+            public let id: String
+            public let encryptedContent: String
+            public let summary: [Summary]?
+
+            public struct Summary: Sendable, Codable, Equatable {
+                public let type: String
+                public let text: String
+
+                public init(type: String, text: String) {
+                    self.type = type
+                    self.text = text
+                }
+            }
+
+            public init(id: String, encryptedContent: String, summary: [Summary]? = nil) {
+                self.id = id
+                self.encryptedContent = encryptedContent
+                self.summary = summary
             }
         }
     }
@@ -504,6 +528,7 @@ public struct TextStreamDelta: Sendable {
     public let channel: ResponseChannel?
     public let reasoningSignature: String?
     public let reasoningType: String?
+    public let reasoningContent: ModelMessage.ContentPart.ReasoningContent?
     public let toolCall: AgentToolCall?
     public let toolResult: AgentToolResult?
     public let usage: Usage?
@@ -523,6 +548,7 @@ public struct TextStreamDelta: Sendable {
         channel: ResponseChannel? = nil,
         reasoningSignature: String? = nil,
         reasoningType: String? = nil,
+        reasoningContent: ModelMessage.ContentPart.ReasoningContent? = nil,
         toolCall: AgentToolCall? = nil,
         toolResult: AgentToolResult? = nil,
         usage: Usage? = nil,
@@ -533,6 +559,7 @@ public struct TextStreamDelta: Sendable {
         self.channel = channel
         self.reasoningSignature = reasoningSignature
         self.reasoningType = reasoningType
+        self.reasoningContent = reasoningContent
         self.toolCall = toolCall
         self.toolResult = toolResult
         self.usage = usage
@@ -542,6 +569,10 @@ public struct TextStreamDelta: Sendable {
     /// Convenience constructors
     public static func text(_ content: String, channel: ResponseChannel? = nil) -> TextStreamDelta {
         TextStreamDelta(type: .textDelta, content: content, channel: channel)
+    }
+
+    public static func reasoning(_ content: ModelMessage.ContentPart.ReasoningContent) -> TextStreamDelta {
+        TextStreamDelta(type: .reasoning, reasoningContent: content)
     }
 
     public static func reasoning(_ content: String, signature: String? = nil, type: String? = nil) -> TextStreamDelta {

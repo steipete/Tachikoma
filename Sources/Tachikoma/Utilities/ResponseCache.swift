@@ -62,6 +62,13 @@ struct CacheKey: Hashable {
                 case let .image(image):
                     hasher.combine(image.mimeType)
                     hasher.combine(image.data.prefix(100)) // Use first 100 chars of base64 data
+                case let .reasoning(reasoning):
+                    hasher.combine(reasoning.id)
+                    hasher.combine(reasoning.encryptedContent)
+                    for summary in reasoning.summary ?? [] {
+                        hasher.combine(summary.type)
+                        hasher.combine(summary.text)
+                    }
                 case let .toolCall(call):
                     hasher.combine(call.id)
                     hasher.combine(call.name)
@@ -540,6 +547,9 @@ final class CacheEntry: @unchecked Sendable {
                     contentTotal + text.utf8.count
                 case let .image(image):
                     contentTotal + image.mimeType.utf8.count + image.data.utf8.count
+                case let .reasoning(reasoning):
+                    contentTotal + reasoning.id.utf8.count + reasoning.encryptedContent.utf8.count +
+                        (reasoning.summary?.reduce(0) { $0 + $1.type.utf8.count + $1.text.utf8.count } ?? 0)
                 case let .toolCall(call):
                     contentTotal + call.id.utf8.count + call.name.utf8.count + 100
                 case let .toolResult(result):

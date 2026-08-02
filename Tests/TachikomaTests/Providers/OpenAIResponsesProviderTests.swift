@@ -224,6 +224,53 @@ struct OpenAIResponsesProviderTests {
     }
 
     @Test
+    func `Responses output preserves encrypted reasoning before function call`() throws {
+        let response = OpenAIResponsesResponse(
+            id: "resp_1",
+            object: "response",
+            createdAt: 0,
+            created: nil,
+            status: "completed",
+            model: "gpt-5",
+            output: [
+                .init(
+                    id: "rs_123",
+                    type: "reasoning",
+                    encryptedContent: "sealed-reasoning",
+                    summary: [.init(type: "summary_text", text: "Checking")],
+                ),
+                .init(
+                    id: "fc_item_123",
+                    type: "function_call",
+                    callId: "call_123",
+                    name: "lookup",
+                    arguments: #"{"query":"weather"}"#,
+                ),
+            ],
+            choices: nil,
+            usage: nil,
+            metadata: nil,
+            incompleteDetails: nil,
+        )
+
+        let providerResponse = try OpenAIResponsesProvider.convertToProviderResponse(response)
+        let assistantMessage = try #require(providerResponse.assistantMessages.first)
+        #expect(assistantMessage.content.count == 2)
+        guard case let .reasoning(reasoning) = assistantMessage.content[0] else {
+            Issue.record("Expected reasoning before the function call")
+            return
+        }
+        #expect(reasoning.id == "rs_123")
+        #expect(reasoning.encryptedContent == "sealed-reasoning")
+        guard case let .toolCall(call) = assistantMessage.content[1] else {
+            Issue.record("Expected function call after reasoning")
+            return
+        }
+        #expect(call.id == "call_123")
+        #expect(providerResponse.finishReason == .toolCalls)
+    }
+
+    @Test
     func `GPT-5 incomplete content filter response maps finish reason`() throws {
         let output = OpenAIResponsesResponse.ResponsesOutput(
             id: "out_1",
@@ -597,6 +644,153 @@ struct OpenAIResponsesProviderTests {
                 #expect(response.finishReason == .stop)
                 #expect(response.usage == Usage(inputTokens: 12, outputTokens: 4))
             }
+        }
+    }
+
+    @Test
+    func `Codex OAuth replays encrypted reasoning before tool calls`() async throws {
+        try await self.withIsolatedAuthState {
+            let accessToken = Self.openAIJWT(
+                accountID: "account-123",
+                expiration: Date().addingTimeInterval(3600),
+            )
+            try TKAuthManager.shared.setCredentials([
+                "OPENAI_ACCESS_TOKEN": accessToken,
+                "OPENAI_REFRESH_TOKEN": "oauth-refresh-token",
+                "OPENAI_ACCESS_EXPIRES": String(Int(Date().addingTimeInterval(3600).timeIntervalSince1970)),
+            ])
+            let config = TachikomaConfiguration(loadFromEnvironment: false)
+            let firstRequest = ProviderRequest(
+                messages: [.user("Look up the weather")],
+                settings: .init(maxTokens: 32),
+            )
+
+            let firstResponse = try await self.withMockedSession { request in
+                #expect(request.url?.host == "chatgpt.com")
+                let payload = Self.responsesStreamPayload(chunks: [
+                    Self.streamEventJSON([
+                        "type": "response.output_item.added",
+                        "item": ["id": "rs_123", "type": "reasoning", "summary": []],
+                    ]),
+                    Self.streamEventJSON([
+                        "type": "response.output_item.done",
+                        "item": [
+                            "id": "rs_123",
+                            "type": "reasoning",
+                            "encrypted_content": "sealed-reasoning",
+                            "summary": [["type": "summary_text", "text": "Checking the weather"]],
+                        ],
+                    ]),
+                    Self.streamEventJSON([
+                        "type": "response.output_item.added",
+                        "item": [
+                            "id": "fc_item_123",
+                            "type": "function_call",
+                            "call_id": "call_123",
+                            "name": "get_weather",
+                        ],
+                    ]),
+                    Self.streamEventJSON([
+                        "type": "response.function_call_arguments.done",
+                        "item_id": "fc_item_123",
+                        "arguments": #"{"location":"San Francisco"}"#,
+                    ]),
+                    Self.streamEventJSON(["type": "response.completed"]),
+                ])
+                return NetworkMocking.streamResponse(for: request, data: payload)
+            } operation: { session in
+                let provider = try OpenAIResponsesProvider(model: .gpt56Sol, configuration: config, session: session)
+                return try await provider.generateText(request: firstRequest)
+            }
+
+            let assistantMessage = try #require(firstResponse.assistantMessages.first)
+            #expect(firstResponse.toolCalls?.first?.id == "call_123")
+            guard case let .reasoning(reasoning) = assistantMessage.content.first else {
+                Issue.record("Expected the encrypted reasoning item first")
+                return
+            }
+            #expect(reasoning.id == "rs_123")
+            #expect(reasoning.encryptedContent == "sealed-reasoning")
+            #expect(reasoning.summary == [.init(type: "summary_text", text: "Checking the weather")])
+            guard case let .toolCall(toolCall) = assistantMessage.content.last else {
+                Issue.record("Expected the function call after reasoning")
+                return
+            }
+
+            let toolResult = AgentToolResult.success(
+                toolCallId: toolCall.id,
+                result: AnyAgentToolValue(string: "68 F"),
+            )
+            let secondRequest = ProviderRequest(
+                messages: [
+                    .user("Look up the weather"),
+                    assistantMessage,
+                    ModelMessage(role: .tool, content: [.toolResult(toolResult)]),
+                ],
+                settings: .init(maxTokens: 32),
+            )
+
+            try await self.withMockedSession { request in
+                let body = try #require(Self.bodyData(from: request))
+                let json = try #require(JSONSerialization.jsonObject(with: body) as? [String: Any])
+                let input = try #require(json["input"] as? [[String: Any]])
+                let reasoningIndex = try #require(input.firstIndex { $0["type"] as? String == "reasoning" })
+                let callIndex = try #require(input.firstIndex { $0["type"] as? String == "function_call" })
+                let outputIndex = try #require(input.firstIndex { $0["type"] as? String == "function_call_output" })
+                #expect(reasoningIndex < callIndex)
+                #expect(callIndex < outputIndex)
+                #expect(input[reasoningIndex]["id"] as? String == "rs_123")
+                #expect(input[reasoningIndex]["encrypted_content"] as? String == "sealed-reasoning")
+                let summary = try #require(input[reasoningIndex]["summary"] as? [[String: String]])
+                #expect(summary == [["type": "summary_text", "text": "Checking the weather"]])
+                #expect(input[callIndex]["call_id"] as? String == "call_123")
+                #expect(input[outputIndex]["call_id"] as? String == "call_123")
+
+                let payload = Self.responsesStreamPayload(chunks: [
+                    Self.streamEventJSON(["type": "response.output_text.delta", "delta": "It is 68 F."]),
+                    Self.streamEventJSON(["type": "response.completed"]),
+                ])
+                return NetworkMocking.streamResponse(for: request, data: payload)
+            } operation: { session in
+                let provider = try OpenAIResponsesProvider(model: .gpt56Sol, configuration: config, session: session)
+                let response = try await provider.generateText(request: secondRequest)
+                #expect(response.text == "It is 68 F.")
+            }
+        }
+    }
+
+    @Test
+    func `API key route omits provider-native reasoning input`() async throws {
+        let config = self.openAIConfig()
+        let reasoning = ModelMessage.ContentPart.ReasoningContent(
+            id: "rs_private",
+            encryptedContent: "sealed-private",
+        )
+        let toolCall = AgentToolCall(id: "call_123", name: "lookup", arguments: [:])
+        let toolResult = AgentToolResult.success(
+            toolCallId: toolCall.id,
+            result: AnyAgentToolValue(string: "done"),
+        )
+        let providerRequest = ProviderRequest(
+            messages: [
+                .user("go"),
+                ModelMessage(role: .assistant, content: [.reasoning(reasoning), .toolCall(toolCall)]),
+                ModelMessage(role: .tool, content: [.toolResult(toolResult)]),
+            ],
+            settings: .init(maxTokens: 32),
+        )
+
+        try await self.withMockedSession { request in
+            let body = try #require(Self.bodyData(from: request))
+            let json = try #require(JSONSerialization.jsonObject(with: body) as? [String: Any])
+            let input = try #require(json["input"] as? [[String: Any]])
+            #expect(input.map { $0["type"] as? String } == [nil, "function_call", "function_call_output"])
+            #expect(input.allSatisfy { $0["encrypted_content"] == nil })
+            #expect(json["include"] == nil)
+            return NetworkMocking.jsonResponse(for: request, data: Self.responsesPayload(text: "Done"))
+        } operation: { session in
+            let provider = try OpenAIResponsesProvider(model: .gpt5, configuration: config, session: session)
+            _ = try await provider.generateText(request: providerRequest)
         }
     }
 

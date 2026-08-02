@@ -702,7 +702,7 @@ struct OpenAICompatibleHelper {
                                 type: "image_url",
                                 imageUrl: OpenAIChatMessageContent.ImageUrl(url: base64URL),
                             ))
-                        case .toolCall, .toolResult:
+                        case .reasoning, .toolCall, .toolResult:
                             return nil // Skip tool calls and results in user messages
                         }
                     }
