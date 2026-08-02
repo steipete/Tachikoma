@@ -4,8 +4,7 @@ import Foundation
 
 // Test Grok API with tools
 
-let environment = ProcessInfo.processInfo.environment
-let apiKey = environment["X_AI_API_KEY"] ?? environment["XAI_API_KEY"] ?? ""
+let apiKey = "placeholder"
 
 guard !apiKey.isEmpty else {
     print("Error: X_AI_API_KEY or XAI_API_KEY not set")
