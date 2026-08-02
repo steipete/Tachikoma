@@ -4,17 +4,16 @@ import Foundation
 public enum TKConfigMessages {
     /// Lines to show when no configuration exists yet.
     public static let initGuidance: [String] = [
-        "[ok] Configuration file created at: {path}",
+        "[info] Configuration file path: {path}",
         "",
-        "Next steps (no secrets written yet):",
-        "  peekaboo config add openai sk-...    # API key",
-        "  peekaboo config add anthropic sk-ant-...",
-        "  peekaboo config add grok gsk-...      # aliases: xai",
-        "  peekaboo config add gemini ya29-...",
-        "  peekaboo config login openai          # OAuth, no key stored",
-        "  peekaboo config login anthropic",
+        "No file was written. Configure credentials when ready:",
+        "  tachikoma config add openai sk-...    # API key",
+        "  tachikoma config add anthropic sk-ant-...",
+        "  tachikoma config add grok gsk-...      # aliases: xai",
+        "  tachikoma config add gemini ya29-...",
+        "  tachikoma config login openai          # OAuth",
+        "  tachikoma config login anthropic",
         "",
-        "Use 'peekaboo config show --effective' to see detected env/creds,",
-        "and 'peekaboo config edit' to tweak the JSONC file if needed.",
+        "Use 'tachikoma config status' to inspect detected environment and stored credentials.",
     ]
 }
