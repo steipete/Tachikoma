@@ -2,7 +2,7 @@
 
 All notable changes to the Tachikoma project will be documented in this file.
 
-## [Unreleased]
+## [0.3.0] - 2026-08-02
 
 ### Added
 - Added ChatGPT OAuth (Codex Responses endpoint) support for OpenAI vision requests, with stored-login refresh persistence and process-local environment credential refresh. Thanks @scotthuang (#40).
