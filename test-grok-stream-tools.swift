@@ -4,8 +4,8 @@ import Foundation
 
 // Test Grok API with streaming and tools
 
-let apiKey = ProcessInfo.processInfo.environment["X_AI_API_KEY"] ?? ProcessInfo.processInfo
-    .environment["XAI_API_KEY"] ?? ""
+let environment = ProcessInfo.processInfo.environment
+let apiKey = environment["X_AI_API_KEY"] ?? environment["XAI_API_KEY"] ?? ""
 
 guard !apiKey.isEmpty else {
     print("Error: X_AI_API_KEY or XAI_API_KEY not set")

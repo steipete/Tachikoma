@@ -1002,7 +1002,7 @@ Building for debugging...
 /Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/Core/ProviderTests.swift:144:17: warning: initialization of immutable value 'mockEnv' was never used; consider replacing with assignment to '_' or removing it [#no-usage]
 142 |             
 143 |             // Test with mocked environment
-144 |             let mockEnv = ["OPENAI_API_KEY": "test-openai-key"]
+144 |             let mockEnv = ["OPENAI_API_KEY": "placeholder"]
     |                 `- warning: initialization of immutable value 'mockEnv' was never used; consider replacing with assignment to '_' or removing it [#no-usage]
 145 |             
 146 |             // We can't easily mock ProcessInfo.processInfo.environment in tests,
@@ -1018,7 +1018,7 @@ Building for debugging...
 /Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/Core/ProviderTests.swift:144:17: warning: initialization of immutable value 'mockEnv' was never used; consider replacing with assignment to '_' or removing it [#no-usage]
 142 |             
 143 |             // Test with mocked environment
-144 |             let mockEnv = ["OPENAI_API_KEY": "test-openai-key"]
+144 |             let mockEnv = ["OPENAI_API_KEY": "placeholder"]
     |                 `- warning: initialization of immutable value 'mockEnv' was never used; consider replacing with assignment to '_' or removing it [#no-usage]
 145 |             
 146 |             // We can't easily mock ProcessInfo.processInfo.environment in tests,
@@ -1034,7 +1034,7 @@ Building for debugging...
 /Users/steipete/Projects/Peekaboo/Tachikoma/Tests/TachikomaTests/Core/ProviderTests.swift:144:17: warning: initialization of immutable value 'mockEnv' was never used; consider replacing with assignment to '_' or removing it [#no-usage]
 142 |             
 143 |             // Test with mocked environment
-144 |             let mockEnv = ["OPENAI_API_KEY": "test-openai-key"]
+144 |             let mockEnv = ["OPENAI_API_KEY": "placeholder"]
     |                 `- warning: initialization of immutable value 'mockEnv' was never used; consider replacing with assignment to '_' or removing it [#no-usage]
 145 |             
 146 |             // We can't easily mock ProcessInfo.processInfo.environment in tests,
@@ -2010,7 +2010,7 @@ anthropic key: nil
 openai key: nil
 anthropic key: nil
 === After setting key ===
-openai key: test-openai-key
+openai key: placeholder
 === Back to original config ===
 openai key: nil
 Config1 OpenAI key: key1
@@ -2097,11 +2097,11 @@ Before setting keys:
   anthropic: nil
   custom: nil
 After setting keys:
-  openai: test-openai-key
+  openai: placeholder
   anthropic: test-anthropic-key
   custom: test-custom-key
 Final check:
-  openai == 'test-openai-key': true
+  openai == 'placeholder': true
   anthropic == 'test-anthropic-key': true
   custom == 'test-custom-key': true
 === Test completed ===
