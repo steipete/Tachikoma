@@ -16,12 +16,12 @@ public final class OpenAIResponsesProvider: ModelProvider, ResponseCacheSafetyPr
     private let session: URLSession
     private let transport: Transport
 
-    private enum Transport: Sendable {
+    private enum Transport {
         case platform(TKAuthValue)
         case codexOAuth
     }
 
-    private struct RequestAuthentication: Sendable {
+    private struct RequestAuthentication {
         let baseURL: String
         let accessToken: String
         let accountID: String?

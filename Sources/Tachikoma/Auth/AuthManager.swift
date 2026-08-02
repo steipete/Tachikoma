@@ -78,13 +78,13 @@ public enum TKAuthValue: Sendable {
     case bearer(String, betaHeader: String?)
 }
 
-struct TKOpenAICodexAuth: Sendable, Equatable {
+struct TKOpenAICodexAuth: Equatable {
     let accessToken: String
     let accountID: String
 }
 
-private struct TKOpenAICodexCredentialSnapshot: Sendable, Equatable {
-    enum Source: Sendable, Equatable {
+private struct TKOpenAICodexCredentialSnapshot: Equatable {
+    enum Source: Equatable {
         case environment
         case store
     }
@@ -116,7 +116,7 @@ private struct TKOpenAICodexCredentialSnapshot: Sendable, Equatable {
     }
 }
 
-private struct TKOpenAICodexEnvironmentCredentialCache: Sendable, Equatable {
+private struct TKOpenAICodexEnvironmentCredentialCache: Equatable {
     let source: TKOpenAICodexCredentialSnapshot
     let refreshed: TKOpenAICodexCredentialSnapshot
 }
