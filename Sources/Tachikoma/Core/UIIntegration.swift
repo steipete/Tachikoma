@@ -164,6 +164,8 @@ extension [ModelMessage] {
                             ))
                         }
                     }
+                case .reasoning:
+                    continue
                 case let .toolCall(call):
                     toolCalls.append(call)
                 case let .toolResult(result):

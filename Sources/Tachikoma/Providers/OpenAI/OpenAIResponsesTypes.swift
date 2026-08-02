@@ -275,8 +275,23 @@ struct ResponsesContentPart: Codable {
 @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 enum ResponsesInputItem: Encodable {
     case message(ResponsesMessage)
+    case reasoning(Reasoning)
     case functionCall(FunctionCall)
     case functionCallOutput(FunctionCallOutput)
+
+    struct Reasoning: Encodable {
+        let type: String = "reasoning"
+        let id: String
+        let encryptedContent: String
+        let summary: [ModelMessage.ContentPart.ReasoningContent.Summary]?
+
+        enum CodingKeys: String, CodingKey {
+            case type
+            case id
+            case encryptedContent = "encrypted_content"
+            case summary
+        }
+    }
 
     struct FunctionCall: Encodable {
         let type: String = "function_call"
@@ -317,6 +332,8 @@ enum ResponsesInputItem: Encodable {
         switch self {
         case let .message(message):
             try container.encode(message)
+        case let .reasoning(reasoning):
+            try container.encode(reasoning)
         case let .functionCall(functionCall):
             try container.encode(functionCall)
         case let .functionCallOutput(output):
@@ -507,7 +524,37 @@ struct OpenAIResponsesResponse: Codable {
         let content: [OutputContent]?
         let role: String?
         let toolCall: ResponsesToolCall?
-        // Summary can be array, which we'll decode but not use for now
+        let encryptedContent: String?
+        let summary: [ModelMessage.ContentPart.ReasoningContent.Summary]?
+        let callId: String?
+        let name: String?
+        let arguments: String?
+
+        init(
+            id: String,
+            type: String,
+            status: String? = nil,
+            content: [OutputContent]? = nil,
+            role: String? = nil,
+            toolCall: ResponsesToolCall? = nil,
+            encryptedContent: String? = nil,
+            summary: [ModelMessage.ContentPart.ReasoningContent.Summary]? = nil,
+            callId: String? = nil,
+            name: String? = nil,
+            arguments: String? = nil,
+        ) {
+            self.id = id
+            self.type = type
+            self.status = status
+            self.content = content
+            self.role = role
+            self.toolCall = toolCall
+            self.encryptedContent = encryptedContent
+            self.summary = summary
+            self.callId = callId
+            self.name = name
+            self.arguments = arguments
+        }
 
         enum CodingKeys: String, CodingKey {
             case id
@@ -516,6 +563,11 @@ struct OpenAIResponsesResponse: Codable {
             case content
             case role
             case toolCall = "tool_call"
+            case encryptedContent = "encrypted_content"
+            case summary
+            case callId = "call_id"
+            case name
+            case arguments
         }
 
         struct OutputContent: Codable {

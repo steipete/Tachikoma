@@ -76,7 +76,7 @@ enum AnthropicMessageConversion {
                                 data: imageContent.data,
                             ),
                         ))
-                    case .toolCall, .toolResult:
+                    case .reasoning, .toolCall, .toolResult:
                         return nil // Skip tool calls and results in user messages
                     }
                 }

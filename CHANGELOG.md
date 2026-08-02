@@ -11,6 +11,7 @@ All notable changes to the Tachikoma project will be documented in this file.
 - Updated Swift package requirements and refreshed transitive pins, including swift-crypto 4.5.1, swift-nio 2.101.3, and swift-system 1.7.5.
 
 ### Fixed
+- Replayed encrypted OpenAI reasoning items across Codex OAuth tool-call turns so stateless follow-up requests retain the required reasoning context.
 - Corrected `tachikoma config init` guidance so it no longer claims to write a file or suggests commands from another application.
 
 ## [0.2.2] - 2026-07-15

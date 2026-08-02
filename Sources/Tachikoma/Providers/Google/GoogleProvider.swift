@@ -184,6 +184,8 @@ public final class GoogleProvider: ModelProvider {
                         functionResponse: nil,
                         thoughtSignature: nil,
                     ))
+                case .reasoning:
+                    continue
                 case let .toolCall(toolCall):
                     let call = try GoogleGenerateRequest.Content.FunctionCall(
                         id: toolCall.id,

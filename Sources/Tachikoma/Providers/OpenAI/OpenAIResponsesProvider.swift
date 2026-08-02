@@ -33,13 +33,14 @@ public final class OpenAIResponsesProvider: ModelProvider, ResponseCacheSafetyPr
 
     private static let debugLogURL = URL(fileURLWithPath: "/tmp/tachikoma-gpt5.log")
 
-    var isResponseCacheSafe: Bool { false }
+    var isResponseCacheSafe: Bool {
+        false
+    }
 
     // Provider options (immutable for Sendable conformance)
     private let reasoningEffort: ReasoningEffort = .medium
     private let verbosity: TextVerbosity = .high // Set to high for preambles
     private let previousResponseId: String? = nil // For conversation persistence
-    private let reasoningItemIds: [String] = [] // For stateful reasoning
 
     public init(
         model: LanguageModel.OpenAI,
@@ -283,7 +284,9 @@ public final class OpenAIResponsesProvider: ModelProvider, ResponseCacheSafetyPr
                         var errorBody = ""
                         for try await line in bytes.lines {
                             errorBody += line
-                            if errorBody.count > 1000 { break } // Limit error message size
+                            if errorBody.count > 1000 {
+                                break
+                            } // Limit error message size
                         }
                         if
                             let data = errorBody.data(using: .utf8),
@@ -328,19 +331,31 @@ public final class OpenAIResponsesProvider: ModelProvider, ResponseCacheSafetyPr
         var usage: Usage?
         var finishReason: FinishReason?
         var toolCalls: [AgentToolCall] = []
+        var assistantContent: [ModelMessage.ContentPart] = []
 
         for try await delta in stream {
             switch delta.type {
             case .textDelta:
-                text.append(delta.content ?? "")
+                let deltaText = delta.content ?? ""
+                text.append(deltaText)
+                if case let .text(existing)? = assistantContent.last {
+                    assistantContent[assistantContent.count - 1] = .text(existing + deltaText)
+                } else if !deltaText.isEmpty {
+                    assistantContent.append(.text(deltaText))
+                }
             case .toolCall:
                 if let toolCall = delta.toolCall {
                     toolCalls.append(toolCall)
+                    assistantContent.append(.toolCall(toolCall))
                 }
             case .done:
                 usage = delta.usage ?? usage
                 finishReason = delta.finishReason ?? finishReason
-            case .toolResult, .reasoning:
+            case .reasoning:
+                if let reasoning = delta.reasoningContent {
+                    assistantContent.append(.reasoning(reasoning))
+                }
+            case .toolResult:
                 break
             }
         }
@@ -350,6 +365,9 @@ public final class OpenAIResponsesProvider: ModelProvider, ResponseCacheSafetyPr
             usage: usage,
             finishReason: finishReason,
             toolCalls: toolCalls.isEmpty ? nil : toolCalls,
+            assistantMessages: assistantContent.isEmpty
+                ? []
+                : [ModelMessage(role: .assistant, content: assistantContent)],
         )
     }
 
@@ -376,7 +394,7 @@ public final class OpenAIResponsesProvider: ModelProvider, ResponseCacheSafetyPr
 
     private struct ResponsesStreamState {
         struct PartialToolCall {
-            var id: String
+            var callId: String
             var name: String?
             var arguments: String
         }
@@ -385,6 +403,7 @@ public final class OpenAIResponsesProvider: ModelProvider, ResponseCacheSafetyPr
         var pendingToolCalls: [String: PartialToolCall] = [:]
         var didYieldToolCall = false
         var didReceiveRefusal = false
+        var yieldedReasoningItemIDs: Set<String> = []
     }
 
     private static func processResponsesStreamLine(
@@ -434,20 +453,34 @@ public final class OpenAIResponsesProvider: ModelProvider, ResponseCacheSafetyPr
             case "response.output_item.added":
                 if
                     let item = event["item"] as? [String: Any],
-                    let itemType = item["type"] as? String,
-                    itemType == "function_call"
+                    let itemType = item["type"] as? String
                 {
-                    let identifier = (item["id"] as? String) ??
-                        (item["call_id"] as? String) ?? UUID().uuidString
-                    var partial = state.pendingToolCalls[identifier] ?? ResponsesStreamState.PartialToolCall(
-                        id: identifier,
-                        name: nil,
-                        arguments: "",
-                    )
-                    if let name = item["name"] as? String {
-                        partial.name = name
+                    if itemType == "reasoning", let reasoning = Self.reasoningContent(from: item) {
+                        continuation.yield(.reasoning(reasoning))
+                        state.yieldedReasoningItemIDs.insert(reasoning.id)
+                    } else if itemType == "function_call" {
+                        let itemID = (item["id"] as? String) ?? UUID().uuidString
+                        var partial = state.pendingToolCalls[itemID] ?? ResponsesStreamState.PartialToolCall(
+                            callId: (item["call_id"] as? String) ?? itemID,
+                            name: nil,
+                            arguments: "",
+                        )
+                        if let name = item["name"] as? String {
+                            partial.name = name
+                        }
+                        state.pendingToolCalls[itemID] = partial
                     }
-                    state.pendingToolCalls[identifier] = partial
+                }
+
+            case "response.output_item.done":
+                if
+                    let item = event["item"] as? [String: Any],
+                    item["type"] as? String == "reasoning",
+                    let reasoning = Self.reasoningContent(from: item),
+                    !state.yieldedReasoningItemIDs.contains(reasoning.id)
+                {
+                    continuation.yield(.reasoning(reasoning))
+                    state.yieldedReasoningItemIDs.insert(reasoning.id)
                 }
 
             case "response.function_call_arguments.delta":
@@ -456,7 +489,7 @@ public final class OpenAIResponsesProvider: ModelProvider, ResponseCacheSafetyPr
                     let delta = event["delta"] as? String
                 {
                     var partial = state.pendingToolCalls[itemId] ?? ResponsesStreamState.PartialToolCall(
-                        id: itemId,
+                        callId: itemId,
                         name: nil,
                         arguments: "",
                     )
@@ -470,7 +503,7 @@ public final class OpenAIResponsesProvider: ModelProvider, ResponseCacheSafetyPr
                     let arguments = event["arguments"] as? String
                 {
                     var partial = state.pendingToolCalls[itemId] ?? ResponsesStreamState.PartialToolCall(
-                        id: itemId,
+                        callId: itemId,
                         name: nil,
                         arguments: "",
                     )
@@ -479,7 +512,11 @@ public final class OpenAIResponsesProvider: ModelProvider, ResponseCacheSafetyPr
 
                     if
                         let name = partial.name,
-                        let toolCall = Self.makeToolCall(id: itemId, name: name, argumentsJSON: arguments)
+                        let toolCall = Self.makeToolCall(
+                            id: partial.callId,
+                            name: name,
+                            argumentsJSON: arguments,
+                        )
                     {
                         continuation.yield(.tool(toolCall))
                         state.didYieldToolCall = true
@@ -567,8 +604,8 @@ public final class OpenAIResponsesProvider: ModelProvider, ResponseCacheSafetyPr
             let response = event["response"] as? [String: Any],
             let usage = response["usage"] as? [String: Any],
             let inputTokens = (usage["input_tokens"] as? NSNumber)?.intValue,
-            let outputTokens = (usage["output_tokens"] as? NSNumber)?.intValue
-        else {
+            let outputTokens = (usage["output_tokens"] as? NSNumber)?.intValue else
+        {
             return nil
         }
         return Usage(inputTokens: inputTokens, outputTokens: outputTokens)
@@ -585,6 +622,30 @@ public final class OpenAIResponsesProvider: ModelProvider, ResponseCacheSafetyPr
             return "OpenAI Responses API stream \(eventType): \(message)"
         }
         return "OpenAI Responses API stream \(eventType)"
+    }
+
+    private static func reasoningContent(from item: [String: Any]) -> ModelMessage.ContentPart.ReasoningContent? {
+        guard
+            let id = item["id"] as? String,
+            let encryptedContent = item["encrypted_content"] as? String else
+        {
+            return nil
+        }
+        let summary: [ModelMessage.ContentPart.ReasoningContent.Summary]? =
+            (item["summary"] as? [[String: Any]])?.compactMap { entry in
+                guard
+                    let type = entry["type"] as? String,
+                    let text = entry["text"] as? String else
+                {
+                    return nil
+                }
+                return ModelMessage.ContentPart.ReasoningContent.Summary(type: type, text: text)
+            }
+        return ModelMessage.ContentPart.ReasoningContent(
+            id: id,
+            encryptedContent: encryptedContent,
+            summary: summary,
+        )
     }
 
     private static func authHeader(for auth: TKAuthValue) -> (String, String, String) {
@@ -607,7 +668,7 @@ public final class OpenAIResponsesProvider: ModelProvider, ResponseCacheSafetyPr
     {
         // Convert messages to Responses API format
         let inputMessages = codex ? request.messages.filter { $0.role != .system } : request.messages
-        let messages = try self.sanitizeInputs(self.convertMessages(inputMessages))
+        let messages = try self.sanitizeInputs(self.convertMessages(inputMessages, codex: codex))
 
         // Convert tools if present
         let tools = try request.tools?.compactMap { tool in
@@ -705,7 +766,7 @@ public final class OpenAIResponsesProvider: ModelProvider, ResponseCacheSafetyPr
         return instructions.isEmpty ? "You are a helpful assistant." : instructions
     }
 
-    private func convertMessages(_ messages: [ModelMessage]) throws -> [ResponsesInputItem] {
+    private func convertMessages(_ messages: [ModelMessage], codex: Bool) throws -> [ResponsesInputItem] {
         var inputs: [ResponsesInputItem] = []
 
         for message in messages {
@@ -715,14 +776,44 @@ public final class OpenAIResponsesProvider: ModelProvider, ResponseCacheSafetyPr
                     inputs.append(.message(entry))
                 }
             case .assistant:
-                if let entry = makeMessageEntry(role: message.role.rawValue, message: message) {
-                    inputs.append(.message(entry))
-                }
-
-                for part in message.content {
-                    guard case let .toolCall(call) = part else { continue }
-                    if let functionCall = makeFunctionCall(call) {
-                        inputs.append(.functionCall(functionCall))
+                if codex {
+                    var bufferedContent: [ModelMessage.ContentPart] = []
+                    for part in message.content {
+                        switch part {
+                        case let .reasoning(reasoning):
+                            if let entry = makeMessageEntry(role: message.role.rawValue, content: bufferedContent) {
+                                inputs.append(.message(entry))
+                            }
+                            bufferedContent.removeAll(keepingCapacity: true)
+                            inputs.append(.reasoning(.init(
+                                id: reasoning.id,
+                                encryptedContent: reasoning.encryptedContent,
+                                summary: reasoning.summary,
+                            )))
+                        case let .toolCall(call):
+                            if let entry = makeMessageEntry(role: message.role.rawValue, content: bufferedContent) {
+                                inputs.append(.message(entry))
+                            }
+                            bufferedContent.removeAll(keepingCapacity: true)
+                            if let functionCall = makeFunctionCall(call) {
+                                inputs.append(.functionCall(functionCall))
+                            }
+                        default:
+                            bufferedContent.append(part)
+                        }
+                    }
+                    if let entry = makeMessageEntry(role: message.role.rawValue, content: bufferedContent) {
+                        inputs.append(.message(entry))
+                    }
+                } else {
+                    if let entry = makeMessageEntry(role: message.role.rawValue, message: message) {
+                        inputs.append(.message(entry))
+                    }
+                    for part in message.content {
+                        guard case let .toolCall(call) = part else { continue }
+                        if let functionCall = makeFunctionCall(call) {
+                            inputs.append(.functionCall(functionCall))
+                        }
                     }
                 }
             case .tool:
@@ -798,6 +889,11 @@ public final class OpenAIResponsesProvider: ModelProvider, ResponseCacheSafetyPr
         )
     }
 
+    private func makeMessageEntry(role: String, content: [ModelMessage.ContentPart]) -> ResponsesMessage? {
+        guard !content.isEmpty else { return nil }
+        return self.makeMessageEntry(role: role, message: ModelMessage(role: .assistant, content: content))
+    }
+
     private func normalizedRole(_ role: String) -> String {
         switch role {
         case "assistant", "system", "developer", "user":
@@ -828,7 +924,7 @@ public final class OpenAIResponsesProvider: ModelProvider, ResponseCacheSafetyPr
                     if !rendered.isEmpty {
                         parts.append(ResponsesContentPart(type: "input_text", text: rendered, imageUrl: nil))
                     }
-                case .toolCall:
+                case .reasoning, .toolCall:
                     continue
                 }
             }
@@ -989,21 +1085,38 @@ public final class OpenAIResponsesProvider: ModelProvider, ResponseCacheSafetyPr
         var text: String
         var toolCalls: [AgentToolCall]?
         var finishReason: FinishReason?
+        var assistantMessages: [ModelMessage] = []
 
         if let outputs = response.output {
             // GPT-5 format with output array
             var collectedText = ""
             var collectedToolCalls: [AgentToolCall] = []
+            var collectedAssistantContent: [ModelMessage.ContentPart] = []
             var didCollectRefusal = false
 
             for output in outputs {
-                if output.type == "message" {
+                if
+                    output.type == "reasoning",
+                    let encryptedContent = output.encryptedContent
+                {
+                    collectedAssistantContent.append(.reasoning(.init(
+                        id: output.id,
+                        encryptedContent: encryptedContent,
+                        summary: output.summary,
+                    )))
+                } else if output.type == "message" {
                     if let content = output.content {
                         for chunk in content {
                             switch chunk.type {
                             case "output_text":
                                 if let textSegment = chunk.text {
                                     collectedText.append(textSegment)
+                                    if case let .text(existing)? = collectedAssistantContent.last {
+                                        collectedAssistantContent[collectedAssistantContent.count - 1] =
+                                            .text(existing + textSegment)
+                                    } else {
+                                        collectedAssistantContent.append(.text(textSegment))
+                                    }
                                 }
                             case "refusal":
                                 if chunk.refusal != nil || chunk.text != nil {
@@ -1015,6 +1128,7 @@ public final class OpenAIResponsesProvider: ModelProvider, ResponseCacheSafetyPr
                                     let converted = Self.convertToolCall(toolCall)
                                 {
                                     collectedToolCalls.append(converted)
+                                    collectedAssistantContent.append(.toolCall(converted))
                                 }
                             default:
                                 continue
@@ -1026,6 +1140,16 @@ public final class OpenAIResponsesProvider: ModelProvider, ResponseCacheSafetyPr
                     let converted = Self.convertToolCall(toolCall)
                 {
                     collectedToolCalls.append(converted)
+                    collectedAssistantContent.append(.toolCall(converted))
+                } else if
+                    output.type == "function_call",
+                    let callID = output.callId,
+                    let name = output.name,
+                    let arguments = output.arguments,
+                    let converted = Self.makeToolCall(id: callID, name: name, argumentsJSON: arguments)
+                {
+                    collectedToolCalls.append(converted)
+                    collectedAssistantContent.append(.toolCall(converted))
                 }
             }
 
@@ -1037,6 +1161,7 @@ public final class OpenAIResponsesProvider: ModelProvider, ResponseCacheSafetyPr
                 text = ""
                 toolCalls = nil
                 finishReason = .contentFilter
+                collectedAssistantContent.removeAll()
             } else {
                 toolCalls = collectedToolCalls.isEmpty ? nil : collectedToolCalls
             }
@@ -1046,6 +1171,9 @@ public final class OpenAIResponsesProvider: ModelProvider, ResponseCacheSafetyPr
             if finishReason == nil {
                 finishReason = incompleteFinishReason ?? .stop
             }
+            assistantMessages = collectedAssistantContent.isEmpty
+                ? []
+                : [ModelMessage(role: .assistant, content: collectedAssistantContent)]
         } else if let choices = response.choices, let choice = choices.first {
             // Alternate format with choices array.
             text = choice.message.content ?? ""
@@ -1095,6 +1223,7 @@ public final class OpenAIResponsesProvider: ModelProvider, ResponseCacheSafetyPr
             usage: usage,
             finishReason: finishReason,
             toolCalls: toolCalls,
+            assistantMessages: assistantMessages,
         )
     }
 

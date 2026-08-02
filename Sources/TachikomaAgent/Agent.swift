@@ -360,6 +360,8 @@ public final class AgentSessionManager: @unchecked Sendable {
             return text
         case .image:
             return "[Image]"
+        case .reasoning:
+            return nil
         case let .toolCall(toolCall):
             return "Tool: \(toolCall.name)"
         case let .toolResult(toolResult):
