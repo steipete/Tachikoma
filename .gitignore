@@ -116,11 +116,15 @@ fastlane/test_output
 # Temporary files
 *.tmp
 *.temp
+*.log
 .cache/
 debug
 *.bak
 *.backup
 *~
+
+# One-off root-level test harnesses
+/test-*.swift
 
 # OS generated files
 Thumbs.db
