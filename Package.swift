@@ -12,7 +12,7 @@ let localCommanderPath = packageDirectory
 let isDependencyCheckout = packageDirectory.deletingLastPathComponent().lastPathComponent == "checkouts"
 let commanderDependency: Package.Dependency = !isDependencyCheckout && FileManager.default.fileExists(atPath: localCommanderPath.path)
     ? .package(path: "../Commander")
-    : .package(url: "https://github.com/steipete/Commander.git", from: "0.2.2")
+    : .package(url: "https://github.com/steipete/Commander.git", from: "0.2.4")
 
 let package = Package(
     name: "Tachikoma",
@@ -61,11 +61,11 @@ let package = Package(
     ],
     dependencies: [
         commanderDependency,
-        .package(url: "https://github.com/apple/swift-log.git", from: "1.6.4"),
-        .package(url: "https://github.com/modelcontextprotocol/swift-sdk.git", from: "0.12.0"),
-        .package(url: "https://github.com/apple/swift-configuration", from: "1.0.0"),
+        .package(url: "https://github.com/apple/swift-log.git", from: "1.14.0"),
+        .package(url: "https://github.com/modelcontextprotocol/swift-sdk.git", from: "0.12.1"),
+        .package(url: "https://github.com/apple/swift-configuration", from: "1.2.0"),
         .package(url: "https://github.com/apple/swift-algorithms", from: "1.2.1"),
-        .package(url: "https://github.com/apple/swift-crypto.git", from: "4.2.0"),
+        .package(url: "https://github.com/apple/swift-crypto.git", from: "4.5.1"),
     ],
     targets: [
         // Core Tachikoma module (no MCP dependencies)
