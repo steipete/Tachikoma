@@ -67,6 +67,8 @@ jobs:
   swiftformat:
     name: SwiftFormat
     runs-on: macos-15
+    env:
+      SWIFTFORMAT_VERSION: 0.61.1
     steps:
     - name: Checkout
       uses: actions/checkout@v7
@@ -83,28 +85,26 @@ jobs:
     - name: Cache SwiftFormat
       uses: actions/cache@v6
       with:
-        path: |
-          ~/.mint
-          /usr/local/bin/swiftformat
-        key: ${{ runner.os }}-swiftformat-${{ hashFiles('.swiftformat') }}
+        path: ~/.mint
+        key: ${{ runner.os }}-swiftformat-${{ env.SWIFTFORMAT_VERSION }}-${{ hashFiles('.swiftformat') }}
         restore-keys: |
-          ${{ runner.os }}-swiftformat-
+          ${{ runner.os }}-swiftformat-${{ env.SWIFTFORMAT_VERSION }}-
 
-    - name: Install SwiftFormat
+    - name: Install Mint
       run: |
-        if ! command -v swiftformat &> /dev/null; then
-          brew install swiftformat
+        if ! command -v mint &> /dev/null; then
+          brew install mint
         fi
 
     - name: Verify SwiftFormat Version
       run: |
-        swiftformat --version
+        mint run "nicklockwood/SwiftFormat@${SWIFTFORMAT_VERSION}" swiftformat --version
         echo "SwiftFormat configuration:"
         cat .swiftformat || echo "No .swiftformat found"
 
     - name: Check SwiftFormat
       run: |
-        swiftformat --lint .
+        mint run "nicklockwood/SwiftFormat@${SWIFTFORMAT_VERSION}" swiftformat --lint .
 
   swift6-compatibility:
     name: Swift 6 Compatibility Check
@@ -125,7 +125,7 @@ jobs:
     - name: Check Swift 6 Language Mode
       run: |
         # Verify Swift 6 language mode is enabled (either via swiftLanguageModes or swiftLanguageVersion)
-        cd ${GITHUB_WORKSPACE}
+        cd "${GITHUB_WORKSPACE}"
         SWIFT_DUMP="$(swift package dump-package 2>/dev/null)"
         if jq -e '.swiftLanguageModes[] | select(. == "6")' <<< "$SWIFT_DUMP" >/dev/null 2>&1; then
           echo "Swift 6 language mode detected via dump-package"
