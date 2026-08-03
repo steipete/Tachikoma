@@ -1,139 +1,153 @@
-<div align="center">
-  <img src="assets/logo.png" width="180" alt="Tachikoma Logo">
-
-  # Tachikoma — Swift AI SDK
+# Tachikoma 🕷️ — One Swift API, many models
 
 <p align="center">
-  <a href="https://swift.org"><img src="https://img.shields.io/badge/Swift-6.0+-FA7343?style=for-the-badge&logo=swift&logoColor=white" alt="Swift 6.0+"></a>
-  <a href="https://github.com/steipete/Tachikoma"><img src="https://img.shields.io/badge/platforms-macOS%20%7C%20iOS%20%7C%20tvOS%20%7C%20watchOS%20%7C%20visionOS%20%7C%20Linux-blue?style=for-the-badge" alt="Platforms"></a>
-  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-green?style=for-the-badge" alt="MIT License"></a>
-  <a href="https://github.com/steipete/Tachikoma/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/steipete/Tachikoma/ci.yml?branch=main&style=for-the-badge&label=tests" alt="CI Status"></a>
+  <img src="assets/logo.png" width="180" alt="Tachikoma logo">
 </p>
+
+[![CI](https://img.shields.io/github/actions/workflow/status/openclaw/Tachikoma/ci.yml?branch=main&style=flat-square&label=ci)](https://github.com/openclaw/Tachikoma/actions/workflows/ci.yml)
+[![GitHub release](https://img.shields.io/github/v/release/openclaw/Tachikoma?style=flat-square)](https://github.com/openclaw/Tachikoma/releases/latest)
+[![Swift](https://img.shields.io/badge/Swift-6.2%2B-F05138?style=flat-square&logo=swift&logoColor=white)](https://swift.org)
+[![Platforms](https://img.shields.io/badge/platforms-Apple%20%7C%20Linux-blue?style=flat-square)](Package.swift)
+[![License](https://img.shields.io/github/license/openclaw/Tachikoma?style=flat-square)](LICENSE)
 
 ![Tachikoma banner](docs/assets/readme-banner.jpg)
 
-Modern, Swift-native APIs for text, vision, tools, and realtime voice.
-</div>
+Tachikoma is a Swift package for generating and streaming text, using vision and tools, and building realtime voice or agent workflows across hosted and local AI providers. It is for Swift applications that need one typed, concurrency-safe interface instead of provider-specific clients.
 
 ## Install
 
-Swift Package Manager:
+Add Tachikoma with Swift Package Manager:
 
 ```swift
-.package(url: "https://github.com/steipete/Tachikoma.git", branch: "main"),
+platforms: [
+    .macOS(.v14),
+    .iOS(.v17),
+],
+dependencies: [
+    .package(url: "https://github.com/openclaw/Tachikoma.git", from: "0.3.0"),
+],
+targets: [
+    .target(name: "MyApp", dependencies: [
+        .product(name: "Tachikoma", package: "Tachikoma"),
+    ]),
+]
 ```
 
-```swift
-.product(name: "Tachikoma", package: "Tachikoma"),
-```
+Tachikoma requires Swift 6.2. Its declared Apple deployment targets are macOS 14, iOS 17, tvOS 17, watchOS 10, and visionOS 1; Linux builds are covered by CI.
 
-## Quick Start
+## Quick start
+
+Provide a credential for the model you select—`OPENAI_API_KEY` for this example—then generate a response:
 
 ```swift
 import Tachikoma
 
-let text = try await generate("Write a haiku about Swift.", using: .anthropic(.opus45))
-print(text)
+let answer = try await generate(
+    "Write a haiku about Swift.",
+    using: .openai(.gpt55)
+)
+print(answer)
 ```
 
-### Streaming
+The convenience API resolves credentials from the environment or `TKAuthManager`. Network calls require access to the selected provider.
+
+## Stream responses
+
+`stream` returns an `AsyncThrowingStream` of provider-neutral text deltas:
 
 ```swift
 import Tachikoma
 
-let stream = try await stream("Explain actors in Swift.", using: .openai(.gpt54))
-for try await delta in stream {
+let response = try await stream(
+    "Explain actors in Swift.",
+    using: .openai(.gpt55)
+)
+
+for try await delta in response {
     print(delta.content ?? "", terminator: "")
 }
 ```
 
-### Conversation
+## Use tools
+
+Define a typed tool and pass it to `generateText`. Tachikoma executes tool calls and feeds their results back to the model for up to `maxSteps` steps.
 
 ```swift
 import Tachikoma
 
-let conversation = Conversation()
-conversation.addUserMessage("You are a concise assistant.")
-conversation.addUserMessage("Summarize Swift concurrency in 3 bullets.")
-let reply = try await conversation.continue(using: .anthropic(.opus45))
-print(reply)
-```
-
-### Vision
-
-```swift
-import Tachikoma
-
-let pngData: Data = /* ... */
-let image = ImageInput(data: pngData, mimeType: "image/png")
-let answer = try await analyze(image: image, prompt: "What’s in this image?", using: .openai(.gpt55))
-print(answer)
-```
-
-### Tools (function calling)
-
-```swift
-import Tachikoma
-
-let tool = createTool(
+let add = createTool(
     name: "add",
     description: "Add two integers",
     parameters: [
-        .init(name: "a", type: .integer, description: "First"),
-        .init(name: "b", type: .integer, description: "Second"),
-    ]
-) { args in
-    let a = try args.intValue("a")
-    let b = try args.intValue("b")
-    return ["sum": a + b]
+        .init(name: "a", type: .integer, description: "First value"),
+        .init(name: "b", type: .integer, description: "Second value"),
+    ],
+    required: ["a", "b"]
+) { arguments in
+    let a = try arguments.integerValue("a")
+    let b = try arguments.integerValue("b")
+    return AnyAgentToolValue(int: a + b)
 }
 
 let result = try await generateText(
-    model: .openai(.gpt54),
-    messages: [.user("Compute 123 + 456 using the add tool.")],
-    tools: [tool],
+    model: .openai(.gpt55),
+    messages: [.user("Use the add tool for 123 + 456.")],
+    tools: [add],
     maxSteps: 3
 )
 print(result.text)
 ```
 
-## Models
+## Choose a provider
 
-Common picks:
-- Anthropic: `claude-opus-4-8` (`LanguageModel.default`, non-streaming), `claude-sonnet-5`, `claude-fable-5` (explicit opt-in)
-- OpenAI: `gpt-5.5` (`LanguageModel.defaultStreaming`), `gpt-5.6-sol` / `gpt-5.6-terra` / `gpt-5.6-luna` (preview), `gpt-5.4` / `gpt-5.4-mini` / `gpt-5.4-nano`, `gpt-5`
-- Google: `gemini-3.1-pro-preview`, `gemini-3-flash`
-- Grok: `grok-4.3`
-- MiniMax: `MiniMax-M2.7`, `MiniMax-M2.7-highspeed`
-- Kimi: `kimi-k2.6`, `kimi-k2.7-code`, `kimi-k2.7-code-highspeed`
-- Local: `ollama/llama3.3`
+The built-in catalog covers OpenAI, Anthropic, Google Gemini, xAI, MiniMax, Kimi, Mistral, Groq, Ollama, and LM Studio. Tachikoma also accepts custom OpenAI-compatible and Anthropic-compatible endpoints. See the [model catalog](docs/models.md) for current enum cases, model IDs, defaults, and provider notes.
 
-Full catalog (including enum case names + provider notes): [`docs/models.md`](docs/models.md).
+Common hosted providers read these environment variables:
 
-## Credentials
+| Provider | Variable |
+| --- | --- |
+| OpenAI | `OPENAI_API_KEY` |
+| Anthropic | `ANTHROPIC_API_KEY` |
+| Google Gemini | `GEMINI_API_KEY` or `GOOGLE_API_KEY` |
+| xAI | `X_AI_API_KEY`, `XAI_API_KEY`, or `GROK_API_KEY` |
+| MiniMax | `MINIMAX_API_KEY` |
+| Kimi | `MOONSHOT_API_KEY` or `KIMI_API_KEY` |
 
-Set API keys via env vars (or use `TKAuthManager`):
-- OpenAI: `OPENAI_API_KEY`
-- Anthropic: `ANTHROPIC_API_KEY`
-- Gemini: `GEMINI_API_KEY` (alias: `GOOGLE_API_KEY`)
-- Grok: `X_AI_API_KEY` (aliases: `XAI_API_KEY`, `GROK_API_KEY`)
-- MiniMax: `MINIMAX_API_KEY`
-- Kimi (Moonshot AI): `MOONSHOT_API_KEY` (alias: `KIMI_API_KEY`)
+Use `TKAuthManager` when credentials should come from Tachikoma's stored profile instead. Hosts can change that profile root with `TachikomaConfiguration.profileDirectoryName`.
 
-Hosts can change the credential storage root:
-- `TachikomaConfiguration.profileDirectoryName` (Peekaboo uses `.peekaboo`)
+## Modules
+
+The package separates optional surfaces so applications only link what they use:
+
+| Product | Purpose |
+| --- | --- |
+| `Tachikoma` | Core models, generation, streaming, vision, and tools |
+| `TachikomaAgent` | Conversations, sessions, and agent workflows |
+| `TachikomaAudio` | Transcription, text-to-speech, and realtime audio |
+| `TachikomaMCP` | Model Context Protocol integration |
+
+Add an optional product beside `Tachikoma` in the target dependencies and import its module where needed.
 
 ## Documentation
 
-- Model catalog: [`docs/models.md`](docs/models.md)
-- Modern API overview: [`docs/modern-api.md`](docs/modern-api.md)
-- Realtime voice + Harmony patterns: [`docs/openai-harmony.md`](docs/openai-harmony.md)
-- Architecture: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)
-- Local models: [`docs/lmstudio.md`](docs/lmstudio.md), [`docs/gpt-oss.md`](docs/gpt-oss.md)
-- Azure notes: [`docs/azure.md`](docs/azure.md)
-- Vercel AI SDK reference snapshot: [`docs/ai-sdk.md`](docs/ai-sdk.md)
-- Contributing/dev setup: [`docs/contributing.md`](docs/contributing.md)
+- [Model catalog](docs/models.md)
+- [Architecture](docs/ARCHITECTURE.md)
+- [MCP integration](Sources/TachikomaMCP/README.md)
+- [Realtime voice and Harmony](docs/openai-harmony.md)
+- [Local models with LM Studio](docs/lmstudio.md)
+- [Azure OpenAI](docs/azure.md)
+
+## Development
+
+```sh
+git clone https://github.com/openclaw/Tachikoma.git
+cd Tachikoma
+swift build
+swift test
+```
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the contribution guide and [docs/testing.md](docs/testing.md) for test modes and provider integration tests.
 
 ## License
 
-MIT. See `LICENSE`.
+MIT. See [LICENSE](LICENSE).
