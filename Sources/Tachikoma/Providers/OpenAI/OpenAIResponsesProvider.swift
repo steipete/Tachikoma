@@ -1075,7 +1075,10 @@ public final class OpenAIResponsesProvider: ModelProvider, ResponseCacheSafetyPr
             description: tool.description,
             parameters: parameters,
             inputSchema: nil,
-            strict: nil,
+            // AgentToolParameters represents optional fields by omitting them from `required`.
+            // Responses otherwise attempts to normalize omitted strictness into strict mode,
+            // where every property becomes required and optionals must explicitly allow null.
+            strict: false,
             function: function,
         )
     }

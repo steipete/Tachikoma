@@ -917,15 +917,61 @@ struct OpenAIResponsesProviderTests {
             let json = try JSONSerialization.jsonObject(with: body) as? [String: Any]
             let tools = try #require(json?["tools"] as? [[String: Any]])
             let encodedTool = try #require(tools.first)
+            #expect(encodedTool["strict"] as? Bool == false)
             let parameters = try #require(encodedTool["parameters"] as? [String: Any])
             let required = try #require(parameters["required"] as? [String])
-            #expect(required.contains("action"))
+            #expect(required == ["action"])
             let props = try #require(parameters["properties"] as? [String: Any])
             let actionProp = try #require(props["action"] as? [String: Any])
             #expect(actionProp["type"] as? String == "string")
             let appsProp = try #require(props["apps"] as? [String: Any])
             let items = try #require(appsProp["items"] as? [String: Any])
             #expect(items["type"] as? String == "string")
+
+            return NetworkMocking.jsonResponse(for: request, data: Self.responsesPayload(text: "pong"))
+        } operation: { session in
+            let provider = try OpenAIResponsesProvider(model: .gpt5, configuration: config, session: session)
+            _ = try await provider.generateText(request: providerRequest)
+        }
+    }
+
+    @Test
+    func `Responses provider keeps optional tool properties omittable`() async throws {
+        let config = self.openAIConfig()
+        let optionalProperties: [String: AgentToolParameterProperty] = [
+            "app_target": .init(name: "app_target", type: .string, description: "Application target"),
+            "window_id": .init(name: "window_id", type: .integer, description: "Exact window ID"),
+            "snapshot": .init(name: "snapshot", type: .string, description: "Existing snapshot ID"),
+            "web_focus": .init(name: "web_focus", type: .boolean, description: "Allow web focus"),
+            "max_depth": .init(name: "max_depth", type: .number, description: "Traversal depth"),
+            "max_elements": .init(name: "max_elements", type: .number, description: "Element limit"),
+            "max_children": .init(name: "max_children", type: .number, description: "Child limit"),
+        ]
+        let tool = AgentTool(
+            name: "inspect_ui",
+            description: "Inspect accessibility state",
+            parameters: AgentToolParameters(properties: optionalProperties, required: []),
+        ) { _ in
+            AnyAgentToolValue(string: "ok")
+        }
+        let providerRequest = ProviderRequest(
+            messages: [.user("Inspect the frontmost app")],
+            tools: [tool],
+            settings: .init(maxTokens: 32),
+        )
+
+        try await self.withMockedSession { request in
+            let body = try #require(Self.bodyData(from: request))
+            let json = try #require(JSONSerialization.jsonObject(with: body) as? [String: Any])
+            let tools = try #require(json["tools"] as? [[String: Any]])
+            let encodedTool = try #require(tools.first)
+            #expect(encodedTool["strict"] as? Bool == false)
+
+            let parameters = try #require(encodedTool["parameters"] as? [String: Any])
+            #expect(try #require(parameters["required"] as? [String]).isEmpty)
+            let properties = try #require(parameters["properties"] as? [String: Any])
+            #expect(Set(properties.keys) == Set(optionalProperties.keys))
+            #expect((properties["snapshot"] as? [String: Any])?["type"] as? String == "string")
 
             return NetworkMocking.jsonResponse(for: request, data: Self.responsesPayload(text: "pong"))
         } operation: { session in
