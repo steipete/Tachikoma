@@ -6,6 +6,7 @@ All notable changes to the Tachikoma project will be documented in this file.
 
 ### Fixed
 - OpenAI Responses tools now preserve omission-based optional parameters instead of having automatic strict-schema normalization force fabricated argument values.
+- OpenAI Responses tool errors now keep their diagnostic output without sending an unsupported `failed` status that caused request-level errors.
 
 ## [0.3.0] - 2026-08-02
 

@@ -1019,11 +1019,51 @@ struct OpenAIResponsesProviderTests {
             let outputEntry = input.first { ($0["type"] as? String) == "function_call_output" }
             #expect(outputEntry?["call_id"] as? String == "call_123")
             #expect((outputEntry?["output"] as? String)?.contains("temperature") == true)
+            #expect(outputEntry?["status"] == nil)
 
             let messageRoles = input.compactMap { $0["role"] as? String }
             #expect(!messageRoles.contains("tool"))
 
             return NetworkMocking.jsonResponse(for: request, data: Self.responsesPayload(text: "Done"))
+        } operation: { session in
+            let provider = try OpenAIResponsesProvider(model: .gpt5, configuration: config, session: session)
+            _ = try await provider.generateText(request: providerRequest)
+        }
+    }
+
+    @Test
+    func `Responses tool errors preserve output and omit status`() async throws {
+        let config = TachikomaConfiguration(loadFromEnvironment: false)
+        config.setAPIKey("live-openai", for: .openai)
+
+        let toolCall = AgentToolCall(id: "call_error", name: "read_file", arguments: [
+            "path": AnyAgentToolValue(string: "/missing"),
+        ])
+        let toolResult = AgentToolResult.error(
+            toolCallId: "call_error",
+            error: "file not found",
+        )
+
+        let providerRequest = ProviderRequest(
+            messages: [
+                .user("read the file"),
+                ModelMessage(role: .assistant, content: [.toolCall(toolCall)]),
+                ModelMessage(role: .tool, content: [.toolResult(toolResult)]),
+            ],
+            settings: .init(maxTokens: 32),
+        )
+
+        try await withMockedSession { request in
+            let body = try #require(Self.bodyData(from: request))
+            let json = try JSONSerialization.jsonObject(with: body) as? [String: Any]
+            let input = try #require(json?["input"] as? [[String: Any]])
+
+            let outputEntry = input.first { ($0["type"] as? String) == "function_call_output" }
+            #expect(outputEntry?["call_id"] as? String == "call_error")
+            #expect(outputEntry?["output"] as? String == "file not found")
+            #expect(outputEntry?["status"] == nil)
+
+            return NetworkMocking.jsonResponse(for: request, data: Self.responsesPayload(text: "Handled"))
         } operation: { session in
             let provider = try OpenAIResponsesProvider(model: .gpt5, configuration: config, session: session)
             _ = try await provider.generateText(request: providerRequest)

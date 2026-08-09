@@ -311,19 +311,11 @@ enum ResponsesInputItem: Encodable {
         let type: String = "function_call_output"
         let callId: String
         let output: String
-        let status: String?
-
-        init(callId: String, output: String, status: String? = nil) {
-            self.callId = callId
-            self.output = output
-            self.status = status
-        }
 
         enum CodingKeys: String, CodingKey {
             case type
             case callId = "call_id"
             case output
-            case status
         }
     }
 
