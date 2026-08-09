@@ -970,7 +970,6 @@ public final class OpenAIResponsesProvider: ModelProvider, ResponseCacheSafetyPr
         return ResponsesInputItem.FunctionCallOutput(
             callId: result.toolCallId,
             output: safeOutput,
-            status: result.isError ? "failed" : nil,
         )
     }
 
