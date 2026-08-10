@@ -319,16 +319,6 @@ public final class AnthropicProvider: ModelProvider {
             )
         }
         if
-            Self.isOpus5(model: self.model),
-            case .disabled = thinkingMode,
-            let reasoningEffort = validatedSettings.reasoningEffort,
-            reasoningEffort == .xhigh || reasoningEffort == .max
-        {
-            throw TachikomaError.invalidConfiguration(
-                "Claude Opus 5 only supports disabled thinking at high effort or below",
-            )
-        }
-        if
             LanguageModel.Anthropic.hasDefaultAdaptiveThinking(modelId: self.model.modelId),
             request.messages.last?.role == .assistant
         {

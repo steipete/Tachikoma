@@ -183,28 +183,6 @@ struct AnthropicInterleavedDefaultsTests {
     }
 
     @Test
-    func `Opus 5 rejects disabled thinking above high effort`() throws {
-        let config = TachikomaConfiguration(apiKeys: ["anthropic": "test-key"])
-        let provider = try AnthropicProvider(model: .opus5, configuration: config)
-
-        for effort in [ReasoningEffort.xhigh, .max] {
-            #expect(throws: TachikomaError.self) {
-                _ = try provider.makeURLRequest(
-                    for: ProviderRequest(
-                        messages: [.user("hi")],
-                        settings: GenerationSettings(
-                            maxTokens: 64,
-                            reasoningEffort: effort,
-                            providerOptions: .init(anthropic: .init(thinking: .disabled)),
-                        ),
-                    ),
-                    stream: false,
-                )
-            }
-        }
-    }
-
-    @Test
     func `Custom Opus 5 model id uses adaptive thinking and extended effort`() throws {
         let config = TachikomaConfiguration(apiKeys: ["anthropic": "test-key"])
         let provider = try AnthropicProvider(model: .custom("claude-opus-5"), configuration: config)
