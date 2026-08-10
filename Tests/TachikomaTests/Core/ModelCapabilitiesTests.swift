@@ -64,6 +64,7 @@ enum ModelCapabilitiesTests {
         @Test
         func `Claude models support thinking`() {
             let models: [LanguageModel] = [
+                .anthropic(.opus5),
                 .anthropic(.fable5),
                 .anthropic(.sonnet5),
                 .anthropic(.opus47),
@@ -84,6 +85,7 @@ enum ModelCapabilitiesTests {
         @Test
         func `Current adaptive Claude models reject sampling options`() {
             for model in [
+                LanguageModel.anthropic(.opus5),
                 LanguageModel.anthropic(.fable5),
                 .anthropic(.sonnet5),
                 .anthropic(.opus47),

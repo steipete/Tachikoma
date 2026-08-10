@@ -286,13 +286,18 @@ public enum ProviderParser {
         }
 
         return switch normalized {
+        case "claude-opus-5", "claude-opus5", "claude-opus-5-latest", "opus-5", "opus.5", "opus5":
+            .anthropic(.opus5)
         case "claude-fable-5", "claude-fable-5-latest", "fable-5", "fable.5", "fable5", "fable":
             .anthropic(.fable5)
         case "claude-sonnet-5", "sonnet-5", "sonnet.5", "sonnet5", "sonnet":
             .anthropic(.sonnet5)
         case "claude-opus-4-8", "claude-opus-4.8", "claude-opus-4-8-latest", "opus-4-8", "opus-4.8",
-             "opus48", "claude", "claude-latest", "claude_latest", "claudelatest", "claude-default", "claude_default":
+             "opus48":
             .anthropic(.opus48)
+        case "anthropic", "claude", "claude-opus", "opus", "claude-latest", "claude_latest", "claudelatest",
+             "claude-default", "claude_default":
+            .anthropic(.opus5)
         case "claude-opus-4-7", "claude-opus-4.7", "claude-opus-4-7-latest", "opus-4-7", "opus-4.7", "opus47":
             .anthropic(.opus47)
         case "claude-opus-4-5", "claude-opus-4.5", "claude-opus-4-5-latest", "opus-4-5", "opus-4.5", "opus45":
@@ -427,7 +432,7 @@ public enum ProviderParser {
         -> LanguageModel
     {
         if hasAnthropic {
-            .anthropic(.opus48)
+            .anthropic(.opus5)
         } else if hasOpenAI {
             .openai(.gpt55)
         } else if hasGrok {

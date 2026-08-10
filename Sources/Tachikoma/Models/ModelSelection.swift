@@ -180,6 +180,8 @@ public struct ModelSelector {
     private static func parseAnthropicModel(_ input: String) -> Model.Anthropic? {
         switch input {
         // Direct matches
+        case "claude-opus-5", "claude-opus5", "claude-opus-5-latest", "opus-5", "opus.5", "opus5":
+            return .opus5
         case "claude-fable-5", "claude-fable-5-latest", "fable-5", "fable.5", "fable5", "fable":
             return .fable5
         case "claude-sonnet-5", "sonnet-5", "sonnet.5", "sonnet5":
@@ -196,16 +198,16 @@ public struct ModelSelector {
         case "claude-sonnet-4-5-20250929", "claude-sonnet-4.5":
             return .sonnet45
         // Shortcuts
-        case "claude":
-            return .opus48
+        case "claude", "claude-latest", "claude_latest", "claudelatest", "claude-default", "claude_default":
+            return .opus5
         case "claude-opus", "opus":
-            return .opus48
+            return .opus5
         case "claude-sonnet", "sonnet":
             return .sonnet5
         case "claude-haiku", "haiku":
             return .haiku45
         case "anthropic":
-            return .opus48
+            return .opus5
         default:
             // Check if it's a Claude model ID
             if self.isUnsupportedLegacyAnthropicModel(input) {
@@ -583,7 +585,7 @@ public func getAllAvailableModels() -> String {
     )
 
     output += "\nShortcuts:\n"
-    output += "  • claude, claude-opus, opus → claude-opus-4-8\n"
+    output += "  • claude, claude-opus, opus → claude-opus-5\n"
     output += "  • fable → claude-fable-5\n"
     output += "  • gpt → gpt-5.5\n"
     output += "  • gemini → gemini-3.5-flash\n"

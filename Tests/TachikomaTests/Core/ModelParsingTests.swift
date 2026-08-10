@@ -90,6 +90,35 @@ struct ModelParsingTests {
     }
 
     @Test
+    func `parse Claude Opus 5 aliases and properties`() throws {
+        let aliases = [
+            "claude-opus-5",
+            "claude-opus5",
+            "opus-5",
+            "opus5",
+            "claude-opus-5-latest",
+        ]
+
+        for alias in aliases {
+            #expect(LanguageModel.parse(from: alias) == .anthropic(.opus5))
+            #expect(try ModelSelector.parseModel(alias) == .anthropic(.opus5))
+            #expect(ProviderParser.determineDefaultModel(
+                from: "anthropic/\(alias)",
+                hasOpenAI: false,
+                hasAnthropic: true,
+            ) == .anthropic(.opus5))
+        }
+
+        #expect(LanguageModel.Anthropic.opus5.modelId == "claude-opus-5")
+        #expect(LanguageModel.Anthropic.opus5.contextLength == 1_000_000)
+        #expect(LanguageModel.Anthropic.opus5.maxOutputTokens == 128_000)
+        #expect(LanguageModel.Anthropic.opus5.supportsVision)
+        #expect(LanguageModel.Anthropic.opus5.supportsTools)
+        #expect(LanguageModel.Anthropic.allCases.first == .opus5)
+        #expect(LanguageModel.Anthropic.allCases.contains(.opus5))
+    }
+
+    @Test
     func `parse Claude Sonnet 5 model id`() throws {
         #expect(LanguageModel.parse(from: "claude-sonnet-5") == .anthropic(.sonnet5))
         #expect(LanguageModel.parse(from: "anthropic/claude-sonnet-5") == .anthropic(.sonnet5))
@@ -100,9 +129,16 @@ struct ModelParsingTests {
     }
 
     @Test
-    func `parse Claude Opus 4.8 model id`() {
-        let parsed = LanguageModel.parse(from: "claude-opus-4-8")
-        #expect(parsed == .anthropic(.opus48))
+    func `parse Claude Opus 4.8 model id`() throws {
+        for alias in ["claude-opus-4-8", "claude-opus-4.8", "opus-4-8", "opus-4.8", "opus48"] {
+            #expect(LanguageModel.parse(from: alias) == .anthropic(.opus48))
+            #expect(try ModelSelector.parseModel(alias) == .anthropic(.opus48))
+            #expect(ProviderParser.determineDefaultModel(
+                from: "anthropic/\(alias)",
+                hasOpenAI: false,
+                hasAnthropic: true,
+            ) == .anthropic(.opus48))
+        }
         #expect(LanguageModel.parse(from: "my-opus48-distill") == nil)
     }
 
@@ -114,9 +150,13 @@ struct ModelParsingTests {
 
     @Test
     func `parse shorthand Claude alias`() throws {
-        let parsed = LanguageModel.parse(from: "claude")
-        #expect(parsed == .anthropic(.opus48))
-        #expect(try ModelSelector.parseModel("anthropic") == .anthropic(.opus48))
+        for alias in ["claude", "opus", "claude-latest", "claude-default"] {
+            #expect(LanguageModel.parse(from: alias) == .anthropic(.opus5))
+            #expect(try ModelSelector.parseModel(alias) == .anthropic(.opus5))
+        }
+        #expect(try ModelSelector.parseModel("anthropic") == .anthropic(.opus5))
+        #expect(LanguageModel.default == .anthropic(.opus5))
+        #expect(LanguageModel.claude == .anthropic(.opus5))
     }
 
     @Test

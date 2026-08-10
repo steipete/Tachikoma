@@ -163,6 +163,11 @@ struct UsageTrackingTests {
         #expect(customClaudeFableCost.output == 50.00)
         #expect(customClaudeFableCost.total == 60.00)
 
+        let claudeOpus5Cost = calculator.calculateCost(for: .anthropic(.opus5), usage: usage)
+        #expect(claudeOpus5Cost.input == 5.00)
+        #expect(claudeOpus5Cost.output == 25.00)
+        #expect(claudeOpus5Cost.total == 30.00)
+
         let claudeOpusCost = calculator.calculateCost(for: .anthropic(.opus48), usage: usage)
         #expect(claudeOpusCost.input == 5.00)
         #expect(claudeOpusCost.output == 25.00)

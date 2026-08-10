@@ -566,6 +566,7 @@ public struct ModelCostCalculator: Sendable {
         // Anthropic Pricing (as of 2026)
         case let .anthropic(anthropicModel):
             switch anthropicModel {
+            case .opus5: (5.00, 25.00)
             case .fable5: (10.00, 50.00)
             case .sonnet5: self.sonnet5Pricing()
             case .opus48: (5.00, 25.00)
@@ -576,7 +577,9 @@ public struct ModelCostCalculator: Sendable {
             case .sonnet45: (4.00, 18.00)
             case .haiku45: (1.20, 6.00)
             case let .custom(id):
-                if LanguageModel.Anthropic.isFable(modelId: id) {
+                if LanguageModel.Anthropic.isOpus5(modelId: id) {
+                    (5.00, 25.00)
+                } else if LanguageModel.Anthropic.isFable(modelId: id) {
                     (10.00, 50.00)
                 } else if LanguageModel.Anthropic.isSonnet5(modelId: id) {
                     self.sonnet5Pricing()

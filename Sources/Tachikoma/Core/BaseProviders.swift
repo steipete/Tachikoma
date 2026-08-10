@@ -174,6 +174,9 @@ public final class AnthropicProvider: ModelProvider {
             if LanguageModel.Anthropic.isSonnet5(modelId: model.modelId) {
                 return AnthropicThinking(type: "adaptive", budgetTokens: nil)
             }
+            if Self.isOpus5(model: model) {
+                return AnthropicThinking(type: "adaptive", budgetTokens: nil)
+            }
             if case .opus48 = model {
                 return AnthropicThinking(type: "adaptive", budgetTokens: nil)
             }
@@ -215,11 +218,11 @@ public final class AnthropicProvider: ModelProvider {
         case .xhigh:
             Self.isFable(model: model) ||
                 LanguageModel.Anthropic.isSonnet5(modelId: model.modelId) ||
-                model == .opus48 || model == .opus47
+                Self.isOpus5(model: model) || model == .opus48 || model == .opus47
         case .max:
             Self.isFable(model: model) ||
                 LanguageModel.Anthropic.isSonnet5(modelId: model.modelId) ||
-                model == .opus48 || model == .opus47 || model == .sonnet46
+                Self.isOpus5(model: model) || model == .opus48 || model == .opus47 || model == .sonnet46
         }
     }
 
@@ -228,6 +231,9 @@ public final class AnthropicProvider: ModelProvider {
             return true
         }
         if LanguageModel.Anthropic.isSonnet5(modelId: model.modelId) {
+            return true
+        }
+        if Self.isOpus5(model: model) {
             return true
         }
         if case .opus48 = model {
@@ -247,6 +253,9 @@ public final class AnthropicProvider: ModelProvider {
             return true
         }
         if LanguageModel.Anthropic.isSonnet5(modelId: model.modelId) {
+            return true
+        }
+        if Self.isOpus5(model: model) {
             return true
         }
         switch model {
@@ -307,6 +316,16 @@ public final class AnthropicProvider: ModelProvider {
         {
             throw TachikomaError.invalidConfiguration(
                 "Claude Fable 5 always uses adaptive thinking; disabled thinking is not supported",
+            )
+        }
+        if
+            Self.isOpus5(model: self.model),
+            case .disabled = thinkingMode,
+            let reasoningEffort = validatedSettings.reasoningEffort,
+            reasoningEffort == .xhigh || reasoningEffort == .max
+        {
+            throw TachikomaError.invalidConfiguration(
+                "Claude Opus 5 only supports disabled thinking at high effort or below",
             )
         }
         if
@@ -568,6 +587,10 @@ public final class AnthropicProvider: ModelProvider {
 
     private static func isFable(model: LanguageModel.Anthropic) -> Bool {
         LanguageModel.Anthropic.isFable(modelId: model.modelId)
+    }
+
+    private static func isOpus5(model: LanguageModel.Anthropic) -> Bool {
+        LanguageModel.Anthropic.isOpus5(modelId: model.modelId)
     }
 
     private static func hasStreamingRefusalRisk(model: LanguageModel.Anthropic) -> Bool {
