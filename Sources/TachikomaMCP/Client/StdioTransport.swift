@@ -572,13 +572,16 @@ private enum JSONRPCID: Decodable {
     case null
     init(from decoder: Decoder) throws {
         let container = try decoder.singleValueContainer()
-        if let i = try? container.decode(Int.self) { self = .int(i)
+        if let i = try? container.decode(Int.self) {
+            self = .int(i)
             return
         }
-        if let s = try? container.decode(String.self) { self = .string(s)
+        if let s = try? container.decode(String.self) {
+            self = .string(s)
             return
         }
-        if container.decodeNil() { self = .null
+        if container.decodeNil() {
+            self = .null
             return
         }
         throw DecodingError.typeMismatch(

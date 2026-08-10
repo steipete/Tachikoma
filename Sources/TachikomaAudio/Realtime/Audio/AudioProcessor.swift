@@ -291,7 +291,9 @@ public final class RealtimeAudioProcessor: @unchecked Sendable {
 
         var s = max(-CLIP, min(sample, CLIP))
         let sign: UInt8 = s < 0 ? 0x80 : 0x00
-        if s < 0 { s = -s }
+        if s < 0 {
+            s = -s
+        }
 
         s += BIAS
 

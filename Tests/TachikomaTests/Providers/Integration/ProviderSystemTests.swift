@@ -105,17 +105,27 @@ struct ProviderSystemTests {
             setenv("ANTHROPIC_COMPATIBLE_API_KEY", "generic-compatible-key", 1)
             setenv("API_KEY", "generic-key", 1)
             defer {
-                if let previousOpenAI { setenv("OPENAI_API_KEY", previousOpenAI, 1) }
-                if let previousAnthropic { setenv("ANTHROPIC_API_KEY", previousAnthropic, 1) }
-                // swiftlint:disable:next statement_position
-                if let previousMiniMax { setenv("MINIMAX_API_KEY", previousMiniMax, 1) }
-                else { unsetenv("MINIMAX_API_KEY") }
+                if let previousOpenAI {
+                    setenv("OPENAI_API_KEY", previousOpenAI, 1)
+                }
+                if let previousAnthropic {
+                    setenv("ANTHROPIC_API_KEY", previousAnthropic, 1)
+                }
+                if let previousMiniMax {
+                    setenv("MINIMAX_API_KEY", previousMiniMax, 1)
+                } else {
+                    unsetenv("MINIMAX_API_KEY")
+                }
                 if let previousAnthropicCompatible {
                     setenv("ANTHROPIC_COMPATIBLE_API_KEY", previousAnthropicCompatible, 1)
                 } else {
                     unsetenv("ANTHROPIC_COMPATIBLE_API_KEY")
                 }
-                if let previousGeneric { setenv("API_KEY", previousGeneric, 1) } else { unsetenv("API_KEY") }
+                if let previousGeneric {
+                    setenv("API_KEY", previousGeneric, 1)
+                } else {
+                    unsetenv("API_KEY")
+                }
             }
 
             #expect(throws: TachikomaError.self) {

@@ -337,7 +337,9 @@ public actor RepetitionStopCondition: StopCondition {
         guard !s1.isEmpty, !s2.isEmpty else { return 0 }
 
         // If strings are exactly the same, return 1.0
-        if s1 == s2 { return 1.0 }
+        if s1 == s2 {
+            return 1.0
+        }
 
         // Calculate Jaccard similarity based on characters
         let set1 = Set(s1)

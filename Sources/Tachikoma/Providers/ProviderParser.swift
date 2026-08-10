@@ -143,7 +143,9 @@ public enum ProviderParser {
             default:
                 continue
             }
-            if environmentModel != nil { break }
+            if environmentModel != nil {
+                break
+            }
         }
 
         // Determine if there's a conflict

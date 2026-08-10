@@ -141,17 +141,27 @@ struct TKConfigCLI {
     private static func envSource(pid: TKProviderId, env: [String: String]) -> (key: String, value: String)? {
         switch pid {
         case .openai:
-            if let v = env["OPENAI_API_KEY"], !v.isEmpty { return ("OPENAI_API_KEY", v) }
+            if let v = env["OPENAI_API_KEY"], !v.isEmpty {
+                return ("OPENAI_API_KEY", v)
+            }
         case .anthropic:
-            if let v = env["ANTHROPIC_API_KEY"], !v.isEmpty { return ("ANTHROPIC_API_KEY", v) }
+            if let v = env["ANTHROPIC_API_KEY"], !v.isEmpty {
+                return ("ANTHROPIC_API_KEY", v)
+            }
         case .grok:
             for k in ["GROK_API_KEY", "X_AI_API_KEY", "XAI_API_KEY"] {
-                if let v = env[k], !v.isEmpty { return (k, v) }
+                if let v = env[k], !v.isEmpty {
+                    return (k, v)
+                }
             }
         case .gemini:
-            if let v = env["GEMINI_API_KEY"], !v.isEmpty { return ("GEMINI_API_KEY", v) }
+            if let v = env["GEMINI_API_KEY"], !v.isEmpty {
+                return ("GEMINI_API_KEY", v)
+            }
         case .openrouter:
-            if let v = env["OPENROUTER_API_KEY"], !v.isEmpty { return ("OPENROUTER_API_KEY", v) }
+            if let v = env["OPENROUTER_API_KEY"], !v.isEmpty {
+                return ("OPENROUTER_API_KEY", v)
+            }
         }
         return nil
     }
@@ -160,19 +170,33 @@ struct TKConfigCLI {
         let manager = TKAuthManager.shared
         switch pid {
         case .openai:
-            if let v = manager.credentialValue(for: "OPENAI_ACCESS_TOKEN") { return ("OPENAI_ACCESS_TOKEN", v) }
-            if let v = manager.credentialValue(for: "OPENAI_API_KEY") { return ("OPENAI_API_KEY", v) }
+            if let v = manager.credentialValue(for: "OPENAI_ACCESS_TOKEN") {
+                return ("OPENAI_ACCESS_TOKEN", v)
+            }
+            if let v = manager.credentialValue(for: "OPENAI_API_KEY") {
+                return ("OPENAI_API_KEY", v)
+            }
         case .anthropic:
-            if let v = manager.credentialValue(for: "ANTHROPIC_ACCESS_TOKEN") { return ("ANTHROPIC_ACCESS_TOKEN", v) }
-            if let v = manager.credentialValue(for: "ANTHROPIC_API_KEY") { return ("ANTHROPIC_API_KEY", v) }
+            if let v = manager.credentialValue(for: "ANTHROPIC_ACCESS_TOKEN") {
+                return ("ANTHROPIC_ACCESS_TOKEN", v)
+            }
+            if let v = manager.credentialValue(for: "ANTHROPIC_API_KEY") {
+                return ("ANTHROPIC_API_KEY", v)
+            }
         case .grok:
             for k in ["GROK_API_KEY", "X_AI_API_KEY", "XAI_API_KEY"] {
-                if let v = manager.credentialValue(for: k) { return (k, v) }
+                if let v = manager.credentialValue(for: k) {
+                    return (k, v)
+                }
             }
         case .gemini:
-            if let v = manager.credentialValue(for: "GEMINI_API_KEY") { return ("GEMINI_API_KEY", v) }
+            if let v = manager.credentialValue(for: "GEMINI_API_KEY") {
+                return ("GEMINI_API_KEY", v)
+            }
         case .openrouter:
-            if let v = manager.credentialValue(for: "OPENROUTER_API_KEY") { return ("OPENROUTER_API_KEY", v) }
+            if let v = manager.credentialValue(for: "OPENROUTER_API_KEY") {
+                return ("OPENROUTER_API_KEY", v)
+            }
         }
         return nil
     }

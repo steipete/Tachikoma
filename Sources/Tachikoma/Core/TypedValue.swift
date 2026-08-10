@@ -42,13 +42,17 @@ public enum TypedValue: Codable, Sendable, Equatable, Hashable {
 
     /// Returns the value as a Bool if it is one
     public var boolValue: Bool? {
-        if case let .bool(value) = self { return value }
+        if case let .bool(value) = self {
+            return value
+        }
         return nil
     }
 
     /// Returns the value as an Int if it is one
     public var intValue: Int? {
-        if case let .int(value) = self { return value }
+        if case let .int(value) = self {
+            return value
+        }
         return nil
     }
 
@@ -63,25 +67,33 @@ public enum TypedValue: Codable, Sendable, Equatable, Hashable {
 
     /// Returns the value as a String if it is one
     public var stringValue: String? {
-        if case let .string(value) = self { return value }
+        if case let .string(value) = self {
+            return value
+        }
         return nil
     }
 
     /// Returns the value as an array if it is one
     public var arrayValue: [TypedValue]? {
-        if case let .array(value) = self { return value }
+        if case let .array(value) = self {
+            return value
+        }
         return nil
     }
 
     /// Returns the value as an object/dictionary if it is one
     public var objectValue: [String: TypedValue]? {
-        if case let .object(value) = self { return value }
+        if case let .object(value) = self {
+            return value
+        }
         return nil
     }
 
     /// Returns true if this is a null value
     public var isNull: Bool {
-        if case .null = self { return true }
+        if case .null = self {
+            return true
+        }
         return false
     }
 

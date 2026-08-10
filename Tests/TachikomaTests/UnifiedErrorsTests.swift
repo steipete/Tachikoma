@@ -39,7 +39,9 @@ struct UnifiedErrorsTests {
         #expect(unifiedError.code == .rateLimited)
         #expect(unifiedError.details?.retryAfter == 60)
         #expect(unifiedError.recovery?.actions.contains {
-            if case .retry(after: 60) = $0 { return true }
+            if case .retry(after: 60) = $0 {
+                return true
+            }
             return false
         } == true)
     }

@@ -285,12 +285,16 @@ public struct AnyAgentToolValue: AgentToolValue, Equatable, Codable {
 
     /// Convenience accessors
     public var stringValue: String? {
-        if case let .string(value) = storage { return value }
+        if case let .string(value) = storage {
+            return value
+        }
         return nil
     }
 
     public var intValue: Int? {
-        if case let .int(value) = storage { return value }
+        if case let .int(value) = storage {
+            return value
+        }
         return nil
     }
 
@@ -303,22 +307,30 @@ public struct AnyAgentToolValue: AgentToolValue, Equatable, Codable {
     }
 
     public var boolValue: Bool? {
-        if case let .bool(value) = storage { return value }
+        if case let .bool(value) = storage {
+            return value
+        }
         return nil
     }
 
     public var arrayValue: [AnyAgentToolValue]? {
-        if case let .array(value) = storage { return value }
+        if case let .array(value) = storage {
+            return value
+        }
         return nil
     }
 
     public var objectValue: [String: AnyAgentToolValue]? {
-        if case let .object(value) = storage { return value }
+        if case let .object(value) = storage {
+            return value
+        }
         return nil
     }
 
     public var isNull: Bool {
-        if case .null = self.storage { return true }
+        if case .null = self.storage {
+            return true
+        }
         return false
     }
 
