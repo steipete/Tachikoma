@@ -34,6 +34,7 @@ struct LanguageModelCoverageTests {
 
     @Test
     func `Anthropic enum exposes properties`() {
+        #expect(LanguageModel.Anthropic.allCases.first == .opus5)
         #expect(LanguageModel.Anthropic.allCases.contains(.sonnet5))
         for model in LanguageModel.Anthropic.allCases {
             #expect(!model.modelId.isEmpty)

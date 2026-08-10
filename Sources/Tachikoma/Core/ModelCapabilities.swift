@@ -278,6 +278,7 @@ public final class ModelCapabilityRegistry: @unchecked Sendable {
             ),
             excludedParameters: ["temperature", "topP", "topK"],
         )
+        self.capabilities["anthropic:claude-opus-5"] = claudeAdaptiveThinkingCapabilities
         self.capabilities["anthropic:claude-fable-5"] = claudeAdaptiveThinkingCapabilities
         self.capabilities["anthropic:claude-sonnet-5"] = claudeAdaptiveThinkingCapabilities
         self.capabilities["anthropic:claude-opus-4-8"] = claudeAdaptiveThinkingCapabilities

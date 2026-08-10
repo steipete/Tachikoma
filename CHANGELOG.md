@@ -4,6 +4,9 @@ All notable changes to the Tachikoma project will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+- Added first-class Claude Opus 5 support and moved generation-agnostic Claude aliases and defaults to the new flagship.
+
 ### Fixed
 - OpenAI Responses tools now preserve omission-based optional parameters instead of having automatic strict-schema normalization force fabricated argument values.
 - OpenAI Responses tool errors now keep their diagnostic output without sending an unsupported `failed` status that caused request-level errors.

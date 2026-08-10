@@ -4,7 +4,7 @@ Tachikoma ships with a built-in model catalog (`CaseIterable` enums) plus suppor
 
 ## Default
 
-- `LanguageModel.default`: `claude-opus-4-8`
+- `LanguageModel.default`: `claude-opus-5`
 - `LanguageModel.defaultStreaming`: `gpt-5.5`
 
 ## OpenAI (`LanguageModel.OpenAI`)
@@ -19,6 +19,7 @@ Notes:
 
 ## Anthropic (`LanguageModel.Anthropic`)
 
+- `claude-opus-5` (1M context, 128K max output, non-streaming until refusal rollback is streaming-safe)
 - `claude-sonnet-5` (1M context, 128K max output)
 - `claude-fable-5` (1M context, 128K max output, non-streaming, explicit opt-in)
 - `claude-opus-4-8` (1M context, 128K max output, non-streaming until refusal rollback is streaming-safe)

@@ -35,10 +35,10 @@ struct MinimalModernAPITests {
         let defaultModel = Model.default
         // Should compile without errors
         switch defaultModel {
-        case .anthropic(.opus48):
+        case .anthropic(.opus5):
             break // Expected default
         default:
-            Issue.record("Expected default to be Anthropic Opus 4.8")
+            Issue.record("Expected default to be Anthropic Opus 5")
         }
     }
 
