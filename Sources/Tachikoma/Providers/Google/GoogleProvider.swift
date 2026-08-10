@@ -472,7 +472,11 @@ private struct GoogleSSEParser {
     }
 
     func makeDoneDelta() -> TextStreamDelta {
-        let finishReason: FinishReason? = if self.sawToolCall { .toolCalls } else { self.finishReason }
+        let finishReason: FinishReason? = if self.sawToolCall {
+            .toolCalls
+        } else {
+            self.finishReason
+        }
         return TextStreamDelta.done(usage: self.usage, finishReason: finishReason)
     }
 

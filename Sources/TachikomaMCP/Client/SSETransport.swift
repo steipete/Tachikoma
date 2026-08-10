@@ -125,7 +125,9 @@ public final class SSETransport: MCPTransport {
 
     public func disconnect() async {
         self.logger.info("Disconnecting SSE transport")
-        if let t = await state.getTransport() { await t.disconnect() }
+        if let t = await state.getTransport() {
+            await t.disconnect()
+        }
         await self.state.cancelAll(MCPError.notConnected)
         await self.state.setTransport(nil)
     }
@@ -216,7 +218,9 @@ public final class SSETransport: MCPTransport {
 
         // Decode JSON-RPC response when SSE delivers it
         let response = try JSONDecoder().decode(JSONRPCResponse<R>.self, from: responseData)
-        if let error = response.error { throw MCPError.executionFailed(error.message) }
+        if let error = response.error {
+            throw MCPError.executionFailed(error.message)
+        }
         guard let result = response.result else { throw MCPError.invalidResponse }
         return result
     }
@@ -362,13 +366,16 @@ private struct JSONRPCResponse<R: Decodable>: Decodable {
 private enum JSONRPCID: Decodable { case int(Int), string(String), null
     init(from decoder: Decoder) throws {
         let c = try decoder.singleValueContainer()
-        if let i = try? c.decode(Int.self) { self = .int(i)
+        if let i = try? c.decode(Int.self) {
+            self = .int(i)
             return
         }
-        if let s = try? c.decode(String.self) { self = .string(s)
+        if let s = try? c.decode(String.self) {
+            self = .string(s)
             return
         }
-        if c.decodeNil() { self = .null
+        if c.decodeNil() {
+            self = .null
             return
         }
         throw DecodingError.typeMismatch(

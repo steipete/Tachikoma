@@ -47,9 +47,15 @@ private enum AutoConnectPolicy {
         ProcessInfo.processInfo.environment["PEEKABOO_DISABLE_MCP_AUTOCONNECT"] == "true"
     private static let isTestEnvironment: Bool = {
         let env = ProcessInfo.processInfo.environment
-        if env["PEEKABOO_DISABLE_MCP_AUTOCONNECT"] == "true" { return true }
-        if env["SWIFT_PACKAGE_TESTING"] == "1" { return true }
-        if env["XCTestConfigurationFilePath"] != nil { return true }
+        if env["PEEKABOO_DISABLE_MCP_AUTOCONNECT"] == "true" {
+            return true
+        }
+        if env["SWIFT_PACKAGE_TESTING"] == "1" {
+            return true
+        }
+        if env["XCTestConfigurationFilePath"] != nil {
+            return true
+        }
         let processName = ProcessInfo.processInfo.processName.lowercased()
         let argv0 = CommandLine.arguments.first?.lowercased() ?? ""
         return processName.contains("xctest")
@@ -62,8 +68,12 @@ private enum AutoConnectPolicy {
         if let override = overrideLock.withLock({ $0 }) {
             return override
         }
-        if forceEnable { return true }
-        if forceDisable { return false }
+        if forceEnable {
+            return true
+        }
+        if forceDisable {
+            return false
+        }
         return !isTestEnvironment
     }
 
@@ -125,7 +135,9 @@ public final class TachikomaMCPClientManager {
 
     public func addServer(name: String, config: MCPServerConfig) async throws {
         self.effectiveConfigs[name] = config
-        if self.connections[name] == nil { self.connections[name] = MCPClient(name: name, config: config) }
+        if self.connections[name] == nil {
+            self.connections[name] = MCPClient(name: name, config: config)
+        }
         if config.enabled, AutoConnectPolicy.shouldConnect {
             try await self.connections[name]?.connect()
         }
@@ -143,7 +155,9 @@ public final class TachikomaMCPClientManager {
         guard var cfg = effectiveConfigs[name] else { return }
         cfg.enabled = true
         self.effectiveConfigs[name] = cfg
-        if self.connections[name] == nil { self.connections[name] = MCPClient(name: name, config: cfg) }
+        if self.connections[name] == nil {
+            self.connections[name] = MCPClient(name: name, config: cfg)
+        }
         if AutoConnectPolicy.shouldConnect {
             try await self.connections[name]?.connect()
         }
@@ -153,7 +167,9 @@ public final class TachikomaMCPClientManager {
         guard var cfg = effectiveConfigs[name] else { return }
         cfg.enabled = false
         self.effectiveConfigs[name] = cfg
-        if let client = connections[name] { await client.disconnect() }
+        if let client = connections[name] {
+            await client.disconnect()
+        }
     }
 
     public func listServerNames() -> [String] {
@@ -184,7 +200,9 @@ public final class TachikomaMCPClientManager {
         var all: [Tool] = []
         for name in self.listServerNames() {
             let tools = await getServerTools(name: name)
-            if !tools.isEmpty { all.append(contentsOf: tools) }
+            if !tools.isEmpty {
+                all.append(contentsOf: tools)
+            }
         }
         return all
     }
@@ -204,7 +222,9 @@ public final class TachikomaMCPClientManager {
         let agentArgs = AgentToolArguments(arguments.mapValues { AnyAgentToolValue.from($0) })
         var mcpArgs: [String: Any] = [:]
         for key in agentArgs.keys {
-            if let v = agentArgs[key] { mcpArgs[key] = try v.toJSON() }
+            if let v = agentArgs[key] {
+                mcpArgs[key] = try v.toJSON()
+            }
         }
         return try await client.executeTool(name: toolName, arguments: mcpArgs)
     }
@@ -215,7 +235,9 @@ public final class TachikomaMCPClientManager {
         var result: [String: [Tool]] = [:]
         for (name, client) in self.connections {
             let tools = await client.tools
-            if !tools.isEmpty { result[name] = tools }
+            if !tools.isEmpty {
+                result[name] = tools
+            }
         }
         return result
     }
@@ -424,16 +446,30 @@ public final class TachikomaMCPClientManager {
         let keys = Set(D.keys).union(F.keys)
         for k in keys {
             if let f = F[k] {
-                if f.enabled == false { continue }
+                if f.enabled == false {
+                    continue
+                }
                 if let d = D[k] {
                     // Fill missing fields from defaults
                     var merged = f
-                    if merged.transport.isEmpty { merged.transport = d.transport }
-                    if merged.command.isEmpty { merged.command = d.command }
-                    if merged.args.isEmpty { merged.args = d.args }
-                    if merged.env.isEmpty { merged.env = d.env }
-                    if merged.timeout <= 0 { merged.timeout = d.timeout }
-                    if merged.description == nil { merged.description = d.description }
+                    if merged.transport.isEmpty {
+                        merged.transport = d.transport
+                    }
+                    if merged.command.isEmpty {
+                        merged.command = d.command
+                    }
+                    if merged.args.isEmpty {
+                        merged.args = d.args
+                    }
+                    if merged.env.isEmpty {
+                        merged.env = d.env
+                    }
+                    if merged.timeout <= 0 {
+                        merged.timeout = d.timeout
+                    }
+                    if merged.description == nil {
+                        merged.description = d.description
+                    }
                     result[k] = merged
                 } else {
                     result[k] = f
@@ -519,43 +555,53 @@ public final class TachikomaMCPClientManager {
         while i < chars.count {
             let c = chars[i]
             let n: Character? = i + 1 < chars.count ? chars[i + 1] : nil
-            if escapeNext { result.append(c)
+            if escapeNext {
+                result.append(c)
                 escapeNext = false
                 i += 1
                 continue
             }
-            if c == "\\", inString { escapeNext = true
+            if c == "\\", inString {
+                escapeNext = true
                 result.append(c)
                 i += 1
                 continue
             }
-            if c == "\"", !inSingle, !inMulti { inString.toggle()
+            if c == "\"", !inSingle, !inMulti {
+                inString.toggle()
                 result.append(c)
                 i += 1
                 continue
             }
-            if inString { result.append(c)
-                i += 1
-                continue
-            }
-            if c == "/", n == "/", !inMulti { inSingle = true
-                i += 2
-                continue
-            }
-            if c == "/", n == "*", !inSingle { inMulti = true
-                i += 2
-                continue
-            }
-            if c == "\n", inSingle { inSingle = false
+            if inString {
                 result.append(c)
                 i += 1
                 continue
             }
-            if c == "*", n == "/", inMulti { inMulti = false
+            if c == "/", n == "/", !inMulti {
+                inSingle = true
                 i += 2
                 continue
             }
-            if !inSingle, !inMulti { result.append(c) }
+            if c == "/", n == "*", !inSingle {
+                inMulti = true
+                i += 2
+                continue
+            }
+            if c == "\n", inSingle {
+                inSingle = false
+                result.append(c)
+                i += 1
+                continue
+            }
+            if c == "*", n == "/", inMulti {
+                inMulti = false
+                i += 2
+                continue
+            }
+            if !inSingle, !inMulti {
+                result.append(c)
+            }
             i += 1
         }
         return result

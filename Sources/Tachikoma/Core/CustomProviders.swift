@@ -35,7 +35,9 @@ public final class CustomProviderRegistry: @unchecked Sendable {
             var models: [String: String] = [:]
             if let modelsDict = dict["models"] as? [String: Any] {
                 for (k, v) in modelsDict {
-                    if let m = (v as? [String: Any])?["name"] as? String { models[k] = m }
+                    if let m = (v as? [String: Any])?["name"] as? String {
+                        models[k] = m
+                    }
                 }
             }
             out[id] = CustomProviderInfo(
@@ -79,43 +81,53 @@ public final class CustomProviderRegistry: @unchecked Sendable {
         while i < chars.count {
             let c = chars[i]
             let n: Character? = i + 1 < chars.count ? chars[i + 1] : nil
-            if escape { result.append(c)
+            if escape {
+                result.append(c)
                 escape = false
                 i += 1
                 continue
             }
-            if c == "\\", inString { escape = true
+            if c == "\\", inString {
+                escape = true
                 result.append(c)
                 i += 1
                 continue
             }
-            if c == "\"", !inSL, !inML { inString.toggle()
+            if c == "\"", !inSL, !inML {
+                inString.toggle()
                 result.append(c)
                 i += 1
                 continue
             }
-            if inString { result.append(c)
-                i += 1
-                continue
-            }
-            if c == "/", n == "/", !inML { inSL = true
-                i += 2
-                continue
-            }
-            if c == "/", n == "*", !inSL { inML = true
-                i += 2
-                continue
-            }
-            if c == "\n", inSL { inSL = false
+            if inString {
                 result.append(c)
                 i += 1
                 continue
             }
-            if c == "*", n == "/", inML { inML = false
+            if c == "/", n == "/", !inML {
+                inSL = true
                 i += 2
                 continue
             }
-            if !inSL, !inML { result.append(c) }
+            if c == "/", n == "*", !inSL {
+                inML = true
+                i += 2
+                continue
+            }
+            if c == "\n", inSL {
+                inSL = false
+                result.append(c)
+                i += 1
+                continue
+            }
+            if c == "*", n == "/", inML {
+                inML = false
+                i += 2
+                continue
+            }
+            if !inSL, !inML {
+                result.append(c)
+            }
             i += 1
         }
         return result

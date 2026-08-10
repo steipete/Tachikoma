@@ -68,7 +68,7 @@ jobs:
     name: SwiftFormat
     runs-on: macos-15
     env:
-      SWIFTFORMAT_VERSION: 0.61.1
+      SWIFTFORMAT_VERSION: 0.62.1
     steps:
     - name: Checkout
       uses: actions/checkout@v7

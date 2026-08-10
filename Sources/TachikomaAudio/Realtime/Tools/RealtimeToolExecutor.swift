@@ -369,37 +369,49 @@ public enum RealtimeToolArgument: Sendable, Codable {
 
     /// Get string value if available
     public var stringValue: String? {
-        if case let .string(value) = self { return value }
+        if case let .string(value) = self {
+            return value
+        }
         return nil
     }
 
     /// Get number value if available
     public var numberValue: Double? {
-        if case let .number(value) = self { return value }
+        if case let .number(value) = self {
+            return value
+        }
         return nil
     }
 
     /// Get integer value if available
     public var integerValue: Int? {
-        if case let .integer(value) = self { return value }
+        if case let .integer(value) = self {
+            return value
+        }
         return nil
     }
 
     /// Get boolean value if available
     public var booleanValue: Bool? {
-        if case let .boolean(value) = self { return value }
+        if case let .boolean(value) = self {
+            return value
+        }
         return nil
     }
 
     /// Get array value if available
     public var arrayValue: [RealtimeToolArgument]? {
-        if case let .array(value) = self { return value }
+        if case let .array(value) = self {
+            return value
+        }
         return nil
     }
 
     /// Get object value if available
     public var objectValue: String? {
-        if case let .object(value) = self { return value }
+        if case let .object(value) = self {
+            return value
+        }
         return nil
     }
 }

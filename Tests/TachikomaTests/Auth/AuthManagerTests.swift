@@ -797,7 +797,9 @@ private final class OAuthMockURLProtocol: URLProtocol {
                 let read = stream.read(&buffer, maxLength: bufferSize)
                 if read > 0 {
                     data.append(buffer, count: read)
-                } else { break }
+                } else {
+                    break
+                }
             }
             OAuthMockURLProtocol.lastBody = data
         }

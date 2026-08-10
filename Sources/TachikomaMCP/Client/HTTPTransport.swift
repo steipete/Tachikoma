@@ -137,13 +137,17 @@ public final class HTTPTransport: MCPTransport {
             }
 
             let decoded = try JSONDecoder().decode(HTTPJSONRPCResponse<R>.self, from: jsonData)
-            if let err = decoded.error { throw MCPError.executionFailed(err.message) }
+            if let err = decoded.error {
+                throw MCPError.executionFailed(err.message)
+            }
             guard let result = decoded.result else { throw MCPError.invalidResponse }
             return result
         } else {
             // Standard JSON response
             let decoded = try JSONDecoder().decode(HTTPJSONRPCResponse<R>.self, from: data)
-            if let err = decoded.error { throw MCPError.executionFailed(err.message) }
+            if let err = decoded.error {
+                throw MCPError.executionFailed(err.message)
+            }
             guard let result = decoded.result else { throw MCPError.invalidResponse }
             return result
         }

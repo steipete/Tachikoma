@@ -308,7 +308,9 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
                 "fable",
             ]
             return normalized == Self.fable5.modelId || segments.contains { segment in
-                if canonicalSegments.contains(segment) { return true }
+                if canonicalSegments.contains(segment) {
+                    return true
+                }
                 let compactSegment = segment
                     .replacingOccurrences(of: "-", with: "")
                     .replacingOccurrences(of: "_", with: "")
@@ -331,7 +333,9 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
                 "sonnet5",
             ]
             return normalized == Self.sonnet5.modelId || segments.contains { segment in
-                if canonicalSegments.contains(segment) { return true }
+                if canonicalSegments.contains(segment) {
+                    return true
+                }
                 let compactSegment = segment
                     .replacingOccurrences(of: "-", with: "")
                     .replacingOccurrences(of: "_", with: "")
@@ -370,7 +374,9 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
                 "opus48",
             ]
             return normalized == Self.opus48.modelId || segments.contains { segment in
-                if canonicalSegments.contains(segment) { return true }
+                if canonicalSegments.contains(segment) {
+                    return true
+                }
                 let compactSegment = segment
                     .replacingOccurrences(of: "-", with: "")
                     .replacingOccurrences(of: "_", with: "")
@@ -746,10 +752,18 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
                 let lower = id.lowercased()
                 // Heuristic: many Ollama vision models include "vision", "vl", or well-known model names.
                 // Keep this permissive so `ollama/<anything-vision>` works from config strings.
-                if lower.contains("llava") || lower.contains("bakllava") { return true }
-                if lower.contains("vision") { return true }
-                if lower.contains("qwen2.5vl") || lower.contains("qwen25vl") { return true }
-                if lower.contains("vl:") || lower.contains("-vl") || lower.contains("_vl") { return true }
+                if lower.contains("llava") || lower.contains("bakllava") {
+                    return true
+                }
+                if lower.contains("vision") {
+                    return true
+                }
+                if lower.contains("qwen2.5vl") || lower.contains("qwen25vl") {
+                    return true
+                }
+                if lower.contains("vl:") || lower.contains("-vl") || lower.contains("_vl") {
+                    return true
+                }
                 return false
             default:
                 return false
@@ -774,10 +788,18 @@ public enum LanguageModel: Sendable, CustomStringConvertible, Hashable {
             case let .custom(id):
                 // Heuristic: treat likely-vision models as tool-less unless explicitly modeled.
                 let lower = id.lowercased()
-                if lower.contains("llava") || lower.contains("bakllava") { return false }
-                if lower.contains("vision") { return false }
-                if lower.contains("qwen2.5vl") || lower.contains("qwen25vl") { return false }
-                if lower.contains("vl:") || lower.contains("-vl") || lower.contains("_vl") { return false }
+                if lower.contains("llava") || lower.contains("bakllava") {
+                    return false
+                }
+                if lower.contains("vision") {
+                    return false
+                }
+                if lower.contains("qwen2.5vl") || lower.contains("qwen25vl") {
+                    return false
+                }
+                if lower.contains("vl:") || lower.contains("-vl") || lower.contains("_vl") {
+                    return false
+                }
                 return true
             }
         }
@@ -1486,14 +1508,22 @@ extension LanguageModel {
 
         if dotted.contains("gpt-5-5") || compact.contains("gpt55") {
             // GPT-5.5 currently has no mini/nano variants; map those suffixes to GPT-5 mini/nano.
-            if dotted.contains("nano") || compact.contains("nano") { return .openai(.gpt5Nano) }
-            if dotted.contains("mini") || compact.contains("mini") { return .openai(.gpt5Mini) }
+            if dotted.contains("nano") || compact.contains("nano") {
+                return .openai(.gpt5Nano)
+            }
+            if dotted.contains("mini") || compact.contains("mini") {
+                return .openai(.gpt5Mini)
+            }
             return .openai(.gpt55)
         }
 
         if dotted.contains("gpt-5-4") || compact.contains("gpt54") {
-            if dotted.contains("nano") || compact.contains("nano") { return .openai(.gpt54Nano) }
-            if dotted.contains("mini") || compact.contains("mini") { return .openai(.gpt54Mini) }
+            if dotted.contains("nano") || compact.contains("nano") {
+                return .openai(.gpt54Nano)
+            }
+            if dotted.contains("mini") || compact.contains("mini") {
+                return .openai(.gpt54Mini)
+            }
             return .openai(.gpt54)
         }
 
@@ -1908,7 +1938,13 @@ extension LanguageModel {
             guard !Self.looksAnthropic(normalized), !Self.looksGoogle(normalized), !Self.looksGrok(normalized) else {
                 return nil
             }
-            return unqualifiedModel { if case .openai = $0 { true } else { false } }
+            return unqualifiedModel {
+                if case .openai = $0 {
+                    true
+                } else {
+                    false
+                }
+            }
                 ??
                 (Self.looksOpenAI(normalized) && !Self
                     .isUnsupportedOpenAI(normalized) ? .openai(.custom(model)) : nil)
@@ -1916,7 +1952,13 @@ extension LanguageModel {
             guard !Self.looksOpenAI(normalized), !Self.looksGoogle(normalized), !Self.looksGrok(normalized) else {
                 return nil
             }
-            return unqualifiedModel { if case .anthropic = $0 { true } else { false } }
+            return unqualifiedModel {
+                if case .anthropic = $0 {
+                    true
+                } else {
+                    false
+                }
+            }
                 ??
                 (Self.looksAnthropic(normalized) && !Self
                     .isUnsupportedAnthropic(normalized) ? .anthropic(.custom(model)) : nil)
@@ -1924,12 +1966,24 @@ extension LanguageModel {
             guard !Self.looksOpenAI(normalized), !Self.looksAnthropic(normalized), !Self.looksGrok(normalized) else {
                 return nil
             }
-            return unqualifiedModel { if case .google = $0 { true } else { false } }
+            return unqualifiedModel {
+                if case .google = $0 {
+                    true
+                } else {
+                    false
+                }
+            }
         case "grok", "xai":
             guard !Self.looksOpenAI(normalized), !Self.looksAnthropic(normalized), !Self.looksGoogle(normalized) else {
                 return nil
             }
-            return unqualifiedModel { if case .grok = $0 { true } else { false } }
+            return unqualifiedModel {
+                if case .grok = $0 {
+                    true
+                } else {
+                    false
+                }
+            }
                 ?? (Self.looksGrok(normalized) && !Self.isUnsupportedGrok(normalized) ? .grok(.custom(model)) : nil)
         default:
             return nil
