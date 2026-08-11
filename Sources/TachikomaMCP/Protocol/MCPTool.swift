@@ -100,9 +100,10 @@ public struct ToolArguments: Sendable {
         case let .int(num):
             return Double(num)
         case let .double(num):
-            return num
+            return num.isFinite ? num : nil
         case let .string(str):
-            return Double(str)
+            guard let number = Double(str), number.isFinite else { return nil }
+            return number
         default:
             return nil
         }
@@ -116,7 +117,7 @@ public struct ToolArguments: Sendable {
         case let .int(num):
             return num
         case let .double(num):
-            return Int(num)
+            return Int(exactly: num)
         case let .string(str):
             return Int(str)
         default:

@@ -40,16 +40,37 @@ struct MCPToolAdapterTests {
     func `ToolArguments getInt`() {
         let args = ToolArguments(raw: [
             "int": 42,
+            "wholeDouble": 42.0,
             "double": 3.14,
             "string": "25",
             "invalid": "abc",
         ])
 
         #expect(args.getInt("int") == 42)
-        #expect(args.getInt("double") == 3)
+        #expect(args.getInt("wholeDouble") == 42)
+        #expect(args.getInt("double") == nil)
         #expect(args.getInt("string") == 25)
         #expect(args.getInt("invalid") == nil)
         #expect(args.getInt("missing") == nil)
+    }
+
+    @Test
+    func `ToolArguments reject unsafe numeric conversions`() {
+        let args = ToolArguments(value: .object([
+            "fractional": .double(1234.9),
+            "overflow": .double(1e20),
+            "infinity": .double(.infinity),
+            "nan": .double(.nan),
+            "stringOverflow": .string("100000000000000000000"),
+        ]))
+
+        #expect(args.getInt("fractional") == nil)
+        #expect(args.getInt("overflow") == nil)
+        #expect(args.getInt("infinity") == nil)
+        #expect(args.getInt("nan") == nil)
+        #expect(args.getInt("stringOverflow") == nil)
+        #expect(args.getNumber("infinity") == nil)
+        #expect(args.getNumber("nan") == nil)
     }
 
     @Test
