@@ -350,6 +350,13 @@ struct AudioTypesTests {
             #expect(signal.cancelled == true)
         }
 
+        @Test(arguments: [0, -1, .infinity, .nan])
+        func `AbortSignal invalid timeouts cancel immediately`(timeout: TimeInterval) {
+            let signal = AbortSignal.timeout(timeout)
+
+            #expect(signal.cancelled == true)
+        }
+
         @Test
         func `AbortSignal thread safety`() async {
             let signal = AbortSignal()

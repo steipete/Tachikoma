@@ -51,8 +51,6 @@ enum TestHelpers {
     ) async rethrows
         -> T
     {
-        let previousIgnore = TKAuthManager.shared.setIgnoreEnvironment(false)
-        defer { TKAuthManager.shared.setIgnoreEnvironment(previousIgnore) }
         let config = self.createTestConfiguration(apiKeys: apiKeys)
         return try await body(config)
     }

@@ -143,7 +143,7 @@ Add an optional product beside `Tachikoma` in the target dependencies and import
 git clone https://github.com/openclaw/Tachikoma.git
 cd Tachikoma
 swift build
-swift test
+TACHIKOMA_TEST_MODE=mock TACHIKOMA_DISABLE_API_TESTS=true swift test --parallel
 ```
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for the contribution guide and [docs/testing.md](docs/testing.md) for test modes and provider integration tests.

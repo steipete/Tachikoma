@@ -25,18 +25,17 @@ xcrun llvm-cov report \
 ## 2. Live provider smoke tests
 
 - **Command**: `INTEGRATION_TESTS=1 swift test --parallel -Xswiftc -DLIVE_PROVIDER_TESTS`
-- **Shortcut**: `pnpm run tachikoma:test:integration` from the repo root (exports `INTEGRATION_TESTS=1`, sources `~/.profile`, and adds the compile flag).
 - **What runs**: `ProviderIntegrationTests` (OpenAI, Anthropic, Google, Groq, Grok, Mistral) plus any suites that check `ProcessInfo.processInfo.environment` for real keys.
 - **Required env vars**:
   - `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GEMINI_API_KEY` (legacy `GOOGLE_API_KEY`), `MISTRAL_API_KEY`, `GROQ_API_KEY`, `X_AI_API_KEY` / `XAI_API_KEY`, etc.
-- **Notes**: wields actual HTTP calls and tool invocations, so only run when keys are set and you’re ready to burn quota. Requires the compile-time flag `-DLIVE_PROVIDER_TESTS`; without it the integration suite is excluded from the test build. Use `tmux` as described in `AGENTS.md` to avoid lost logs.
+- **Notes**: wields actual HTTP calls and tool invocations, so only run when keys are set and you’re ready to burn quota. Requires the compile-time flag `-DLIVE_PROVIDER_TESTS`; without it the integration suite is excluded from the test build.
 
 ### Example
 
 ```bash
 source ~/.profile  # ensure keys are exported
 tmux new-session -d -s tachitest 'cd Tachikoma && \
-  INTEGRATION_TESTS=1 swift test --parallel \
+  INTEGRATION_TESTS=1 swift test --parallel -Xswiftc -DLIVE_PROVIDER_TESTS \
   2>&1 | tee /tmp/tachikoma-swift-test.log'
 ```
 
@@ -61,7 +60,7 @@ Some suites rely on live credentials even without `INTEGRATION_TESTS`, e.g. CLI 
 ## 5. Troubleshooting tips
 
 - **Missing API key errors**: confirm `source ~/.profile` (or your secrets manager) before launching `swift test`. The helper prints the provider name in the exception message.
-- **Hanging tests**: rerun inside `tmux` and watch `/tmp/tachikoma-swift-test.log`. The `AGENTS.md` file in the parent repo outlines the approved tmux workflow (`tmux new-session ... | tee ...`).
+- **Hanging tests**: rerun inside `tmux` and watch `/tmp/tachikoma-swift-test.log` so the log survives a disconnected shell.
 - **Coverage gaps**: run the coverage command above; the report lists the lowest-covered files so you can target new tests.
 
 ## 6. File map

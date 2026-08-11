@@ -197,8 +197,8 @@ do {
 
 ## Requirements
 
-- Swift 6.0+
-- macOS 13.0+, iOS 16.0+, watchOS 9.0+, tvOS 16.0+
+- Swift 6.2+
+- macOS 14+, iOS 17+, watchOS 10+, tvOS 17+, visionOS 1+
 - MCP servers require Node.js for `npx` commands
 
 ## License
