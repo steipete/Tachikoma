@@ -82,7 +82,7 @@ struct MCPClientTests {
 
         // Test getInt
         #expect(args.getInt("number") == 42)
-        #expect(args.getInt("float") == 3)
+        #expect(args.getInt("float") == nil)
         #expect(args.getInt("missing") == nil)
 
         // Test getNumber
