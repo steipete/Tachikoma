@@ -337,6 +337,9 @@ public struct SpeechRequest: Sendable {
 /// Simple abort signal implementation for cancelling audio operations
 @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public final class AbortSignal: @unchecked Sendable {
+    // Task.sleep(for:) adds the duration to its current Int64-second clock value.
+    private static let maximumTimeoutSeconds = Double(Int64.max / 2)
+
     private var _cancelled = false
     private let lock = NSLock()
 
@@ -360,7 +363,7 @@ public final class AbortSignal: @unchecked Sendable {
     /// Create an abort signal that cancels after a timeout
     public static func timeout(_ timeInterval: TimeInterval) -> AbortSignal {
         let signal = AbortSignal()
-        guard timeInterval.isFinite, timeInterval > 0 else {
+        guard timeInterval.isFinite, timeInterval > 0, timeInterval <= Self.maximumTimeoutSeconds else {
             signal.cancel()
             return signal
         }
