@@ -119,5 +119,20 @@ struct SSETransportTests {
         await #expect(throws: TestFailure.self) {
             try await pendingRequest.value
         }
+
+        let staleRemoval = await state.removeConnection(
+            TestFailure.streamClosed,
+            readerGeneration: firstGeneration,
+        )
+        #expect(staleRemoval.removed == false)
+        #expect(await state.getTransport() === secondTransport)
+
+        let activeRemoval = await state.removeConnection(
+            TestFailure.streamClosed,
+            readerGeneration: secondGeneration,
+        )
+        #expect(activeRemoval.removed == true)
+        #expect(activeRemoval.transport === secondTransport)
+        #expect(await state.getTransport() == nil)
     }
 }

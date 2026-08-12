@@ -104,7 +104,15 @@ actor SSEState {
         return previousTransport
     }
 
-    func removeConnection(_ error: Swift.Error) -> HTTPClientTransport? {
+    func removeConnection(
+        _ error: Swift.Error,
+        readerGeneration: UInt64? = nil,
+    )
+        -> (removed: Bool, transport: HTTPClientTransport?)
+    {
+        if let readerGeneration, readerGeneration != self.readingGeneration {
+            return (false, nil)
+        }
         let previousTransport = self.transport
         self.readingGeneration &+= 1
         self.readingTask?.cancel()
@@ -114,7 +122,7 @@ actor SSEState {
         self.baseURL = nil
         self.endpointURL = nil
         self.headers = [:]
-        return previousTransport
+        return (true, previousTransport)
     }
 
     private func finishReading(generation: UInt64) {
@@ -184,7 +192,8 @@ public final class SSETransport: MCPTransport {
 
     public func disconnect() async {
         self.logger.info("Disconnecting SSE transport")
-        if let t = await state.removeConnection(MCPError.notConnected) {
+        let removal = await state.removeConnection(MCPError.notConnected)
+        if let t = removal.transport {
             await t.disconnect()
         }
     }
@@ -325,7 +334,7 @@ public final class SSETransport: MCPTransport {
             guard !Task.isCancelled else { return }
             guard await self.state.isActiveReader(generation: generation) else { return }
             self.logger.error("[SSE] Transport stream ended unexpectedly")
-            await self.state.cancelAll(
+            await self.failConnection(
                 MCPError.connectionFailed("SSE transport stream ended"),
                 readerGeneration: generation,
             )
@@ -337,11 +346,17 @@ public final class SSETransport: MCPTransport {
                 return
             }
             self.logger.error("[SSE] Reader failed: \(String(describing: error))")
-            await self.state
-                .cancelAll(
-                    MCPError.connectionFailed("SSE transport stream failed: \(error.localizedDescription)"),
-                    readerGeneration: generation,
-                )
+            await self.failConnection(
+                MCPError.connectionFailed("SSE transport stream failed: \(error.localizedDescription)"),
+                readerGeneration: generation,
+            )
+        }
+    }
+
+    private func failConnection(_ error: Swift.Error, readerGeneration: UInt64) async {
+        let removal = await state.removeConnection(error, readerGeneration: readerGeneration)
+        if let transport = removal.transport {
+            await transport.disconnect()
         }
     }
 
