@@ -138,39 +138,80 @@ extension ToolResponse {
 
     /// Convert to Tachikoma's AnyAgentToolValue for more complex results
     public func toAnyAgentToolValue() -> AnyAgentToolValue {
-        // If there's an error, return it as a string
-        if isError {
-            let errorMessage = content.compactMap { content -> String? in
-                if case let .text(text, _, _) = content {
-                    return text
-                }
-                return nil
-            }.joined(separator: "\n")
-
-            return AnyAgentToolValue(string: "Error: \(errorMessage)")
+        if self.isError {
+            return self.legacyErrorValue()
         }
 
-        let contentValue: AnyAgentToolValue = if content.isEmpty {
+        return self.successValue(contentValues: self.convertedContent())
+    }
+
+    /// Convert a response for AgentTool execution, throwing typed MCP failures instead of returning success values.
+    public func toAgentToolExecutionValue() throws -> AnyAgentToolValue {
+        let contentValues = self.convertedContent()
+        guard !self.isError else {
+            throw AgentToolExecutionFailure(
+                message: self.failureMessage(),
+                content: contentValues,
+                structuredValue: self.structuredContent?.toAnyAgentToolValue(),
+                metadata: self.meta?.toAnyAgentToolValue(dataLengthKey: "size"),
+            )
+        }
+        return self.successValue(contentValues: contentValues)
+    }
+
+    private func convertedContent() -> [AnyAgentToolValue] {
+        self.content.map { MCPContentBridge.convert($0) }
+    }
+
+    private func successValue(contentValues: [AnyAgentToolValue]) -> AnyAgentToolValue {
+        let contentValue: AnyAgentToolValue = if contentValues.isEmpty {
             AnyAgentToolValue(null: ())
-        } else if content.count == 1 {
-            MCPContentBridge.convert(content[0])
+        } else if contentValues.count == 1 {
+            contentValues[0]
         } else {
-            AnyAgentToolValue(array: content.map { MCPContentBridge.convert($0) })
+            AnyAgentToolValue(array: contentValues)
         }
 
-        guard let meta else {
+        guard self.meta != nil || self.structuredContent != nil else {
             return contentValue
         }
 
-        var payload: [String: AnyAgentToolValue] = [
-            "result": contentValue,
-            "meta": meta.toAnyAgentToolValue(dataLengthKey: "size"),
-        ]
+        var payload: [String: AnyAgentToolValue] = ["result": contentValue]
+        if let meta = self.meta {
+            payload["meta"] = meta.toAnyAgentToolValue(dataLengthKey: "size")
+        }
+        if let structuredContent = self.structuredContent {
+            payload["structuredContent"] = structuredContent.toAnyAgentToolValue()
+        }
 
         if let text = contentValue.stringValue {
             payload["text"] = AnyAgentToolValue(string: text)
         }
 
         return AnyAgentToolValue(object: payload)
+    }
+
+    private func legacyErrorValue() -> AnyAgentToolValue {
+        let errorMessage = self.content.compactMap { content -> String? in
+            if case let .text(text, _, _) = content {
+                return text
+            }
+            return nil
+        }.joined(separator: "\n")
+        return AnyAgentToolValue(string: "Error: \(errorMessage)")
+    }
+
+    private func failureMessage() -> String {
+        let errorMessage = self.content.compactMap { content -> String? in
+            switch content {
+            case let .text(text, _, _):
+                text
+            case let .resource(resource, _, _):
+                resource.text
+            default:
+                nil
+            }
+        }.joined(separator: "\n")
+        return errorMessage.isEmpty ? "Tool execution failed" : errorMessage
     }
 }

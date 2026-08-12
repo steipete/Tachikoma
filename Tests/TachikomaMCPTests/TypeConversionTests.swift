@@ -353,6 +353,77 @@ struct TypeConversionTests {
     }
 
     @Test
+    func `Agent tool success conversion preserves cardinality`() throws {
+        let empty = try ToolResponse(content: []).toAgentToolExecutionValue()
+        let single = try ToolResponse.text("one").toAgentToolExecutionValue()
+        let multiple = try ToolResponse.multiContent([
+            .text(text: "one", annotations: nil, _meta: nil),
+            .text(text: "two", annotations: nil, _meta: nil),
+        ]).toAgentToolExecutionValue()
+
+        #expect(empty.isNull)
+        #expect(single.stringValue == "one")
+        #expect(multiple.arrayValue?.map(\.stringValue) == ["one", "two"])
+    }
+
+    @Test
+    func `Agent tool success conversion preserves structured content and metadata`() throws {
+        let response = ToolResponse(
+            content: [.text(text: "complete", annotations: nil, _meta: nil)],
+            meta: .object(["duration": .double(0.25)]),
+            structuredContent: .object(["count": .int(2)]),
+        )
+
+        let payload = try response.toAgentToolExecutionValue().objectValue
+
+        #expect(payload?["result"]?.stringValue == "complete")
+        #expect(payload?["text"]?.stringValue == "complete")
+        #expect(payload?["structuredContent"]?.objectValue?["count"]?.intValue == 2)
+        #expect(payload?["meta"]?.objectValue?["duration"]?.doubleValue == 0.25)
+    }
+
+    @Test
+    func `Agent tool error conversion throws complete typed failure`() throws {
+        let response = ToolResponse(
+            content: [
+                .text(text: "permission denied", annotations: nil, _meta: nil),
+                .image(data: "AQID", mimeType: "image/png", annotations: nil, _meta: nil),
+                .resource(
+                    resource: .text("operator guidance", uri: "https://example.com/help", mimeType: "text/plain"),
+                    annotations: nil,
+                    _meta: nil,
+                ),
+            ],
+            isError: true,
+            meta: .object([
+                "retrySafe": .bool(false),
+                "diagnostic": .data(mimeType: "application/octet-stream", Data([1, 2, 3, 4])),
+            ]),
+            structuredContent: .object(["code": .string("permission_denied")]),
+        )
+
+        do {
+            _ = try response.toAgentToolExecutionValue()
+            Issue.record("Expected a typed tool failure")
+        } catch let failure as AgentToolExecutionFailure {
+            #expect(failure.message == "permission denied\noperator guidance")
+            #expect(failure.content.count == 3)
+            #expect(failure.content[0].stringValue == "permission denied")
+            #expect(failure.content[1].objectValue?["type"]?.stringValue == "image")
+            #expect(failure.content[1].objectValue?["data"]?.stringValue == "AQID")
+            #expect(failure.content[2].objectValue?["type"]?.stringValue == "resource")
+            #expect(failure.structuredValue?.objectValue?["code"]?.stringValue == "permission_denied")
+            #expect(failure.metadata?.objectValue?["retrySafe"]?.boolValue == false)
+            #expect(failure.metadata?.objectValue?["diagnostic"]?.objectValue?["size"]?.intValue == 4)
+            #expect(failure.metadata?.objectValue?["diagnostic"]?.objectValue?["data"] == nil)
+            #expect(failure.resultValue.objectValue?["success"] == nil)
+            #expect(failure.resultValue.objectValue?["result"] == nil)
+        } catch {
+            Issue.record("Expected AgentToolExecutionFailure, got \(error)")
+        }
+    }
+
+    @Test
     func `ToolResponse error conversion retains the established string contract`() {
         let response = ToolResponse.error("Tool failed", meta: .object(["retryable": .bool(true)]))
 

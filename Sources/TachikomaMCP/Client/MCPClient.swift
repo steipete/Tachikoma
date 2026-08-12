@@ -229,7 +229,7 @@ public final class MCPClient: Sendable {
         let args = ToolArguments(raw: arguments)
 
         // Send tool execution request
-        let response: ToolCallResponse = try await transport.sendRequest(
+        let response: CallTool.Result = try await transport.sendRequest(
             method: "tools/call",
             params: ToolCallParams(
                 name: name,
@@ -238,10 +238,7 @@ public final class MCPClient: Sendable {
         )
 
         // Convert response to ToolResponse
-        return ToolResponse(
-            content: response.content,
-            isError: response.isError ?? false,
-        )
+        return ToolResponse(callToolResult: response)
     }
 }
 
@@ -303,11 +300,6 @@ struct ToolsListResponse: Codable {
 struct ToolCallParams: Codable {
     let name: String
     let arguments: Value
-}
-
-struct ToolCallResponse: Codable {
-    let content: [MCP.Tool.Content]
-    let isError: Bool?
 }
 
 // MARK: - Errors

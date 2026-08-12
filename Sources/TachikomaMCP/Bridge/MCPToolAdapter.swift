@@ -20,7 +20,7 @@ public enum MCPToolAdapter {
                 arguments: self.convertArguments(arguments),
             )
 
-            return response.toAnyAgentToolValue()
+            return try response.toAgentToolExecutionValue()
         }
     }
 

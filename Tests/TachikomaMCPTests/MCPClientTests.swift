@@ -168,6 +168,8 @@ struct MCPClientTests {
 
     @Test
     func `ToolResponse creation methods`() {
+        let legacyInitializer: ([MCP.Tool.Content], Bool, Value?) -> ToolResponse =
+            ToolResponse.init(content:isError:meta:)
         // Text response
         let textResponse = ToolResponse.text("Success")
         #expect(textResponse.content.count == 1)
@@ -204,6 +206,7 @@ struct MCPClientTests {
             .text(text: "Part 2", annotations: nil, _meta: nil),
         ])
         #expect(multiResponse.content.count == 2)
+        #expect(legacyInitializer([], false, nil).content.isEmpty)
     }
 
     @Test
@@ -222,6 +225,22 @@ struct MCPClientTests {
         } else {
             Issue.record("Expected metadata object")
         }
+    }
+
+    @Test
+    func `CallTool result conversion preserves structured content and metadata`() {
+        let result = CallTool.Result(
+            content: [.text(text: "failed", annotations: nil, _meta: nil)],
+            structuredContent: .object(["code": .int(42)]),
+            isError: true,
+            _meta: Metadata(additionalFields: ["retrySafe": .bool(false)]),
+        )
+
+        let response = ToolResponse(callToolResult: result)
+
+        #expect(response.isError == true)
+        #expect(response.structuredContent == .object(["code": .int(42)]))
+        #expect(response.meta == .object(["retrySafe": .bool(false)]))
     }
 
     @Test
