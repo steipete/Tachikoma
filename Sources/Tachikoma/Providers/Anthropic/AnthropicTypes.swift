@@ -219,17 +219,20 @@ enum AnthropicContent: Codable {
         let type: String
         let toolUseId: String
         let content: String
+        let isError: Bool?
 
-        init(type: String = "tool_result", toolUseId: String, content: String) {
+        init(type: String = "tool_result", toolUseId: String, content: String, isError: Bool? = nil) {
             self.type = type
             self.toolUseId = toolUseId
             self.content = content
+            self.isError = isError
         }
 
         enum CodingKeys: String, CodingKey {
             case type
             case toolUseId = "tool_use_id"
             case content
+            case isError = "is_error"
         }
     }
 

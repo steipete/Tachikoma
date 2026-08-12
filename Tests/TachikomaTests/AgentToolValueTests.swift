@@ -264,6 +264,8 @@ struct AgentToolValueTests {
 
     @Test
     func `AgentToolResult uses AnyAgentToolValue`() {
+        let legacyInitializer: (String, AnyAgentToolValue, Bool) -> AgentToolResult =
+            AgentToolResult.init(toolCallId:result:isError:)
         let successResult = AgentToolResult.success(
             toolCallId: "call_123",
             result: AnyAgentToolValue(string: "Success!"),
@@ -281,6 +283,44 @@ struct AgentToolValueTests {
         #expect(errorResult.toolCallId == "call_456")
         #expect(errorResult.isError == true)
         #expect(errorResult.result.stringValue == "Something went wrong")
+        #expect(legacyInitializer("call_legacy", AnyAgentToolValue(string: "ok"), false).isError == false)
+    }
+
+    @Test
+    func `AgentToolExecutionFailure survives AgentToolResult coding`() throws {
+        let failure = AgentToolExecutionFailure(
+            message: "Permission denied",
+            content: [
+                AnyAgentToolValue(string: "Permission denied"),
+                AnyAgentToolValue(object: [
+                    "type": AnyAgentToolValue(string: "resource"),
+                    "uri": AnyAgentToolValue(string: "file:///redacted"),
+                ]),
+            ],
+            structuredValue: AnyAgentToolValue(object: ["code": AnyAgentToolValue(int: 403)]),
+            metadata: AnyAgentToolValue(object: ["retrySafe": AnyAgentToolValue(bool: true)]),
+        )
+        let result = AgentToolResult.error(toolCallId: "call_failure", failure: failure)
+
+        #expect(failure.errorDescription == "Permission denied")
+        #expect(result.isError == true)
+        #expect(result.failure == failure)
+        #expect(result.result.objectValue?["error"]?.stringValue == "Permission denied")
+        #expect(result.result.objectValue?["content"]?.arrayValue?.count == 2)
+        #expect(result.result.objectValue?["structuredValue"]?.objectValue?["code"]?.intValue == 403)
+        #expect(result.result.objectValue?["metadata"]?.objectValue?["retrySafe"]?.boolValue == true)
+        #expect(result.result.objectValue?["success"] == nil)
+        #expect(result.result.objectValue?["result"] == nil)
+
+        let encoded = try JSONEncoder().encode(result)
+        #expect(try JSONDecoder().decode(AgentToolResult.self, from: encoded) == result)
+
+        let legacyJSON = try #require(
+            #"{"toolCallId":"legacy","result":"failed","isError":true}"#.data(using: .utf8),
+        )
+        let legacyResult = try JSONDecoder().decode(AgentToolResult.self, from: legacyJSON)
+        #expect(legacyResult.failure == nil)
+        #expect(legacyResult.result.stringValue == "failed")
     }
 
     // MARK: - AgentToolArguments Tests

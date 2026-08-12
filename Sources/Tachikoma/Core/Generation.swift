@@ -159,6 +159,7 @@ public func generateText(
             var toolResults: [AgentToolResult] = []
             for toolCall in responseToolCalls {
                 if let tool = tools?.first(where: { $0.name == toolCall.name }) {
+                    let toolResult: AgentToolResult
                     do {
                         // Debug: Log tool call details in verbose mode
                         if
@@ -186,26 +187,23 @@ public func generateText(
                         // Convert arguments to AgentToolArguments
                         let toolArguments = AgentToolArguments(toolCall.arguments)
                         let result = try await tool.execute(toolArguments, context: context)
-                        let toolResult = AgentToolResult.success(toolCallId: toolCall.id, result: result)
-                        toolResults.append(toolResult)
-
-                        // Add tool result message
-                        currentMessages.append(ModelMessage(
-                            role: .tool,
-                            content: [.toolResult(toolResult)],
-                        ))
+                        toolResult = AgentToolResult.success(toolCallId: toolCall.id, result: result)
+                    } catch let failure as AgentToolExecutionFailure {
+                        toolResult = AgentToolResult.error(
+                            toolCallId: toolCall.id,
+                            failure: failure,
+                        )
                     } catch {
-                        let errorResult = AgentToolResult.error(
+                        toolResult = AgentToolResult.error(
                             toolCallId: toolCall.id,
                             error: error.localizedDescription,
                         )
-                        toolResults.append(errorResult)
-
-                        currentMessages.append(ModelMessage(
-                            role: .tool,
-                            content: [.toolResult(errorResult)],
-                        ))
                     }
+                    toolResults.append(toolResult)
+                    currentMessages.append(ModelMessage(
+                        role: .tool,
+                        content: [.toolResult(toolResult)],
+                    ))
                 }
             }
 

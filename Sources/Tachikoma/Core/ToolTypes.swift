@@ -425,17 +425,66 @@ public struct AgentToolCall: Sendable, Codable, Equatable {
     }
 }
 
+/// A typed tool failure that preserves structured execution output without treating it as a success value.
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
+public struct AgentToolExecutionFailure: Error, LocalizedError, Sendable, Codable, Equatable {
+    public let message: String
+    public let content: [AnyAgentToolValue]
+    public let structuredValue: AnyAgentToolValue?
+    public let metadata: AnyAgentToolValue?
+
+    public init(
+        message: String,
+        content: [AnyAgentToolValue] = [],
+        structuredValue: AnyAgentToolValue? = nil,
+        metadata: AnyAgentToolValue? = nil,
+    ) {
+        self.message = message
+        self.content = content
+        self.structuredValue = structuredValue
+        self.metadata = metadata
+    }
+
+    public var errorDescription: String? {
+        self.message
+    }
+
+    /// A structured result payload for preserving the failure in conversation history.
+    public var resultValue: AnyAgentToolValue {
+        var payload: [String: AnyAgentToolValue] = [
+            "error": AnyAgentToolValue(string: self.message),
+            "content": AnyAgentToolValue(array: self.content),
+        ]
+        if let structuredValue {
+            payload["structuredValue"] = structuredValue
+        }
+        if let metadata {
+            payload["metadata"] = metadata
+        }
+        return AnyAgentToolValue(object: payload)
+    }
+}
+
 /// Result of executing a tool
 @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public struct AgentToolResult: Sendable, Codable, Equatable {
     public let toolCallId: String
     public let result: AnyAgentToolValue
     public let isError: Bool
+    public let failure: AgentToolExecutionFailure?
 
     public init(toolCallId: String, result: AnyAgentToolValue, isError: Bool = false) {
         self.toolCallId = toolCallId
         self.result = result
         self.isError = isError
+        self.failure = nil
+    }
+
+    public init(toolCallId: String, failure: AgentToolExecutionFailure) {
+        self.toolCallId = toolCallId
+        self.result = failure.resultValue
+        self.isError = true
+        self.failure = failure
     }
 
     public static func success(toolCallId: String, result: AnyAgentToolValue) -> AgentToolResult {
@@ -444,6 +493,10 @@ public struct AgentToolResult: Sendable, Codable, Equatable {
 
     public static func error(toolCallId: String, error: String) -> AgentToolResult {
         AgentToolResult(toolCallId: toolCallId, result: AnyAgentToolValue(string: error), isError: true)
+    }
+
+    public static func error(toolCallId: String, failure: AgentToolExecutionFailure) -> AgentToolResult {
+        AgentToolResult(toolCallId: toolCallId, failure: failure)
     }
 }
 

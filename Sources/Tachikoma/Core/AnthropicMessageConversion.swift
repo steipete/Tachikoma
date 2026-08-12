@@ -157,16 +157,13 @@ enum AnthropicMessageConversion {
                     switch part {
                     case let .toolResult(result):
                         // Convert tool result to Anthropic format
-                        let resultContent: String = if result.isError {
-                            result.result.stringValue ?? "Error occurred"
-                        } else {
-                            AnthropicMessageEncoding.encodeToolResult(result.result)
-                        }
+                        let resultContent = AnthropicMessageEncoding.encodeToolResult(result.result)
 
                         // Tool results need to be sent as user messages with tool_result blocks
                         content.append(.toolResult(AnthropicContent.ToolResultContent(
                             toolUseId: result.toolCallId,
                             content: resultContent,
+                            isError: result.isError ? true : nil,
                         )))
                     case let .text(text):
                         // Sometimes tool messages include text

@@ -203,11 +203,34 @@ public struct ToolResponse: Sendable {
     public let content: [MCP.Tool.Content]
     public let isError: Bool
     public let meta: Value?
+    public let structuredContent: Value?
 
     public init(content: [MCP.Tool.Content], isError: Bool = false, meta: Value? = nil) {
         self.content = content
         self.isError = isError
         self.meta = meta
+        self.structuredContent = nil
+    }
+
+    public init(
+        content: [MCP.Tool.Content],
+        isError: Bool = false,
+        meta: Value? = nil,
+        structuredContent: Value?,
+    ) {
+        self.content = content
+        self.isError = isError
+        self.meta = meta
+        self.structuredContent = structuredContent
+    }
+
+    public init(callToolResult result: CallTool.Result) {
+        self.init(
+            content: result.content,
+            isError: result.isError ?? false,
+            meta: result._meta.map { .object($0.fields) },
+            structuredContent: result.structuredContent,
+        )
     }
 
     /// Create a text response

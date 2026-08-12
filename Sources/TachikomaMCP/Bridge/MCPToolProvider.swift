@@ -68,7 +68,7 @@ public final class MCPToolProvider: DynamicToolProvider {
             arguments: mcpArgs,
         )
 
-        return response.toAnyAgentToolValue()
+        return try response.toAgentToolExecutionValue()
     }
 
     /// Get all available tools as AgentTools

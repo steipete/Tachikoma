@@ -79,6 +79,45 @@ struct AnthropicInterleavedDefaultsTests {
     }
 
     @Test
+    func `Provider request preserves structured tool failure`() throws {
+        let config = TachikomaConfiguration(apiKeys: ["anthropic": "test-key"])
+        let provider = try AnthropicProvider(model: .opus45, configuration: config)
+        let call = AgentToolCall(id: "call-failure", name: "background_action", arguments: [:])
+        let failure = AgentToolExecutionFailure(
+            message: "permission denied",
+            content: [AnyAgentToolValue(string: "permission denied")],
+            structuredValue: AnyAgentToolValue(object: ["code": AnyAgentToolValue(int: 403)]),
+            metadata: AnyAgentToolValue(object: ["retrySafe": AnyAgentToolValue(bool: false)]),
+        )
+        let request = ProviderRequest(messages: [
+            .user("run"),
+            ModelMessage(role: .assistant, content: [.toolCall(call)]),
+            ModelMessage(
+                role: .tool,
+                content: [.toolResult(.error(toolCallId: call.id, failure: failure))],
+            ),
+        ])
+
+        let body = try #require(provider.makeURLRequest(for: request, stream: false).httpBody)
+        let json = try #require(try JSONSerialization.jsonObject(with: body) as? [String: Any])
+        let messages = try #require(json["messages"] as? [[String: Any]])
+        let toolMessage = try #require(messages.last)
+        let content = try #require(toolMessage["content"] as? [[String: Any]])
+        let toolResult = try #require(content.first)
+        let resultContent = try #require(toolResult["content"] as? String)
+        let resultJSON = try #require(
+            try JSONSerialization.jsonObject(with: Data(resultContent.utf8)) as? [String: Any],
+        )
+
+        #expect(toolResult["type"] as? String == "tool_result")
+        #expect(toolResult["tool_use_id"] as? String == call.id)
+        #expect(toolResult["is_error"] as? Bool == true)
+        #expect(resultJSON["error"] as? String == "permission denied")
+        #expect((resultJSON["structuredValue"] as? [String: Any])?["code"] as? Int == 403)
+        #expect((resultJSON["metadata"] as? [String: Any])?["retrySafe"] as? Bool == false)
+    }
+
+    @Test
     func `Opus 4_7 request strips unsupported sampling and uses adaptive thinking`() throws {
         let config = TachikomaConfiguration(apiKeys: ["anthropic": "test-key"])
         let provider = try AnthropicProvider(model: .opus47, configuration: config)
