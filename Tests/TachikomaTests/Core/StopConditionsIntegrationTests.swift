@@ -121,13 +121,22 @@ struct StopConditionsIntegrationTests {
     func `Timeout stop condition with streaming`() async throws {
         // Create a slow stream
         let stream = AsyncThrowingStream<TextStreamDelta, Error> { continuation in
-            Task {
-                for i in 1...10 {
-                    continuation.yield(TextStreamDelta(type: .textDelta, content: "Chunk \(i) "))
-                    try await Task.sleep(nanoseconds: 100_000_000) // 100ms delay
+            let producer = Task {
+                do {
+                    for i in 1...10 {
+                        continuation.yield(TextStreamDelta(type: .textDelta, content: "Chunk \(i) "))
+                        try await Task.sleep(nanoseconds: 100_000_000) // 100ms delay
+                    }
+                    continuation.yield(TextStreamDelta(type: .done))
+                    continuation.finish()
+                } catch is CancellationError {
+                    continuation.finish()
+                } catch {
+                    continuation.finish(throwing: error)
                 }
-                continuation.yield(TextStreamDelta(type: .done))
-                continuation.finish()
+            }
+            continuation.onTermination = { _ in
+                producer.cancel()
             }
         }
 

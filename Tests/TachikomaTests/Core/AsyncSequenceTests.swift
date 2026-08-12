@@ -168,16 +168,25 @@ struct AsyncSequenceTests {
     @Test
     func `AsyncSequence can be cancelled mid-iteration`() async {
         let testStream = AsyncThrowingStream<TextStreamDelta, Error> { continuation in
-            Task {
-                for i in 1...100 {
-                    try await Task.sleep(nanoseconds: 1_000_000) // 1ms
-                    continuation.yield(TextStreamDelta(
-                        type: .textDelta,
-                        content: "Item \(i)",
-                    ))
+            let producer = Task {
+                do {
+                    for i in 1...100 {
+                        try await Task.sleep(nanoseconds: 1_000_000) // 1ms
+                        continuation.yield(TextStreamDelta(
+                            type: .textDelta,
+                            content: "Item \(i)",
+                        ))
+                    }
+                    continuation.yield(TextStreamDelta(type: .done))
+                    continuation.finish()
+                } catch is CancellationError {
+                    continuation.finish()
+                } catch {
+                    continuation.finish(throwing: error)
                 }
-                continuation.yield(TextStreamDelta(type: .done))
-                continuation.finish()
+            }
+            continuation.onTermination = { _ in
+                producer.cancel()
             }
         }
 
