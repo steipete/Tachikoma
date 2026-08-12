@@ -359,12 +359,17 @@ public final class AbortSignal: @unchecked Sendable {
 
     /// Create an abort signal that cancels after a timeout
     public static func timeout(_ timeInterval: TimeInterval) -> AbortSignal {
-        // Create an abort signal that cancels after a timeout
         let signal = AbortSignal()
+        guard timeInterval.isFinite, timeInterval > 0 else {
+            signal.cancel()
+            return signal
+        }
 
         Task {
-            try await Task.sleep(nanoseconds: UInt64(timeInterval * 1_000_000_000))
-            signal.cancel()
+            try? await Task.sleep(for: .seconds(timeInterval))
+            if !Task.isCancelled {
+                signal.cancel()
+            }
         }
 
         return signal

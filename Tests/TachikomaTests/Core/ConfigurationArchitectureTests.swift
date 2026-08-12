@@ -53,37 +53,33 @@ struct ConfigurationArchitectureTests {
     @Test
     func `README examples work correctly`() {
         // Example 1: Zero configuration
-        _ = {
-            Task {
-                _ = try await generate("What is 2+2?", using: .openai(.gpt55))
-            }
+        let zeroConfiguration: @Sendable () async throws -> String = {
+            try await generate("What is 2+2?", using: .openai(.gpt55))
         }
+        _ = zeroConfiguration
 
         // Example 2: App sets default once
-        _ = {
+        let defaultConfiguration: @Sendable () async throws -> String = {
             TachikomaConfiguration.default = TachikomaConfiguration(
                 apiKeys: ["openai": "app-key"],
             )
-
-            Task {
-                _ = try await generate("Hello", using: .openai(.gpt55))
-            }
+            return try await generate("Hello", using: .openai(.gpt55))
         }
+        _ = defaultConfiguration
 
         // Example 3: Explicit configuration
-        _ = {
-            Task {
-                let testConfig = TachikomaConfiguration(
-                    apiKeys: ["openai": "test-key"],
-                )
+        let explicitConfiguration: @Sendable () async throws -> String = {
+            let testConfig = TachikomaConfiguration(
+                apiKeys: ["openai": "test-key"],
+            )
 
-                _ = try await generate(
-                    "Test prompt",
-                    using: .openai(.gpt55),
-                    configuration: testConfig,
-                )
-            }
+            return try await generate(
+                "Test prompt",
+                using: .openai(.gpt55),
+                configuration: testConfig,
+            )
         }
+        _ = explicitConfiguration
 
         // Example 4: Conversation
         _ = Conversation() // Uses default

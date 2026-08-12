@@ -196,12 +196,21 @@ struct StreamTransformTests {
     @Test
     func `Stream throttle extension works`() async throws {
         let stream = AsyncThrowingStream<Int, Error> { continuation in
-            Task {
-                for i in 1...5 {
-                    continuation.yield(i)
-                    try await Task.sleep(nanoseconds: 10_000_000) // 10ms
+            let producer = Task {
+                do {
+                    for i in 1...5 {
+                        continuation.yield(i)
+                        try await Task.sleep(nanoseconds: 10_000_000) // 10ms
+                    }
+                    continuation.finish()
+                } catch is CancellationError {
+                    continuation.finish()
+                } catch {
+                    continuation.finish(throwing: error)
                 }
-                continuation.finish()
+            }
+            continuation.onTermination = { _ in
+                producer.cancel()
             }
         }
 
