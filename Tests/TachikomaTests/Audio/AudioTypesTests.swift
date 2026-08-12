@@ -358,6 +358,20 @@ struct AudioTypesTests {
         }
 
         @Test
+        func `AbortSignal accepts the maximum supported timeout`() {
+            let signal = AbortSignal.timeout(Double(Int64.max / 2))
+
+            #expect(signal.cancelled == false)
+        }
+
+        @Test(arguments: [Double(Int64.max / 2).nextUp, Double.greatestFiniteMagnitude])
+        func `AbortSignal overflowing timeouts cancel immediately`(timeout: TimeInterval) {
+            let signal = AbortSignal.timeout(timeout)
+
+            #expect(signal.cancelled == true)
+        }
+
+        @Test
         func `AbortSignal thread safety`() async {
             let signal = AbortSignal()
 
