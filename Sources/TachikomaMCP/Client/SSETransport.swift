@@ -6,7 +6,7 @@ import Logging
 import MCP
 
 /// Internal state for SSE transport
-private actor SSEState {
+actor SSEState {
     var transport: HTTPClientTransport?
     var baseURL: URL?
     var endpointURL: URL?
@@ -34,8 +34,13 @@ private actor SSEState {
         self.headers = h
     }
 
-    func setEndpoint(_ url: URL?) {
+    @discardableResult
+    func setEndpoint(_ url: URL?, readerGeneration: UInt64? = nil) -> Bool {
+        if let readerGeneration, readerGeneration != self.readingGeneration {
+            return false
+        }
         self.endpointURL = url
+        return true
     }
 
     func getEndpoint() -> URL? {
@@ -68,11 +73,11 @@ private actor SSEState {
         self.timeoutTasks[id] = task
     }
 
-    func cancelTimeout(_ id: Int) {
-        self.timeoutTasks.removeValue(forKey: id)?.cancel()
-    }
-
-    func cancelAll(_ error: Swift.Error) {
+    @discardableResult
+    func cancelAll(_ error: Swift.Error, readerGeneration: UInt64? = nil) -> Bool {
+        if let readerGeneration, readerGeneration != self.readingGeneration {
+            return false
+        }
         for (_, c) in self.pendingRequests {
             c.resume(throwing: error)
         }
@@ -81,16 +86,20 @@ private actor SSEState {
             t.cancel()
         }
         self.timeoutTasks.removeAll()
+        return true
     }
 
-    func replaceReadingTask(_ operation: @escaping @Sendable () async -> Void) {
+    @discardableResult
+    func replaceReadingTask(_ operation: @escaping @Sendable (UInt64) async -> Void) -> UInt64 {
         self.readingTask?.cancel()
         self.readingGeneration &+= 1
         let generation = self.readingGeneration
         self.readingTask = Task { [weak self] in
-            await operation()
+            guard !Task.isCancelled else { return }
+            await operation(generation)
             await self?.finishReading(generation: generation)
         }
+        return generation
     }
 
     func cancelReadingTask() {
@@ -102,6 +111,20 @@ private actor SSEState {
     private func finishReading(generation: UInt64) {
         guard generation == self.readingGeneration else { return }
         self.readingTask = nil
+    }
+
+    func isActiveReader(generation: UInt64) -> Bool {
+        generation == self.readingGeneration
+    }
+
+    func takePendingResponse(id: Int, readerGeneration: UInt64) -> CheckedContinuation<Data, Swift.Error>? {
+        guard readerGeneration == self.readingGeneration else { return nil }
+        self.timeoutTasks.removeValue(forKey: id)?.cancel()
+        return self.pendingRequests.removeValue(forKey: id)
+    }
+
+    func pendingRequestCount() -> Int {
+        self.pendingRequests.count
     }
 }
 
@@ -135,6 +158,12 @@ public final class SSETransport: MCPTransport {
             sseInitializationTimeout: min(max(config.timeout, 1), 60),
         )
         try await transport.connect()
+        let previousTransport = await state.getTransport()
+        await self.state.cancelReadingTask()
+        if let previousTransport {
+            await self.state.cancelAll(MCPError.connectionFailed("SSE transport reconnected"))
+            await previousTransport.disconnect()
+        }
         await self.state.setTransport(transport)
         await self.state.setBaseURL(url)
         await self.state.setHeaders(config.headers ?? [:])
@@ -270,12 +299,12 @@ public final class SSETransport: MCPTransport {
     }
 
     private func startReading() async {
-        await self.state.replaceReadingTask { [weak self] in
-            await self?.readEvents()
+        await self.state.replaceReadingTask { [weak self] generation in
+            await self?.readEvents(generation: generation)
         }
     }
 
-    private func readEvents() async {
+    private func readEvents(generation: UInt64) async {
         guard let transport = await state.getTransport() else { return }
         self.logger.debug("[SSE] Starting to read from transport stream")
         let stream = await transport.receive()
@@ -283,6 +312,7 @@ public final class SSETransport: MCPTransport {
         do {
             for try await data in stream {
                 try Task.checkCancellation()
+                guard await self.state.isActiveReader(generation: generation) else { return }
                 guard let chunk = String(data: data, encoding: .utf8) else {
                     self.logger.debug("[SSE] Received non-UTF8 data of size \(data.count)")
                     continue
@@ -292,22 +322,33 @@ public final class SSETransport: MCPTransport {
                 while let range = buffer.range(of: "\n\n") {
                     let eventBlock = String(buffer[..<range.lowerBound])
                     buffer = String(buffer[range.upperBound...])
-                    await self.processEventBlock(eventBlock)
+                    await self.processEventBlock(eventBlock, readerGeneration: generation)
                 }
             }
             guard !Task.isCancelled else { return }
+            guard await self.state.isActiveReader(generation: generation) else { return }
             self.logger.error("[SSE] Transport stream ended unexpectedly")
-            await self.state.cancelAll(MCPError.connectionFailed("SSE transport stream ended"))
+            await self.state.cancelAll(
+                MCPError.connectionFailed("SSE transport stream ended"),
+                readerGeneration: generation,
+            )
         } catch is CancellationError {
             self.logger.debug("[SSE] Reader stopped")
         } catch {
+            guard await self.state.isActiveReader(generation: generation) else {
+                self.logger.debug("[SSE] Superseded reader stopped")
+                return
+            }
             self.logger.error("[SSE] Reader failed: \(String(describing: error))")
             await self.state
-                .cancelAll(MCPError.connectionFailed("SSE transport stream failed: \(error.localizedDescription)"))
+                .cancelAll(
+                    MCPError.connectionFailed("SSE transport stream failed: \(error.localizedDescription)"),
+                    readerGeneration: generation,
+                )
         }
     }
 
-    private func processEventBlock(_ block: String) async {
+    private func processEventBlock(_ block: String, readerGeneration: UInt64) async {
         // Parse SSE block: lines like 'event: type' and 'data: payload'
         var eventType = "message" // default per SSE
         var dataLines: [String] = []
@@ -341,8 +382,9 @@ public final class SSETransport: MCPTransport {
                 }
                 if let candidate = endpointCandidate, let url = URL(string: candidate, relativeTo: base) {
                     if url.host == base.host, url.scheme == base.scheme {
-                        await self.state.setEndpoint(url.absoluteURL)
-                        self.logger.info("[SSE] Endpoint established: \(url.absoluteString)")
+                        if await self.state.setEndpoint(url.absoluteURL, readerGeneration: readerGeneration) {
+                            self.logger.info("[SSE] Endpoint established: \(url.absoluteString)")
+                        }
                     } else {
                         self.logger.error("[SSE] Endpoint origin mismatch: \(url.absoluteString)")
                     }
@@ -350,7 +392,7 @@ public final class SSETransport: MCPTransport {
             }
         case "message":
             if let jsonData = dataString.data(using: .utf8) {
-                await self.handleIncoming(jsonData)
+                await self.handleIncoming(jsonData, readerGeneration: readerGeneration)
             }
         default:
             // Ignore other events
@@ -358,7 +400,7 @@ public final class SSETransport: MCPTransport {
         }
     }
 
-    private func handleIncoming(_ data: Data) async {
+    private func handleIncoming(_ data: Data, readerGeneration: UInt64) async {
         // Try to parse as JSON object with id
         guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
             if let text = String(data: data, encoding: .utf8) {
@@ -368,13 +410,11 @@ public final class SSETransport: MCPTransport {
         }
         // id may be int or string; we track by int ids we generate
         if let id = json["id"] as? Int {
-            if let pending = await state.removePending(id) {
-                await self.state.cancelTimeout(id)
+            if let pending = await state.takePendingResponse(id: id, readerGeneration: readerGeneration) {
                 pending.resume(returning: data)
             }
         } else if let idString = json["id"] as? String, let id = Int(idString) {
-            if let pending = await state.removePending(id) {
-                await self.state.cancelTimeout(id)
+            if let pending = await state.takePendingResponse(id: id, readerGeneration: readerGeneration) {
                 pending.resume(returning: data)
             }
         }
