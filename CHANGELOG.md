@@ -8,6 +8,7 @@ All notable changes to the Tachikoma project will be documented in this file.
 - Added first-class Claude Opus 5 support and moved generation-agnostic Claude aliases and defaults to the new flagship.
 
 ### Fixed
+- MCP tool responses now preserve metadata consistently across adapter and dynamic-provider execution paths.
 - SSE transports now own and cancel their background reader, replace it safely on reconnect, and fail pending requests when the stream terminates instead of leaking work until timeout.
 - Audio abort-signal timeouts now handle zero, negative, non-finite, and unrepresentably large durations without trapping.
 - MCP tool arguments now reject non-finite numbers and lossy or overflowing integer conversions instead of truncating or trapping.

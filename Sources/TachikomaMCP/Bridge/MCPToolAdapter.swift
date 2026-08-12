@@ -20,8 +20,7 @@ public enum MCPToolAdapter {
                 arguments: self.convertArguments(arguments),
             )
 
-            // Convert response to AnyAgentToolValue
-            return self.convertResponse(response)
+            return response.toAnyAgentToolValue()
         }
     }
 
@@ -179,76 +178,5 @@ public enum MCPToolAdapter {
                 "fallback": String(describing: argument),
             ]
         }
-    }
-
-    /// Convert MCP ToolResponse to AnyAgentToolValue
-    private static func convertResponse(_ response: ToolResponse) -> AnyAgentToolValue {
-        if response.isError {
-            let errorMessage = response.content.compactMap { content -> String? in
-                if case let .text(text, _, _) = content {
-                    return text
-                }
-                return nil
-            }.joined(separator: "\n")
-
-            return AnyAgentToolValue(string: "Error: \(errorMessage)")
-        }
-
-        let contentValue: AnyAgentToolValue = if response.content.isEmpty {
-            AnyAgentToolValue(null: ())
-        } else if response.content.count == 1 {
-            self.convertContent(response.content[0])
-        } else {
-            AnyAgentToolValue(array: response.content.map { self.convertContent($0) })
-        }
-
-        guard let meta = response.meta else {
-            return contentValue
-        }
-
-        var payload: [String: AnyAgentToolValue] = [
-            "result": contentValue,
-            "meta": convertMetaValue(meta),
-        ]
-
-        if let text = contentValue.stringValue {
-            payload["text"] = AnyAgentToolValue(string: text)
-        }
-
-        return AnyAgentToolValue(object: payload)
-    }
-
-    private static func convertMetaValue(_ value: Value) -> AnyAgentToolValue {
-        switch value {
-        case let .string(str):
-            return AnyAgentToolValue(string: str)
-        case let .int(num):
-            return AnyAgentToolValue(int: num)
-        case let .double(num):
-            return AnyAgentToolValue(double: num)
-        case let .bool(flag):
-            return AnyAgentToolValue(bool: flag)
-        case let .array(values):
-            return AnyAgentToolValue(array: values.map { self.convertMetaValue($0) })
-        case let .object(dict):
-            var converted: [String: AnyAgentToolValue] = [:]
-            for (key, entry) in dict {
-                converted[key] = self.convertMetaValue(entry)
-            }
-            return AnyAgentToolValue(object: converted)
-        case .null:
-            return AnyAgentToolValue(null: ())
-        case let .data(mime, data):
-            return AnyAgentToolValue(object: [
-                "type": AnyAgentToolValue(string: "data"),
-                "mimeType": AnyAgentToolValue(string: mime ?? "application/octet-stream"),
-                "size": AnyAgentToolValue(int: data.count),
-            ])
-        }
-    }
-
-    /// Convert MCP Tool.Content to AnyAgentToolValue
-    private static func convertContent(_ content: MCP.Tool.Content) -> AnyAgentToolValue {
-        MCPContentBridge.convert(content)
     }
 }

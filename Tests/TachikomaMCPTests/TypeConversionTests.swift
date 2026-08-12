@@ -334,6 +334,35 @@ struct TypeConversionTests {
     }
 
     @Test
+    func `ToolResponse conversion preserves response metadata`() {
+        let response = ToolResponse.text(
+            "Result",
+            meta: .object([
+                "duration": .double(1.5),
+                "trace": .data(mimeType: "application/octet-stream", Data([0x01, 0x02, 0x03])),
+            ]),
+        )
+
+        let value = response.toAnyAgentToolValue()
+        let payload = value.objectValue
+
+        #expect(payload?["result"]?.stringValue == "Result")
+        #expect(payload?["text"]?.stringValue == "Result")
+        #expect(payload?["meta"]?.objectValue?["duration"]?.doubleValue == 1.5)
+        #expect(payload?["meta"]?.objectValue?["trace"]?.objectValue?["size"]?.intValue == 3)
+    }
+
+    @Test
+    func `ToolResponse error conversion retains the established string contract`() {
+        let response = ToolResponse.error("Tool failed", meta: .object(["retryable": .bool(true)]))
+
+        let value = response.toAnyAgentToolValue()
+
+        #expect(value.stringValue == "Error: Tool failed")
+        #expect(value.objectValue == nil)
+    }
+
+    @Test
     func `Round-trip conversions`() throws {
         // AnyAgentToolValue -> Value -> AnyAgentToolValue
         let originalVal = AnyAgentToolValue(object: [
