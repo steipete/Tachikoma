@@ -68,8 +68,7 @@ public final class MCPToolProvider: DynamicToolProvider {
             arguments: mcpArgs,
         )
 
-        // Convert response back to AnyAgentToolValue
-        return self.convertResponseToAnyAgentToolValue(response)
+        return response.toAnyAgentToolValue()
     }
 
     /// Get all available tools as AgentTools
@@ -155,35 +154,5 @@ public final class MCPToolProvider: DynamicToolProvider {
             type: type,
             description: description,
         )
-    }
-
-    private func convertResponseToAnyAgentToolValue(_ response: ToolResponse) -> AnyAgentToolValue {
-        // If there's an error, return it as a string
-        if response.isError {
-            let errorMessage = response.content.compactMap { content -> String? in
-                if case let .text(text, _, _) = content {
-                    return text
-                }
-                return nil
-            }.joined(separator: "\n")
-
-            return AnyAgentToolValue(string: "Error: \(errorMessage)")
-        }
-
-        // Convert content to appropriate format
-        if response.content.count == 1 {
-            // Single content item
-            return self.convertContentToAnyAgentToolValue(response.content[0])
-        } else if response.content.isEmpty {
-            // No content
-            return AnyAgentToolValue(null: ())
-        } else {
-            // Multiple content items - return as array
-            return AnyAgentToolValue(array: response.content.map { self.convertContentToAnyAgentToolValue($0) })
-        }
-    }
-
-    private func convertContentToAnyAgentToolValue(_ content: MCP.Tool.Content) -> AnyAgentToolValue {
-        MCPContentBridge.convert(content)
     }
 }

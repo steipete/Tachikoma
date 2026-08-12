@@ -78,6 +78,10 @@ extension Value {
 
     /// Convert to Tachikoma's AnyAgentToolValue
     public func toAnyAgentToolValue() -> AnyAgentToolValue {
+        self.toAnyAgentToolValue(dataLengthKey: "dataSize")
+    }
+
+    fileprivate func toAnyAgentToolValue(dataLengthKey: String) -> AnyAgentToolValue {
         // Convert to Tachikoma's AnyAgentToolValue
         switch self {
         case let .string(str):
@@ -89,9 +93,9 @@ extension Value {
         case let .bool(bool):
             AnyAgentToolValue(bool: bool)
         case let .array(array):
-            AnyAgentToolValue(array: array.map { $0.toAnyAgentToolValue() })
+            AnyAgentToolValue(array: array.map { $0.toAnyAgentToolValue(dataLengthKey: dataLengthKey) })
         case let .object(dict):
-            AnyAgentToolValue(object: dict.mapValues { $0.toAnyAgentToolValue() })
+            AnyAgentToolValue(object: dict.mapValues { $0.toAnyAgentToolValue(dataLengthKey: dataLengthKey) })
         case .null:
             AnyAgentToolValue(null: ())
         case let .data(mimeType, data):
@@ -100,7 +104,7 @@ extension Value {
             AnyAgentToolValue(object: [
                 "type": AnyAgentToolValue(string: "data"),
                 "mimeType": AnyAgentToolValue(string: mimeType ?? "application/octet-stream"),
-                "dataSize": AnyAgentToolValue(int: data.count),
+                dataLengthKey: AnyAgentToolValue(int: data.count),
             ])
         }
     }
@@ -146,20 +150,27 @@ extension ToolResponse {
             return AnyAgentToolValue(string: "Error: \(errorMessage)")
         }
 
-        // Convert content to appropriate format
-        if content.count == 1 {
-            // Single content item
-            return self.convertContentToAnyAgentToolValue(content[0])
-        } else if content.isEmpty {
-            // No content
-            return AnyAgentToolValue(null: ())
+        let contentValue: AnyAgentToolValue = if content.isEmpty {
+            AnyAgentToolValue(null: ())
+        } else if content.count == 1 {
+            MCPContentBridge.convert(content[0])
         } else {
-            // Multiple content items - return as array
-            return AnyAgentToolValue(array: content.map { self.convertContentToAnyAgentToolValue($0) })
+            AnyAgentToolValue(array: content.map { MCPContentBridge.convert($0) })
         }
-    }
 
-    private func convertContentToAnyAgentToolValue(_ content: MCP.Tool.Content) -> AnyAgentToolValue {
-        MCPContentBridge.convert(content)
+        guard let meta else {
+            return contentValue
+        }
+
+        var payload: [String: AnyAgentToolValue] = [
+            "result": contentValue,
+            "meta": meta.toAnyAgentToolValue(dataLengthKey: "size"),
+        ]
+
+        if let text = contentValue.stringValue {
+            payload["text"] = AnyAgentToolValue(string: text)
+        }
+
+        return AnyAgentToolValue(object: payload)
     }
 }
