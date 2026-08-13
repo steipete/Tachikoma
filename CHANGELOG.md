@@ -8,6 +8,7 @@ All notable changes to the Tachikoma project will be documented in this file.
 - Added first-class Claude Opus 5 support and moved generation-agnostic Claude aliases and defaults to the new flagship.
 
 ### Fixed
+- Concurrent stdio MCP requests now serialize complete JSON-line frames so payloads and delimiters cannot interleave across tool calls.
 - Tool schemas now preserve nested object fields, required arrays, enums, array items, and scalar constraints consistently across static/dynamic MCP discovery and every provider serializer, including LM Studio.
 - MCP tool discovery now uses one schema conversion path so static and dynamic tools preserve matching descriptions, enums, array item types, and required fields.
 - Composite dynamic tool providers now recover unchanged bindings after transient discovery failures while keeping real ownership changes fail-closed.
