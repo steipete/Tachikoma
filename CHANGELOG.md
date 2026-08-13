@@ -8,6 +8,7 @@ All notable changes to the Tachikoma project will be documented in this file.
 - Added first-class Claude Opus 5 support and moved generation-agnostic Claude aliases and defaults to the new flagship.
 
 ### Fixed
+- Composite dynamic tool providers now recover unchanged bindings after transient discovery failures while keeping real ownership changes fail-closed.
 - Dynamic tool aggregation now binds execution to the provider that supplied each schema, invalidates stale plans, avoids repeated discovery on registry execution, and rejects duplicate names instead of dispatching nondeterministically.
 - MCP tool arguments now use one typed conversion path across adapters, providers, managers, and transport while preserving Foundation booleans and integers exactly.
 - MCP tool failures now retain their error status, content, structured values, and safe metadata through agent generation instead of being shaped as successful tool results.
