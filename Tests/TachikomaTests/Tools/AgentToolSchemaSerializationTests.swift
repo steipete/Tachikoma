@@ -135,7 +135,6 @@ struct AgentToolSchemaSerializationTests {
     @Test
     func `Malformed schemas fail before provider serialization`() {
         let malformed: [AgentToolParameters] = [
-            AgentToolParameters(required: ["missing"]),
             AgentToolParameters(
                 properties: [
                     "value": .init(name: "value", type: .string, description: "Value"),
@@ -218,6 +217,23 @@ struct AgentToolSchemaSerializationTests {
         #expect(throws: TachikomaError.self) {
             _ = try dynamicRoot.jsonSchema()
         }
+    }
+
+    @Test
+    func `Default serialization preserves unconstrained required names while Google filtering remains explicit`(
+    ) throws {
+        let parameters = AgentToolParameters(
+            properties: [
+                "query": .init(name: "query", type: .string, description: "Query"),
+            ],
+            required: ["query", "unconstrained"],
+        )
+
+        let compatibilitySchema = try parameters.jsonSchema()
+        #expect(compatibilitySchema["required"] as? [String] == ["query", "unconstrained"])
+
+        let googleSchema = try parameters.jsonSchema(options: [.filterUndeclaredRequired])
+        #expect(googleSchema["required"] as? [String] == ["query"])
     }
 
     @Test

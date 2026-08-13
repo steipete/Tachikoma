@@ -54,13 +54,8 @@ extension AgentToolParameters {
         }
 
         let undeclared = required.filter { !declaredNames.contains($0) }
-        guard undeclared.isEmpty else {
-            if options.contains(.filterUndeclaredRequired) {
-                return required.filter(declaredNames.contains)
-            }
-            throw TachikomaError.invalidInput(
-                "Tool schema \(path) references undeclared properties: \(undeclared.joined(separator: ", "))",
-            )
+        if !undeclared.isEmpty, options.contains(.filterUndeclaredRequired) {
+            return required.filter(declaredNames.contains)
         }
         return required
     }
