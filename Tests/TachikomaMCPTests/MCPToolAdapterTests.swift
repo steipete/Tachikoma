@@ -5,6 +5,75 @@ import Testing
 
 struct MCPToolAdapterTests {
     @Test
+    func `Static and dynamic MCP tools share one schema conversion`() throws {
+        let inputSchema = Value.object([
+            "type": .string("object"),
+            "properties": .object([
+                "mode": .object([
+                    "type": .string("string"),
+                    "description": .string("Execution mode"),
+                    "enum": .array([.string("safe"), .string("fast")]),
+                ]),
+                "tags": .object([
+                    "type": .string("array"),
+                    "description": .string("Numeric tag identifiers"),
+                    "items": .object([
+                        "type": .string("integer"),
+                        "description": .string("Tag identifier"),
+                    ]),
+                ]),
+            ]),
+            "required": .array([.string("mode"), .int(42), .string("tags")]),
+        ])
+        let mcpTool = MCP.Tool(name: "run", description: "Run work", inputSchema: inputSchema)
+        let client = MCPClient(name: "test", config: MCPServerConfig(command: "unused"))
+
+        let staticTool = MCPToolAdapter.toAgentTool(from: mcpTool, client: client)
+        let dynamicTool = try #require(MCPToolProvider.makeDynamicTools(from: [mcpTool]).first)
+        let dynamicParameters = dynamicTool.schema.toAgentToolParameters()
+
+        #expect(staticTool.parameters.required == ["mode", "tags"])
+        #expect(dynamicParameters.required == staticTool.parameters.required)
+        #expect(dynamicParameters.properties["mode"]?.type == staticTool.parameters.properties["mode"]?.type)
+        #expect(dynamicParameters.properties["mode"]?.description == "Execution mode")
+        #expect(dynamicParameters.properties["mode"]?.enumValues == ["safe", "fast"])
+        #expect(dynamicParameters.properties["tags"]?.type == .array)
+        #expect(dynamicParameters.properties["tags"]?.description == "Numeric tag identifiers")
+        #expect(dynamicParameters.properties["tags"]?.items?.type == "integer")
+        #expect(dynamicParameters.properties["tags"]?.items?.description == "Tag identifier")
+        #expect(dynamicParameters.properties["tags"]?.type == staticTool.parameters.properties["tags"]?.type)
+        #expect(
+            dynamicParameters.properties["tags"]?.items?.type == staticTool.parameters.properties["tags"]?.items?.type,
+        )
+    }
+
+    @Test
+    func `MCP schema conversion preserves established fallbacks`() {
+        let emptySchemas: [Value?] = [nil, .string("not-an-object")]
+        for schema in emptySchemas {
+            let converted = MCPToolSchemaBridge.dynamicSchema(from: schema)
+            #expect(converted.type == .object)
+            #expect(converted.properties?.isEmpty == true)
+            #expect(converted.required == nil)
+            #expect(converted.toAgentToolParameters().required.isEmpty)
+        }
+
+        let converted = MCPToolSchemaBridge.dynamicSchema(from: .object([
+            "properties": .object([
+                "malformed": .string("not-a-property"),
+                "unknown": .object(["type": .string("future-type")]),
+                "untypedArray": .object(["type": .string("array")]),
+            ]),
+        ]))
+
+        #expect(converted.properties?["malformed"]?.type == .string)
+        #expect(converted.properties?["malformed"]?.description == "String parameter")
+        #expect(converted.properties?["unknown"]?.type == .string)
+        #expect(converted.properties?["unknown"]?.description == "Parameter")
+        #expect(converted.properties?["untypedArray"]?.items?.type == .string)
+    }
+
+    @Test
     func `ToolArguments getString`() {
         let args = ToolArguments(raw: [
             "name": "Alice",
