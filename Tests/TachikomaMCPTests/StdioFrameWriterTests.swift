@@ -23,9 +23,12 @@ struct StdioFrameWriterTests {
         await writer.removeHandle()
         try pipe.fileHandleForWriting.close()
         let output = pipe.fileHandleForReading.readDataToEndOfFile()
-        let lines = output.split(separator: 0x0A).map(Data.init)
+        let outputString = try #require(String(bytes: output, encoding: .utf8))
+        let components = outputString.components(separatedBy: "\n")
+        let lines = components.dropLast().map { Data($0.utf8) }
 
         #expect(output.last == 0x0A)
+        #expect(components.last?.isEmpty == true)
         #expect(lines.count == payloads.count)
         #expect(Set(lines) == Set(payloads))
     }
