@@ -278,6 +278,100 @@ struct DynamicToolsTests {
     }
 
     @Test
+    func `CompositeDynamicToolProvider recovers unchanged bindings after a transient discovery failure`() async throws {
+        let provider = TestDynamicToolProvider(toolNames: ["stable"], resultPrefix: "provider")
+        let composite = CompositeDynamicToolProvider(providers: [provider])
+
+        _ = try await composite.discoverTools()
+        await provider.failNextDiscovery()
+        await #expect(throws: TestDynamicToolProviderError.self) {
+            _ = try await composite.discoverTools()
+        }
+
+        let recoveredTools = try await composite.discoverTools()
+        let result = try await composite.executeTool(name: "stable", arguments: AgentToolArguments())
+
+        #expect(recoveredTools.map(\.name) == ["stable"])
+        #expect(result.stringValue == "provider:stable")
+        #expect(await provider.discoveryCount == 3)
+        #expect(await provider.executionCount == 1)
+    }
+
+    @Test
+    func `CompositeDynamicToolProvider detects an ownership move after a transient discovery failure`() async throws {
+        let firstProvider = TestDynamicToolProvider(toolNames: ["shared"], resultPrefix: "first")
+        let secondProvider = TestDynamicToolProvider(toolNames: [], resultPrefix: "second")
+        let composite = CompositeDynamicToolProvider(providers: [firstProvider, secondProvider])
+        _ = try await composite.discoverTools()
+
+        await secondProvider.failNextDiscovery()
+        await #expect(throws: TestDynamicToolProviderError.self) {
+            _ = try await composite.discoverTools()
+        }
+        await firstProvider.replaceTools(with: [])
+        await secondProvider.replaceTools(with: ["shared"])
+
+        await #expect(throws: TachikomaError.self) {
+            _ = try await composite.discoverTools()
+        }
+        await #expect(throws: TachikomaError.self) {
+            _ = try await composite.executeTool(name: "shared", arguments: AgentToolArguments())
+        }
+        #expect(await firstProvider.executionCount == 0)
+        #expect(await secondProvider.executionCount == 0)
+    }
+
+    @Test
+    func `CompositeDynamicToolProvider keeps duplicate ownership fail closed after a transient failure`() async throws {
+        let firstProvider = TestDynamicToolProvider(toolNames: ["shared"], resultPrefix: "first")
+        let secondProvider = TestDynamicToolProvider(toolNames: [], resultPrefix: "second")
+        let composite = CompositeDynamicToolProvider(providers: [firstProvider, secondProvider])
+        _ = try await composite.discoverTools()
+
+        await secondProvider.failNextDiscovery()
+        await #expect(throws: TestDynamicToolProviderError.self) {
+            _ = try await composite.discoverTools()
+        }
+        await secondProvider.replaceTools(with: ["shared"])
+
+        await #expect(throws: TachikomaError.self) {
+            _ = try await composite.executeTool(name: "shared", arguments: AgentToolArguments())
+        }
+        await #expect(throws: TachikomaError.self) {
+            _ = try await composite.executeTool(name: "shared", arguments: AgentToolArguments())
+        }
+        #expect(await firstProvider.executionCount == 0)
+        #expect(await secondProvider.executionCount == 0)
+    }
+
+    @Test
+    func `CompositeDynamicToolProvider does not promote a rejected ownership plan`() async throws {
+        let firstProvider = TestDynamicToolProvider(toolNames: ["stable"], resultPrefix: "first")
+        let secondProvider = TestDynamicToolProvider(toolNames: [], resultPrefix: "second")
+        let composite = CompositeDynamicToolProvider(providers: [firstProvider, secondProvider])
+        _ = try await composite.discoverTools()
+
+        await firstProvider.replaceTools(with: ["new"])
+        await secondProvider.replaceTools(with: ["stable"])
+        await #expect(throws: TachikomaError.self) {
+            _ = try await composite.discoverTools()
+        }
+
+        await firstProvider.replaceTools(with: [])
+        await secondProvider.replaceTools(with: ["new"])
+        let recoveredTools = try await composite.discoverTools()
+        let result = try await composite.executeTool(name: "new", arguments: AgentToolArguments())
+
+        #expect(recoveredTools.map(\.name) == ["new"])
+        #expect(result.stringValue == "second:new")
+        await #expect(throws: TachikomaError.self) {
+            _ = try await composite.executeTool(name: "stable", arguments: AgentToolArguments())
+        }
+        #expect(await firstProvider.executionCount == 0)
+        #expect(await secondProvider.executionCount == 1)
+    }
+
+    @Test
     func `CompositeDynamicToolProvider refuses execution after ownership changes`() async throws {
         let firstProvider = TestDynamicToolProvider(toolNames: ["shared"], resultPrefix: "first")
         let secondProvider = TestDynamicToolProvider(toolNames: [], resultPrefix: "second")
@@ -431,6 +525,7 @@ private actor TestDynamicToolProvider: DynamicToolProvider {
     private let resultPrefix: String
     private(set) var discoveryCount = 0
     private(set) var executionCount = 0
+    private var shouldFailNextDiscovery = false
 
     init(toolNames: [String], resultPrefix: String) {
         self.tools = Self.makeTools(named: toolNames)
@@ -439,6 +534,10 @@ private actor TestDynamicToolProvider: DynamicToolProvider {
 
     func discoverTools() async throws -> [DynamicTool] {
         self.discoveryCount += 1
+        if self.shouldFailNextDiscovery {
+            self.shouldFailNextDiscovery = false
+            throw TestDynamicToolProviderError.transientDiscoveryFailure
+        }
         return self.tools
     }
 
@@ -451,6 +550,10 @@ private actor TestDynamicToolProvider: DynamicToolProvider {
         self.tools = Self.makeTools(named: names)
     }
 
+    func failNextDiscovery() {
+        self.shouldFailNextDiscovery = true
+    }
+
     private static func makeTools(named names: [String]) -> [DynamicTool] {
         names.map { name in
             DynamicTool(
@@ -460,4 +563,8 @@ private actor TestDynamicToolProvider: DynamicToolProvider {
             )
         }
     }
+}
+
+private enum TestDynamicToolProviderError: Error {
+    case transientDiscoveryFailure
 }

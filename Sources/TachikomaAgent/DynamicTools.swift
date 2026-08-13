@@ -58,21 +58,35 @@ private enum DynamicToolBindingLookup: Sendable {
 
 private actor DynamicToolBindingStore {
     private var bindings: [String: ResolvedDynamicTool]?
+    private var bindingPlan: [String: DynamicToolBindingIdentity]?
     private var invalidatedNames: Set<String> = []
 
     func apply(_ resolvedTools: [ResolvedDynamicTool]) -> [String] {
         let nextBindings = Dictionary(uniqueKeysWithValues: resolvedTools.map { ($0.tool.name, $0) })
-        if let bindings = self.bindings {
-            for (name, previous) in bindings {
-                guard let next = nextBindings[name], next.sourceID == previous.sourceID else {
+        let nextPlan = nextBindings.mapValues { binding in
+            DynamicToolBindingIdentity(
+                sourceID: binding.sourceID,
+                registrationID: binding.registrationID,
+            )
+        }
+        if let bindingPlan = self.bindingPlan {
+            for (name, previous) in bindingPlan {
+                guard let next = nextPlan[name], next == previous else {
                     self.invalidatedNames.insert(name)
                     continue
                 }
             }
         }
 
+        let blockedNames = nextBindings.keys.filter { self.invalidatedNames.contains($0) }.sorted()
+        guard blockedNames.isEmpty else {
+            self.bindings = nil
+            return blockedNames
+        }
+
+        self.bindingPlan = nextPlan
         self.bindings = nextBindings
-        return nextBindings.keys.filter { self.invalidatedNames.contains($0) }.sorted()
+        return []
     }
 
     func lookup(name: String) -> DynamicToolBindingLookup {
@@ -88,10 +102,7 @@ private actor DynamicToolBindingStore {
         return .bound(binding)
     }
 
-    func invalidateAll() {
-        if let bindings = self.bindings {
-            self.invalidatedNames.formUnion(bindings.keys)
-        }
+    func suspend() {
         self.bindings = nil
     }
 }
@@ -448,7 +459,7 @@ public struct CompositeDynamicToolProvider: DynamicToolProvider {
             }
             return resolvedTools
         } catch {
-            await self.bindingStore.invalidateAll()
+            await self.bindingStore.suspend()
             throw error
         }
     }
