@@ -79,9 +79,36 @@ private actor StdioTransportState {
     }
 }
 
+/// Serializes complete JSON-line frames onto the stdio request pipe.
+///
+/// A single MCP connection can execute tools concurrently. Keeping payload and delimiter
+/// construction inside this actor prevents request bytes from interleaving across callers.
+actor StdioFrameWriter {
+    private var handle: FileHandle?
+
+    func install(_ handle: FileHandle) {
+        self.handle = handle
+    }
+
+    func removeHandle() {
+        self.handle = nil
+    }
+
+    func write(payload: Data) throws {
+        guard let handle else {
+            throw MCPError.notConnected
+        }
+
+        var frame = payload
+        frame.append(0x0A)
+        try handle.write(contentsOf: frame)
+    }
+}
+
 /// Standard I/O transport for MCP communication
 public final class StdioTransport: MCPTransport {
     private let state = StdioTransportState()
+    private let frameWriter = StdioFrameWriter()
     private let logger = Logger(label: "tachikoma.mcp.stdio")
     private static let _sigpipeHandlerInstalled: Void = {
         signal(SIGPIPE, SIG_IGN)
@@ -174,6 +201,7 @@ public final class StdioTransport: MCPTransport {
 
         await self.state.setProcess(process, input: inputPipe, output: outputPipe, error: errorPipe)
         await self.state.setRequestTimeout(seconds: config.timeout)
+        await self.frameWriter.install(inputPipe.fileHandleForWriting)
 
         self.logger.info("About to start reading output")
         self.stdoutSource = self.makeReadSource(for: outputPipe, isStderr: false)
@@ -192,6 +220,8 @@ public final class StdioTransport: MCPTransport {
         self.stdoutQueue.sync { self.stdoutBuffer.removeAll(keepingCapacity: false) }
         self.stderrQueue.sync { self.stderrBuffer.removeAll(keepingCapacity: false) }
         self.closeDebugHandles()
+
+        await self.frameWriter.removeHandle()
 
         let inputPipe = await state.getInputPipe()
         let outputPipe = await state.getOutputPipe()
@@ -288,13 +318,8 @@ public final class StdioTransport: MCPTransport {
     }
 
     private func send(_ data: Data) async throws {
-        guard let inputPipe = await state.getInputPipe() else {
-            throw MCPError.notConnected
-        }
         // MCP TypeScript SDK uses simple newline-delimited JSON, NOT LSP-style framing
-        // Just send the JSON followed by a newline
-        try inputPipe.fileHandleForWriting.write(contentsOf: data)
-        try inputPipe.fileHandleForWriting.write(contentsOf: "\n".utf8Data())
+        try await self.frameWriter.write(payload: data)
 
         // Log what we sent for debugging
         if let json = String(data: data, encoding: .utf8) {
