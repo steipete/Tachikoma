@@ -4,21 +4,26 @@ import Tachikoma
 
 // MARK: - Type Conversion Extensions for TachikomaMCP
 
+// MARK: AgentToolArguments Extensions
+
+extension AgentToolArguments {
+    func toMCPValue() -> Value {
+        var values: [String: Value] = [:]
+        for key in self.keys {
+            if let value = self[key] {
+                values[key] = value.toValue()
+            }
+        }
+        return .object(values)
+    }
+}
+
 // MARK: ToolArguments Extensions
 
 extension ToolArguments {
     /// Initialize from Tachikoma's AgentToolArguments
     public init(from arguments: AgentToolArguments) {
-        var dict: [String: Any] = [:]
-        for key in arguments.keys {
-            guard let value = arguments[key] else { continue }
-            if let json = try? value.toJSON() {
-                dict[key] = json
-            } else {
-                dict[key] = ["serializationFailure": String(describing: value)]
-            }
-        }
-        self.init(raw: dict)
+        self.init(value: arguments.toMCPValue())
     }
 }
 
@@ -54,26 +59,7 @@ extension AnyAgentToolValue {
 extension Value {
     /// Convert from Any type
     public static func from(_ any: Any) -> Value {
-        // Convert from Any type
-        switch any {
-        case let str as String:
-            .string(str)
-        case let num as Int:
-            .int(num)
-        case let num as Double:
-            .double(num)
-        case let bool as Bool:
-            .bool(bool)
-        case let array as [Any]:
-            .array(array.map { Value.from($0) })
-        case let dict as [String: Any]:
-            .object(dict.mapValues { Value.from($0) })
-        case is NSNull:
-            .null
-        default:
-            // Fallback: convert to string representation
-            .string(String(describing: any))
-        }
+        AnyAgentToolValue.from(any).toValue()
     }
 
     /// Convert to Tachikoma's AnyAgentToolValue

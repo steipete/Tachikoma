@@ -24,7 +24,7 @@ public struct ToolArguments: Sendable {
 
     public init(raw: [String: Any]) {
         // Convert [String: Any] to Value for Sendable compliance
-        self.raw = .object(raw.mapValues { convertToValue($0) })
+        self.raw = .object(raw.mapValues { Value.from($0) })
     }
 
     public init(value: Value) {
@@ -172,29 +172,6 @@ private func ValueToAny(_ value: Value) -> Any {
     case let .object(obj): obj.mapValues { ValueToAny($0) }
     case .null: NSNull()
     case let .data(mime, data): ["type": "data", "mimeType": mime ?? "application/octet-stream", "data": data]
-    }
-}
-
-/// Helper function to convert Any to Value
-private func convertToValue(_ value: Any) -> Value {
-    switch value {
-    case let string as String:
-        .string(string)
-    case let number as Int:
-        .int(number)
-    case let number as Double:
-        .double(number)
-    case let bool as Bool:
-        .bool(bool)
-    case let array as [Any]:
-        .array(array.map { convertToValue($0) })
-    case let dict as [String: Any]:
-        .object(dict.mapValues { convertToValue($0) })
-    case is NSNull:
-        .null
-    default:
-        // Fallback for unexpected types
-        .string(String(describing: value))
     }
 }
 

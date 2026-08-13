@@ -54,18 +54,10 @@ public final class MCPToolProvider: DynamicToolProvider {
     ) async throws
         -> AnyAgentToolValue
     {
-        // Convert arguments to MCP format
-        var mcpArgs: [String: Any] = [:]
-        for key in arguments.keys {
-            if let value = arguments[key] {
-                mcpArgs[key] = try value.toJSON()
-            }
-        }
-
         // Execute via MCP client
         let response = try await client.executeTool(
             name: name,
-            arguments: mcpArgs,
+            arguments: arguments,
         )
 
         return try response.toAgentToolExecutionValue()

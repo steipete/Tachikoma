@@ -229,6 +229,27 @@ struct TypeConversionTests {
     }
 
     @Test
+    func `Foundation JSON arguments keep booleans and integers distinct`() throws {
+        let json = Data(
+            #"{"falseFlag":false,"one":1,"trueFlag":true,"zero":0,"largeInteger":9007199254740993}"#
+                .utf8,
+        )
+        let dictionary = try #require(
+            JSONSerialization.jsonObject(with: json) as? [String: Any],
+        )
+
+        let value = Value.from(dictionary)
+        let toolArguments = ToolArguments(raw: dictionary)
+
+        #expect(value == toolArguments.rawValue)
+        #expect(toolArguments.getBool("falseFlag") == false)
+        #expect(toolArguments.getInt("one") == 1)
+        #expect(toolArguments.getBool("trueFlag") == true)
+        #expect(toolArguments.getInt("zero") == 0)
+        #expect(toolArguments.getInt("largeInteger") == 9_007_199_254_740_993)
+    }
+
+    @Test
     func `ToolResponse to AnyAgentToolValue conversion via toAgentToolResult`() {
         // Text response
         let textResponse = ToolResponse.text("Success message")

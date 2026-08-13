@@ -20,65 +20,229 @@ public struct ToolParameter: Sendable {
 // Core dynamic tool types (DynamicToolProvider, DynamicTool, DynamicSchema) are now in Core/ToolTypes.swift
 // This file contains additional dynamic tool functionality and extensions
 
+private struct DynamicToolProviderSource: Sendable {
+    let id: String
+    let registrationID: UUID?
+    let provider: DynamicToolProvider
+}
+
+private struct ResolvedDynamicTool: Sendable {
+    let sourceID: String
+    let registrationID: UUID?
+    let registryGeneration: UUID?
+    let provider: DynamicToolProvider
+    let tool: DynamicTool
+
+    func issued(in registryGeneration: UUID) -> ResolvedDynamicTool {
+        ResolvedDynamicTool(
+            sourceID: self.sourceID,
+            registrationID: self.registrationID,
+            registryGeneration: registryGeneration,
+            provider: self.provider,
+            tool: self.tool,
+        )
+    }
+}
+
+private struct DynamicToolBindingIdentity: Sendable, Equatable {
+    let sourceID: String
+    let registrationID: UUID?
+}
+
+private enum DynamicToolBindingLookup: Sendable {
+    case uninitialized
+    case missing
+    case invalidated
+    case bound(ResolvedDynamicTool)
+}
+
+private actor DynamicToolBindingStore {
+    private var bindings: [String: ResolvedDynamicTool]?
+    private var invalidatedNames: Set<String> = []
+
+    func apply(_ resolvedTools: [ResolvedDynamicTool]) -> [String] {
+        let nextBindings = Dictionary(uniqueKeysWithValues: resolvedTools.map { ($0.tool.name, $0) })
+        if let bindings = self.bindings {
+            for (name, previous) in bindings {
+                guard let next = nextBindings[name], next.sourceID == previous.sourceID else {
+                    self.invalidatedNames.insert(name)
+                    continue
+                }
+            }
+        }
+
+        self.bindings = nextBindings
+        return nextBindings.keys.filter { self.invalidatedNames.contains($0) }.sorted()
+    }
+
+    func lookup(name: String) -> DynamicToolBindingLookup {
+        if self.invalidatedNames.contains(name) {
+            return .invalidated
+        }
+        guard let bindings = self.bindings else {
+            return .uninitialized
+        }
+        guard let binding = bindings[name] else {
+            return .missing
+        }
+        return .bound(binding)
+    }
+
+    func invalidateAll() {
+        if let bindings = self.bindings {
+            self.invalidatedNames.formUnion(bindings.keys)
+        }
+        self.bindings = nil
+    }
+}
+
+private enum DynamicToolResolver {
+    static func resolve(_ sources: [DynamicToolProviderSource]) async throws -> [ResolvedDynamicTool] {
+        var resolved: [ResolvedDynamicTool] = []
+
+        for source in sources {
+            let tools = try await source.provider.discoverTools()
+            resolved.append(contentsOf: tools.map { tool in
+                ResolvedDynamicTool(
+                    sourceID: source.id,
+                    registrationID: source.registrationID,
+                    registryGeneration: nil,
+                    provider: source.provider,
+                    tool: tool,
+                )
+            })
+        }
+
+        let duplicateGroups = Dictionary(grouping: resolved, by: \.tool.name)
+            .filter { $0.value.count > 1 }
+        guard duplicateGroups.isEmpty else {
+            let conflicts = duplicateGroups.keys.sorted().map { name in
+                let sources = duplicateGroups[name, default: []]
+                    .map(\.sourceID)
+                    .sorted()
+                    .joined(separator: ", ")
+                return "\(name) [\(sources)]"
+            }.joined(separator: "; ")
+            throw TachikomaError.toolCallFailed("Ambiguous dynamic tool names: \(conflicts)")
+        }
+
+        return resolved
+    }
+}
+
 // MARK: - Dynamic Tool Registry
 
 /// Registry for managing dynamic tool providers
 @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public actor DynamicToolRegistry {
-    private var providers: [String: DynamicToolProvider] = [:]
+    private struct RegisteredProvider: Sendable {
+        let registrationID: UUID
+        let provider: DynamicToolProvider
+    }
+
+    private var providers: [String: RegisteredProvider] = [:]
+    private var bindingGeneration = UUID()
+    private var bindingPlan: [String: DynamicToolBindingIdentity]?
 
     public init() {}
 
     /// Register a dynamic tool provider
     public func register(_ provider: DynamicToolProvider, id: String) {
-        // Register a dynamic tool provider
-        self.providers[id] = provider
+        self.providers[id] = RegisteredProvider(registrationID: UUID(), provider: provider)
+        self.invalidateBindings()
     }
 
     /// Unregister a provider
     public func unregister(id: String) {
-        // Unregister a provider
-        _ = self.providers.removeValue(forKey: id)
+        if self.providers.removeValue(forKey: id) != nil {
+            self.invalidateBindings()
+        }
     }
 
     /// Get all registered providers
     public var allProviders: [DynamicToolProvider] {
-        Array(self.providers.values)
+        self.providers.sorted { $0.key < $1.key }.map(\.value.provider)
     }
 
     /// Discover all tools from all providers
     public func discoverAllTools() async throws -> [DynamicTool] {
-        // Discover all tools from all providers
-        var allTools: [DynamicTool] = []
-
-        for provider in self.allProviders {
-            let tools = try await provider.discoverTools()
-            allTools.append(contentsOf: tools)
-        }
-
-        return allTools
+        try await self.resolveTools().map(\.tool)
     }
 
     /// Convert all discovered tools to AgentTools
     public func getAllAgentTools() async throws -> [AgentTool] {
-        // Convert all discovered tools to AgentTools
-        let dynamicTools = try await discoverAllTools()
+        let resolvedTools = try await self.resolveTools()
 
-        return dynamicTools.map { tool in
-            tool.toAgentTool { arguments in
-                // Find the provider that owns this tool
-                let providers = await self.allProviders
-                for provider in providers {
-                    if
-                        let providerTools = try? await provider.discoverTools(),
-                        providerTools.contains(where: { $0.name == tool.name })
-                    {
-                        return try await provider.executeTool(name: tool.name, arguments: arguments)
-                    }
-                }
-                throw TachikomaError.toolCallFailed("No provider found for tool: \(tool.name)")
+        return resolvedTools.map { resolved in
+            resolved.tool.toAgentTool { arguments in
+                try await self.execute(resolved, arguments: arguments)
             }
         }
+    }
+
+    private func resolveTools() async throws -> [ResolvedDynamicTool] {
+        let observedGeneration = self.bindingGeneration
+        let sources = self.providers.sorted { $0.key < $1.key }.map { id, registration in
+            DynamicToolProviderSource(
+                id: id,
+                registrationID: registration.registrationID,
+                provider: registration.provider,
+            )
+        }
+
+        do {
+            let resolvedTools = try await DynamicToolResolver.resolve(sources)
+            guard self.bindingGeneration == observedGeneration else {
+                throw TachikomaError.toolCallFailed("Dynamic tool registry changed during discovery")
+            }
+
+            let nextPlan = Dictionary(uniqueKeysWithValues: resolvedTools.map { resolved in
+                (
+                    resolved.tool.name,
+                    DynamicToolBindingIdentity(
+                        sourceID: resolved.sourceID,
+                        registrationID: resolved.registrationID,
+                    ),
+                )
+            })
+            if let bindingPlan = self.bindingPlan, bindingPlan != nextPlan {
+                self.bindingGeneration = UUID()
+            }
+            self.bindingPlan = nextPlan
+            let issuedGeneration = self.bindingGeneration
+            return resolvedTools.map { $0.issued(in: issuedGeneration) }
+        } catch {
+            if self.bindingGeneration == observedGeneration {
+                self.invalidateBindings()
+            }
+            throw error
+        }
+    }
+
+    private func execute(
+        _ resolved: ResolvedDynamicTool,
+        arguments: AgentToolArguments,
+    ) async throws
+        -> AnyAgentToolValue
+    {
+        guard
+            let registrationID = resolved.registrationID,
+            let registryGeneration = resolved.registryGeneration,
+            let current = self.providers[resolved.sourceID],
+            current.registrationID == registrationID,
+            self.bindingGeneration == registryGeneration else
+        {
+            throw TachikomaError.toolCallFailed(
+                "Provider registration changed for tool: \(resolved.tool.name)",
+            )
+        }
+
+        return try await current.provider.executeTool(name: resolved.tool.name, arguments: arguments)
+    }
+
+    private func invalidateBindings() {
+        self.bindingGeneration = UUID()
+        self.bindingPlan = nil
     }
 }
 
@@ -257,32 +421,61 @@ extension DynamicSchema.SchemaProperty {
 @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public struct CompositeDynamicToolProvider: DynamicToolProvider {
     private let providers: [DynamicToolProvider]
+    private let bindingStore: DynamicToolBindingStore
 
     public init(providers: [DynamicToolProvider]) {
         self.providers = providers
+        self.bindingStore = DynamicToolBindingStore()
     }
 
     public func discoverTools() async throws -> [DynamicTool] {
-        var allTools: [DynamicTool] = []
-
-        for provider in self.providers {
-            let tools = try await provider.discoverTools()
-            allTools.append(contentsOf: tools)
-        }
-
-        return allTools
+        try await self.discoverAndBind().map(\.tool)
     }
 
     public func executeTool(name: String, arguments: AgentToolArguments) async throws -> AnyAgentToolValue {
-        // Try each provider until one can execute the tool
-        for provider in self.providers {
-            let tools = try await provider.discoverTools()
-            if tools.contains(where: { $0.name == name }) {
-                return try await provider.executeTool(name: name, arguments: arguments)
-            }
-        }
+        let resolved = try await self.resolvedTool(named: name)
+        return try await resolved.provider.executeTool(name: name, arguments: arguments)
+    }
 
-        throw TachikomaError.toolCallFailed("Tool not found in any provider: \(name)")
+    private func discoverAndBind() async throws -> [ResolvedDynamicTool] {
+        do {
+            let resolvedTools = try await self.resolveTools()
+            let invalidatedNames = await self.bindingStore.apply(resolvedTools)
+            guard invalidatedNames.isEmpty else {
+                throw TachikomaError.toolCallFailed(
+                    "Composite dynamic tool bindings changed: \(invalidatedNames.joined(separator: ", "))",
+                )
+            }
+            return resolvedTools
+        } catch {
+            await self.bindingStore.invalidateAll()
+            throw error
+        }
+    }
+
+    private func resolvedTool(named name: String) async throws -> ResolvedDynamicTool {
+        switch await self.bindingStore.lookup(name: name) {
+        case .uninitialized:
+            _ = try await self.discoverAndBind()
+            return try await self.resolvedTool(named: name)
+        case .missing:
+            throw TachikomaError.toolCallFailed("Tool not found in any provider: \(name)")
+        case .invalidated:
+            throw TachikomaError.toolCallFailed("Composite dynamic tool binding changed: \(name)")
+        case let .bound(resolved):
+            return resolved
+        }
+    }
+
+    private func resolveTools() async throws -> [ResolvedDynamicTool] {
+        let sources = self.providers.enumerated().map { index, provider in
+            DynamicToolProviderSource(
+                id: "provider[\(index)]",
+                registrationID: nil,
+                provider: provider,
+            )
+        }
+        return try await DynamicToolResolver.resolve(sources)
     }
 }
 
