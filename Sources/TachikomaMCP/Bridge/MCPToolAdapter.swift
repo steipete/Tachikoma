@@ -17,7 +17,7 @@ public enum MCPToolAdapter {
             // Execute the tool via MCP client
             let response = try await client.executeTool(
                 name: mcpTool.name,
-                arguments: self.convertArguments(arguments),
+                arguments: arguments,
             )
 
             return try response.toAgentToolExecutionValue()
@@ -152,31 +152,5 @@ public enum MCPToolAdapter {
             enumValues: enumValues,
             items: items,
         )
-    }
-
-    /// Convert Tachikoma arguments to MCP format
-    private static func convertArguments(_ arguments: AgentToolArguments) -> [String: Any] {
-        // Convert Tachikoma arguments to MCP format
-        var result: [String: Any] = [:]
-
-        for key in arguments.keys {
-            if let value = arguments[key] {
-                result[key] = self.convertArgument(value)
-            }
-        }
-
-        return result
-    }
-
-    /// Convert a single AnyAgentToolValue to Any
-    private static func convertArgument(_ argument: AnyAgentToolValue) -> Any {
-        do {
-            return try argument.toJSON()
-        } catch {
-            return [
-                "serializationError": error.localizedDescription,
-                "fallback": String(describing: argument),
-            ]
-        }
     }
 }

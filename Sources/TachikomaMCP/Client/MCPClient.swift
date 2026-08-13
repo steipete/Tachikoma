@@ -1,6 +1,7 @@
 import Foundation
 import Logging
 import MCP
+import Tachikoma
 
 /// Shared JSON-RPC types for HTTP transport
 struct HTTPJSONRPCRequest<P: Encodable>: Encodable {
@@ -216,6 +217,14 @@ public final class MCPClient: Sendable {
 
     /// Execute a tool by name
     public func executeTool(name: String, arguments: [String: Any]) async throws -> ToolResponse {
+        try await self.executeTool(name: name, arguments: ToolArguments(raw: arguments).rawValue)
+    }
+
+    func executeTool(name: String, arguments: AgentToolArguments) async throws -> ToolResponse {
+        try await self.executeTool(name: name, arguments: arguments.toMCPValue())
+    }
+
+    private func executeTool(name: String, arguments: Value) async throws -> ToolResponse {
         // Execute a tool by name
         guard let transport = await state.getTransport() else {
             throw MCPError.notConnected
@@ -225,15 +234,12 @@ public final class MCPClient: Sendable {
             throw MCPError.notConnected
         }
 
-        // Convert arguments to MCP Value
-        let args = ToolArguments(raw: arguments)
-
         // Send tool execution request
         let response: CallTool.Result = try await transport.sendRequest(
             method: "tools/call",
             params: ToolCallParams(
                 name: name,
-                arguments: args.rawValue,
+                arguments: arguments,
             ),
         )
 

@@ -220,13 +220,7 @@ public final class TachikomaMCPClientManager {
         }
         // Bridge via TachikomaMCP's adapter to ensure Sendable arguments
         let agentArgs = AgentToolArguments(arguments.mapValues { AnyAgentToolValue.from($0) })
-        var mcpArgs: [String: Any] = [:]
-        for key in agentArgs.keys {
-            if let v = agentArgs[key] {
-                mcpArgs[key] = try v.toJSON()
-            }
-        }
-        return try await client.executeTool(name: toolName, arguments: mcpArgs)
+        return try await client.executeTool(name: toolName, arguments: agentArgs)
     }
 
     /// Get external tools grouped by server name
