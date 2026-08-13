@@ -21,11 +21,6 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v7
 
-
-    - name: Fetch Commander dependency
-      shell: bash
-      run: git clone --depth 1 https://github.com/steipete/Commander.git ../Commander
-
     - name: Select Xcode 26.1
       if: runner.os == 'macOS'
       run: sudo xcode-select -s /Applications/Xcode_26.1.app || sudo xcode-select -s /Applications/Xcode_26.0.app || sudo xcode-select -s /Applications/Xcode.app
@@ -84,10 +79,6 @@ jobs:
     steps:
     - name: Checkout
       uses: actions/checkout@v7
-
-    - name: Fetch Commander dependency
-      shell: bash
-      run: git clone --depth 1 https://github.com/steipete/Commander.git ../Commander
 
     - name: Select Xcode 26.1
       if: runner.os == 'macOS'

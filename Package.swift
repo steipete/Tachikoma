@@ -1,18 +1,7 @@
 // swift-tools-version: 6.2
 // The swift-tools-version declares the minimum version of Swift required to build this package.
 
-import Foundation
 import PackageDescription
-
-let packageDirectory = URL(fileURLWithPath: #filePath).deletingLastPathComponent()
-let localCommanderPath = packageDirectory
-    .deletingLastPathComponent()
-    .appendingPathComponent("Commander")
-    .appendingPathComponent("Package.swift")
-let isDependencyCheckout = packageDirectory.deletingLastPathComponent().lastPathComponent == "checkouts"
-let commanderDependency: Package.Dependency = !isDependencyCheckout && FileManager.default.fileExists(atPath: localCommanderPath.path)
-    ? .package(path: "../Commander")
-    : .package(url: "https://github.com/steipete/Commander.git", from: "0.2.4")
 
 let package = Package(
     name: "Tachikoma",
@@ -60,7 +49,7 @@ let package = Package(
             targets: ["TachikomaConfigCLI"]),
     ],
     dependencies: [
-        commanderDependency,
+        .package(url: "https://github.com/steipete/Commander.git", from: "0.2.4"),
         .package(url: "https://github.com/apple/swift-log.git", from: "1.15.0"),
         .package(url: "https://github.com/modelcontextprotocol/swift-sdk.git", from: "0.12.1"),
         .package(url: "https://github.com/apple/swift-configuration", from: "1.2.0"),

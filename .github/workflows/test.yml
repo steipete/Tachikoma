@@ -27,10 +27,6 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v7
 
-    - name: Fetch Commander dependency
-      shell: bash
-      run: git clone --depth 1 https://github.com/steipete/Commander.git ../Commander
-
     - name: Setup Xcode 26.1
       uses: maxim-lobanov/setup-xcode@v1
       with:
@@ -77,10 +73,6 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v7
 
-    - name: Fetch Commander dependency
-      shell: bash
-      run: git clone --depth 1 https://github.com/steipete/Commander.git ../Commander
-
     - name: Setup Swift
       uses: SwiftyLab/setup-swift@v1
       with:
@@ -124,10 +116,6 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v7
 
-    - name: Fetch Commander dependency
-      shell: bash
-      run: git clone --depth 1 https://github.com/steipete/Commander.git ../Commander
-
     - name: Setup Xcode 26.1
       uses: maxim-lobanov/setup-xcode@v1
       with:
@@ -156,10 +144,6 @@ jobs:
     steps:
     - name: Checkout
       uses: actions/checkout@v7
-
-    - name: Fetch Commander dependency
-      shell: bash
-      run: git clone --depth 1 https://github.com/steipete/Commander.git ../Commander
 
     - name: Setup Xcode 26.1
       uses: maxim-lobanov/setup-xcode@v1

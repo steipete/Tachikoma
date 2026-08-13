@@ -28,9 +28,6 @@ jobs:
     container: swift:6.2
     steps:
       - uses: actions/checkout@v7
-      - name: Fetch Commander dependency
-        shell: bash
-        run: git clone --depth 1 https://github.com/steipete/Commander.git ../Commander
       
       - name: Install dependencies
         run: |
@@ -57,9 +54,6 @@ jobs:
     container: swift:6.2
     steps:
       - uses: actions/checkout@v7
-      - name: Fetch Commander dependency
-        shell: bash
-        run: git clone --depth 1 https://github.com/steipete/Commander.git ../Commander
       
       - name: Install dependencies
         run: |
