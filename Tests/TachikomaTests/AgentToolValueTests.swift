@@ -220,6 +220,48 @@ struct AgentToolValueTests {
         }
     }
 
+    @Test
+    func `AnyAgentToolValue round trip keeps zero and one distinct from booleans`() throws {
+        let original = AnyAgentToolValue(object: [
+            "false_flag": AnyAgentToolValue(bool: false),
+            "one": AnyAgentToolValue(int: 1),
+            "true_flag": AnyAgentToolValue(bool: true),
+            "zero": AnyAgentToolValue(int: 0),
+        ])
+
+        let encoded = try JSONEncoder().encode(original)
+        let decoded = try JSONDecoder().decode(AnyAgentToolValue.self, from: encoded)
+        let object = try #require(decoded.objectValue)
+
+        #expect(object["zero"]?.intValue == 0)
+        #expect(object["zero"]?.boolValue == nil)
+        #expect(object["one"]?.intValue == 1)
+        #expect(object["one"]?.boolValue == nil)
+        #expect(object["false_flag"]?.boolValue == false)
+        #expect(object["false_flag"]?.intValue == nil)
+        #expect(object["true_flag"]?.boolValue == true)
+        #expect(object["true_flag"]?.intValue == nil)
+    }
+
+    @Test
+    func `Canonical dispatch count one remains an integer beside compatibility booleans`() throws {
+        let original = AnyAgentToolValue(object: [
+            "dispatch_state": AnyAgentToolValue(string: "dispatched"),
+            "dispatched_unit_count": AnyAgentToolValue(int: 1),
+            "mutation_dispatched": AnyAgentToolValue(bool: true),
+            "retry_safe": AnyAgentToolValue(bool: false),
+        ])
+
+        let encoded = try JSONEncoder().encode(original)
+        let decoded = try JSONDecoder().decode(AnyAgentToolValue.self, from: encoded)
+        let object = try #require(decoded.objectValue)
+
+        #expect(object["dispatched_unit_count"]?.intValue == 1)
+        #expect(object["dispatched_unit_count"]?.boolValue == nil)
+        #expect(object["mutation_dispatched"]?.boolValue == true)
+        #expect(object["retry_safe"]?.boolValue == false)
+    }
+
     // MARK: - AgentToolCall and AgentToolResult Tests
 
     @Test

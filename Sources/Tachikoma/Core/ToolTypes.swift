@@ -341,12 +341,12 @@ public struct AnyAgentToolValue: AgentToolValue, Equatable, Codable {
 
         if container.decodeNil() {
             self.storage = .null
-        } else if let bool = try? container.decode(Bool.self) {
-            self.storage = .bool(bool)
         } else if let int = try? container.decode(Int.self) {
             self.storage = .int(int)
         } else if let double = try? container.decode(Double.self) {
             self.storage = .double(double)
+        } else if let bool = try? container.decode(Bool.self) {
+            self.storage = .bool(bool)
         } else if let string = try? container.decode(String.self) {
             self.storage = .string(string)
         } else if let array = try? container.decode([AnyAgentToolValue].self) {
