@@ -217,6 +217,114 @@ struct ProviderEndToEndTests {
         }
     }
 
+    @Test
+    func `All provider families preserve canonical nested tool schemas`() async throws {
+        let providerRequest = Self.schemaParityRequest
+
+        try await NetworkMocking.withMockedNetwork { request in
+            let body = try #require(self.bodyData(from: request))
+            let json = try #require(JSONSerialization.jsonObject(with: body) as? [String: Any])
+            let tools = try #require(json["tools"] as? [[String: Any]])
+            let schema = try #require(tools.first?["parameters"] as? [String: Any])
+            try self.expectSchemaParity(schema)
+            return NetworkMocking.jsonResponse(
+                for: request,
+                data: Self.openAIResponsesPayload(text: "OpenAI schema ok"),
+            )
+        } operation: {
+            let config = Self.makeConfiguration { config in
+                config.setAPIKey("sk-live-openai", for: .openai)
+            }
+            let provider = try OpenAIResponsesProvider(model: .gpt5Mini, configuration: config)
+            _ = try await provider.generateText(request: providerRequest)
+        }
+
+        try await NetworkMocking.withMockedNetwork { request in
+            let body = try #require(self.bodyData(from: request))
+            let json = try #require(JSONSerialization.jsonObject(with: body) as? [String: Any])
+            let tools = try #require(json["tools"] as? [[String: Any]])
+            let function = try #require(tools.first?["function"] as? [String: Any])
+            try self.expectSchemaParity(#require(function["parameters"] as? [String: Any]))
+            return NetworkMocking.jsonResponse(
+                for: request,
+                data: Self.chatCompletionPayload(text: "Compatible schema ok"),
+            )
+        } operation: {
+            let config = Self.makeConfiguration { config in
+                config.setAPIKey("live-compatible", for: "openai_compatible")
+            }
+            let provider = try OpenAICompatibleProvider(
+                modelId: "schema-model",
+                baseURL: "https://compatible.test",
+                configuration: config,
+            )
+            _ = try await provider.generateText(request: providerRequest)
+        }
+
+        try await NetworkMocking.withMockedNetwork { request in
+            let body = try #require(self.bodyData(from: request))
+            let json = try #require(JSONSerialization.jsonObject(with: body) as? [String: Any])
+            let tools = try #require(json["tools"] as? [[String: Any]])
+            try self.expectSchemaParity(#require(tools.first?["input_schema"] as? [String: Any]))
+            return NetworkMocking.jsonResponse(for: request, data: Self.anthropicPayload(text: "Anthropic schema ok"))
+        } operation: {
+            let config = Self.makeConfiguration { config in
+                config.setAPIKey("live-anthropic", for: .anthropic)
+            }
+            let provider = try AnthropicProvider(model: .sonnet46, configuration: config)
+            _ = try await provider.generateText(request: providerRequest)
+        }
+
+        try await NetworkMocking.withMockedNetwork { request in
+            let body = try #require(self.bodyData(from: request))
+            let json = try #require(JSONSerialization.jsonObject(with: body) as? [String: Any])
+            let tools = try #require(json["tools"] as? [[String: Any]])
+            let declarations = try #require(tools.first?["functionDeclarations"] as? [[String: Any]])
+            try self.expectSchemaParity(#require(declarations.first?["parameters"] as? [String: Any]))
+            return NetworkMocking.streamResponse(for: request, data: Self.googleStreamPayload(text: "Google schema ok"))
+        } operation: {
+            let config = Self.makeConfiguration { config in
+                config.setAPIKey("google-live", for: .google)
+            }
+            let provider = try GoogleProvider(model: .gemini25Flash, configuration: config)
+            _ = try await provider.generateText(request: providerRequest)
+        }
+
+        try await NetworkMocking.withMockedNetwork { request in
+            let body = try #require(self.bodyData(from: request))
+            let json = try #require(JSONSerialization.jsonObject(with: body) as? [String: Any])
+            let tools = try #require(json["tools"] as? [[String: Any]])
+            let function = try #require(tools.first?["function"] as? [String: Any])
+            try self.expectSchemaParity(#require(function["parameters"] as? [String: Any]))
+            return NetworkMocking.jsonResponse(for: request, data: Self.ollamaPayload(text: "Ollama schema ok"))
+        } operation: {
+            let config = Self.makeConfiguration { config in
+                config.setBaseURL("http://localhost:11434", for: .ollama)
+            }
+            let provider = try OllamaProvider(model: .llama33, configuration: config)
+            _ = try await provider.generateText(request: providerRequest)
+        }
+
+        try await NetworkMocking.withMockedNetwork { request in
+            let body = try #require(self.bodyData(from: request))
+            let json = try #require(JSONSerialization.jsonObject(with: body) as? [String: Any])
+            let tools = try #require(json["tools"] as? [[String: Any]])
+            let function = try #require(tools.first?["function"] as? [String: Any])
+            try self.expectSchemaParity(#require(function["parameters"] as? [String: Any]))
+            return NetworkMocking.jsonResponse(
+                for: request,
+                data: Self.chatCompletionPayload(text: "LM Studio schema ok"),
+            )
+        } operation: {
+            let provider = LMStudioProvider(
+                baseURL: "http://localhost:1234/v1",
+                modelId: "local",
+                sessionConfiguration: Self.mockedSessionConfiguration(),
+            )
+            _ = try await provider.generateText(request: providerRequest)
+        }
+    }
+
     // MARK: - OpenAI-compatible providers
 
     @Test
@@ -1496,6 +1604,116 @@ struct ProviderEndToEndTests {
         ProviderRequest(
             messages: [ModelMessage(role: .user, content: [.text("Hello there")])],
         )
+    }
+
+    private static var schemaParityRequest: ProviderRequest {
+        let tool = AgentTool(
+            name: "run_plan",
+            description: "Run a constrained plan",
+            parameters: AgentToolParameters(
+                properties: [
+                    "settings": AgentToolParameterProperty(
+                        name: "settings",
+                        type: .object,
+                        description: "Execution settings",
+                        properties: [
+                            "mode": AgentToolParameterProperty(
+                                name: "mode",
+                                type: .string,
+                                description: "Execution mode",
+                                enumValues: ["safe", "fast"],
+                                format: "mode-name",
+                                minLength: 4,
+                                maxLength: 4,
+                            ),
+                            "retries": AgentToolParameterProperty(
+                                name: "retries",
+                                type: .integer,
+                                description: "Retry count",
+                                minimum: 0,
+                                maximum: 3,
+                            ),
+                        ],
+                        required: ["mode"],
+                    ),
+                    "steps": AgentToolParameterProperty(
+                        name: "steps",
+                        type: .array,
+                        description: "Plan steps",
+                        items: AgentToolParameterItems(
+                            type: "object",
+                            description: "One step",
+                            properties: [
+                                "label": AgentToolParameterProperty(
+                                    name: "label",
+                                    type: .string,
+                                    description: "Step label",
+                                ),
+                            ],
+                            required: ["label"],
+                        ),
+                    ),
+                    "matrix": AgentToolParameterProperty(
+                        name: "matrix",
+                        type: .array,
+                        description: "Rows",
+                        items: AgentToolParameterItems(
+                            type: "array",
+                            description: "Row",
+                            items: AgentToolParameterItems(
+                                type: "integer",
+                                description: "Cell",
+                                minimum: 0,
+                                maximum: 9,
+                            ),
+                        ),
+                    ),
+                ],
+                required: ["settings", "steps", "matrix"],
+            ),
+        ) { _ in
+            AnyAgentToolValue(string: "unused")
+        }
+        return ProviderRequest(
+            messages: [.user("Run it")],
+            tools: [tool],
+            settings: .init(maxTokens: 32),
+        )
+    }
+
+    private func expectSchemaParity(_ schema: [String: Any]) throws {
+        #expect(schema["type"] as? String == "object")
+        #expect(schema["required"] as? [String] == ["settings", "steps", "matrix"])
+        let properties = try #require(schema["properties"] as? [String: Any])
+
+        let settings = try #require(properties["settings"] as? [String: Any])
+        #expect(settings["type"] as? String == "object")
+        #expect(settings["required"] as? [String] == ["mode"])
+        let settingProperties = try #require(settings["properties"] as? [String: Any])
+        let mode = try #require(settingProperties["mode"] as? [String: Any])
+        #expect(mode["enum"] as? [String] == ["safe", "fast"])
+        #expect(mode["format"] as? String == "mode-name")
+        #expect(mode["minLength"] as? Int == 4)
+        #expect(mode["maxLength"] as? Int == 4)
+        let retries = try #require(settingProperties["retries"] as? [String: Any])
+        #expect(retries["minimum"] as? Double == 0)
+        #expect(retries["maximum"] as? Double == 3)
+
+        let steps = try #require(properties["steps"] as? [String: Any])
+        let items = try #require(steps["items"] as? [String: Any])
+        #expect(items["type"] as? String == "object")
+        #expect(items["description"] as? String == "One step")
+        #expect(items["required"] as? [String] == ["label"])
+        let itemProperties = try #require(items["properties"] as? [String: Any])
+        #expect((itemProperties["label"] as? [String: Any])?["type"] as? String == "string")
+
+        let matrix = try #require(properties["matrix"] as? [String: Any])
+        let row = try #require(matrix["items"] as? [String: Any])
+        #expect(row["type"] as? String == "array")
+        let cell = try #require(row["items"] as? [String: Any])
+        #expect(cell["type"] as? String == "integer")
+        #expect(cell["minimum"] as? Double == 0)
+        #expect(cell["maximum"] as? Double == 9)
     }
 
     private static func makeConfiguration(_ builder: (TachikomaConfiguration) -> Void) -> TachikomaConfiguration {

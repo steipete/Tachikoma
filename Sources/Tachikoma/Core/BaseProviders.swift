@@ -1070,44 +1070,22 @@ public final class AnthropicProvider: ModelProvider {
     }
 
     private func convertToolToAnthropic(_ tool: AgentTool) throws -> AnthropicTool {
-        // Convert AgentToolParameters to [String: Any]
-        var properties: [String: Any] = [:]
-        for (key, prop) in tool.parameters.properties {
-            var propDict: [String: Any] = [
-                "type": prop.type.rawValue,
-                "description": prop.description,
-            ]
-
-            if let enumValues = prop.enumValues {
-                propDict["enum"] = enumValues
-            }
-
-            // Add items for array type
-            if prop.type == .array {
-                if let items = prop.items {
-                    // Convert items to dictionary
-                    var itemsDict: [String: Any] = ["type": items.type]
-                    // Add description if present
-                    if let itemDescription = items.description {
-                        itemsDict["description"] = itemDescription
-                    }
-                    propDict["items"] = itemsDict
-                } else {
-                    // Default items for array
-                    propDict["items"] = ["type": "string"]
-                }
-            }
-
-            properties[key] = propDict
+        let schema = try tool.parameters.jsonSchema(options: [.defaultStringArrayItems])
+        guard
+            let type = schema["type"] as? String,
+            let properties = schema["properties"] as? [String: Any],
+            let required = schema["required"] as? [String] else
+        {
+            throw TachikomaError.invalidInput("Failed to encode tool parameters for '\(tool.name)'")
         }
 
         return AnthropicTool(
             name: tool.name,
             description: tool.description,
             inputSchema: AnthropicInputSchema(
-                type: tool.parameters.type,
+                type: type,
                 properties: properties,
-                required: tool.parameters.required,
+                required: required,
             ),
         )
     }
@@ -1969,37 +1947,11 @@ public final class OllamaProvider: ModelProvider {
     }
 
     private func convertToolToOllama(_ tool: AgentTool) throws -> OllamaTool {
-        var properties: [String: AnyAgentToolValue] = [:]
-        for (key, prop) in tool.parameters.properties {
-            var propDict: [String: AnyAgentToolValue] = [
-                "type": AnyAgentToolValue(string: prop.type.rawValue),
-                "description": AnyAgentToolValue(string: prop.description),
-            ]
-
-            if let enumValues = prop.enumValues {
-                propDict["enum"] = AnyAgentToolValue(array: enumValues.map { AnyAgentToolValue(string: $0) })
-            }
-
-            if let items = prop.items {
-                var itemSchema = [
-                    "type": AnyAgentToolValue(string: items.type),
-                ]
-                if let description = items.description {
-                    itemSchema["description"] = AnyAgentToolValue(string: description)
-                }
-                propDict["items"] = AnyAgentToolValue(object: itemSchema)
-            }
-
-            properties[key] = AnyAgentToolValue(object: propDict)
+        let schema = try tool.parameters.jsonSchema()
+        var parameters: [String: AnyAgentToolValue] = [:]
+        for (key, value) in schema {
+            parameters[key] = try AnyAgentToolValue.fromJSON(value)
         }
-
-        let parameters: [String: AnyAgentToolValue] = [
-            "type": AnyAgentToolValue(string: tool.parameters.type),
-            "properties": AnyAgentToolValue(object: properties),
-            "required": AnyAgentToolValue(
-                array: tool.parameters.required.map { AnyAgentToolValue(string: $0) },
-            ),
-        ]
 
         return OllamaTool(
             type: "function",

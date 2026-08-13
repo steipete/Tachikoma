@@ -564,6 +564,16 @@ public struct AgentToolParameters: Sendable, Codable {
         self.properties = properties
         self.required = required
     }
+
+    init(
+        type: String,
+        properties: [String: AgentToolParameterProperty],
+        required: [String],
+    ) {
+        self.type = type
+        self.properties = properties
+        self.required = required
+    }
 }
 
 /// Tool parameter property definition
@@ -574,6 +584,13 @@ public struct AgentToolParameterProperty: Sendable, Codable {
     public let description: String
     public let enumValues: [String]?
     public let items: AgentToolParameterItems?
+    public let properties: [String: AgentToolParameterProperty]?
+    public let required: [String]?
+    public let format: String?
+    public let minimum: Double?
+    public let maximum: Double?
+    public let minLength: Int?
+    public let maxLength: Int?
 
     public enum ParameterType: String, Sendable, Codable {
         case string
@@ -592,11 +609,48 @@ public struct AgentToolParameterProperty: Sendable, Codable {
         enumValues: [String]? = nil,
         items: AgentToolParameterItems? = nil,
     ) {
+        self.init(
+            name: name,
+            type: type,
+            description: description,
+            enumValues: enumValues,
+            items: items,
+            properties: nil,
+            required: nil,
+            format: nil,
+            minimum: nil,
+            maximum: nil,
+            minLength: nil,
+            maxLength: nil,
+        )
+    }
+
+    public init(
+        name: String,
+        type: ParameterType,
+        description: String,
+        enumValues: [String]? = nil,
+        items: AgentToolParameterItems? = nil,
+        properties: [String: AgentToolParameterProperty]? = nil,
+        required: [String]? = nil,
+        format: String? = nil,
+        minimum: Double? = nil,
+        maximum: Double? = nil,
+        minLength: Int? = nil,
+        maxLength: Int? = nil,
+    ) {
         self.name = name
         self.type = type
         self.description = description
         self.enumValues = enumValues
         self.items = items
+        self.properties = properties
+        self.required = required
+        self.format = format
+        self.minimum = minimum
+        self.maximum = maximum
+        self.minLength = minLength
+        self.maxLength = maxLength
     }
 }
 
@@ -605,10 +659,116 @@ public struct AgentToolParameterProperty: Sendable, Codable {
 public struct AgentToolParameterItems: Sendable, Codable {
     public let type: String
     public let description: String?
+    public let enumValues: [String]?
+    private let itemsBox: ToolSchemaIndirectBox<AgentToolParameterItems>?
+    public let properties: [String: AgentToolParameterProperty]?
+    public let required: [String]?
+    public let format: String?
+    public let minimum: Double?
+    public let maximum: Double?
+    public let minLength: Int?
+    public let maxLength: Int?
+
+    public var items: AgentToolParameterItems? {
+        self.itemsBox?.value
+    }
 
     public init(type: String, description: String? = nil) {
+        self.init(
+            type: type,
+            description: description,
+            enumValues: nil,
+            items: nil,
+            properties: nil,
+            required: nil,
+            format: nil,
+            minimum: nil,
+            maximum: nil,
+            minLength: nil,
+            maxLength: nil,
+        )
+    }
+
+    public init(
+        type: String,
+        description: String? = nil,
+        enumValues: [String]? = nil,
+        items: AgentToolParameterItems? = nil,
+        properties: [String: AgentToolParameterProperty]? = nil,
+        required: [String]? = nil,
+        format: String? = nil,
+        minimum: Double? = nil,
+        maximum: Double? = nil,
+        minLength: Int? = nil,
+        maxLength: Int? = nil,
+    ) {
         self.type = type
         self.description = description
+        self.enumValues = enumValues
+        self.itemsBox = items.map(ToolSchemaIndirectBox.init)
+        self.properties = properties
+        self.required = required
+        self.format = format
+        self.minimum = minimum
+        self.maximum = maximum
+        self.minLength = minLength
+        self.maxLength = maxLength
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case type
+        case description
+        case enumValues
+        case items
+        case properties
+        case required
+        case format
+        case minimum
+        case maximum
+        case minLength
+        case maxLength
+    }
+
+    public init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.type = try container.decode(String.self, forKey: .type)
+        self.description = try container.decodeIfPresent(String.self, forKey: .description)
+        self.enumValues = try container.decodeIfPresent([String].self, forKey: .enumValues)
+        self.itemsBox = try container.decodeIfPresent(AgentToolParameterItems.self, forKey: .items)
+            .map(ToolSchemaIndirectBox.init)
+        self.properties = try container.decodeIfPresent(
+            [String: AgentToolParameterProperty].self,
+            forKey: .properties,
+        )
+        self.required = try container.decodeIfPresent([String].self, forKey: .required)
+        self.format = try container.decodeIfPresent(String.self, forKey: .format)
+        self.minimum = try container.decodeIfPresent(Double.self, forKey: .minimum)
+        self.maximum = try container.decodeIfPresent(Double.self, forKey: .maximum)
+        self.minLength = try container.decodeIfPresent(Int.self, forKey: .minLength)
+        self.maxLength = try container.decodeIfPresent(Int.self, forKey: .maxLength)
+    }
+
+    public func encode(to encoder: any Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(self.type, forKey: .type)
+        try container.encodeIfPresent(self.description, forKey: .description)
+        try container.encodeIfPresent(self.enumValues, forKey: .enumValues)
+        try container.encodeIfPresent(self.items, forKey: .items)
+        try container.encodeIfPresent(self.properties, forKey: .properties)
+        try container.encodeIfPresent(self.required, forKey: .required)
+        try container.encodeIfPresent(self.format, forKey: .format)
+        try container.encodeIfPresent(self.minimum, forKey: .minimum)
+        try container.encodeIfPresent(self.maximum, forKey: .maximum)
+        try container.encodeIfPresent(self.minLength, forKey: .minLength)
+        try container.encodeIfPresent(self.maxLength, forKey: .maxLength)
+    }
+}
+
+private final class ToolSchemaIndirectBox<Value: Sendable>: Sendable {
+    let value: Value
+
+    init(_ value: Value) {
+        self.value = value
     }
 }
 
@@ -808,10 +968,105 @@ public struct DynamicSchema: Sendable, Codable {
     public struct SchemaItems: Sendable, Codable {
         public let type: SchemaType
         public let description: String?
+        public let enumValues: [String]?
+        private let itemsBox: ToolSchemaIndirectBox<SchemaItems>?
+        public let properties: [String: SchemaProperty]?
+        public let required: [String]?
+        public let format: String?
+        public let minimum: Double?
+        public let maximum: Double?
+        public let minLength: Int?
+        public let maxLength: Int?
+
+        public var items: SchemaItems? {
+            self.itemsBox?.value
+        }
 
         public init(type: SchemaType, description: String? = nil) {
+            self.init(
+                type: type,
+                description: description,
+                enumValues: nil,
+                items: nil,
+                properties: nil,
+                required: nil,
+                format: nil,
+                minimum: nil,
+                maximum: nil,
+                minLength: nil,
+                maxLength: nil,
+            )
+        }
+
+        public init(
+            type: SchemaType,
+            description: String? = nil,
+            enumValues: [String]? = nil,
+            items: SchemaItems? = nil,
+            properties: [String: SchemaProperty]? = nil,
+            required: [String]? = nil,
+            format: String? = nil,
+            minimum: Double? = nil,
+            maximum: Double? = nil,
+            minLength: Int? = nil,
+            maxLength: Int? = nil,
+        ) {
             self.type = type
             self.description = description
+            self.enumValues = enumValues
+            self.itemsBox = items.map(ToolSchemaIndirectBox.init)
+            self.properties = properties
+            self.required = required
+            self.format = format
+            self.minimum = minimum
+            self.maximum = maximum
+            self.minLength = minLength
+            self.maxLength = maxLength
+        }
+
+        private enum CodingKeys: String, CodingKey {
+            case type
+            case description
+            case enumValues
+            case items
+            case properties
+            case required
+            case format
+            case minimum
+            case maximum
+            case minLength
+            case maxLength
+        }
+
+        public init(from decoder: any Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            self.type = try container.decode(SchemaType.self, forKey: .type)
+            self.description = try container.decodeIfPresent(String.self, forKey: .description)
+            self.enumValues = try container.decodeIfPresent([String].self, forKey: .enumValues)
+            self.itemsBox = try container.decodeIfPresent(SchemaItems.self, forKey: .items)
+                .map(ToolSchemaIndirectBox.init)
+            self.properties = try container.decodeIfPresent([String: SchemaProperty].self, forKey: .properties)
+            self.required = try container.decodeIfPresent([String].self, forKey: .required)
+            self.format = try container.decodeIfPresent(String.self, forKey: .format)
+            self.minimum = try container.decodeIfPresent(Double.self, forKey: .minimum)
+            self.maximum = try container.decodeIfPresent(Double.self, forKey: .maximum)
+            self.minLength = try container.decodeIfPresent(Int.self, forKey: .minLength)
+            self.maxLength = try container.decodeIfPresent(Int.self, forKey: .maxLength)
+        }
+
+        public func encode(to encoder: any Encoder) throws {
+            var container = encoder.container(keyedBy: CodingKeys.self)
+            try container.encode(self.type, forKey: .type)
+            try container.encodeIfPresent(self.description, forKey: .description)
+            try container.encodeIfPresent(self.enumValues, forKey: .enumValues)
+            try container.encodeIfPresent(self.items, forKey: .items)
+            try container.encodeIfPresent(self.properties, forKey: .properties)
+            try container.encodeIfPresent(self.required, forKey: .required)
+            try container.encodeIfPresent(self.format, forKey: .format)
+            try container.encodeIfPresent(self.minimum, forKey: .minimum)
+            try container.encodeIfPresent(self.maximum, forKey: .maximum)
+            try container.encodeIfPresent(self.minLength, forKey: .minLength)
+            try container.encodeIfPresent(self.maxLength, forKey: .maxLength)
         }
     }
 
@@ -829,34 +1084,59 @@ public struct DynamicSchema: Sendable, Codable {
 
     /// Convert to AgentToolParameters
     public func toAgentToolParameters() -> AgentToolParameters {
-        // Convert to AgentToolParameters
-        var props: [String: AgentToolParameterProperty] = [:]
-
-        if let properties {
-            for (key, prop) in properties {
-                let items = prop.items.map { schemaItems in
-                    AgentToolParameterItems(
-                        type: schemaItems.type.rawValue,
-                        description: schemaItems.description,
-                    )
-                }
-
-                // Convert SchemaType to ParameterType
-                let paramType = AgentToolParameterProperty.ParameterType(rawValue: prop.type.rawValue) ?? .string
-
-                props[key] = AgentToolParameterProperty(
-                    name: key,
-                    type: paramType,
-                    description: prop.description ?? "",
-                    enumValues: prop.enumValues,
-                    items: items,
-                )
-            }
-        }
-
-        return AgentToolParameters(
-            properties: props,
+        AgentToolParameters(
+            type: self.type.rawValue,
+            properties: Self.agentProperties(self.properties) ?? [:],
             required: self.required ?? [],
+        )
+    }
+
+    private static func agentProperties(
+        _ properties: [String: SchemaProperty]?,
+    )
+        -> [String: AgentToolParameterProperty]?
+    {
+        guard let properties else { return nil }
+        return Dictionary(uniqueKeysWithValues: properties.map { name, property in
+            (name, Self.agentProperty(name: name, property: property))
+        })
+    }
+
+    private static func agentProperty(
+        name: String,
+        property: SchemaProperty,
+    )
+        -> AgentToolParameterProperty
+    {
+        AgentToolParameterProperty(
+            name: name,
+            type: AgentToolParameterProperty.ParameterType(rawValue: property.type.rawValue) ?? .string,
+            description: property.description ?? "",
+            enumValues: property.enumValues,
+            items: property.items.map(self.agentItems),
+            properties: self.agentProperties(property.properties),
+            required: property.required,
+            format: property.format,
+            minimum: property.minimum,
+            maximum: property.maximum,
+            minLength: property.minLength,
+            maxLength: property.maxLength,
+        )
+    }
+
+    private static func agentItems(_ items: SchemaItems) -> AgentToolParameterItems {
+        AgentToolParameterItems(
+            type: items.type.rawValue,
+            description: items.description,
+            enumValues: items.enumValues,
+            items: items.items.map(self.agentItems),
+            properties: self.agentProperties(items.properties),
+            required: items.required,
+            format: items.format,
+            minimum: items.minimum,
+            maximum: items.maximum,
+            minLength: items.minLength,
+            maxLength: items.maxLength,
         )
     }
 }

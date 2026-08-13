@@ -15,9 +15,14 @@ enum MCPToolSchemaBridge {
         } else {
             [:]
         }
+        let type: DynamicSchema.SchemaType = if schema["type"] == nil {
+            .object
+        } else {
+            Self.schemaType(schema["type"])
+        }
 
         return DynamicSchema(
-            type: .object,
+            type: type,
             properties: properties,
             required: Self.stringArray(schema["required"]),
         )
@@ -48,10 +53,25 @@ enum MCPToolSchemaBridge {
         guard case let .object(schema)? = value else {
             return DynamicSchema.SchemaItems(type: .string)
         }
+        let type = Self.schemaType(schema["type"])
         return DynamicSchema.SchemaItems(
-            type: Self.schemaType(schema["type"]),
+            type: type,
             description: Self.string(schema["description"]),
+            enumValues: Self.optionalStringArray(schema["enum"]),
+            items: type == .array ? Self.optionalSchemaItems(from: schema["items"]) : nil,
+            properties: Self.nestedProperties(schema["properties"]),
+            required: Self.optionalStringArray(schema["required"]),
+            format: Self.string(schema["format"]),
+            minimum: Self.double(schema["minimum"]),
+            maximum: Self.double(schema["maximum"]),
+            minLength: Self.int(schema["minLength"]),
+            maxLength: Self.int(schema["maxLength"]),
         )
+    }
+
+    private static func optionalSchemaItems(from value: Value?) -> DynamicSchema.SchemaItems? {
+        guard case .object? = value else { return nil }
+        return self.schemaItems(from: value)
     }
 
     private static func nestedProperties(_ value: Value?) -> [String: DynamicSchema.SchemaProperty]? {
