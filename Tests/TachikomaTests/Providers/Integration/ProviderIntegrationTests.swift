@@ -430,7 +430,7 @@ struct ProviderIntegrationTests {
         #expect(normalized.contains("red"))
     }
 
-    @Test
+    @Test(.enabled(if: ProcessInfo.processInfo.environment["TACHIKOMA_INTEGRATION_PROFILE_DIR"]?.isEmpty == false))
     func `OpenAI Codex OAuth - GPT-5_6 Sol Vision Support`() async throws {
         let previousProfileDirectory = TachikomaConfiguration.profileDirectoryName
         if let profileDirectory = ProcessInfo.processInfo.environment["TACHIKOMA_INTEGRATION_PROFILE_DIR"] {

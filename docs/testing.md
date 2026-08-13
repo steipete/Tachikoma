@@ -28,6 +28,7 @@ xcrun llvm-cov report \
 - **What runs**: `ProviderIntegrationTests` (OpenAI, Anthropic, Google, Groq, Grok, Mistral) plus any suites that check `ProcessInfo.processInfo.environment` for real keys.
 - **Required env vars**:
   - `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GEMINI_API_KEY` (legacy `GOOGLE_API_KEY`), `MISTRAL_API_KEY`, `GROQ_API_KEY`, `X_AI_API_KEY` / `XAI_API_KEY`, etc.
+  - `TACHIKOMA_INTEGRATION_PROFILE_DIR` enables the Codex OAuth vision smoke test and must name a profile directory containing usable OAuth credentials without a higher-priority OpenAI API key.
 - **Notes**: wields actual HTTP calls and tool invocations, so only run when keys are set and you’re ready to burn quota. Requires the compile-time flag `-DLIVE_PROVIDER_TESTS`; without it the integration suite is excluded from the test build.
 
 ### Example
@@ -53,6 +54,7 @@ Some suites rely on live credentials even without `INTEGRATION_TESTS`, e.g. CLI 
 | `TACHIKOMA_TEST_MODE=mock` | Forces provider factory overrides and mock audio providers; default in CI. |
 | `INTEGRATION_TESTS=1` | Enables the live-provider suite. |
 | `TACHIKOMA_DISABLE_API_TESTS=true` | Hard-disables real providers even if keys are present (useful on shared CI runners). |
+| `TACHIKOMA_INTEGRATION_PROFILE_DIR` | Enables the Codex OAuth vision smoke test against the named credential profile. |
 | `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GEMINI_API_KEY`, etc. | Standard per-provider keys pulled by `TestHelpers.resolve` (Gemini also accepts `GOOGLE_API_KEY`). |
 | `OPENROUTER_REFERER`, `OPENROUTER_TITLE` | Optional headers for OpenRouter (defaults provided). |
 | `REPLICATE_PREFERRED_OUTPUT=turbo` | Adds `Prefer: wait=false` to Replicate calls during tests. |

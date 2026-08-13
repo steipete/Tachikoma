@@ -152,6 +152,7 @@ jobs:
 
     - name: Run Integration Tests
       env:
+        INTEGRATION_TESTS: "1"
         OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
@@ -159,9 +160,4 @@ jobs:
         GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
         X_AI_API_KEY: ${{ secrets.X_AI_API_KEY }}
         XAI_API_KEY: ${{ secrets.X_AI_API_KEY }}
-      run: |
-        if [[ -n "$OPENAI_API_KEY" && -n "$ANTHROPIC_API_KEY" ]]; then
-          swift test --filter IntegrationTests
-        else
-          echo "Skipping integration tests - API keys not available"
-        fi
+      run: swift test --no-parallel -Xswiftc -DLIVE_PROVIDER_TESTS --filter ProviderIntegrationTests
