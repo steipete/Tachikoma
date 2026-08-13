@@ -248,6 +248,8 @@ struct AgentToolValueTests {
         let original = AnyAgentToolValue(object: [
             "dispatch_state": AnyAgentToolValue(string: "dispatched"),
             "dispatched_unit_count": AnyAgentToolValue(int: 1),
+            "large_integer": AnyAgentToolValue(int: 9_007_199_254_740_993),
+            "maximum_integer": AnyAgentToolValue(int: .max),
             "mutation_dispatched": AnyAgentToolValue(bool: true),
             "retry_safe": AnyAgentToolValue(bool: false),
         ])
@@ -260,6 +262,19 @@ struct AgentToolValueTests {
         #expect(object["dispatched_unit_count"]?.boolValue == nil)
         #expect(object["mutation_dispatched"]?.boolValue == true)
         #expect(object["retry_safe"]?.boolValue == false)
+
+        let serialized = try JSONSerialization.data(withJSONObject: original.toJSON())
+        let foundationJSON = try JSONSerialization.jsonObject(with: serialized)
+        let converted = try AnyAgentToolValue.fromJSON(foundationJSON)
+        let convertedObject = try #require(converted.objectValue)
+        #expect(convertedObject["dispatched_unit_count"]?.intValue == 1)
+        #expect(convertedObject["dispatched_unit_count"]?.boolValue == nil)
+        #expect(convertedObject["large_integer"]?.intValue == 9_007_199_254_740_993)
+        #expect(convertedObject["maximum_integer"]?.intValue == .max)
+        #expect(convertedObject["mutation_dispatched"]?.boolValue == true)
+        #expect(convertedObject["mutation_dispatched"]?.intValue == nil)
+        #expect(convertedObject["retry_safe"]?.boolValue == false)
+        #expect(convertedObject["retry_safe"]?.intValue == nil)
     }
 
     // MARK: - AgentToolCall and AgentToolResult Tests

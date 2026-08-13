@@ -1,3 +1,4 @@
+import CoreFoundation
 import Foundation
 
 // MARK: - Core Tool Types
@@ -245,14 +246,16 @@ public struct AnyAgentToolValue: AgentToolValue, Equatable, Codable {
     public static func fromJSON(_ json: Any) throws -> Self {
         if json is NSNull {
             return AnyAgentToolValue(null: ())
-        } else if let bool = json as? Bool {
-            return AnyAgentToolValue(bool: bool)
-        } else if let int = json as? Int {
-            return AnyAgentToolValue(int: int)
-        } else if let double = json as? Double {
-            // Check if it's actually an integer
-            if double.truncatingRemainder(dividingBy: 1) == 0, double >= Double(Int.min), double <= Double(Int.max) {
-                return AnyAgentToolValue(int: Int(double))
+        } else if let number = json as? NSNumber {
+            if CFGetTypeID(number) == CFBooleanGetTypeID() {
+                return AnyAgentToolValue(bool: number.boolValue)
+            }
+            if let int = json as? Int {
+                return AnyAgentToolValue(int: int)
+            }
+            let double = number.doubleValue
+            if let int = Int(exactly: double) {
+                return AnyAgentToolValue(int: int)
             }
             return AnyAgentToolValue(double: double)
         } else if let string = json as? String {
