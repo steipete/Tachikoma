@@ -37,12 +37,15 @@ public final class MCPToolProvider: DynamicToolProvider {
 
         self.logger.info("Discovered \(mcpTools.count) tools from MCP server")
 
-        // Convert to DynamicTool format
-        return mcpTools.map { mcpTool in
+        return Self.makeDynamicTools(from: mcpTools)
+    }
+
+    static func makeDynamicTools(from mcpTools: [Tool]) -> [DynamicTool] {
+        mcpTools.map { mcpTool in
             DynamicTool(
                 name: mcpTool.name,
                 description: mcpTool.description ?? "",
-                schema: self.convertSchemaToDynamic(mcpTool.inputSchema),
+                schema: MCPToolSchemaBridge.dynamicSchema(from: mcpTool.inputSchema),
             )
         }
     }
@@ -75,76 +78,5 @@ public final class MCPToolProvider: DynamicToolProvider {
         return mcpTools.map { mcpTool in
             MCPToolAdapter.toAgentTool(from: mcpTool, client: self.client)
         }
-    }
-
-    // MARK: - Private Helpers
-
-    private func convertSchemaToDynamic(_ value: Value?) -> DynamicSchema {
-        guard let value else {
-            return DynamicSchema(type: .object, properties: [:])
-        }
-
-        // Parse the MCP schema into DynamicSchema
-        if case let .object(dict) = value {
-            var properties: [String: DynamicSchema.SchemaProperty] = [:]
-
-            if
-                let propsValue = dict["properties"],
-                case let .object(propsDict) = propsValue
-            {
-                for (key, propValue) in propsDict {
-                    properties[key] = self.convertPropertyToDynamic(propValue)
-                }
-            }
-
-            var required: [String] = []
-            if
-                let reqValue = dict["required"],
-                case let .array(reqArray) = reqValue
-            {
-                required = reqArray.compactMap { val in
-                    if case let .string(str) = val {
-                        return str
-                    }
-                    return nil
-                }
-            }
-
-            return DynamicSchema(
-                type: .object,
-                properties: properties,
-                required: required,
-            )
-        }
-
-        return DynamicSchema(type: .object, properties: [:])
-    }
-
-    private func convertPropertyToDynamic(_ value: Value) -> DynamicSchema.SchemaProperty {
-        guard case let .object(dict) = value else {
-            return DynamicSchema.SchemaProperty(type: .string)
-        }
-
-        var type: DynamicSchema.SchemaType = .string
-        var description: String?
-
-        if
-            let typeValue = dict["type"],
-            case let .string(typeStr) = typeValue
-        {
-            type = DynamicSchema.SchemaType(rawValue: typeStr) ?? .string
-        }
-
-        if
-            let descValue = dict["description"],
-            case let .string(descStr) = descValue
-        {
-            description = descStr
-        }
-
-        return DynamicSchema.SchemaProperty(
-            type: type,
-            description: description,
-        )
     }
 }
