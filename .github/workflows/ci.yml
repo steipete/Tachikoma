@@ -21,11 +21,6 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v7
 
-
-    - name: Fetch Commander dependency
-      shell: bash
-      run: git clone --depth 1 https://github.com/steipete/Commander.git ../Commander
-
     - name: Select Xcode 26.1
       if: runner.os == 'macOS'
       run: sudo xcode-select -s /Applications/Xcode_26.1.app || sudo xcode-select -s /Applications/Xcode_26.0.app || sudo xcode-select -s /Applications/Xcode.app
@@ -49,30 +44,17 @@ jobs:
     - name: Build
       run: swift build -c release --verbose
 
-    - name: Run Tests (Unit Tests Only)
+    - name: Run Hermetic Tests
       run: |
         if [[ "${{ runner.os }}" == "Linux" ]]; then
           # Several test suites mutate process-wide env/profile state.
           swift test --no-parallel --filter TachikomaTests --skip "OpenAIAudioProviderTests" --skip "ProviderEndToEndTests"
         else
-          swift test --filter TachikomaTests
+          swift test --parallel
         fi
       env:
         TACHIKOMA_DISABLE_API_TESTS: "true"
         TACHIKOMA_TEST_MODE: "mock"
-      continue-on-error: true
-
-    - name: Run Package Tests (Full API Testing)
-      run: swift test --verbose
-      env:
-        OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-        ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-        GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
-        MISTRAL_API_KEY: ${{ secrets.MISTRAL_API_KEY }}
-        GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
-        X_AI_API_KEY: ${{ secrets.X_AI_API_KEY }}
-        XAI_API_KEY: ${{ secrets.X_AI_API_KEY }}
-      continue-on-error: true
 
   build-examples:
     name: Build Examples on ${{ matrix.os }}
@@ -84,10 +66,6 @@ jobs:
     steps:
     - name: Checkout
       uses: actions/checkout@v7
-
-    - name: Fetch Commander dependency
-      shell: bash
-      run: git clone --depth 1 https://github.com/steipete/Commander.git ../Commander
 
     - name: Select Xcode 26.1
       if: runner.os == 'macOS'
@@ -143,4 +121,3 @@ jobs:
 
     - name: SwiftLint
       run: swiftlint --config .swiftlint.yml --strict
-      continue-on-error: true # Don't fail CI on lint issues initially

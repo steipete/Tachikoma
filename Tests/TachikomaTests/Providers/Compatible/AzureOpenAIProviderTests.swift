@@ -4,14 +4,25 @@ import Testing
 @testable import Tachikoma
 
 private final class AzureTestURLProtocol: URLProtocol {
-    private actor Store {
-        private(set) var lastRequest: URLRequest?
+    private final class Store: @unchecked Sendable {
+        private let lock = NSLock()
+        private var lastRequest: URLRequest?
 
         func store(_ request: URLRequest) {
+            self.lock.lock()
+            defer { self.lock.unlock() }
             self.lastRequest = request
         }
 
+        func fetch() -> URLRequest? {
+            self.lock.lock()
+            defer { self.lock.unlock() }
+            return self.lastRequest
+        }
+
         func reset() {
+            self.lock.lock()
+            defer { self.lock.unlock() }
             self.lastRequest = nil
         }
     }
@@ -41,10 +52,10 @@ private final class AzureTestURLProtocol: URLProtocol {
     }
 
     override func startLoading() {
-        Task { [request] in await AzureTestURLProtocol.storeMedia(request) }
+        Self.store.store(self.request)
 
         let response = HTTPURLResponse(
-            url: request.url!,
+            url: self.request.url!,
             statusCode: 200,
             httpVersion: nil,
             headerFields: ["Content-Type": "application/json"],
@@ -57,16 +68,12 @@ private final class AzureTestURLProtocol: URLProtocol {
 
     override func stopLoading() {}
 
-    private static func storeMedia(_ request: URLRequest) async {
-        await self.store.store(request)
+    static func fetchLastRequest() -> URLRequest? {
+        self.store.fetch()
     }
 
-    static func fetchLastRequest() async -> URLRequest? {
-        await self.store.lastRequest
-    }
-
-    static func reset() async {
-        await self.store.reset()
+    static func reset() {
+        self.store.reset()
     }
 }
 
@@ -82,7 +89,7 @@ struct AzureOpenAIProviderTests {
     func `Builds Azure chat URL with api-version and api-key header`() async throws {
         let config = TachikomaConfiguration(loadFromEnvironment: false)
         config.setAPIKey("test-key", for: .azureOpenAI)
-        await AzureTestURLProtocol.reset()
+        AzureTestURLProtocol.reset()
 
         let provider = try AzureOpenAIProvider(
             deploymentId: "gpt-5.5",
@@ -98,7 +105,7 @@ struct AzureOpenAIProviderTests {
 
         #expect(response.text == "hello azure")
 
-        let sentRequest = await AzureTestURLProtocol.fetchLastRequest()
+        let sentRequest = AzureTestURLProtocol.fetchLastRequest()
         #expect(sentRequest?.url?.path == "/openai/deployments/gpt-5.5/chat/completions")
 
         if let components = sentRequest?.url.flatMap({ URLComponents(url: $0, resolvingAgainstBaseURL: false) }) {
@@ -119,7 +126,7 @@ struct AzureOpenAIProviderTests {
             unsetenv("AZURE_OPENAI_BEARER_TOKEN")
             unsetenv("AZURE_OPENAI_ENDPOINT")
         }
-        await AzureTestURLProtocol.reset()
+        AzureTestURLProtocol.reset()
 
         let provider = try AzureOpenAIProvider(
             deploymentId: "gpt-5-mini",
@@ -133,7 +140,7 @@ struct AzureOpenAIProviderTests {
         let request = ProviderRequest(messages: [ModelMessage(role: .user, content: [.text("hi")])])
         _ = try await provider.generateText(request: request)
 
-        let sentRequest = await AzureTestURLProtocol.fetchLastRequest()
+        let sentRequest = AzureTestURLProtocol.fetchLastRequest()
         #expect(sentRequest?.url?.host == "custom.azure.example.com")
         #expect(
             sentRequest?.value(forHTTPHeaderField: "Authorization") == "Bearer bearer-123",
