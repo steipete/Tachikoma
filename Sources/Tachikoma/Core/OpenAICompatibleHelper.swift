@@ -839,54 +839,10 @@ struct OpenAICompatibleHelper {
     }
 
     private static func convertTool(_ tool: AgentTool) throws -> OpenAITool {
-        // Convert AgentToolParameters to [String: Any]
-        var parameters: [String: Any] = [
-            "type": tool.parameters.type,
-        ]
-
-        // Convert properties
-        var properties: [String: Any] = [:]
-        for (key, prop) in tool.parameters.properties {
-            var propDict: [String: Any] = [
-                "type": prop.type.rawValue,
-                "description": prop.description,
-            ]
-
-            if let enumValues = prop.enumValues {
-                propDict["enum"] = enumValues
-            }
-
-            // Handle array items if present
-            if prop.type == .array {
-                if let items = prop.items {
-                    var itemsDict: [String: Any] = [
-                        "type": items.type,
-                    ]
-                    if let itemDescription = items.description {
-                        itemsDict["description"] = itemDescription
-                    }
-                    propDict["items"] = itemsDict
-                } else {
-                    // OpenAI requires items for array types - default to string
-                    propDict["items"] = ["type": "string"]
-                    if
-                        ProcessInfo.processInfo.arguments.contains("--verbose") ||
-                        ProcessInfo.processInfo.arguments.contains("-v")
-                    {
-                        print("DEBUG: Adding default string items for array property '\(key)' in tool '\(tool.name)'")
-                    }
-                }
-            }
-
-            properties[key] = propDict
-        }
-
-        parameters["properties"] = properties
-
-        // Only include required field if it's not empty
-        if !tool.parameters.required.isEmpty {
-            parameters["required"] = tool.parameters.required
-        }
+        let parameters = try tool.parameters.jsonSchema(options: [
+            .defaultStringArrayItems,
+            .omitEmptyRequired,
+        ])
 
         // Debug logging
         if

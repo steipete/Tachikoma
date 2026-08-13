@@ -1028,37 +1028,9 @@ public final class OpenAIResponsesProvider: ModelProvider, ResponseCacheSafetyPr
     }
 
     private func convertTool(_ tool: AgentTool) throws -> ResponsesTool {
-        // Convert AgentToolParameters to [String: Any] for the API
-        var parameters: [String: Any] = [
-            "type": "object",
-            "properties": [:],
-        ]
+        var parameters = try tool.parameters.jsonSchema()
 
-        // Convert properties
-        var properties: [String: Any] = [:]
-        for (key, prop) in tool.parameters.properties {
-            var propDict: [String: Any] = [
-                "type": prop.type.rawValue,
-                "description": prop.description,
-            ]
-            if let enumValues = prop.enumValues {
-                propDict["enum"] = enumValues
-            }
-            if let items = prop.items {
-                var itemsDict: [String: Any] = ["type": items.type]
-                if let itemDescription = items.description {
-                    itemsDict["description"] = itemDescription
-                }
-                propDict["items"] = itemsDict
-            }
-            properties[key] = propDict
-        }
-        parameters["properties"] = properties
-
-        // Add required fields (even if empty to satisfy Responses API validation)
-        parameters["required"] = tool.parameters.required
-
-        // Responses API requires additionalProperties=false for strict schemas
+        // Keep rejecting unknown root arguments without opting into the provider's recursive strict-schema dialect.
         parameters["additionalProperties"] = false
 
         let function = ResponsesTool.ToolFunction(

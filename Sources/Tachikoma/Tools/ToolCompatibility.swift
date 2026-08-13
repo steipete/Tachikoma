@@ -97,37 +97,7 @@ public let weatherTool = createTool(
 
 /// Convert AgentToolParameters to JSON schema format
 public func toolParametersToJSON(_ parameters: AgentToolParameters) throws -> [String: Any] {
-    // Convert AgentToolParameters to JSON schema format
-    var schema: [String: Any] = [
-        "type": "object",
-        "properties": [:],
-        "required": parameters.required,
-    ]
-
-    var properties: [String: Any] = [:]
-    for (propertyName, property) in parameters.properties {
-        var propSchema: [String: Any] = [
-            "type": property.type.rawValue,
-            "description": property.description,
-        ]
-
-        if let enumValues = property.enumValues {
-            propSchema["enum"] = enumValues
-        }
-
-        // Handle array items if present
-        if property.type == .array, let items = property.items {
-            let itemsSchema: [String: Any] = [
-                "type": items.type,
-            ]
-            propSchema["items"] = itemsSchema
-        }
-
-        properties[propertyName] = propSchema
-    }
-
-    schema["properties"] = properties
-    return schema
+    try parameters.jsonSchema()
 }
 
 /// Convert JSON arguments to AgentToolArguments

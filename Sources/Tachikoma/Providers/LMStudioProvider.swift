@@ -259,23 +259,13 @@ public actor LMStudioProvider: ModelProvider {
 
         // Add tools if present
         if let tools = request.tools {
-            body["tools"] = tools.map { tool in
-                [
+            body["tools"] = try tools.map { tool in
+                try [
                     "type": "function",
                     "function": [
                         "name": tool.name,
                         "description": tool.description,
-                        "parameters": [
-                            "type": "object",
-                            "properties": tool.parameters.properties.reduce(into: [String: Any]()) { result, element in
-                                let (key, prop) = element
-                                result[key] = [
-                                    "type": prop.type.rawValue,
-                                    "description": prop.description,
-                                ]
-                            },
-                            "required": tool.parameters.required,
-                        ],
+                        "parameters": tool.parameters.jsonSchema(),
                     ],
                 ]
             }

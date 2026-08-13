@@ -1,3 +1,4 @@
+import Foundation
 import MCP
 import Tachikoma
 import Testing
@@ -22,8 +23,42 @@ struct MCPToolAdapterTests {
                         "description": .string("Tag identifier"),
                     ]),
                 ]),
+                "settings": .object([
+                    "type": .string("object"),
+                    "properties": .object([
+                        "retries": .object([
+                            "type": .string("integer"),
+                            "minimum": .int(0),
+                            "maximum": .int(3),
+                        ]),
+                    ]),
+                    "required": .array([.string("retries")]),
+                ]),
+                "matrix": .object([
+                    "type": .string("array"),
+                    "items": .object([
+                        "type": .string("array"),
+                        "items": .object([
+                            "type": .string("number"),
+                            "minimum": .double(0.25),
+                            "maximum": .int(1),
+                        ]),
+                    ]),
+                ]),
+                "openMatrix": .object([
+                    "type": .string("array"),
+                    "items": .object([
+                        "type": .string("array"),
+                    ]),
+                ]),
             ]),
-            "required": .array([.string("mode"), .int(42), .string("tags")]),
+            "required": .array([
+                .string("mode"),
+                .int(42),
+                .string("tags"),
+                .string("settings"),
+                .string("matrix"),
+            ]),
         ])
         let mcpTool = MCP.Tool(name: "run", description: "Run work", inputSchema: inputSchema)
         let client = MCPClient(name: "test", config: MCPServerConfig(command: "unused"))
@@ -32,7 +67,7 @@ struct MCPToolAdapterTests {
         let dynamicTool = try #require(MCPToolProvider.makeDynamicTools(from: [mcpTool]).first)
         let dynamicParameters = dynamicTool.schema.toAgentToolParameters()
 
-        #expect(staticTool.parameters.required == ["mode", "tags"])
+        #expect(staticTool.parameters.required == ["mode", "tags", "settings", "matrix"])
         #expect(dynamicParameters.required == staticTool.parameters.required)
         #expect(dynamicParameters.properties["mode"]?.type == staticTool.parameters.properties["mode"]?.type)
         #expect(dynamicParameters.properties["mode"]?.description == "Execution mode")
@@ -45,6 +80,69 @@ struct MCPToolAdapterTests {
         #expect(
             dynamicParameters.properties["tags"]?.items?.type == staticTool.parameters.properties["tags"]?.items?.type,
         )
+        let settings = try #require(dynamicParameters.properties["settings"])
+        #expect(settings.required == ["retries"])
+        #expect(settings.properties?["retries"]?.minimum == 0)
+        #expect(settings.properties?["retries"]?.maximum == 3)
+        #expect(settings.properties?["retries"]?.minimum == staticTool.parameters.properties["settings"]?
+            .properties?["retries"]?.minimum)
+        let matrixItems = try #require(dynamicParameters.properties["matrix"]?.items)
+        #expect(matrixItems.type == "array")
+        #expect(matrixItems.items?.type == "number")
+        #expect(matrixItems.items?.minimum == 0.25)
+        #expect(matrixItems.items?.maximum == 1)
+        #expect(matrixItems.items?.minimum == staticTool.parameters.properties["matrix"]?.items?.items?.minimum)
+        let openMatrixItems = try #require(dynamicParameters.properties["openMatrix"]?.items)
+        #expect(openMatrixItems.type == "array")
+        #expect(openMatrixItems.items == nil)
+        #expect(staticTool.parameters.properties["openMatrix"]?.items?.items == nil)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func `Real stdio discovery preserves nested schema for static and dynamic tools`() async throws {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("tachikoma-schema-\(UUID().uuidString)", isDirectory: true)
+        let script = directory.appendingPathComponent("server.sh")
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        try Data(Self.schemaServerScript.utf8).write(to: script)
+
+        let client = MCPClient(
+            name: "schema-stdio",
+            config: MCPServerConfig(
+                command: "/bin/sh",
+                args: [script.path],
+                timeout: 5,
+                autoReconnect: false,
+            ),
+        )
+
+        do {
+            try await client.connect()
+            let mcpTool = try #require(await client.tools.first)
+            let staticTool = MCPToolAdapter.toAgentTool(from: mcpTool, client: client)
+            let provider = MCPToolProvider(client: client)
+            let dynamicTool = try #require(try await provider.discoverTools().first)
+            let dynamicParameters = dynamicTool.schema.toAgentToolParameters()
+
+            #expect(staticTool.parameters.required == ["settings", "steps"])
+            #expect(dynamicParameters.required == staticTool.parameters.required)
+            let settings = try #require(dynamicParameters.properties["settings"])
+            #expect(settings.required == ["mode"])
+            #expect(settings.properties?["mode"]?.enumValues == ["safe", "fast"])
+            let stepItems = try #require(dynamicParameters.properties["steps"]?.items)
+            #expect(stepItems.type == "object")
+            #expect(stepItems.required == ["label"])
+            #expect(stepItems.properties?["label"]?.minLength == 1)
+            #expect(stepItems.properties?["label"]?.maxLength == 12)
+            #expect(stepItems.required == staticTool.parameters.properties["steps"]?.items?.required)
+
+            await client.disconnect()
+            try FileManager.default.removeItem(at: directory)
+        } catch {
+            await client.disconnect()
+            try? FileManager.default.removeItem(at: directory)
+            throw error
+        }
     }
 
     @Test
@@ -71,6 +169,16 @@ struct MCPToolAdapterTests {
         #expect(converted.properties?["unknown"]?.type == .string)
         #expect(converted.properties?["unknown"]?.description == "Parameter")
         #expect(converted.properties?["untypedArray"]?.items?.type == .string)
+
+        let invalidRoot = MCPToolSchemaBridge.dynamicSchema(from: .object([
+            "type": .string("array"),
+            "items": .object(["type": .string("string")]),
+        ]))
+        #expect(invalidRoot.type == .array)
+        #expect(invalidRoot.toAgentToolParameters().type == "array")
+        #expect(throws: TachikomaError.self) {
+            _ = try toolParametersToJSON(invalidRoot.toAgentToolParameters())
+        }
     }
 
     @Test
@@ -227,4 +335,30 @@ struct MCPToolAdapterTests {
             Issue.record("Expected image content")
         }
     }
+
+    private static let schemaServerScript = #"""
+    while IFS= read -r line; do
+      id=$(printf '%s\n' "$line" | /usr/bin/sed -n 's/.*"id":\([0-9][0-9]*\).*/\1/p')
+      case "$line" in
+        *'"method":"initialize"'*)
+          response='{"jsonrpc":"2.0","id":'
+          response=$response"$id"
+          response=$response',"result":{"protocolVersion":"2025-03-26","capabilities":{"tools":{}},'
+          response=$response'"serverInfo":{"name":"schema-fixture","version":"1.0"}}}'
+          printf '%s\n' "$response"
+          ;;
+        *tools*list*)
+          response='{"jsonrpc":"2.0","id":'
+          response=$response"$id"
+          response=$response',"result":{"tools":[{"name":"run_plan","description":"Run a plan","inputSchema":{'
+          response=$response'"type":"object","properties":{"settings":{"type":"object","properties":{'
+          response=$response'"mode":{"type":"string","enum":["safe","fast"]}},"required":["mode"]},'
+          response=$response'"steps":{"type":"array","items":{"type":"object","description":"One step",'
+          response=$response'"properties":{"label":{"type":"string","minLength":1,"maxLength":12}},'
+          response=$response'"required":["label"]}}},"required":["settings","steps"]}}]}}'
+          printf '%s\n' "$response"
+          ;;
+      esac
+    done
+    """#
 }

@@ -286,39 +286,14 @@ extension GoogleProvider {
     }
 
     private static func convertTool(_ tool: AgentTool) throws -> GoogleGenerateRequest.Tool.FunctionDeclaration {
-        var properties: [String: Any] = [:]
-        for (key, prop) in tool.parameters.properties {
-            var propDict: [String: Any] = [
-                "type": prop.type.rawValue,
-                "description": prop.description,
-            ]
-            if let enumValues = prop.enumValues {
-                propDict["enum"] = enumValues
-            }
-            if let items = prop.items {
-                var itemsDict: [String: Any] = ["type": items.type]
-                if let itemDescription = items.description {
-                    itemsDict["description"] = itemDescription
-                }
-                propDict["items"] = itemsDict
-            }
-            properties[key] = propDict
-        }
-
         // Gemini validates that every name in `required` exists in `properties`. Tools occasionally
         // ship with a `required` entry whose property got filtered out during MCP→Agent conversion
         // (e.g. anyOf/oneOf schemas that don't survive the simplified MCP→Agent translation). Drop
         // any orphan `required` names so we never send Gemini an invalid schema.
-        let declaredKeys = Set(properties.keys)
-        let sanitizedRequired = tool.parameters.required.filter { declaredKeys.contains($0) }
-
-        var parameters: [String: Any] = [
-            "type": "object",
-            "properties": properties,
-        ]
-        if !sanitizedRequired.isEmpty {
-            parameters["required"] = sanitizedRequired
-        }
+        let parameters = try tool.parameters.jsonSchema(options: [
+            .filterUndeclaredRequired,
+            .omitEmptyRequired,
+        ])
 
         guard let schema = JSONValue(value: parameters) else {
             throw TachikomaError.invalidInput("Failed to encode tool parameters for '\(tool.name)'")
