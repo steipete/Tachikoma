@@ -57,6 +57,7 @@ struct MCPClientTests {
     func `MCPError descriptions`() {
         #expect(MCPError.serverDisabled.errorDescription == "MCP server is disabled")
         #expect(MCPError.notConnected.errorDescription == "MCP client is not connected")
+        #expect(MCPError.transportClosed.errorDescription == "MCP transport closed")
         #expect(MCPError.invalidResponse.errorDescription == "Invalid response from MCP server")
         #expect(MCPError.unsupportedTransport("test").errorDescription == "Unsupported transport: test")
         #expect(MCPError.connectionFailed("timeout").errorDescription == "Connection failed: timeout")

@@ -8,13 +8,14 @@ struct StdioFrameWriterTests {
     func `Concurrent sends preserve complete JSON lines`() async throws {
         let pipe = Pipe()
         let writer = StdioFrameWriter()
-        await writer.install(pipe.fileHandleForWriting)
+        let generation: UInt64 = 42
+        await writer.install(pipe.fileHandleForWriting, generation: generation)
 
         let payloads = (0..<512).map { Data("{\"id\":\($0)}".utf8) }
         try await withThrowingTaskGroup(of: Void.self) { group in
             for payload in payloads {
                 group.addTask {
-                    try await writer.write(payload: payload)
+                    try await writer.write(payload: payload, generation: generation)
                 }
             }
             try await group.waitForAll()
@@ -38,7 +39,28 @@ struct StdioFrameWriterTests {
         let writer = StdioFrameWriter()
 
         await #expect(throws: MCPError.self) {
-            try await writer.write(payload: Data("{}".utf8))
+            try await writer.write(payload: Data("{}".utf8), generation: 42)
         }
+    }
+
+    @Test
+    func `Superseded generation cannot write into replacement pipe`() async throws {
+        let firstPipe = Pipe()
+        let secondPipe = Pipe()
+        let writer = StdioFrameWriter()
+        await writer.install(firstPipe.fileHandleForWriting, generation: 1)
+        await writer.install(secondPipe.fileHandleForWriting, generation: 2)
+
+        await #expect(throws: MCPError.transportClosed) {
+            try await writer.write(payload: Data("old".utf8), generation: 1)
+        }
+        try await writer.write(payload: Data("new".utf8), generation: 2)
+
+        await writer.removeHandle(generation: 1)
+        try await writer.write(payload: Data("current".utf8), generation: 2)
+        await writer.removeHandle(generation: 2)
+        try secondPipe.fileHandleForWriting.close()
+        let output = secondPipe.fileHandleForReading.readDataToEndOfFile()
+        #expect(String(bytes: output, encoding: .utf8) == "new\ncurrent\n")
     }
 }
