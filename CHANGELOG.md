@@ -8,6 +8,7 @@ All notable changes to the Tachikoma project will be documented in this file.
 - Added first-class Claude Opus 5 support and moved generation-agnostic Claude aliases and defaults to the new flagship.
 
 ### Fixed
+- Stdio MCP child exit now atomically closes the connection, clears cached tools, fails pending requests without waiting for their timeout, rejects later sends, and preserves generation-safe reconnects.
 - The root package no longer declares unused Commander products for its hand-parsed CLIs, avoiding local/remote package-identity conflicts in consumers; hermetic macOS/Linux tests now block merges on failure, and live-provider CI uses its documented compile/runtime gates.
 - Concurrent stdio MCP requests now serialize complete JSON-line frames so payloads and delimiters cannot interleave across tool calls.
 - Tool schemas now preserve nested object fields, required arrays, enums, array items, and scalar constraints consistently across static/dynamic MCP discovery and every provider serializer, including LM Studio.
