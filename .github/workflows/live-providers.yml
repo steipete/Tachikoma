@@ -1,0 +1,64 @@
+name: Live Providers
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: live-providers-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  integration:
+    name: Provider smoke tests
+    if: github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+    runs-on: macos-15
+    env:
+      INTEGRATION_TESTS: "1"
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+      GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+      MISTRAL_API_KEY: ${{ secrets.MISTRAL_API_KEY }}
+      X_AI_API_KEY: ${{ secrets.X_AI_API_KEY }}
+      XAI_API_KEY: ${{ secrets.X_AI_API_KEY }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+
+      - name: Select Xcode 26.1
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: '26.1'
+
+      - name: Require at least one live credential
+        shell: bash
+        run: |
+          available=0
+          for variable in \
+            OPENAI_API_KEY ANTHROPIC_API_KEY GEMINI_API_KEY GOOGLE_API_KEY \
+            GROQ_API_KEY MISTRAL_API_KEY X_AI_API_KEY XAI_API_KEY; do
+            value="${!variable:-}"
+            normalized="${value,,}"
+            if [[ -n "$value" && "$value" != "env-key" && "$value" != "cred-key" && \
+                  "$value" != "test-key" && "$normalized" != test-* ]]; then
+              echo "Live credential configured: $variable"
+              available=$((available + 1))
+            fi
+          done
+          if (( available == 0 )); then
+            echo "::error::No live provider credential is configured."
+            exit 1
+          fi
+
+      - name: Run live provider smoke tests
+        run: >-
+          swift test --no-parallel
+          -Xswiftc -DLIVE_PROVIDER_TESTS
+          --filter ProviderIntegrationTests

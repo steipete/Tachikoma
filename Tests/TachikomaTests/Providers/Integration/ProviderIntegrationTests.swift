@@ -22,6 +22,11 @@ struct ProviderIntegrationTests {
         var groq: String?
         var grok: String?
 
+        var hasProviderCredential: Bool {
+            self.openAI != nil || self.anthropic != nil || self.google != nil ||
+                self.mistral != nil || self.groq != nil || self.grok != nil
+        }
+
         static func capture() -> Self {
             let environment = ProcessInfo.processInfo.environment
             return Self(
@@ -54,6 +59,11 @@ struct ProviderIntegrationTests {
     }
 
     private static let liveCredentials = LiveCredentials.capture()
+
+    @Test
+    func `Live provider run has an eligible credential`() {
+        #expect(Self.liveCredentials.hasProviderCredential)
+    }
 
     private static var hasOpenAIKey: Bool {
         liveCredentials.openAI != nil
@@ -109,23 +119,18 @@ struct ProviderIntegrationTests {
     func `OpenAI Provider - Real API Call`() async throws {
         let model = Model.openai(.gpt5Mini)
         let config = Self.liveConfiguration()
-        do {
-            _ = try ProviderFactory.createProvider(for: model, configuration: config)
+        _ = try ProviderFactory.createProvider(for: model, configuration: config)
 
-            let response = try await generate(
-                TestConfig.shortMessage,
-                using: model,
-                maxTokens: 300,
-                temperature: 0.0,
-                configuration: config,
-            )
+        let response = try await generate(
+            TestConfig.shortMessage,
+            using: model,
+            maxTokens: 300,
+            temperature: 0.0,
+            configuration: config,
+        )
 
-            if !(response.lowercased().contains("hello") && response.contains("Tachikoma")) {
-                Self.warn("OpenAI integration returned unexpected text: \(response)")
-            }
-        } catch {
-            Self.warn("OpenAI integration failed: \(error)")
-        }
+        #expect(response.lowercased().contains("hello"))
+        #expect(response.contains("Tachikoma"))
     }
 
     @Test(.enabled(if: Self.hasOpenAIKey))
@@ -133,44 +138,40 @@ struct ProviderIntegrationTests {
         let model = Model.openai(.gpt5Mini)
         let config = Self.liveConfiguration()
 
-        do {
-            let provider = try ProviderFactory.createProvider(for: model, configuration: config)
+        let provider = try ProviderFactory.createProvider(for: model, configuration: config)
 
-            let tool = AgentTool(
-                name: "get_weather",
-                description: "Get the current weather for a location",
-                parameters: AgentToolParameters(
-                    properties: [
-                        "location": AgentToolParameterProperty(
-                            name: "location",
-                            type: .string,
-                            description: "The city and state, e.g. San Francisco, CA",
-                        ),
-                    ],
-                    required: ["location"],
-                ),
-            ) { _ in
-                AnyAgentToolValue(string: "Weather: 72°F, sunny")
-            }
-
-            let request = ProviderRequest(
-                messages: [
-                    ModelMessage(role: .user, content: [.text(TestConfig.toolMessage)]),
+        let tool = AgentTool(
+            name: "get_weather",
+            description: "Get the current weather for a location",
+            parameters: AgentToolParameters(
+                properties: [
+                    "location": AgentToolParameterProperty(
+                        name: "location",
+                        type: .string,
+                        description: "The city and state, e.g. San Francisco, CA",
+                    ),
                 ],
-                tools: [tool],
-                settings: .init(temperature: 0.0),
-            )
-
-            let response = try await provider.generateText(request: request)
-
-            if let toolCall = response.toolCalls?.first {
-                #expect(toolCall.name == "get_weather")
-            } else {
-                Self.warn("OpenAI tool calling returned direct text: \(response.text.prefix(80))…")
-            }
-        } catch {
-            Self.warn("OpenAI tool calling failed: \(error)")
+                required: ["location"],
+            ),
+        ) { _ in
+            AnyAgentToolValue(string: "Weather: 72°F, sunny")
         }
+
+        let request = ProviderRequest(
+            messages: [
+                ModelMessage(role: .user, content: [.text(TestConfig.toolMessage)]),
+            ],
+            tools: [tool],
+            settings: .init(temperature: 0.0),
+        )
+
+        let response = try await provider.generateText(request: request)
+
+        guard let toolCall = response.toolCalls?.first else {
+            Issue.record("OpenAI tool calling returned direct text: \(response.text.prefix(80))…")
+            return
+        }
+        #expect(toolCall.name == "get_weather")
     }
 
     @Test(.enabled(if: Self.hasOpenAIKey))
@@ -178,44 +179,36 @@ struct ProviderIntegrationTests {
         let model = Model.openai(.gpt5Mini)
         let config = Self.liveConfiguration()
 
-        do {
-            let provider = try ProviderFactory.createProvider(for: model, configuration: config)
+        let provider = try ProviderFactory.createProvider(for: model, configuration: config)
 
-            let request = ProviderRequest(
-                messages: [
-                    ModelMessage(role: .user, content: [.text(TestConfig.streamMessage)]),
-                ],
-                tools: nil,
-                settings: .init(maxTokens: 300, temperature: 0.0),
-            )
+        let request = ProviderRequest(
+            messages: [
+                ModelMessage(role: .user, content: [.text(TestConfig.streamMessage)]),
+            ],
+            tools: nil,
+            settings: .init(maxTokens: 300, temperature: 0.0),
+        )
 
-            let stream = try await provider.streamText(request: request)
+        let stream = try await provider.streamText(request: request)
 
-            var chunks: [String] = []
-            var receivedDone = false
+        var chunks: [String] = []
+        var receivedDone = false
 
-            for try await delta in stream {
-                switch delta.type {
-                case .textDelta:
-                    if let content = delta.content {
-                        chunks.append(content)
-                    }
-                case .done:
-                    receivedDone = true
-                case .toolCall, .toolResult, .reasoning:
-                    break
+        for try await delta in stream {
+            switch delta.type {
+            case .textDelta:
+                if let content = delta.content {
+                    chunks.append(content)
                 }
+            case .done:
+                receivedDone = true
+            case .toolCall, .toolResult, .reasoning:
+                break
             }
-
-            if chunks.isEmpty {
-                Self.warn("OpenAI streaming returned no chunks")
-            }
-            if !receivedDone {
-                Self.warn("OpenAI streaming never sent done event")
-            }
-        } catch {
-            Self.warn("OpenAI streaming failed: \(error)")
         }
+
+        #expect(!chunks.isEmpty)
+        #expect(receivedDone)
     }
 
     // MARK: - Anthropic Integration Tests
@@ -224,21 +217,16 @@ struct ProviderIntegrationTests {
     func `Anthropic Provider - Real API Call`() async throws {
         let model = Model.anthropic(.sonnet46)
         let config = Self.liveConfiguration()
-        do {
-            let response = try await generate(
-                TestConfig.shortMessage,
-                using: model,
-                maxTokens: 50,
-                temperature: 0.0,
-                configuration: config,
-            )
+        let response = try await generate(
+            TestConfig.shortMessage,
+            using: model,
+            maxTokens: 50,
+            temperature: 0.0,
+            configuration: config,
+        )
 
-            if !(response.lowercased().contains("hello") && response.contains("Tachikoma")) {
-                Self.warn("Anthropic integration returned: \(response.prefix(120))…")
-            }
-        } catch {
-            Self.warn("Anthropic integration failed: \(error)")
-        }
+        #expect(response.lowercased().contains("hello"))
+        #expect(response.contains("Tachikoma"))
     }
 
     @Test(.enabled(if: Self.hasAnthropicKey))
@@ -246,41 +234,35 @@ struct ProviderIntegrationTests {
         let model = Model.anthropic(.sonnet46)
         let config = Self.liveConfiguration()
 
-        do {
-            let provider = try ProviderFactory.createProvider(for: model, configuration: config)
+        let provider = try ProviderFactory.createProvider(for: model, configuration: config)
 
-            let tool = AgentTool(
-                name: "calculate",
-                description: "Perform basic arithmetic calculations",
-                parameters: AgentToolParameters(
-                    properties: [
-                        "expression": AgentToolParameterProperty(
-                            name: "expression",
-                            type: .string,
-                            description: "The arithmetic expression to evaluate",
-                        ),
-                    ],
-                    required: ["expression"],
-                ),
-            ) { _ in
-                AnyAgentToolValue(string: "59")
-            }
-
-            let request = ProviderRequest(
-                messages: [
-                    ModelMessage(role: .user, content: [.text("What is 42 plus 17?")]),
+        let tool = AgentTool(
+            name: "calculate",
+            description: "Perform basic arithmetic calculations",
+            parameters: AgentToolParameters(
+                properties: [
+                    "expression": AgentToolParameterProperty(
+                        name: "expression",
+                        type: .string,
+                        description: "The arithmetic expression to evaluate",
+                    ),
                 ],
-                tools: [tool],
-                settings: .init(temperature: 0.0),
-            )
-
-            let response = try await provider.generateText(request: request)
-            if response.toolCalls == nil, !response.text.contains("59") {
-                Self.warn("Anthropic tool call not executed; response: \(response.text.prefix(100))…")
-            }
-        } catch {
-            Self.warn("Anthropic tool calling failed: \(error)")
+                required: ["expression"],
+            ),
+        ) { _ in
+            AnyAgentToolValue(string: "59")
         }
+
+        let request = ProviderRequest(
+            messages: [
+                ModelMessage(role: .user, content: [.text("What is 42 plus 17?")]),
+            ],
+            tools: [tool],
+            settings: .init(temperature: 0.0),
+        )
+
+        let response = try await provider.generateText(request: request)
+        #expect(response.toolCalls?.isEmpty == false || response.text.contains("59"))
     }
 
     // MARK: - Ollama Integration Tests
@@ -323,20 +305,15 @@ struct ProviderIntegrationTests {
     func `Grok Provider - Real API Call`() async throws {
         let model = Model.grok(.grok43)
         let config = Self.liveConfiguration()
-        do {
-            let response = try await generate(
-                TestConfig.shortMessage,
-                using: model,
-                maxTokens: 50,
-                temperature: 0.0,
-                configuration: config,
-            )
-            if !(response.lowercased().contains("hello") && response.contains("Tachikoma")) {
-                Self.warn("Grok integration returned: \(response.prefix(120))…")
-            }
-        } catch {
-            Self.warn("Grok integration failed: \(error)")
-        }
+        let response = try await generate(
+            TestConfig.shortMessage,
+            using: model,
+            maxTokens: 50,
+            temperature: 0.0,
+            configuration: config,
+        )
+        #expect(response.lowercased().contains("hello"))
+        #expect(response.contains("Tachikoma"))
     }
 
     // MARK: - Google Integration Tests
@@ -345,20 +322,15 @@ struct ProviderIntegrationTests {
     func `Google Provider - Real API Call`() async throws {
         let model = Model.google(.gemini25Flash)
         let config = Self.liveConfiguration()
-        do {
-            let response = try await generate(
-                TestConfig.shortMessage,
-                using: model,
-                maxTokens: 50,
-                temperature: 0.0,
-                configuration: config,
-            )
-            if !(response.lowercased().contains("hello") && response.contains("Tachikoma")) {
-                Self.warn("Google integration returned: \(response.prefix(120))…")
-            }
-        } catch {
-            Self.warn("Google integration failed: \(error)")
-        }
+        let response = try await generate(
+            TestConfig.shortMessage,
+            using: model,
+            maxTokens: 50,
+            temperature: 0.0,
+            configuration: config,
+        )
+        #expect(response.lowercased().contains("hello"))
+        #expect(response.contains("Tachikoma"))
     }
 
     // MARK: - Mistral Integration Tests

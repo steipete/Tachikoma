@@ -2,122 +2,117 @@ name: CI
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [main, develop]
   pull_request:
-    branches: [ main ]
+    branches: [main]
+
+permissions:
+  contents: read
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  TACHIKOMA_DISABLE_API_TESTS: "true"
+  TACHIKOMA_TEST_MODE: mock
+
 jobs:
   test:
-    name: Desktop Swift (${{ matrix.os }})
+    name: Swift (${{ matrix.name }})
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
-        os: [macos-15, ubuntu-22.04]
+        include:
+          - name: macOS 15
+            os: macos-15
+          - name: Ubuntu 24.04
+            os: ubuntu-24.04
+
     steps:
-    - name: Checkout
-      uses: actions/checkout@v7
+      - name: Checkout
+        uses: actions/checkout@v7
 
-    - name: Select Xcode 26.1
-      if: runner.os == 'macOS'
-      run: sudo xcode-select -s /Applications/Xcode_26.1.app || sudo xcode-select -s /Applications/Xcode_26.0.app || sudo xcode-select -s /Applications/Xcode.app
+      - name: Select Xcode 26.1
+        if: runner.os == 'macOS'
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: '26.1'
 
-    - name: Install Swift toolchain (macOS/Linux)
-      if: runner.os != 'Windows'
-      uses: SwiftyLab/setup-swift@v1
-      with:
-        swift-version: '6.2.1'
+      - name: Install Swift 6.2.1
+        if: runner.os == 'Linux'
+        uses: SwiftyLab/setup-swift@v1
+        with:
+          swift-version: '6.2.1'
 
-    - name: Cache Swift Package Manager
-      uses: actions/cache@v6
-      with:
-        path: |
-          .build
-          ~/.cache/org.swift.swiftpm
-        key: ${{ runner.os }}-spm-${{ hashFiles('Package.resolved') }}
-        restore-keys: |
-          ${{ runner.os }}-spm-
+      - name: Cache Swift Package Manager
+        uses: actions/cache@v6
+        with:
+          path: |
+            .build
+            ~/.cache/org.swift.swiftpm
+          key: ${{ runner.os }}-spm-${{ hashFiles('Package.resolved') }}
+          restore-keys: |
+            ${{ runner.os }}-spm-
 
-    - name: Build
-      run: swift build -c release --verbose
+      - name: Verify locked dependencies
+        run: |
+          swift package resolve
+          git diff --exit-code -- Package.resolved
 
-    - name: Run Hermetic Tests
-      run: |
-        if [[ "${{ runner.os }}" == "Linux" ]]; then
-          # Several test suites mutate process-wide env/profile state.
-          swift test --no-parallel --filter TachikomaTests --skip "OpenAIAudioProviderTests" --skip "ProviderEndToEndTests"
-        else
-          swift test --parallel
-        fi
-      env:
-        TACHIKOMA_DISABLE_API_TESTS: "true"
-        TACHIKOMA_TEST_MODE: "mock"
+      - name: Build release products
+        run: swift build -c release --verbose
 
-  build-examples:
-    name: Build Examples on ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
-    continue-on-error: true
-    strategy:
-      matrix:
-        os: [macos-15]
-    steps:
-    - name: Checkout
-      uses: actions/checkout@v7
+      - name: Run hermetic tests (macOS)
+        if: runner.os == 'macOS'
+        run: swift test --parallel
 
-    - name: Select Xcode 26.1
-      if: runner.os == 'macOS'
-      run: sudo xcode-select -s /Applications/Xcode_26.1.app || sudo xcode-select -s /Applications/Xcode_26.0.app || sudo xcode-select -s /Applications/Xcode.app
+      - name: Run hermetic tests (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          # Linux URLProtocol cannot host the mocked provider E2E/audio suites.
+          swift test --no-parallel \
+            --skip OpenAIAudioProviderTests \
+            --skip ProviderEndToEndTests
 
-    - name: Install Swift toolchain (macOS/Linux)
-      if: runner.os != 'Windows'
-      uses: SwiftyLab/setup-swift@v1
-      with:
-        swift-version: '6.2.1'
-
-    - name: Build Examples
-      run: |
-        # Build once in debug to ensure module artifacts land in the standard
-        # .build/<triple>/debug location, which we can point swiftc at.
-        DEBUG_BIN=$(swift build --package-path . --show-bin-path)
-        INCLUDE_FLAGS="-I $DEBUG_BIN"
-
-        # If a release build already exists, add it too so we pick up any
-        # optimized module outputs from caches.
-        RELEASE_BIN=${DEBUG_BIN%/debug}/release
-        if [ -d "$RELEASE_BIN" ]; then
-          INCLUDE_FLAGS="$INCLUDE_FLAGS -I $RELEASE_BIN"
-        fi
-
-        find Examples -name "*.swift" -exec swiftc $INCLUDE_FLAGS -typecheck {} \;
-        find Examples -name "*_demo.swift" -exec swiftc $INCLUDE_FLAGS -typecheck {} \;
-        find Examples -name "*_examples.swift" -exec swiftc $INCLUDE_FLAGS -typecheck {} \;
-
-  apple-simulators:
-    # Disabled for now: simulator SDK downloads are slow/flaky and not needed for core validation.
-    if: false
-    name: Apple Platforms (${{ matrix.platform }})
+  package:
+    name: Package contract
     runs-on: macos-15
-    needs: test
-    strategy:
-      matrix:
-        platform: ["iOS Simulator"]
     steps:
-      - run: echo "skipped"
+      - name: Checkout
+        uses: actions/checkout@v7
 
-  lint:
-    name: SwiftLint
+      - name: Select Xcode 26.1
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: '26.1'
+
+      - name: Validate package metadata and dependency graph
+        run: |
+          package_dump="$(swift package dump-package)"
+          jq -e '.swiftLanguageVersions[] | select(. == "6")' <<< "$package_dump" >/dev/null
+          if jq -e 'any(.dependencies[]; .. | .identity? == "commander")' <<< "$package_dump" >/dev/null; then
+            echo "::error::The root package must not depend on Commander."
+            exit 1
+          fi
+          swift package describe --type json | jq -e '.name == "Tachikoma"' >/dev/null
+          swift package show-dependencies --format json | jq -e '.name == "Tachikoma"' >/dev/null
+
+  style:
+    name: Swift style
     runs-on: macos-15
-    # SwiftLint only runs on macOS
-    
+    env:
+      SWIFTFORMAT_VERSION: 0.62.1
     steps:
-    - name: Checkout
-      uses: actions/checkout@v7
+      - name: Checkout
+        uses: actions/checkout@v7
 
-    - name: Install SwiftLint
-      run: brew install swiftlint
+      - name: Install linters
+        run: brew install mint swiftlint
 
-    - name: SwiftLint
-      run: swiftlint --config .swiftlint.yml --strict
+      - name: SwiftLint
+        run: swiftlint lint --config .swiftlint.yml --strict
+
+      - name: SwiftFormat
+        run: mint run "nicklockwood/SwiftFormat@${SWIFTFORMAT_VERSION}" swiftformat --lint .

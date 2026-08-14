@@ -24,7 +24,7 @@ xcrun llvm-cov report \
 
 ## 2. Live provider smoke tests
 
-- **Command**: `INTEGRATION_TESTS=1 swift test --parallel -Xswiftc -DLIVE_PROVIDER_TESTS`
+- **Command**: `INTEGRATION_TESTS=1 swift test --no-parallel -Xswiftc -DLIVE_PROVIDER_TESTS --filter ProviderIntegrationTests`
 - **What runs**: `ProviderIntegrationTests` (OpenAI, Anthropic, Google, Groq, Grok, Mistral) plus any suites that check `ProcessInfo.processInfo.environment` for real keys.
 - **Required env vars**:
   - `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GEMINI_API_KEY` (legacy `GOOGLE_API_KEY`), `MISTRAL_API_KEY`, `GROQ_API_KEY`, `X_AI_API_KEY` / `XAI_API_KEY`, etc.
@@ -36,9 +36,12 @@ xcrun llvm-cov report \
 ```bash
 source ~/.profile  # ensure keys are exported
 tmux new-session -d -s tachitest 'cd Tachikoma && \
-  INTEGRATION_TESTS=1 swift test --parallel -Xswiftc -DLIVE_PROVIDER_TESTS \
+  INTEGRATION_TESTS=1 swift test --no-parallel -Xswiftc -DLIVE_PROVIDER_TESTS \
+  --filter ProviderIntegrationTests \
   2>&1 | tee /tmp/tachikoma-swift-test.log'
 ```
+
+Maintainers can run the same credentialed smoke suite from the manual **Live Providers** GitHub Actions workflow. The workflow fails before building when no provider secret is configured, so an empty credential set cannot produce a misleading green run.
 
 ## 3. Provider-specific real workflows
 

@@ -133,7 +133,6 @@ let package = Package(
             path: "Examples",
             exclude: [
                 "Advanced",
-                "Agent-CLI",
                 "AI-CLI",
                 "Demos",
                 "HarmonyFeatures.swift",

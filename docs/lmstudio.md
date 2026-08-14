@@ -536,5 +536,4 @@ A: It's automatically enabled on supported hardware (recent NVIDIA GPUs).
 ## Related Documentation
 
 - [GPT-OSS-120B Guide](gpt-oss.md) - Detailed setup for GPT-OSS
-- [Local Model Optimization](performance.md) - Performance tuning
 - [OpenAI Harmony Features](openai-harmony.md) - Advanced features
