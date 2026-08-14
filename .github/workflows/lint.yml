@@ -158,11 +158,10 @@ jobs:
         # Check package structure
         PACKAGE_DUMP="$(swift package dump-package)"
         jq '.' <<< "$PACKAGE_DUMP"
-        jq -e '
-          any(.dependencies[];
-            .sourceControl[0].identity? == "commander" and
-            .sourceControl[0].location.remote[0].urlString == "https://github.com/steipete/Commander.git")
-        ' <<< "$PACKAGE_DUMP" > /dev/null
+        if jq -e 'any(.dependencies[]; .. | .identity? == "commander")' <<< "$PACKAGE_DUMP" > /dev/null; then
+          echo "::error::The root package must not depend on Commander; Agent-CLI owns its standalone dependency."
+          exit 1
+        fi
         swift package describe --type json | jq '.'
         
         # Validate dependencies
