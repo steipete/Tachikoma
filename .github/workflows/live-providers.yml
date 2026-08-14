@@ -44,7 +44,10 @@ jobs:
           for variable in \
             OPENAI_API_KEY ANTHROPIC_API_KEY GEMINI_API_KEY GOOGLE_API_KEY \
             GROQ_API_KEY MISTRAL_API_KEY X_AI_API_KEY XAI_API_KEY; do
-            if [[ -n "${!variable:-}" ]]; then
+            value="${!variable:-}"
+            normalized="${value,,}"
+            if [[ -n "$value" && "$value" != "env-key" && "$value" != "cred-key" && \
+                  "$value" != "test-key" && "$normalized" != test-* ]]; then
               echo "Live credential configured: $variable"
               available=$((available + 1))
             fi
