@@ -8,6 +8,8 @@ All notable changes to the Tachikoma project will be documented in this file.
 - Added first-class Claude Opus 5 support and moved generation-agnostic Claude aliases and defaults to the new flagship.
 
 ### Fixed
+- Consolidated duplicate CI into one blocking hermetic macOS/Linux workflow, moved credentialed provider smoke tests to a fail-closed manual workflow, and removed warning-only validation jobs.
+- Removed the obsolete Agent CLI prototype, dead disabled/placeholder tests, and vendored planning/reference dumps; refreshed model, MCP transport, testing, and local-provider documentation to match the shipped APIs.
 - The root package no longer declares unused Commander products for its hand-parsed CLIs, avoiding local/remote package-identity conflicts in consumers; hermetic macOS/Linux tests now block merges on failure, and live-provider CI uses its documented compile/runtime gates.
 - Concurrent stdio MCP requests now serialize complete JSON-line frames so payloads and delimiters cannot interleave across tool calls.
 - Tool schemas now preserve nested object fields, required arrays, enums, array items, and scalar constraints consistently across static/dynamic MCP discovery and every provider serializer, including LM Studio.

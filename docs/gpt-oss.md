@@ -399,4 +399,3 @@ let response = try await generateText(
 
 - [LMStudio Integration](lmstudio.md) - Alternative local hosting
 - [OpenAI Harmony Features](openai-harmony.md) - Multi-channel responses
-- [Performance Tuning](performance.md) - Optimization guide

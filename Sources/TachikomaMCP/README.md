@@ -146,26 +146,38 @@ MCP servers are external processes that expose tools via the Model Context Proto
 ### Custom Transport
 
 ```swift
-// Create custom transport
-class MyCustomTransport: MCPTransport {
+enum MyTransportError: Error {
+    case notImplemented
+}
+
+// Implement the complete transport lifecycle.
+actor MyCustomTransport: MCPTransport {
     func connect(config: MCPServerConfig) async throws {
         // Custom connection logic
     }
-    
-    func sendRequest<P: Encodable, R: Decodable>(
-        method: String,
-        params: P
-    ) async throws -> R {
-        // Custom request handling
+
+    func disconnect() async {
+        // Release transport resources and fail pending requests.
     }
     
-    // ... other required methods
-}
+    func sendRequest<R: Decodable>(
+        method: String,
+        params: some Encodable
+    ) async throws -> R {
+        // Encode the request, await its matching response, and decode R.
+        throw MyTransportError.notImplemented
+    }
 
-// Use with client
-let transport = MyCustomTransport()
-let client = MCPClient(name: "custom", config: config)
+    func sendNotification(
+        method: String,
+        params: some Encodable
+    ) async throws {
+        // Encode and send without waiting for a response.
+    }
+}
 ```
+
+`MCPClient` selects the bundled stdio, HTTP, or SSE transport from `MCPServerConfig`. The protocol is public for wrappers and alternate clients that need the same request/notification contract.
 
 ### Tool Filtering
 

@@ -9,13 +9,14 @@ Tachikoma ships with a built-in model catalog (`CaseIterable` enums) plus suppor
 
 ## OpenAI (`LanguageModel.OpenAI`)
 
+- `chat-latest`, `gpt-5-chat-latest`
 - `gpt-5.6-sol`, `gpt-5.6-terra`, `gpt-5.6-luna` (preview; bare `gpt-5.6` selects Sol)
 - `gpt-5.5`
 - `gpt-5.4`, `gpt-5.4-mini`, `gpt-5.4-nano`
 - `gpt-5`, `gpt-5-pro`, `gpt-5-mini`, `gpt-5-nano`
 
 Notes:
-- Older `gpt-5.1`, `gpt-5.2`, `gpt-5-thinking*`, and `gpt-5-chat-latest` ids are not first-class catalog entries.
+- Older `gpt-5.1`, `gpt-5.2`, and `gpt-5-thinking*` ids are not first-class catalog entries.
 
 ## Anthropic (`LanguageModel.Anthropic`)
 
