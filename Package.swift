@@ -49,7 +49,6 @@ let package = Package(
             targets: ["TachikomaConfigCLI"]),
     ],
     dependencies: [
-        .package(url: "https://github.com/steipete/Commander.git", from: "0.2.4"),
         .package(url: "https://github.com/apple/swift-log.git", from: "1.15.0"),
         .package(url: "https://github.com/modelcontextprotocol/swift-sdk.git", from: "0.12.1"),
         .package(url: "https://github.com/apple/swift-configuration", from: "1.2.0"),
@@ -150,10 +149,7 @@ let package = Package(
         // Universal AI CLI executable target
         .executableTarget(
             name: "AICLI",
-            dependencies: [
-                "Tachikoma",
-                .product(name: "Commander", package: "Commander")
-            ],
+            dependencies: ["Tachikoma"],
             path: "Examples/AI-CLI",
             exclude: [
                 "README.md",
@@ -164,10 +160,7 @@ let package = Package(
         // Config/auth helper CLI target
         .executableTarget(
             name: "TachikomaConfigCLI",
-            dependencies: [
-                "Tachikoma",
-                .product(name: "Commander", package: "Commander")
-            ],
+            dependencies: ["Tachikoma"],
             path: "Sources/TachikomaConfigCLI",
             swiftSettings: tachikomaSwiftSettings),
     ],
