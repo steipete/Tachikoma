@@ -35,7 +35,10 @@ struct OpenAIEmbeddingProvider: EmbeddingProvider, ModelProvider {
             throw TachikomaError.authenticationFailed("OpenAI API key not configured")
         }
 
-        let url = URL(string: "\(baseURL ?? "https://api.openai.com/v1")/embeddings")!
+        let url = try OpenAICompatibleHelper.endpointURL(
+            baseURL: self.baseURL ?? "https://api.openai.com/v1",
+            path: "/embeddings",
+        )
         var urlRequest = URLRequest(url: url)
         urlRequest.httpMethod = "POST"
         urlRequest.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
