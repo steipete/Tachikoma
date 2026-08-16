@@ -200,14 +200,13 @@ public actor RealtimeToolExecutor {
             task.cancel()
         }
 
-        let executionResult: ToolExecution.ExecutionResult
-        switch outcome {
+        let executionResult: ToolExecution.ExecutionResult = switch outcome {
         case let .tool(result):
-            executionResult = .success(result)
+            .success(result)
         case .deadline:
-            executionResult = .timeout
+            .timeout
         case .callerCancellation:
-            executionResult = .failure("cancelled")
+            .failure("cancelled")
         }
 
         let execution = ToolExecution(

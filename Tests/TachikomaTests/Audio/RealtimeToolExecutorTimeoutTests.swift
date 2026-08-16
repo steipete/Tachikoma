@@ -1,7 +1,7 @@
 import Foundation
 import Tachikoma
-@testable import TachikomaAudio
 import Testing
+@testable import TachikomaAudio
 
 @Suite("Realtime tool executor timeouts")
 struct RealtimeToolExecutorTimeoutTests {
@@ -232,7 +232,8 @@ struct RealtimeToolExecutorTimeoutTests {
 
     private static func waitForExecution(
         _ executor: RealtimeToolExecutor,
-    ) async -> RealtimeToolExecutor.ToolExecution?
+    ) async
+        -> RealtimeToolExecutor.ToolExecution?
     {
         let clock = ContinuousClock()
         let deadline = clock.now.advanced(by: .seconds(1))
