@@ -22,6 +22,10 @@ struct RealtimeToolExecutorTimeoutTests {
                 self.waiters.append(continuation)
             }
         }
+
+        func didStart() -> Bool {
+            self.started
+        }
     }
 
     private struct HangTool: RealtimeExecutableTool {
@@ -112,5 +116,6 @@ struct RealtimeToolExecutorTimeoutTests {
             Issue.record("Expected invalid deadline to be recorded as timeout, got \(execution.result)")
             return
         }
+        #expect(await probe.didStart() == false)
     }
 }
