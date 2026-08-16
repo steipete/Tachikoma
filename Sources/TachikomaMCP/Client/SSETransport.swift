@@ -53,12 +53,32 @@ actor SSEState {
             .removeValue(forKey: id)
     }
 
-    private func setTimeout(_ seconds: TimeInterval) {
+    func setRequestTimeout(_ seconds: TimeInterval) {
         self.requestTimeoutNs = UInt64((seconds > 0 ? seconds : 30) * 1_000_000_000)
     }
 
     func addTimeoutTask(_ id: Int, _ task: Task<Void, Never>) {
         self.timeoutTasks[id] = task
+    }
+
+    func startRequestTimeout(id: Int, logger: Logger, method: String) {
+        let ns = self.requestTimeoutNs
+        let timeoutTask = Task {
+            do {
+                try await Task.sleep(nanoseconds: ns)
+            } catch {
+                return
+            }
+            if let pending = self.removePending(id) {
+                logger.error("MCP SSE request timed out: method=\(method), id=\(id)")
+                pending.resume(throwing: MCPError.executionFailed("Request timed out after \(ns / 1_000_000)ms"))
+            }
+        }
+        self.timeoutTasks[id] = timeoutTask
+    }
+
+    func cancelTimeout(_ id: Int) {
+        self.timeoutTasks.removeValue(forKey: id)?.cancel()
     }
 
     @discardableResult
@@ -95,7 +115,7 @@ actor SSEState {
         self.baseURL = baseURL
         self.endpointURL = baseURL
         self.headers = headers
-        self.setTimeout(timeout)
+        self.setRequestTimeout(timeout)
         self.readingTask = Task { [weak self] in
             guard !Task.isCancelled else { return }
             await read(transport, generation)
@@ -238,17 +258,7 @@ public final class SSETransport: MCPTransport {
         >) in
             Task {
                 await self.state.addPending(id, continuation)
-                // Schedule timeout
-                let timeoutTask = Task { [logger] in
-                    let ns = await state.requestTimeoutNs
-                    try? await Task.sleep(nanoseconds: ns)
-                    if let pending = await state.removePending(id) {
-                        logger.error("MCP SSE request timed out: method=\(method), id=\(id)")
-                        pending
-                            .resume(throwing: MCPError.executionFailed("Request timed out after \(ns / 1_000_000)ms"))
-                    }
-                }
-                await state.addTimeoutTask(id, timeoutTask)
+                await self.state.startRequestTimeout(id: id, logger: self.logger, method: method)
                 // Fire-and-forget POST to endpoint; responses arrive via SSE 'message'
                 Task { [logger, endpoint] in
                     logger.info("[SSE] POSTing to endpoint: \(endpoint.absoluteString) method=\(method) id=\(id)")

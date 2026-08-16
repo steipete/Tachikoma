@@ -1,4 +1,5 @@
 import Foundation
+import Logging
 import MCP
 import Testing
 @testable import TachikomaMCP
@@ -134,5 +135,32 @@ struct SSETransportTests {
         #expect(activeRemoval.removed == true)
         #expect(activeRemoval.transport === secondTransport)
         #expect(await state.getTransport() == nil)
+    }
+
+    @Test
+    func `Cancelled SSE timeout does not fail a still-pending request`() async throws {
+        let state = SSEState()
+        await state.setRequestTimeout(0.05)
+        let logger = Logger(label: "sse-timeout-cancel")
+        let request = Task<Data, Swift.Error> {
+            try await withCheckedThrowingContinuation { continuation in
+                Task {
+                    await state.addPending(7, continuation)
+                    await state.startRequestTimeout(id: 7, logger: logger, method: "tools/call")
+                    await state.cancelTimeout(7)
+                }
+            }
+        }
+        while await state.pendingRequestCount() == 0 {
+            await Task.yield()
+        }
+        try await Task.sleep(for: .milliseconds(120))
+        #expect(await state.pendingRequestCount() == 1)
+        let leftover = await state.removePending(7)
+        #expect(leftover != nil)
+        leftover?.resume(throwing: CancellationError())
+        await #expect(throws: CancellationError.self) {
+            try await request.value
+        }
     }
 }
