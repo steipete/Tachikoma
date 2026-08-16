@@ -103,7 +103,7 @@ public final class OpenAIResponsesProvider: ModelProvider, ResponseCacheSafetyPr
         let responsesRequest = try self.buildResponsesRequest(request: request)
 
         // Create URL for Responses API endpoint
-        let url = URL(string: "\(self.baseURL!)/responses")!
+        let url = try OpenAICompatibleHelper.endpointURL(baseURL: self.baseURL, path: "/responses")
         var urlRequest = URLRequest(url: url)
         urlRequest.httpMethod = "POST"
         guard case let .platform(auth) = self.transport else {
@@ -180,7 +180,10 @@ public final class OpenAIResponsesProvider: ModelProvider, ResponseCacheSafetyPr
             codex: requestAuthentication.isCodex,
         )
 
-        let url = URL(string: "\(requestAuthentication.baseURL)/responses")!
+        let url = try OpenAICompatibleHelper.endpointURL(
+            baseURL: requestAuthentication.baseURL,
+            path: "/responses",
+        )
         let finalURLRequest: URLRequest = {
             var req = URLRequest(url: url)
             req.httpMethod = "POST"

@@ -872,7 +872,17 @@ struct OpenAICompatibleHelper {
 
     // MARK: - URL Construction
 
-    private static func buildURL(baseURL: String, path: String, queryItems: [URLQueryItem]) throws -> URL {
+    /// Build an endpoint URL from a configurable provider base URL.
+    /// Empty and malformed values throw instead of crashing on `URL(string:)!`.
+    static func endpointURL(baseURL: String?, path: String) throws -> URL {
+        let trimmed = (baseURL ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else {
+            throw TachikomaError.invalidConfiguration("Invalid base URL: <empty>")
+        }
+        return try self.buildURL(baseURL: trimmed, path: path, queryItems: [])
+    }
+
+    static func buildURL(baseURL: String, path: String, queryItems: [URLQueryItem]) throws -> URL {
         guard var components = URLComponents(string: baseURL) else {
             throw TachikomaError.invalidConfiguration("Invalid base URL: \(baseURL)")
         }

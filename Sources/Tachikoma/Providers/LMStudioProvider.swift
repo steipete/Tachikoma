@@ -91,7 +91,7 @@ public actor LMStudioProvider: ModelProvider {
     }
 
     public func healthCheck() async throws -> HealthStatus {
-        let url = URL(string: "\(actualBaseURL)/models")!
+        let url = try OpenAICompatibleHelper.endpointURL(baseURL: self.actualBaseURL, path: "/models")
         let (data, _) = try await session.data(from: url)
 
         // Parse models endpoint response
@@ -118,7 +118,7 @@ public actor LMStudioProvider: ModelProvider {
     }
 
     public func listModels() async throws -> [Model] {
-        let url = URL(string: "\(actualBaseURL)/models")!
+        let url = try OpenAICompatibleHelper.endpointURL(baseURL: self.actualBaseURL, path: "/models")
         let (data, _) = try await session.data(from: url)
         let response = try decoder.decode(ModelsResponse.self, from: data)
         return response.data
@@ -129,7 +129,10 @@ public actor LMStudioProvider: ModelProvider {
     public func generateText(request: ProviderRequest) async throws -> ProviderResponse {
         let openAIRequest = try mapToOpenAIRequest(request)
 
-        var urlRequest = URLRequest(url: URL(string: "\(actualBaseURL)/chat/completions")!)
+        var urlRequest = try URLRequest(url: OpenAICompatibleHelper.endpointURL(
+            baseURL: self.actualBaseURL,
+            path: "/chat/completions",
+        ))
         urlRequest.httpMethod = "POST"
         urlRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
         if let apiKey {
@@ -148,7 +151,10 @@ public actor LMStudioProvider: ModelProvider {
     public func streamText(request: ProviderRequest) async throws -> AsyncThrowingStream<TextStreamDelta, Error> {
         let openAIRequest = try mapToOpenAIRequest(request, streaming: true)
 
-        var urlRequest = URLRequest(url: URL(string: "\(actualBaseURL)/chat/completions")!)
+        var urlRequest = try URLRequest(url: OpenAICompatibleHelper.endpointURL(
+            baseURL: self.actualBaseURL,
+            path: "/chat/completions",
+        ))
         urlRequest.httpMethod = "POST"
         urlRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
         if let apiKey {
