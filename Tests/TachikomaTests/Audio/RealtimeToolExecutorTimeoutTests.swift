@@ -8,6 +8,10 @@ struct RealtimeToolExecutorTimeoutTests {
     private actor ToolProbe {
         private var started = false
         private var waiters: [CheckedContinuation<Void, Never>] = []
+        private var cancellationObserved = false
+        private var cancellationWaiters: [CheckedContinuation<Void, Never>] = []
+        private var cleanupReleased = false
+        private var cleanupWaiters: [CheckedContinuation<Void, Never>] = []
 
         func markStarted() {
             self.started = true
@@ -25,6 +29,34 @@ struct RealtimeToolExecutorTimeoutTests {
 
         func didStart() -> Bool {
             self.started
+        }
+
+        func markCancellationObserved() {
+            self.cancellationObserved = true
+            let waiters = self.cancellationWaiters
+            self.cancellationWaiters.removeAll()
+            waiters.forEach { $0.resume() }
+        }
+
+        func waitUntilCancellationObserved() async {
+            guard !self.cancellationObserved else { return }
+            await withCheckedContinuation { continuation in
+                self.cancellationWaiters.append(continuation)
+            }
+        }
+
+        func waitForCleanupRelease() async {
+            guard !self.cleanupReleased else { return }
+            await withCheckedContinuation { continuation in
+                self.cleanupWaiters.append(continuation)
+            }
+        }
+
+        func releaseCleanup() {
+            self.cleanupReleased = true
+            let waiters = self.cleanupWaiters
+            self.cleanupWaiters.removeAll()
+            waiters.forEach { $0.resume() }
         }
     }
 
@@ -54,6 +86,25 @@ struct RealtimeToolExecutorTimeoutTests {
 
         func execute(_: RealtimeToolArguments) async -> String {
             "done"
+        }
+    }
+
+    private struct SlowCancellationTool: RealtimeExecutableTool {
+        let probe: ToolProbe
+        let metadata = RealtimeToolExecutor.ToolMetadata(
+            name: "slow-cancellation",
+            description: "Pauses cleanup after observing cancellation",
+            parameters: AgentToolParameters(properties: [:], required: []),
+        )
+
+        func execute(_: RealtimeToolArguments) async -> String {
+            await self.probe.markStarted()
+            while !Task.isCancelled {
+                await Task.yield()
+            }
+            await self.probe.markCancellationObserved()
+            await self.probe.waitForCleanupRelease()
+            return "done"
         }
     }
 
@@ -100,6 +151,26 @@ struct RealtimeToolExecutorTimeoutTests {
 
         guard case .timeout = execution.result else {
             Issue.record("Expected elapsed deadline to be recorded as timeout, got \(execution.result)")
+            return
+        }
+    }
+
+    @Test
+    func `Deadline winner survives later caller cancellation during cleanup`() async {
+        let probe = ToolProbe()
+        let executor = RealtimeToolExecutor()
+        await executor.register(SlowCancellationTool(probe: probe))
+        let work = Task {
+            await executor.execute(toolName: "slow-cancellation", arguments: "{}", timeout: 0.02)
+        }
+
+        await probe.waitUntilCancellationObserved()
+        work.cancel()
+        await probe.releaseCleanup()
+        let execution = await work.value
+
+        guard case .timeout = execution.result else {
+            Issue.record("Expected the first deadline winner to remain a timeout, got \(execution.result)")
             return
         }
     }

@@ -167,64 +167,46 @@ public actor RealtimeToolExecutor {
             return execution
         }
 
-        // Execute with timeout
-        let task = Task {
-            await wrapper.tool.execute(parsedArgs)
+        let completion = RealtimeToolCompletionRace()
+        let task = Task<Void, Never> {
+            let result = await wrapper.tool.execute(parsedArgs)
+            completion.resolve(.tool(result))
         }
 
-        // Create timeout task
-        let timeoutTask = Task {
+        let timeoutTask = Task<Void, Never> {
             do {
                 try await Task.sleep(for: timeoutDuration)
             } catch {
                 return
             }
-            task.cancel()
+            completion.resolve(.deadline)
         }
 
-        // Wait for result
-        let result = await withTaskCancellationHandler {
-            let executionResult = await task.value
-            timeoutTask.cancel()
-            await timeoutTask.value
-            return executionResult
+        let outcome = await withTaskCancellationHandler {
+            await completion.value()
         } onCancel: {
-            task.cancel()
-            timeoutTask.cancel()
+            completion.resolve(.callerCancellation)
+        }
+        task.cancel()
+        timeoutTask.cancel()
+        await task.value
+        await timeoutTask.value
+
+        let executionResult: ToolExecution.ExecutionResult
+        switch outcome {
+        case let .tool(result):
+            executionResult = .success(result)
+        case .deadline:
+            executionResult = .timeout
+        case .callerCancellation:
+            executionResult = .failure("cancelled")
         }
 
-        if Task.isCancelled {
-            let execution = ToolExecution(
-                id: executionId,
-                toolName: toolName,
-                arguments: arguments,
-                result: .failure("cancelled"),
-                timestamp: startTime,
-                duration: Date().timeIntervalSince(startTime),
-            )
-            self.addToHistory(execution)
-            return execution
-        }
-
-        if task.isCancelled {
-            let execution = ToolExecution(
-                id: executionId,
-                toolName: toolName,
-                arguments: arguments,
-                result: .timeout,
-                timestamp: startTime,
-                duration: Date().timeIntervalSince(startTime),
-            )
-            self.addToHistory(execution)
-            return execution
-        }
-
-        // Success
         let execution = ToolExecution(
             id: executionId,
             toolName: toolName,
             arguments: arguments,
-            result: .success(result),
+            result: executionResult,
             timestamp: startTime,
             duration: Date().timeIntervalSince(startTime),
         )
@@ -366,6 +348,48 @@ public actor RealtimeToolExecutor {
         }
 
         return arguments
+    }
+}
+
+private final class RealtimeToolCompletionRace: @unchecked Sendable {
+    enum Outcome: Sendable {
+        case tool(String)
+        case deadline
+        case callerCancellation
+    }
+
+    private let lock = NSLock()
+    private var outcome: Outcome?
+    private var continuation: CheckedContinuation<Outcome, Never>?
+
+    @discardableResult
+    func resolve(_ outcome: Outcome) -> Bool {
+        self.lock.lock()
+        guard self.outcome == nil else {
+            self.lock.unlock()
+            return false
+        }
+
+        self.outcome = outcome
+        let continuation = self.continuation
+        self.continuation = nil
+        self.lock.unlock()
+        continuation?.resume(returning: outcome)
+        return true
+    }
+
+    func value() async -> Outcome {
+        await withCheckedContinuation { continuation in
+            self.lock.lock()
+            if let outcome = self.outcome {
+                self.lock.unlock()
+                continuation.resume(returning: outcome)
+                return
+            }
+
+            self.continuation = continuation
+            self.lock.unlock()
+        }
     }
 }
 
