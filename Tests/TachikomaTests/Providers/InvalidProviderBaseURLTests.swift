@@ -81,11 +81,29 @@ struct InvalidProviderBaseURLTests {
     }
 
     @Test
+    func `LM Studio list models throws on malformed base URL`() async {
+        let provider = LMStudioProvider(baseURL: Self.malformedBaseURL)
+
+        await self.expectInvalidBaseURL {
+            _ = try await provider.listModels()
+        }
+    }
+
+    @Test
     func `LM Studio generate throws on malformed base URL`() async {
         let provider = LMStudioProvider(baseURL: Self.malformedBaseURL)
 
         await self.expectInvalidBaseURL {
             _ = try await provider.generateText(request: self.sampleRequest)
+        }
+    }
+
+    @Test
+    func `LM Studio stream throws on malformed base URL`() async {
+        let provider = LMStudioProvider(baseURL: Self.malformedBaseURL)
+
+        await self.expectInvalidBaseURL {
+            _ = try await provider.streamText(request: self.sampleRequest)
         }
     }
 
