@@ -154,6 +154,19 @@ public actor RealtimeToolExecutor {
             return execution
         }
 
+        guard let timeoutDuration = AudioTimeoutDuration.validated(seconds: timeout) else {
+            let execution = ToolExecution(
+                id: executionId,
+                toolName: toolName,
+                arguments: arguments,
+                result: .timeout,
+                timestamp: startTime,
+                duration: Date().timeIntervalSince(startTime),
+            )
+            self.addToHistory(execution)
+            return execution
+        }
+
         // Execute with timeout
         let task = Task {
             await wrapper.tool.execute(parsedArgs)
@@ -161,12 +174,8 @@ public actor RealtimeToolExecutor {
 
         // Create timeout task
         let timeoutTask = Task {
-            guard let duration = AudioTimeoutDuration.validated(seconds: timeout) else {
-                task.cancel()
-                return
-            }
             do {
-                try await Task.sleep(for: duration)
+                try await Task.sleep(for: timeoutDuration)
             } catch {
                 return
             }
