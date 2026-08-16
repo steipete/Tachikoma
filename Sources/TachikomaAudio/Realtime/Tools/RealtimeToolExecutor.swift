@@ -11,6 +11,7 @@ public actor RealtimeToolExecutor {
     private var tools: [String: RealtimeToolWrapper] = [:]
     private var executionHistory: [ToolExecution] = []
     private let maxHistorySize = 100
+    private let inFlightTasks = RealtimeToolTaskRegistry()
 
     // MARK: - Types
 
@@ -167,69 +168,61 @@ public actor RealtimeToolExecutor {
             return execution
         }
 
-        // Execute with timeout
-        let task = Task {
-            await wrapper.tool.execute(parsedArgs)
+        let completion = RealtimeToolCompletionRace()
+        let taskRegistry = self.inFlightTasks
+        let task = Task<Void, Never> {
+            defer { taskRegistry.finish(executionId) }
+            let result = await wrapper.tool.execute(parsedArgs)
+            completion.resolve(.tool(result))
         }
+        taskRegistry.register(task, id: executionId)
 
-        // Create timeout task
-        let timeoutTask = Task {
+        let timeoutTask = Task<Void, Never> {
             do {
                 try await Task.sleep(for: timeoutDuration)
             } catch {
                 return
             }
-            task.cancel()
+            completion.resolve(.deadline)
         }
 
-        // Wait for result
-        let result = await withTaskCancellationHandler {
-            let executionResult = await task.value
-            timeoutTask.cancel()
-            await timeoutTask.value
-            return executionResult
+        let outcome = await withTaskCancellationHandler {
+            await completion.value()
         } onCancel: {
+            completion.resolve(.callerCancellation)
+        }
+        timeoutTask.cancel()
+        await timeoutTask.value
+        switch outcome {
+        case .tool:
+            await task.value
+        case .deadline, .callerCancellation:
             task.cancel()
-            timeoutTask.cancel()
         }
 
-        if Task.isCancelled {
-            let execution = ToolExecution(
-                id: executionId,
-                toolName: toolName,
-                arguments: arguments,
-                result: .failure("cancelled"),
-                timestamp: startTime,
-                duration: Date().timeIntervalSince(startTime),
-            )
-            self.addToHistory(execution)
-            return execution
+        let executionResult: ToolExecution.ExecutionResult = switch outcome {
+        case let .tool(result):
+            .success(result)
+        case .deadline:
+            .timeout
+        case .callerCancellation:
+            .failure("cancelled")
         }
 
-        if task.isCancelled {
-            let execution = ToolExecution(
-                id: executionId,
-                toolName: toolName,
-                arguments: arguments,
-                result: .timeout,
-                timestamp: startTime,
-                duration: Date().timeIntervalSince(startTime),
-            )
-            self.addToHistory(execution)
-            return execution
-        }
-
-        // Success
         let execution = ToolExecution(
             id: executionId,
             toolName: toolName,
             arguments: arguments,
-            result: .success(result),
+            result: executionResult,
             timestamp: startTime,
             duration: Date().timeIntervalSince(startTime),
         )
         self.addToHistory(execution)
         return execution
+    }
+
+    func pendingToolTaskCount() -> Int {
+        self.inFlightTasks.count
     }
 
     /// Execute a tool and return just the result string
@@ -366,6 +359,76 @@ public actor RealtimeToolExecutor {
         }
 
         return arguments
+    }
+}
+
+private final class RealtimeToolCompletionRace: @unchecked Sendable {
+    enum Outcome: Sendable {
+        case tool(String)
+        case deadline
+        case callerCancellation
+    }
+
+    private let lock = NSLock()
+    private var outcome: Outcome?
+    private var continuation: CheckedContinuation<Outcome, Never>?
+
+    @discardableResult
+    func resolve(_ outcome: Outcome) -> Bool {
+        self.lock.lock()
+        guard self.outcome == nil else {
+            self.lock.unlock()
+            return false
+        }
+
+        self.outcome = outcome
+        let continuation = self.continuation
+        self.continuation = nil
+        self.lock.unlock()
+        continuation?.resume(returning: outcome)
+        return true
+    }
+
+    func value() async -> Outcome {
+        await withCheckedContinuation { continuation in
+            self.lock.lock()
+            if let outcome = self.outcome {
+                self.lock.unlock()
+                continuation.resume(returning: outcome)
+                return
+            }
+
+            self.continuation = continuation
+            self.lock.unlock()
+        }
+    }
+}
+
+private final class RealtimeToolTaskRegistry: @unchecked Sendable {
+    private let lock = NSLock()
+    private var tasks: [String: Task<Void, Never>] = [:]
+    private var finishedBeforeRegistration: Set<String> = []
+
+    var count: Int {
+        self.lock.lock()
+        defer { self.lock.unlock() }
+        return self.tasks.count
+    }
+
+    func register(_ task: Task<Void, Never>, id: String) {
+        self.lock.lock()
+        if self.finishedBeforeRegistration.remove(id) == nil {
+            self.tasks[id] = task
+        }
+        self.lock.unlock()
+    }
+
+    func finish(_ id: String) {
+        self.lock.lock()
+        if self.tasks.removeValue(forKey: id) == nil {
+            self.finishedBeforeRegistration.insert(id)
+        }
+        self.lock.unlock()
     }
 }
 

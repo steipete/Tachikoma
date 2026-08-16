@@ -1,13 +1,17 @@
 import Foundation
 import Tachikoma
-import TachikomaAudio
 import Testing
+@testable import TachikomaAudio
 
 @Suite("Realtime tool executor timeouts")
 struct RealtimeToolExecutorTimeoutTests {
     private actor ToolProbe {
         private var started = false
         private var waiters: [CheckedContinuation<Void, Never>] = []
+        private var cancellationObserved = false
+        private var cancellationWaiters: [CheckedContinuation<Void, Never>] = []
+        private var cleanupReleased = false
+        private var cleanupWaiters: [CheckedContinuation<Void, Never>] = []
 
         func markStarted() {
             self.started = true
@@ -25,6 +29,34 @@ struct RealtimeToolExecutorTimeoutTests {
 
         func didStart() -> Bool {
             self.started
+        }
+
+        func markCancellationObserved() {
+            self.cancellationObserved = true
+            let waiters = self.cancellationWaiters
+            self.cancellationWaiters.removeAll()
+            waiters.forEach { $0.resume() }
+        }
+
+        func waitUntilCancellationObserved() async {
+            guard !self.cancellationObserved else { return }
+            await withCheckedContinuation { continuation in
+                self.cancellationWaiters.append(continuation)
+            }
+        }
+
+        func waitForCleanupRelease() async {
+            guard !self.cleanupReleased else { return }
+            await withCheckedContinuation { continuation in
+                self.cleanupWaiters.append(continuation)
+            }
+        }
+
+        func releaseCleanup() {
+            self.cleanupReleased = true
+            let waiters = self.cleanupWaiters
+            self.cleanupWaiters.removeAll()
+            waiters.forEach { $0.resume() }
         }
     }
 
@@ -54,6 +86,25 @@ struct RealtimeToolExecutorTimeoutTests {
 
         func execute(_: RealtimeToolArguments) async -> String {
             "done"
+        }
+    }
+
+    private struct SlowCancellationTool: RealtimeExecutableTool {
+        let probe: ToolProbe
+        let metadata = RealtimeToolExecutor.ToolMetadata(
+            name: "slow-cancellation",
+            description: "Pauses cleanup after observing cancellation",
+            parameters: AgentToolParameters(properties: [:], required: []),
+        )
+
+        func execute(_: RealtimeToolArguments) async -> String {
+            await self.probe.markStarted()
+            while !Task.isCancelled {
+                await Task.yield()
+            }
+            await self.probe.markCancellationObserved()
+            await self.probe.waitForCleanupRelease()
+            return "done"
         }
     }
 
@@ -104,6 +155,66 @@ struct RealtimeToolExecutorTimeoutTests {
         }
     }
 
+    @Test
+    func `Deadline returns while delayed cleanup remains owned`() async {
+        let probe = ToolProbe()
+        let executor = RealtimeToolExecutor()
+        await executor.register(SlowCancellationTool(probe: probe))
+        let work = Task {
+            await executor.execute(toolName: "slow-cancellation", arguments: "{}", timeout: 0.02)
+        }
+
+        await probe.waitUntilCancellationObserved()
+        guard let execution = await Self.waitForExecution(executor) else {
+            await probe.releaseCleanup()
+            _ = await work.value
+            Issue.record("Expected the elapsed deadline to return before delayed tool cleanup")
+            return
+        }
+
+        if case .timeout = execution.result {
+            // Expected.
+        } else {
+            Issue.record("Expected elapsed deadline to remain a timeout, got \(execution.result)")
+        }
+        #expect(await executor.pendingToolTaskCount() == 1)
+        _ = await work.value
+
+        await probe.releaseCleanup()
+        #expect(await Self.waitForPendingTaskDrain(executor))
+    }
+
+    @Test
+    func `Caller cancellation returns while delayed cleanup remains owned`() async {
+        let probe = ToolProbe()
+        let executor = RealtimeToolExecutor()
+        await executor.register(SlowCancellationTool(probe: probe))
+        let work = Task {
+            await executor.execute(toolName: "slow-cancellation", arguments: "{}", timeout: 30)
+        }
+
+        await probe.waitUntilStarted()
+        work.cancel()
+        await probe.waitUntilCancellationObserved()
+        guard let execution = await Self.waitForExecution(executor) else {
+            await probe.releaseCleanup()
+            _ = await work.value
+            Issue.record("Expected caller cancellation to return before delayed tool cleanup")
+            return
+        }
+
+        if case let .failure(message) = execution.result {
+            #expect(message == "cancelled")
+        } else {
+            Issue.record("Expected caller cancellation failure, got \(execution.result)")
+        }
+        #expect(await executor.pendingToolTaskCount() == 1)
+        _ = await work.value
+
+        await probe.releaseCleanup()
+        #expect(await Self.waitForPendingTaskDrain(executor))
+    }
+
     @Test(arguments: [0, -1, .infinity, .nan, Double(Int64.max / 2).nextUp, .greatestFiniteMagnitude])
     func `Invalid deadlines fail closed as timeouts`(timeout: TimeInterval) async {
         let probe = ToolProbe()
@@ -117,5 +228,33 @@ struct RealtimeToolExecutorTimeoutTests {
             return
         }
         #expect(await probe.didStart() == false)
+    }
+
+    private static func waitForExecution(
+        _ executor: RealtimeToolExecutor,
+    ) async
+        -> RealtimeToolExecutor.ToolExecution?
+    {
+        let clock = ContinuousClock()
+        let deadline = clock.now.advanced(by: .seconds(1))
+        while clock.now < deadline {
+            if let execution = await executor.getHistory(limit: 1).last {
+                return execution
+            }
+            try? await Task.sleep(for: .milliseconds(10))
+        }
+        return nil
+    }
+
+    private static func waitForPendingTaskDrain(_ executor: RealtimeToolExecutor) async -> Bool {
+        let clock = ContinuousClock()
+        let deadline = clock.now.advanced(by: .seconds(1))
+        while clock.now < deadline {
+            if await executor.pendingToolTaskCount() == 0 {
+                return true
+            }
+            try? await Task.sleep(for: .milliseconds(10))
+        }
+        return false
     }
 }
