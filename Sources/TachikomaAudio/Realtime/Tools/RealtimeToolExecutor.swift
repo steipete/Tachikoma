@@ -161,7 +161,15 @@ public actor RealtimeToolExecutor {
 
         // Create timeout task
         let timeoutTask = Task {
-            try? await Task.sleep(nanoseconds: UInt64(timeout * 1_000_000_000))
+            guard let duration = AudioTimeoutDuration.validated(seconds: timeout) else {
+                task.cancel()
+                return
+            }
+            do {
+                try await Task.sleep(for: duration)
+            } catch {
+                return
+            }
             task.cancel()
         }
 
@@ -169,10 +177,24 @@ public actor RealtimeToolExecutor {
         let result = await withTaskCancellationHandler {
             let executionResult = await task.value
             timeoutTask.cancel()
+            await timeoutTask.value
             return executionResult
         } onCancel: {
             task.cancel()
             timeoutTask.cancel()
+        }
+
+        if Task.isCancelled {
+            let execution = ToolExecution(
+                id: executionId,
+                toolName: toolName,
+                arguments: arguments,
+                result: .failure("cancelled"),
+                timestamp: startTime,
+                duration: Date().timeIntervalSince(startTime),
+            )
+            self.addToHistory(execution)
+            return execution
         }
 
         if task.isCancelled {
