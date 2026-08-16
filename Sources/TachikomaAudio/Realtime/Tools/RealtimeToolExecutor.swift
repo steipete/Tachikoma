@@ -11,6 +11,7 @@ public actor RealtimeToolExecutor {
     private var tools: [String: RealtimeToolWrapper] = [:]
     private var executionHistory: [ToolExecution] = []
     private let maxHistorySize = 100
+    private let inFlightTasks = RealtimeToolTaskRegistry()
 
     // MARK: - Types
 
@@ -168,10 +169,13 @@ public actor RealtimeToolExecutor {
         }
 
         let completion = RealtimeToolCompletionRace()
+        let taskRegistry = self.inFlightTasks
         let task = Task<Void, Never> {
+            defer { taskRegistry.finish(executionId) }
             let result = await wrapper.tool.execute(parsedArgs)
             completion.resolve(.tool(result))
         }
+        taskRegistry.register(task, id: executionId)
 
         let timeoutTask = Task<Void, Never> {
             do {
@@ -187,10 +191,14 @@ public actor RealtimeToolExecutor {
         } onCancel: {
             completion.resolve(.callerCancellation)
         }
-        task.cancel()
         timeoutTask.cancel()
-        await task.value
         await timeoutTask.value
+        switch outcome {
+        case .tool:
+            await task.value
+        case .deadline, .callerCancellation:
+            task.cancel()
+        }
 
         let executionResult: ToolExecution.ExecutionResult
         switch outcome {
@@ -212,6 +220,10 @@ public actor RealtimeToolExecutor {
         )
         self.addToHistory(execution)
         return execution
+    }
+
+    func pendingToolTaskCount() -> Int {
+        self.inFlightTasks.count
     }
 
     /// Execute a tool and return just the result string
@@ -390,6 +402,34 @@ private final class RealtimeToolCompletionRace: @unchecked Sendable {
             self.continuation = continuation
             self.lock.unlock()
         }
+    }
+}
+
+private final class RealtimeToolTaskRegistry: @unchecked Sendable {
+    private let lock = NSLock()
+    private var tasks: [String: Task<Void, Never>] = [:]
+    private var finishedBeforeRegistration: Set<String> = []
+
+    var count: Int {
+        self.lock.lock()
+        defer { self.lock.unlock() }
+        return self.tasks.count
+    }
+
+    func register(_ task: Task<Void, Never>, id: String) {
+        self.lock.lock()
+        if self.finishedBeforeRegistration.remove(id) == nil {
+            self.tasks[id] = task
+        }
+        self.lock.unlock()
+    }
+
+    func finish(_ id: String) {
+        self.lock.lock()
+        if self.tasks.removeValue(forKey: id) == nil {
+            self.finishedBeforeRegistration.insert(id)
+        }
+        self.lock.unlock()
     }
 }
 
