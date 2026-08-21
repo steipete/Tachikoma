@@ -325,15 +325,12 @@ struct AICLI {
         let config = TachikomaConfiguration.current
         let prov = Provider.from(identifier: provider.lowercased())
 
-        if let key = config.getAPIKey(for: prov), !key.isEmpty {
-            let masked = self.maskAPIKey(key)
-            print("   • \(provider): \(masked) (configured)")
+        if config.hasAPIKey(for: prov) {
+            print("   • \(provider): Configured")
         } else if
-            let key = envVars.compactMap({ ProcessInfo.processInfo.environment[$0] })
-                .first(where: { !$0.isEmpty })
+            envVars.contains(where: { ProcessInfo.processInfo.environment[$0]?.isEmpty == false })
         {
-            let masked = self.maskAPIKey(key)
-            print("   • \(provider): \(masked) (environment)")
+            print("   • \(provider): Configured")
         } else {
             print("   • \(provider): Not set")
         }
@@ -454,8 +451,9 @@ struct AICLI {
     // MARK: - Request Execution
 
     static func showRequestConfig(model: LanguageModel, config: CLIConfig, query: String) {
-        let maskedKey = self.getCurrentAPIKey(for: model).map(self.maskAPIKey) ?? "Not required"
-        print("🔐 API Key: \(maskedKey)")
+        let provider = self.getProvider(for: model)
+        let credentialStatus = provider.requiresAPIKey ? "Configured" : "Not required"
+        print("🔐 API Key: \(credentialStatus)")
         print("🤖 Model: \(model.modelId)")
         print("🏢 Provider: \(model.providerName)")
 
@@ -793,18 +791,6 @@ struct AICLI {
     }
 
     // MARK: - Utility Functions
-
-    static func getCurrentAPIKey(for model: LanguageModel) -> String? {
-        let provider = self.getProvider(for: model)
-        return TachikomaConfiguration.current.getAPIKey(for: provider)
-    }
-
-    static func maskAPIKey(_ key: String) -> String {
-        guard key.count > 10 else { return "***" }
-        let prefix = key.prefix(5)
-        let suffix = key.suffix(5)
-        return "\(prefix)...\(suffix)"
-    }
 
     static func estimateCost(for model: LanguageModel, usage: Usage) -> Double? {
         // Rough cost estimates (as of 2025, prices may vary)
