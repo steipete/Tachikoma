@@ -706,10 +706,13 @@ public final class TKAuthManager: @unchecked Sendable {
     ) async
         -> Result<Void, TKAuthError>
     {
-        guard provider.supportsOAuth else { return .failure(.unsupported) }
+        guard provider.supportsOAuth, let config = self.oauthConfig(for: provider) else {
+            return .failure(.unsupported)
+        }
         let pkce = PKCE()
-        let config = self.oauthConfig(for: provider, pkce: pkce)
-        guard let authorizeURL = config.authorizeURL else { return .failure(.general("Bad authorize URL")) }
+        guard let authorizeURL = config.authorizeURL(pkce: pkce) else {
+            return .failure(.general("Bad authorize URL"))
+        }
 
         #if canImport(AppKit)
         if !noBrowser {
@@ -717,6 +720,8 @@ public final class TKAuthManager: @unchecked Sendable {
         }
         #endif
 
+        // The authorization request intentionally carries the public PKCE challenge and state.
+        // The verifier stays in-process and is sent only to the HTTPS token endpoint.
         print("Open this URL in a browser if it did not open automatically:\n  \(authorizeURL.absoluteString)\n")
         print("After authorizing, paste the resulting code (callback URL, code param, or code#state) here:")
         guard let input = readLine(), !input.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
@@ -728,7 +733,7 @@ public final class TKAuthManager: @unchecked Sendable {
         guard !code.isEmpty else { return .failure(.general("Could not extract code")) }
 
         if !state.isEmpty, state != pkce.state {
-            return .failure(.general("OAuth state mismatch (expected \(pkce.state), got \(state))"))
+            return .failure(.general("OAuth state mismatch"))
         }
 
         if config.requiresStateInTokenExchange, state.isEmpty {
@@ -745,13 +750,13 @@ public final class TKAuthManager: @unchecked Sendable {
         return self.persistOAuthResult(tokenResult, config: config)
     }
 
-    private func oauthConfig(for provider: TKProviderId, pkce: PKCE) -> OAuthConfig {
+    private func oauthConfig(for provider: TKProviderId) -> OAuthConfig? {
         switch provider {
         case .openai:
             OAuthConfig(
                 prefix: "OPENAI",
-                authorize: "https://auth.openai.com/oauth/authorize",
-                token: "https://auth.openai.com/oauth/token",
+                authorizeEndpoint: URL(string: "https://auth.openai.com/oauth/authorize")!,
+                tokenEndpoint: URL(string: "https://auth.openai.com/oauth/token")!,
                 clientId: "app_EMoamEEZ73f0CkXaXp7hrann",
                 scope: "openid profile email offline_access",
                 redirect: "http://localhost:1455/auth/callback",
@@ -762,13 +767,12 @@ public final class TKAuthManager: @unchecked Sendable {
                 ],
                 extraToken: [:],
                 betaHeader: nil,
-                pkce: pkce,
             )
         case .anthropic:
             OAuthConfig(
                 prefix: "ANTHROPIC",
-                authorize: "https://claude.ai/oauth/authorize",
-                token: "https://console.anthropic.com/v1/oauth/token",
+                authorizeEndpoint: URL(string: "https://claude.ai/oauth/authorize")!,
+                tokenEndpoint: URL(string: "https://console.anthropic.com/v1/oauth/token")!,
                 clientId: "9d1c250a-e61b-44d9-88ed-5944d1962f5e",
                 scope: "org:create_api_key user:profile user:inference",
                 redirect: "https://console.anthropic.com/oauth/code/callback",
@@ -777,21 +781,9 @@ public final class TKAuthManager: @unchecked Sendable {
                 betaHeader: "oauth-2025-04-20,claude-code-20250219,interleaved-thinking-2025-05-14,fine-grained-tool-streaming-2025-05-14",
                 tokenEncoding: .json,
                 requiresStateInTokenExchange: true,
-                pkce: pkce,
             )
         case .grok, .gemini, .openrouter:
-            OAuthConfig(
-                prefix: "",
-                authorize: "",
-                token: "",
-                clientId: "",
-                scope: "",
-                redirect: "",
-                extraAuthorize: [:],
-                extraToken: [:],
-                betaHeader: nil,
-                pkce: pkce,
-            )
+            nil
         }
     }
 
@@ -873,8 +865,8 @@ enum OAuthTokenEncoding {
 
 struct OAuthConfig {
     let prefix: String
-    let authorize: String
-    let token: String
+    let authorizeEndpoint: URL
+    let tokenEndpoint: URL
     let clientId: String
     let scope: String
     let redirect: String
@@ -883,12 +875,11 @@ struct OAuthConfig {
     let betaHeader: String?
     let tokenEncoding: OAuthTokenEncoding
     let requiresStateInTokenExchange: Bool
-    let pkce: PKCE
 
-    init(
+    init?(
         prefix: String,
-        authorize: String,
-        token: String,
+        authorizeEndpoint: URL,
+        tokenEndpoint: URL,
         clientId: String,
         scope: String,
         redirect: String,
@@ -897,11 +888,16 @@ struct OAuthConfig {
         betaHeader: String?,
         tokenEncoding: OAuthTokenEncoding = .formURLEncoded,
         requiresStateInTokenExchange: Bool = false,
-        pkce: PKCE,
     ) {
+        guard
+            authorizeEndpoint.scheme?.lowercased() == "https",
+            tokenEndpoint.scheme?.lowercased() == "https" else
+        {
+            return nil
+        }
         self.prefix = prefix
-        self.authorize = authorize
-        self.token = token
+        self.authorizeEndpoint = authorizeEndpoint
+        self.tokenEndpoint = tokenEndpoint
         self.clientId = clientId
         self.scope = scope
         self.redirect = redirect
@@ -910,19 +906,18 @@ struct OAuthConfig {
         self.betaHeader = betaHeader
         self.tokenEncoding = tokenEncoding
         self.requiresStateInTokenExchange = requiresStateInTokenExchange
-        self.pkce = pkce
     }
 
-    var authorizeURL: URL? {
-        var components = URLComponents(string: self.authorize)
+    func authorizeURL(pkce: PKCE) -> URL? {
+        var components = URLComponents(url: self.authorizeEndpoint, resolvingAgainstBaseURL: false)
         var items: [URLQueryItem] = [
             .init(name: "response_type", value: "code"),
             .init(name: "client_id", value: self.clientId),
             .init(name: "redirect_uri", value: self.redirect),
             .init(name: "scope", value: self.scope),
-            .init(name: "code_challenge", value: self.pkce.challenge),
+            .init(name: "code_challenge", value: pkce.challenge),
             .init(name: "code_challenge_method", value: "S256"),
-            .init(name: "state", value: self.pkce.state),
+            .init(name: "state", value: pkce.state),
         ]
         items.append(contentsOf: self.extraAuthorize.map { URLQueryItem(name: $0.key, value: $0.value) })
         components?.queryItems = items
@@ -952,8 +947,7 @@ enum OAuthTokenExchanger {
     ) async
         -> OAuthTokenResult
     {
-        guard let url = URL(string: config.token) else { return .failure("Bad token URL") }
-        var req = URLRequest(url: url)
+        var req = URLRequest(url: config.tokenEndpoint)
         req.httpMethod = "POST"
         var body: [String: String] = [
             "grant_type": "authorization_code",
@@ -1003,6 +997,10 @@ enum OAuthTokenExchanger {
     ) async
         -> OAuthTokenResult
     {
+        guard urlRequest.url?.scheme?.lowercased() == "https" else {
+            return .failure("OAuth token endpoint must use HTTPS")
+        }
+
         // We continue to accept a loosely typed body here (used by existing refresh flows),
         // but the request is now encoded as standard form data for OAuth token endpoints.
         let stringBody = body.reduce(into: [String: String]()) { result, pair in
@@ -1033,7 +1031,13 @@ public enum TKAuthError: Error, Sendable {
 struct TKProviderValidator {
     let timeoutSeconds: Double
 
-    func validate(provider: TKProviderId, secret: String) async -> TKValidationResult {
+    func validate(
+        provider: TKProviderId,
+        secret: String,
+        session: URLSession? = nil,
+    ) async
+        -> TKValidationResult
+    {
         switch provider {
         case .openai:
             return await self.validateBearer(
@@ -1041,6 +1045,7 @@ struct TKProviderValidator {
                 secret: secret,
                 header: "Authorization",
                 valuePrefix: "Bearer ",
+                session: session,
             )
         case .anthropic:
             var request = URLRequest(url: URL(string: "https://api.anthropic.com/v1/messages")!)
@@ -1055,25 +1060,35 @@ struct TKProviderValidator {
                     ["role": "user", "content": "ping"],
                 ],
             ])
-            return await HTTP.perform(request: request, timeoutSeconds: self.timeoutSeconds)
+            return await HTTP.perform(
+                request: request,
+                timeoutSeconds: self.timeoutSeconds,
+                session: session,
+            )
         case .grok:
             return await self.validateBearer(
                 url: "https://api.x.ai/v1/models",
                 secret: secret,
                 header: "Authorization",
                 valuePrefix: "Bearer ",
+                session: session,
             )
         case .gemini:
-            let url = "https://generativelanguage.googleapis.com/v1beta/models?key=\(secret)"
-            var request = URLRequest(url: URL(string: url)!)
+            var request = URLRequest(url: URL(string: "https://generativelanguage.googleapis.com/v1beta/models")!)
             request.httpMethod = "GET"
-            return await HTTP.perform(request: request, timeoutSeconds: self.timeoutSeconds)
+            request.setValue(secret, forHTTPHeaderField: "x-goog-api-key")
+            return await HTTP.perform(
+                request: request,
+                timeoutSeconds: self.timeoutSeconds,
+                session: session,
+            )
         case .openrouter:
             return await self.validateBearer(
                 url: "https://openrouter.ai/api/v1/key",
                 secret: secret,
                 header: "Authorization",
                 valuePrefix: "Bearer ",
+                session: session,
             )
         }
     }
@@ -1083,6 +1098,7 @@ struct TKProviderValidator {
         secret: String,
         header: String,
         valuePrefix: String,
+        session: URLSession?,
     ) async
         -> TKValidationResult
     {
@@ -1090,7 +1106,11 @@ struct TKProviderValidator {
         request.httpMethod = "GET"
         request.setValue(valuePrefix + secret, forHTTPHeaderField: header)
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        return await HTTP.perform(request: request, timeoutSeconds: self.timeoutSeconds)
+        return await HTTP.perform(
+            request: request,
+            timeoutSeconds: self.timeoutSeconds,
+            session: session,
+        )
     }
 }
 
