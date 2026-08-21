@@ -45,15 +45,14 @@ struct GPT5CLI {
         let query = queryArgs.joined(separator: " ")
 
         // Check for API key
-        guard let apiKey = ProcessInfo.processInfo.environment["OPENAI_API_KEY"] else {
+        guard ProcessInfo.processInfo.environment["OPENAI_API_KEY"]?.isEmpty == false else {
             print("Error: OPENAI_API_KEY environment variable not set")
             print("Set it with: export OPENAI_API_KEY='your-api-key'")
             exit(1)
         }
 
         // Display configuration
-        let maskedKey = self.maskAPIKey(apiKey)
-        print("🔐 API Key: \(maskedKey)")
+        print("🔐 API Key: Configured")
         print("🤖 Model: \(modelName)")
         print("🌐 API: \(apiMode.displayName)")
         print("---")
@@ -124,12 +123,5 @@ struct GPT5CLI {
             print("\n❌ Error: \(error)")
             exit(1)
         }
-    }
-
-    static func maskAPIKey(_ key: String) -> String {
-        guard key.count > 10 else { return "***" }
-        let prefix = key.prefix(5)
-        let suffix = key.suffix(5)
-        return "\(prefix)...\(suffix)"
     }
 }
