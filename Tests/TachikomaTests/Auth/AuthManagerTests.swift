@@ -596,22 +596,24 @@ struct AuthManagerTests {
     @MainActor
     func `o auth token exchange uses form encoding`() async throws {
         OAuthMockURLProtocol.reset()
-        let config = OAuthConfig(
+        let pkce = PKCE()
+        let authorizeEndpoint = try #require(URL(string: "https://example.com/auth"))
+        let tokenEndpoint = try #require(URL(string: "https://example.com/token"))
+        let config = try #require(OAuthConfig(
             prefix: "TEST",
-            authorize: "https://example.com/auth",
-            token: "https://example.com/token",
+            authorizeEndpoint: authorizeEndpoint,
+            tokenEndpoint: tokenEndpoint,
             clientId: "client-id",
             scope: "scope",
             redirect: "https://example.com/callback",
             extraAuthorize: [:],
             extraToken: [:],
             betaHeader: nil,
-            pkce: PKCE(),
-        )
+        ))
         let result = await OAuthTokenExchanger.exchange(
             config: config,
             code: "abc123",
-            pkce: config.pkce,
+            pkce: pkce,
             timeout: 5,
             session: .oauthMock(),
         )
@@ -632,17 +634,20 @@ struct AuthManagerTests {
         #expect(params["client_id"] == "client-id")
         #expect(params["code"] == "abc123")
         #expect(params["redirect_uri"] == "https://example.com/callback")
-        #expect(params["code_verifier"] == config.pkce.verifier)
+        #expect(params["code_verifier"] == pkce.verifier)
     }
 
     @Test
     @MainActor
     func `o auth token exchange uses JSON encoding and state when required`() async throws {
         OAuthMockURLProtocol.reset()
-        let config = OAuthConfig(
+        let pkce = PKCE()
+        let authorizeEndpoint = try #require(URL(string: "https://example.com/auth"))
+        let tokenEndpoint = try #require(URL(string: "https://example.com/token"))
+        let config = try #require(OAuthConfig(
             prefix: "TEST",
-            authorize: "https://example.com/auth",
-            token: "https://example.com/token",
+            authorizeEndpoint: authorizeEndpoint,
+            tokenEndpoint: tokenEndpoint,
             clientId: "client-id",
             scope: "scope",
             redirect: "https://example.com/callback",
@@ -651,13 +656,12 @@ struct AuthManagerTests {
             betaHeader: nil,
             tokenEncoding: .json,
             requiresStateInTokenExchange: true,
-            pkce: PKCE(),
-        )
+        ))
         let result = await OAuthTokenExchanger.exchange(
             config: config,
             code: "abc123",
             state: "state123",
-            pkce: config.pkce,
+            pkce: pkce,
             timeout: 5,
             session: .oauthMock(),
         )
@@ -681,7 +685,76 @@ struct AuthManagerTests {
         #expect(json["code"] as? String == "abc123")
         #expect(json["state"] as? String == "state123")
         #expect(json["redirect_uri"] as? String == "https://example.com/callback")
-        #expect(json["code_verifier"] as? String == config.pkce.verifier)
+        #expect(json["code_verifier"] as? String == pkce.verifier)
+    }
+
+    @Test
+    func `o auth authorization URL exposes challenge but not verifier`() throws {
+        let pkce = PKCE()
+        let authorizeEndpoint = try #require(URL(string: "https://example.com/auth"))
+        let tokenEndpoint = try #require(URL(string: "https://example.com/token"))
+        let config = try #require(OAuthConfig(
+            prefix: "TEST",
+            authorizeEndpoint: authorizeEndpoint,
+            tokenEndpoint: tokenEndpoint,
+            clientId: "client-id",
+            scope: "scope",
+            redirect: "https://example.com/callback",
+            extraAuthorize: [:],
+            extraToken: [:],
+            betaHeader: nil,
+        ))
+
+        let url = try #require(config.authorizeURL(pkce: pkce))
+        let queryItems = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems ?? []
+        let query = Dictionary(uniqueKeysWithValues: queryItems.map { ($0.name, $0.value ?? "") })
+        #expect(query["code_challenge"] == pkce.challenge)
+        #expect(query["state"] == pkce.state)
+        #expect(!url.absoluteString.contains(pkce.verifier))
+    }
+
+    @Test
+    @MainActor
+    func `o auth config rejects cleartext token endpoint`() throws {
+        OAuthMockURLProtocol.reset()
+        let authorizeEndpoint = try #require(URL(string: "https://example.com/auth"))
+        let tokenEndpoint = try #require(URL(string: "http://example.com/token"))
+        let config = OAuthConfig(
+            prefix: "TEST",
+            authorizeEndpoint: authorizeEndpoint,
+            tokenEndpoint: tokenEndpoint,
+            clientId: "client-id",
+            scope: "scope",
+            redirect: "https://example.com/callback",
+            extraAuthorize: [:],
+            extraToken: [:],
+            betaHeader: nil,
+        )
+
+        #expect(config == nil)
+        #expect(OAuthMockURLProtocol.requestCount == 0)
+    }
+
+    @Test
+    @MainActor
+    func `gemini validation sends API key in header`() async throws {
+        OAuthMockURLProtocol.reset()
+        let validator = TKProviderValidator(timeoutSeconds: 5)
+
+        let result = await validator.validate(
+            provider: .gemini,
+            secret: "test-gemini-key",
+            session: .oauthMock(),
+        )
+
+        guard case .success = result else {
+            Issue.record("Expected successful mock validation")
+            return
+        }
+        let request = try #require(OAuthMockURLProtocol.lastRequest)
+        #expect(request.url?.absoluteString == "https://generativelanguage.googleapis.com/v1beta/models")
+        #expect(request.value(forHTTPHeaderField: "x-goog-api-key") == "test-gemini-key")
+        #expect(request.url?.query == nil)
     }
 
     private static func openAIJWT(accountID: String, expiration: Date) -> String {
