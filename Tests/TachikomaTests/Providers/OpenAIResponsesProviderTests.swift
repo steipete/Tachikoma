@@ -917,7 +917,10 @@ struct OpenAIResponsesProviderTests {
             let json = try JSONSerialization.jsonObject(with: body) as? [String: Any]
             let tools = try #require(json?["tools"] as? [[String: Any]])
             let encodedTool = try #require(tools.first)
+            #expect(encodedTool["name"] as? String == "app")
+            #expect(encodedTool["description"] as? String == "Control apps")
             #expect(encodedTool["strict"] as? Bool == false)
+            #expect(encodedTool["function"] == nil)
             let parameters = try #require(encodedTool["parameters"] as? [String: Any])
             let required = try #require(parameters["required"] as? [String])
             #expect(required == ["action"])

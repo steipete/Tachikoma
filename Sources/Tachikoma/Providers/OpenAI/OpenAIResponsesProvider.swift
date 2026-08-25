@@ -1036,13 +1036,6 @@ public final class OpenAIResponsesProvider: ModelProvider, ResponseCacheSafetyPr
         // Keep rejecting unknown root arguments without opting into the provider's recursive strict-schema dialect.
         parameters["additionalProperties"] = false
 
-        let function = ResponsesTool.ToolFunction(
-            name: tool.name,
-            description: tool.description,
-            parameters: parameters,
-            inputSchema: nil,
-        )
-
         return ResponsesTool(
             name: tool.name,
             type: "function",
@@ -1053,7 +1046,7 @@ public final class OpenAIResponsesProvider: ModelProvider, ResponseCacheSafetyPr
             // Responses otherwise attempts to normalize omitted strictness into strict mode,
             // where every property becomes required and optionals must explicitly allow null.
             strict: false,
-            function: function,
+            function: nil,
         )
     }
 
