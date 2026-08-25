@@ -22,6 +22,17 @@ private struct StdioConnectionCloseResult: Sendable {
     let timeoutTasks: [Task<Void, Never>]
 }
 
+private enum StdioRequestRegistration: Equatable {
+    case awaitingContinuation
+    case cancelled
+}
+
+private enum StdioRequestRegistrationResult {
+    case added
+    case cancelled
+    case closed
+}
+
 struct StdioTransportDebugSnapshot: Sendable, Equatable {
     let isConnected: Bool
     let pendingRequestCount: Int
@@ -37,6 +48,7 @@ private actor StdioTransportState {
     var outputPipe: Pipe?
     var errorPipe: Pipe?
     var nextId: Int = 1
+    private var requestRegistrations: [Int: StdioRequestRegistration] = [:]
     var pendingRequests: [String: CheckedContinuation<Data, Swift.Error>] = [:]
     var timeoutTasks: [Int: Task<Void, Never>] = [:]
     var requestTimeoutNs: UInt64 = 30_000_000_000 // default 30s
@@ -72,16 +84,50 @@ private actor StdioTransportState {
         return (id, activeGeneration)
     }
 
+    func beginRequestRegistration(id: Int, generation: UInt64) -> Bool {
+        guard self.activeGeneration == generation else { return false }
+        self.requestRegistrations[id] = .awaitingContinuation
+        return true
+    }
+
     func addPendingRequest(
         id: Int,
         generation: UInt64,
         continuation: CheckedContinuation<Data, Swift.Error>,
     )
-        -> Bool
+        -> StdioRequestRegistrationResult
     {
-        guard self.activeGeneration == generation else { return false }
+        guard self.activeGeneration == generation else {
+            self.requestRegistrations.removeValue(forKey: id)
+            return .closed
+        }
+        switch self.requestRegistrations.removeValue(forKey: id) {
+        case .awaitingContinuation:
+            break
+        case .cancelled:
+            return .cancelled
+        case nil:
+            return .closed
+        }
         self.pendingRequests[String(id)] = continuation
-        return true
+        return .added
+    }
+
+    func cancelRequest(
+        id: Int,
+        generation: UInt64,
+    )
+        -> CheckedContinuation<Data, Swift.Error>?
+    {
+        guard self.activeGeneration == generation else { return nil }
+        self.timeoutTasks.removeValue(forKey: id)?.cancel()
+        if let continuation = self.pendingRequests.removeValue(forKey: String(id)) {
+            return continuation
+        }
+        if self.requestRegistrations[id] == .awaitingContinuation {
+            self.requestRegistrations[id] = .cancelled
+        }
+        return nil
     }
 
     func failRequest(
@@ -119,7 +165,7 @@ private actor StdioTransportState {
     }
 
     func addTimeoutTask(id: Int, generation: UInt64, task: Task<Void, Never>) -> Bool {
-        guard self.activeGeneration == generation else {
+        guard self.activeGeneration == generation, self.pendingRequests[String(id)] != nil else {
             task.cancel()
             return false
         }
@@ -154,6 +200,7 @@ private actor StdioTransportState {
         }
 
         self.activeGeneration = nil
+        self.requestRegistrations.removeAll()
         let pendingRequests = Array(self.pendingRequests.values)
         self.pendingRequests.removeAll()
         let timeoutTasks = Array(self.timeoutTasks.values)
@@ -398,41 +445,60 @@ public final class StdioTransport: MCPTransport {
             self.logger.info("[MCP stdio] → initialize payload: \(json)")
         }
 
-        let responseData = try await withCheckedThrowingContinuation { continuation in
-            Task {
-                guard
-                    await self.state.addPendingRequest(
+        guard await self.state.beginRequestRegistration(id: id, generation: generation) else {
+            throw MCPError.transportClosed
+        }
+        let responseData = try await withTaskCancellationHandler {
+            try await withCheckedThrowingContinuation { continuation in
+                Task {
+                    switch await self.state.addPendingRequest(
                         id: id,
                         generation: generation,
                         continuation: continuation,
-                    ) else
-                {
-                    continuation.resume(throwing: MCPError.transportClosed)
-                    return
-                }
-                let timeoutTask = Task { [logger] in
-                    let ns = await state.requestTimeoutNs
-                    do {
-                        try await Task.sleep(nanoseconds: ns)
-                    } catch {
+                    ) {
+                    case .added:
+                        break
+                    case .cancelled:
+                        continuation.resume(throwing: CancellationError())
+                        return
+                    case .closed:
+                        continuation.resume(throwing: MCPError.transportClosed)
                         return
                     }
-                    if let pending = await state.expireRequest(id: id, generation: generation) {
-                        logger.error("MCP stdio request timed out: method=\(method), id=\(id)")
-                        pending
-                            .resume(throwing: MCPError.executionFailed("Request timed out after \(ns / 1_000_000)ms"))
+                    let timeoutTask = Task { [logger] in
+                        let ns = await state.requestTimeoutNs
+                        do {
+                            try await Task.sleep(nanoseconds: ns)
+                        } catch {
+                            return
+                        }
+                        if let pending = await state.expireRequest(id: id, generation: generation) {
+                            logger.error("MCP stdio request timed out: method=\(method), id=\(id)")
+                            pending
+                                .resume(
+                                    throwing: MCPError.executionFailed(
+                                        "Request timed out after \(ns / 1_000_000)ms",
+                                    ),
+                                )
+                        }
                     }
-                }
-                guard await self.state.addTimeoutTask(id: id, generation: generation, task: timeoutTask) else {
-                    return
-                }
+                    guard await self.state.addTimeoutTask(id: id, generation: generation, task: timeoutTask) else {
+                        return
+                    }
 
-                do {
-                    try await self.send(data, generation: generation)
-                } catch {
-                    if let pending = await self.state.failRequest(id: id, generation: generation) {
-                        pending.resume(throwing: error)
+                    do {
+                        try await self.send(data, generation: generation)
+                    } catch {
+                        if let pending = await self.state.failRequest(id: id, generation: generation) {
+                            pending.resume(throwing: error)
+                        }
                     }
+                }
+            }
+        } onCancel: {
+            Task { [state] in
+                if let pending = await state.cancelRequest(id: id, generation: generation) {
+                    pending.resume(throwing: CancellationError())
                 }
             }
         }

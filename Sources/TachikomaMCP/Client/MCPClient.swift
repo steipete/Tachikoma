@@ -168,28 +168,7 @@ public final class MCPClient: Sendable {
                 clientInfo: ClientInfo(name: "tachikoma-mcp-client", version: "1.0.0"),
                 capabilities: ClientCapabilities(),
             )
-            let initResponse: InitializeResponse
-            do {
-                initResponse = try await transport.sendRequest(method: "initialize", params: initParams)
-            } catch {
-                // Fallback 1: Older protocol version
-                let oldParams = InitializeParams(
-                    protocolVersion: "2024-11-05",
-                    clientInfo: initParams.clientInfo,
-                    capabilities: initParams.capabilities,
-                )
-                do {
-                    initResponse = try await transport.sendRequest(method: "initialize", params: oldParams)
-                } catch {
-                    // Fallback 2: snake_case protocol_version with older version
-                    let snake = InitializeParamsSnake(
-                        protocolVersion: oldParams.protocolVersion,
-                        clientInfo: initParams.clientInfo,
-                        capabilities: initParams.capabilities,
-                    )
-                    initResponse = try await transport.sendRequest(method: "initialize", params: snake)
-                }
-            }
+            let initResponse = try await self.initialize(using: transport, params: initParams)
 
             self.logger.debug("Initialized MCP connection: \(initResponse)")
 
@@ -197,6 +176,8 @@ public final class MCPClient: Sendable {
             // Some servers (like Context7) may not support this notification
             do {
                 try await transport.sendNotification(method: "notifications/initialized", params: EmptyParams())
+            } catch is CancellationError {
+                throw CancellationError()
             } catch {
                 self.logger.debug("Server may not support notifications/initialized: \(error)")
             }
@@ -212,6 +193,39 @@ public final class MCPClient: Sendable {
                 error: (error as? MCPError) ?? .connectionFailed(error.localizedDescription),
             )
             throw error
+        }
+    }
+
+    func initialize(
+        using transport: any MCPTransport,
+        params: InitializeParams,
+    ) async throws
+        -> InitializeResponse
+    {
+        do {
+            return try await transport.sendRequest(method: "initialize", params: params)
+        } catch is CancellationError {
+            throw CancellationError()
+        } catch {
+            try Task.checkCancellation()
+            let oldParams = InitializeParams(
+                protocolVersion: "2024-11-05",
+                clientInfo: params.clientInfo,
+                capabilities: params.capabilities,
+            )
+            do {
+                return try await transport.sendRequest(method: "initialize", params: oldParams)
+            } catch is CancellationError {
+                throw CancellationError()
+            } catch {
+                try Task.checkCancellation()
+                let snake = InitializeParamsSnake(
+                    protocolVersion: oldParams.protocolVersion,
+                    clientInfo: params.clientInfo,
+                    capabilities: params.capabilities,
+                )
+                return try await transport.sendRequest(method: "initialize", params: snake)
+            }
         }
     }
 
