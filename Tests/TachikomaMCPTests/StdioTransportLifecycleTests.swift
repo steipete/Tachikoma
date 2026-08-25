@@ -84,6 +84,56 @@ struct StdioTransportLifecycleTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func `Caller cancellation removes pending request and keeps live child usable`() async throws {
+        let marker = FileManager.default.temporaryDirectory
+            .appendingPathComponent("tachikoma-stdio-cancel-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: marker) }
+        let transport = StdioTransport()
+        try await transport.connect(
+            config: MCPServerConfig(
+                command: "/bin/sh",
+                args: ["-c", Self.cancelledRequestServerScript],
+                env: ["REQUEST_MARKER": marker.path],
+                timeout: 5,
+                autoReconnect: false,
+            ),
+        )
+
+        let request = Task {
+            let response: FixtureResponse = try await transport.sendRequest(
+                method: "fixture/cancel",
+                params: EmptyParams(),
+            )
+            return response
+        }
+        for _ in 0..<100 where !FileManager.default.fileExists(atPath: marker.path) {
+            try await Task.sleep(for: .milliseconds(10))
+        }
+        #expect(FileManager.default.fileExists(atPath: marker.path))
+        #expect(await transport.debugSnapshot.pendingRequestCount == 1)
+
+        let cancelledAt = ContinuousClock.now
+        request.cancel()
+        switch await request.result {
+        case .success:
+            Issue.record("Expected the pending request to be cancelled")
+        case let .failure(error):
+            #expect(error is CancellationError)
+        }
+        #expect(cancelledAt.duration(to: .now) < .milliseconds(500))
+        #expect(await transport.debugSnapshot == .connectedIdle)
+
+        let response: FixtureResponse = try await transport.sendRequest(
+            method: "fixture/next",
+            params: EmptyParams(),
+        )
+        #expect(response.ok == true)
+        #expect(await transport.debugSnapshot == .connectedIdle)
+        await transport.disconnect()
+        #expect(await transport.debugSnapshot == .disconnected)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func `Client clears cached tools after child loss and reconnects with a new session`() async throws {
         let marker = FileManager.default.temporaryDirectory
             .appendingPathComponent("tachikoma-stdio-reconnect-\(UUID().uuidString)")
@@ -219,6 +269,22 @@ struct StdioTransportLifecycleTests {
           exit 0
           ;;
       esac
+    done
+    """#
+
+    private static let cancelledRequestServerScript = #"""
+    first_id=''
+    request_count=0
+    while IFS= read -r line; do
+      request_count=$((request_count + 1))
+      id=$(printf '%s\n' "$line" | sed -n 's/.*"id":\([0-9][0-9]*\).*/\1/p')
+      if [ "$request_count" -eq 1 ]; then
+        first_id=$id
+        printf 'received\n' > "$REQUEST_MARKER"
+        continue
+      fi
+      printf '{"jsonrpc":"2.0","id":%s,"result":{"ok":false}}\n' "$first_id"
+      printf '{"jsonrpc":"2.0","id":%s,"result":{"ok":true}}\n' "$id"
     done
     """#
 }

@@ -54,6 +54,22 @@ struct MCPClientTests {
     }
 
     @Test
+    func `Protocol negotiation never retries cancellation`() async throws {
+        let transport = CancellationTransport()
+        let client = MCPClient(name: "cancelled", config: MCPServerConfig(command: "unused"))
+        let params = InitializeParams(
+            protocolVersion: "2025-03-26",
+            clientInfo: ClientInfo(name: "test", version: "1.0"),
+            capabilities: ClientCapabilities(),
+        )
+
+        await #expect(throws: CancellationError.self) {
+            _ = try await client.initialize(using: transport, params: params)
+        }
+        #expect(transport.requestCount == 1)
+    }
+
+    @Test
     func `MCPError descriptions`() {
         #expect(MCPError.serverDisabled.errorDescription == "MCP server is disabled")
         #expect(MCPError.notConnected.errorDescription == "MCP client is not connected")
@@ -330,6 +346,34 @@ struct MCPClientTests {
         #expect(decoded.count == 42)
         #expect(decoded.active == true)
     }
+}
+
+private final class CancellationTransport: MCPTransport, @unchecked Sendable {
+    private let lock = NSLock()
+    private var _requestCount = 0
+
+    var requestCount: Int {
+        self.lock.withLock { self._requestCount }
+    }
+
+    func connect(config _: MCPServerConfig) async throws {}
+
+    func disconnect() async {}
+
+    func sendRequest<R: Decodable>(
+        method _: String,
+        params _: some Encodable,
+    ) async throws
+        -> R
+    {
+        self.lock.withLock { self._requestCount += 1 }
+        throw CancellationError()
+    }
+
+    func sendNotification(
+        method _: String,
+        params _: some Encodable,
+    ) async throws {}
 }
 
 // MARK: - Mock MCP Tool for Testing
