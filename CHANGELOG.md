@@ -21,7 +21,7 @@ All notable changes to the Tachikoma project will be documented in this file.
 - SSE transports now own and cancel their background reader, replace it safely on reconnect, and fail pending requests when the stream terminates instead of leaking work until timeout.
 - Audio abort-signal timeouts now handle zero, negative, non-finite, and unrepresentably large durations without trapping.
 - MCP tool arguments now reject non-finite numbers and lossy or overflowing integer conversions instead of truncating or trapping.
-- OpenAI Responses tools now preserve omission-based optional parameters instead of having automatic strict-schema normalization force fabricated argument values.
+- OpenAI Responses tools now preserve omission-based optional parameters and emit one canonical flattened function schema instead of duplicating it in a nested `function` object.
 - OpenAI Responses tool errors now keep their diagnostic output without sending an unsupported `failed` status that caused request-level errors.
 
 ## [0.3.0] - 2026-08-02
