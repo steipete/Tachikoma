@@ -1,8 +1,59 @@
 import Foundation
+import TachikomaAudio
 import Testing
 @testable import Tachikoma
 
 struct AgentToolSchemaSerializationTests {
+    @Test
+    func `Realtime tools encode preserved source schema without internal storage fields`() throws {
+        let sourceSchema = AnyAgentToolValue(object: [
+            "type": AnyAgentToolValue(string: "object"),
+            "properties": AnyAgentToolValue(object: [
+                "task": AnyAgentToolValue(object: [
+                    "type": AnyAgentToolValue(string: "string"),
+                    "description": AnyAgentToolValue(string: "Task"),
+                ]),
+                "choice": AnyAgentToolValue(object: [
+                    "oneOf": AnyAgentToolValue(array: [
+                        AnyAgentToolValue(object: ["type": AnyAgentToolValue(string: "string")]),
+                        AnyAgentToolValue(object: ["type": AnyAgentToolValue(string: "integer")]),
+                    ]),
+                ]),
+            ]),
+            "required": AnyAgentToolValue(array: [AnyAgentToolValue(string: "task")]),
+            "oneOf": AnyAgentToolValue(array: [
+                AnyAgentToolValue(object: [
+                    "required": AnyAgentToolValue(array: [AnyAgentToolValue(string: "task")]),
+                ]),
+            ]),
+        ])
+        let parameters = AgentToolParameters(
+            properties: [:],
+            required: ["task"],
+            sourceSchema: sourceSchema,
+        )
+        let tool = RealtimeTool(name: "run", description: "Run", parameters: parameters)
+        let encoded = try JSONEncoder().encode(tool)
+        let object = try #require(JSONSerialization.jsonObject(with: encoded) as? [String: Any])
+        let schema = try #require(object["parameters"] as? [String: Any])
+
+        #expect(schema["type"] as? String == "object")
+        #expect((schema["oneOf"] as? [[String: Any]])?.count == 1)
+        #expect(schema["sourceSchema"] == nil)
+
+        let decoded = try JSONDecoder().decode(RealtimeTool.self, from: encoded)
+        #expect(decoded.parameters.required == ["task"])
+        #expect(decoded.parameters.properties["task"]?.type == .string)
+        #expect(decoded.parameters.properties["task"]?.description == "Task")
+        #expect(decoded.parameters.properties["choice"] == nil)
+        #expect(decoded.parameters.sourceSchema?.objectValue?["properties"]?.objectValue?["choice"] != nil)
+        let reencoded = try JSONEncoder().encode(decoded)
+        let reencodedObject = try #require(JSONSerialization.jsonObject(with: reencoded) as? [String: Any])
+        let reencodedSchema = try #require(reencodedObject["parameters"] as? [String: Any])
+        #expect((reencodedSchema["oneOf"] as? [[String: Any]])?.count == 1)
+        #expect(reencodedSchema["sourceSchema"] == nil)
+    }
+
     @Test
     func `Original public initializer function references remain source compatible`() {
         let propertyInitializer: (

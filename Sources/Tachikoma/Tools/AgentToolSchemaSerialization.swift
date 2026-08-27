@@ -9,6 +9,19 @@ struct AgentToolSchemaSerializationOptions: OptionSet, Sendable {
 }
 
 extension AgentToolParameters {
+    public init(sourceSchema: AnyAgentToolValue) {
+        let schema = sourceSchema.objectValue ?? [:]
+        let properties = schema["properties"]?.objectValue?.compactMap { key, value in
+            Self.property(from: value, name: key).map { (key, $0) }
+        }.reduce(into: [:]) { $0[$1.0] = $1.1 } ?? [:]
+        let required = schema["required"]?.arrayValue?.compactMap(\.stringValue) ?? []
+        self.init(properties: properties, required: required, sourceSchema: sourceSchema)
+    }
+
+    public func schemaValue() throws -> AnyAgentToolValue {
+        try AnyAgentToolValue.fromJSON(self.jsonSchema())
+    }
+
     func jsonSchema(
         options: AgentToolSchemaSerializationOptions = [],
     ) throws
@@ -171,6 +184,50 @@ extension AgentToolParameters {
             return true
         }
         return (schema["type"] as? [String])?.contains("array") == true
+    }
+
+    private static func property(from value: AnyAgentToolValue, name: String) -> AgentToolParameterProperty? {
+        guard
+            let schema = value.objectValue,
+            let rawType = schema["type"]?.stringValue,
+            let type = AgentToolParameterProperty.ParameterType(rawValue: rawType) else { return nil }
+        return AgentToolParameterProperty(
+            name: name,
+            type: type,
+            description: schema["description"]?.stringValue ?? "",
+            enumValues: schema["enum"]?.arrayValue?.compactMap(\.stringValue),
+            items: schema["items"].flatMap(Self.items),
+            properties: schema["properties"]?.objectValue?.compactMap { key, value in
+                Self.property(from: value, name: key).map { (key, $0) }
+            }.reduce(into: [:]) { $0[$1.0] = $1.1 },
+            required: schema["required"]?.arrayValue?.compactMap(\.stringValue),
+            format: schema["format"]?.stringValue,
+            minimum: schema["minimum"]?.doubleValue,
+            maximum: schema["maximum"]?.doubleValue,
+            minLength: schema["minLength"]?.intValue,
+            maxLength: schema["maxLength"]?.intValue,
+        )
+    }
+
+    private static func items(from value: AnyAgentToolValue) -> AgentToolParameterItems? {
+        guard
+            let schema = value.objectValue,
+            let type = schema["type"]?.stringValue else { return nil }
+        return AgentToolParameterItems(
+            type: type,
+            description: schema["description"]?.stringValue,
+            enumValues: schema["enum"]?.arrayValue?.compactMap(\.stringValue),
+            items: schema["items"].flatMap(Self.items),
+            properties: schema["properties"]?.objectValue?.compactMap { key, value in
+                Self.property(from: value, name: key).map { (key, $0) }
+            }.reduce(into: [:]) { $0[$1.0] = $1.1 },
+            required: schema["required"]?.arrayValue?.compactMap(\.stringValue),
+            format: schema["format"]?.stringValue,
+            minimum: schema["minimum"]?.doubleValue,
+            maximum: schema["maximum"]?.doubleValue,
+            minLength: schema["minLength"]?.intValue,
+            maxLength: schema["maxLength"]?.intValue,
+        )
     }
 
     private static func serializedRequired(
