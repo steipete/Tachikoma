@@ -1,9 +1,13 @@
 import MCP
 import Tachikoma
 
-enum MCPToolSchemaBridge {
+public enum MCPToolSchemaBridge {
+    public static func agentParameters(from value: Value?) -> AgentToolParameters {
+        self.dynamicSchema(from: value).toAgentToolParameters()
+    }
+
     static func dynamicSchema(from value: Value?) -> DynamicSchema {
-        guard case let .object(schema)? = value else {
+        guard let value, case let .object(schema) = value else {
             return DynamicSchema(type: .object, properties: [:])
         }
 
@@ -25,6 +29,8 @@ enum MCPToolSchemaBridge {
             type: type,
             properties: properties,
             required: Self.stringArray(schema["required"]),
+            items: nil,
+            sourceSchema: value.toAnyAgentToolValue(),
         )
     }
 

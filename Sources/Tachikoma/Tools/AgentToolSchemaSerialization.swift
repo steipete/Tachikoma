@@ -17,6 +17,38 @@ extension AgentToolParameters {
         guard self.type == "object" else {
             throw TachikomaError.invalidInput("Tool parameter schema root must be an object")
         }
+        if let sourceSchema {
+            guard var schema = try sourceSchema.toJSON() as? [String: Any] else {
+                throw TachikomaError.invalidInput("Source tool parameter schema root must be an object")
+            }
+            let permitsObject = switch schema["type"] {
+            case nil:
+                true
+            case let type as String:
+                type == "object"
+            case let types as [String]:
+                types.contains("object")
+            default:
+                false
+            }
+            guard permitsObject else {
+                throw TachikomaError.invalidInput("Source tool parameter schema root must be an object")
+            }
+            schema["type"] = "object"
+            let declaredNames = Self.declaredPropertyNames(in: schema)
+            let required = try Self.serializedRequired(
+                self.required,
+                declaredNames: declaredNames,
+                options: options,
+                path: "required",
+            )
+            if required.isEmpty, options.contains(.omitEmptyRequired) {
+                schema.removeValue(forKey: "required")
+            } else {
+                schema["required"] = required
+            }
+            return Self.applying(options, to: schema)
+        }
         var serializedProperties: [String: Any] = [:]
         for (name, property) in self.properties {
             serializedProperties[name] = try AgentToolSchemaNode(property).jsonSchema(
@@ -39,6 +71,106 @@ extension AgentToolParameters {
             schema["required"] = required
         }
         return schema
+    }
+
+    private static func applying(
+        _ options: AgentToolSchemaSerializationOptions,
+        to schema: [String: Any],
+        inheritedPropertyNames: Set<String> = [],
+    )
+        -> [String: Any]
+    {
+        var schema = schema
+        let visiblePropertyNames = inheritedPropertyNames.union(self.declaredPropertyNames(in: schema))
+        if
+            options.contains(.defaultStringArrayItems),
+            self.isArraySchema(schema),
+            schema["items"] == nil
+        {
+            schema["items"] = ["type": "string"]
+        }
+        if let required = schema["required"] as? [String] {
+            let normalized: [String] = if
+                options.contains(.filterUndeclaredRequired),
+                !visiblePropertyNames.isEmpty
+            {
+                required.filter(visiblePropertyNames.contains)
+            } else {
+                required
+            }
+            if normalized.isEmpty, options.contains(.omitEmptyRequired) {
+                schema.removeValue(forKey: "required")
+            } else {
+                schema["required"] = normalized
+            }
+        }
+
+        for key in ["properties", "patternProperties", "$defs", "definitions"] {
+            guard let children = schema[key] as? [String: Any] else { continue }
+            schema[key] = children.mapValues { value in
+                guard let child = value as? [String: Any] else { return value }
+                return self.applying(options, to: child)
+            }
+        }
+        if let children = schema["dependentSchemas"] as? [String: Any] {
+            schema["dependentSchemas"] = children.mapValues { value in
+                guard let child = value as? [String: Any] else { return value }
+                return self.applying(options, to: child, inheritedPropertyNames: visiblePropertyNames)
+            }
+        }
+        for key in [
+            "additionalProperties",
+            "unevaluatedProperties",
+            "propertyNames",
+            "items",
+            "unevaluatedItems",
+            "contains",
+        ] {
+            guard let child = schema[key] as? [String: Any] else { continue }
+            schema[key] = self.applying(options, to: child)
+        }
+        for key in ["not", "if", "then", "else"] {
+            guard let child = schema[key] as? [String: Any] else { continue }
+            schema[key] = self.applying(
+                options,
+                to: child,
+                inheritedPropertyNames: visiblePropertyNames,
+            )
+        }
+        for key in ["allOf", "anyOf", "oneOf"] {
+            guard let alternatives = schema[key] as? [Any] else { continue }
+            schema[key] = alternatives.map { value in
+                guard let child = value as? [String: Any] else { return value }
+                return self.applying(
+                    options,
+                    to: child,
+                    inheritedPropertyNames: visiblePropertyNames,
+                )
+            }
+        }
+        if let prefixItems = schema["prefixItems"] as? [Any] {
+            schema["prefixItems"] = prefixItems.map { value in
+                guard let child = value as? [String: Any] else { return value }
+                return self.applying(options, to: child)
+            }
+        }
+        return schema
+    }
+
+    private static func declaredPropertyNames(in schema: [String: Any]) -> Set<String> {
+        var names = Set((schema["properties"] as? [String: Any]).map { Array($0.keys) } ?? [])
+        for value in schema["allOf"] as? [Any] ?? [] {
+            guard let child = value as? [String: Any] else { continue }
+            names.formUnion(self.declaredPropertyNames(in: child))
+        }
+        return names
+    }
+
+    private static func isArraySchema(_ schema: [String: Any]) -> Bool {
+        if schema["type"] as? String == "array" {
+            return true
+        }
+        return (schema["type"] as? [String])?.contains("array") == true
     }
 
     private static func serializedRequired(
