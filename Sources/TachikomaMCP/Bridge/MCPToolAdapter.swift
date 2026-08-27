@@ -6,7 +6,7 @@ import Tachikoma
 public enum MCPToolAdapter {
     /// Convert an MCP Tool to Tachikoma's AgentTool
     public static func toAgentTool(from mcpTool: Tool, client: MCPClient) -> AgentTool {
-        let parameters = MCPToolSchemaBridge.dynamicSchema(from: mcpTool.inputSchema).toAgentToolParameters()
+        let parameters = MCPToolSchemaBridge.agentParameters(from: mcpTool.inputSchema)
 
         return AgentTool(
             name: mcpTool.name,

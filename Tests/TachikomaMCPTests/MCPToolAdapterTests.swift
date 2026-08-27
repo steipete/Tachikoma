@@ -9,11 +9,13 @@ struct MCPToolAdapterTests {
     func `Static and dynamic MCP tools share one schema conversion`() throws {
         let inputSchema = Value.object([
             "type": .string("object"),
+            "additionalProperties": .bool(false),
             "properties": .object([
                 "mode": .object([
                     "type": .string("string"),
                     "description": .string("Execution mode"),
                     "enum": .array([.string("safe"), .string("fast")]),
+                    "default": .string("safe"),
                 ]),
                 "tags": .object([
                     "type": .string("array"),
@@ -59,6 +61,14 @@ struct MCPToolAdapterTests {
                 .string("settings"),
                 .string("matrix"),
             ]),
+            "allOf": .array([
+                .object([
+                    "oneOf": .array([
+                        .object(["required": .array([.string("mode")])]),
+                        .object(["not": .object(["required": .array([.string("mode")])])]),
+                    ]),
+                ]),
+            ]),
         ])
         let mcpTool = MCP.Tool(name: "run", description: "Run work", inputSchema: inputSchema)
         let client = MCPClient(name: "test", config: MCPServerConfig(command: "unused"))
@@ -69,6 +79,14 @@ struct MCPToolAdapterTests {
 
         #expect(staticTool.parameters.required == ["mode", "tags", "settings", "matrix"])
         #expect(dynamicParameters.required == staticTool.parameters.required)
+        #expect(staticTool.parameters.sourceSchema == inputSchema.toAnyAgentToolValue())
+        #expect(dynamicParameters.sourceSchema == staticTool.parameters.sourceSchema)
+        let staticJSON = try toolParametersToJSON(staticTool.parameters)
+        let dynamicJSON = try toolParametersToJSON(dynamicParameters)
+        #expect(staticJSON["required"] as? [String] == ["mode", "tags", "settings", "matrix"])
+        #expect(dynamicJSON["required"] as? [String] == staticJSON["required"] as? [String])
+        #expect(staticJSON["additionalProperties"] as? Bool == false)
+        #expect((staticJSON["allOf"] as? [[String: Any]])?.count == 1)
         #expect(dynamicParameters.properties["mode"]?.type == staticTool.parameters.properties["mode"]?.type)
         #expect(dynamicParameters.properties["mode"]?.description == "Execution mode")
         #expect(dynamicParameters.properties["mode"]?.enumValues == ["safe", "fast"])

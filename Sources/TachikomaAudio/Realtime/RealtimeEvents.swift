@@ -799,7 +799,8 @@ public struct RealtimeTool: Codable, Sendable {
         self.type = try container.decode(String.self, forKey: .type)
         self.name = try container.decode(String.self, forKey: .name)
         self.description = try container.decode(String.self, forKey: .description)
-        self.parameters = try container.decode(AgentToolParameters.self, forKey: .parameters)
+        let sourceSchema = try container.decode(AnyAgentToolValue.self, forKey: .parameters)
+        self.parameters = AgentToolParameters(sourceSchema: sourceSchema)
     }
 
     public func encode(to encoder: Encoder) throws {
@@ -807,6 +808,6 @@ public struct RealtimeTool: Codable, Sendable {
         try container.encode(self.type, forKey: .type)
         try container.encode(self.name, forKey: .name)
         try container.encode(self.description, forKey: .description)
-        try container.encode(self.parameters, forKey: .parameters)
+        try container.encode(self.parameters.schemaValue(), forKey: .parameters)
     }
 }

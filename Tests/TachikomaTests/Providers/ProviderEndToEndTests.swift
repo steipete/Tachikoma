@@ -80,6 +80,62 @@ struct ProviderEndToEndTests {
         }
     }
 
+    @Test
+    func `Anthropic provider preserves complete source tool schemas`() async throws {
+        let task = AgentToolParameterProperty(name: "task", type: .string, description: "Task")
+        let sourceSchema = AnyAgentToolValue(object: [
+            "type": AnyAgentToolValue(string: "object"),
+            "additionalProperties": AnyAgentToolValue(bool: false),
+            "properties": AnyAgentToolValue(object: [
+                "task": AnyAgentToolValue(object: [
+                    "type": AnyAgentToolValue(string: "string"),
+                ]),
+            ]),
+            "required": AnyAgentToolValue(array: [AnyAgentToolValue(string: "task")]),
+            "allOf": AnyAgentToolValue(array: [
+                AnyAgentToolValue(object: [
+                    "not": AnyAgentToolValue(object: [
+                        "required": AnyAgentToolValue(array: [AnyAgentToolValue(string: "forbidden")]),
+                    ]),
+                ]),
+            ]),
+        ])
+        let tool = AgentTool(
+            name: "run",
+            description: "Run task",
+            parameters: AgentToolParameters(
+                properties: ["task": task],
+                required: ["task"],
+                sourceSchema: sourceSchema,
+            ),
+        ) { _ in
+            AnyAgentToolValue(string: "unused")
+        }
+        let request = ProviderRequest(
+            messages: [.user("Run it")],
+            tools: [tool],
+            settings: .init(maxTokens: 32),
+        )
+
+        try await NetworkMocking.withMockedNetwork { request in
+            let body = try #require(self.bodyData(from: request))
+            let json = try #require(JSONSerialization.jsonObject(with: body) as? [String: Any])
+            let tools = try #require(json["tools"] as? [[String: Any]])
+            let schema = try #require(tools.first?["input_schema"] as? [String: Any])
+
+            #expect(schema["additionalProperties"] as? Bool == false)
+            #expect((schema["allOf"] as? [[String: Any]])?.count == 1)
+            #expect(schema["required"] as? [String] == ["task"])
+            return NetworkMocking.jsonResponse(for: request, data: Self.anthropicPayload(text: "Done"))
+        } operation: {
+            let config = Self.makeConfiguration { config in
+                config.setAPIKey("live-anthropic", for: .anthropic)
+            }
+            let provider = try AnthropicProvider(model: .sonnet46, configuration: config)
+            _ = try await provider.generateText(request: request)
+        }
+    }
+
     // MARK: - Google Gemini
 
     @Test

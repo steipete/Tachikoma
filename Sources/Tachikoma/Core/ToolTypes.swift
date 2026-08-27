@@ -558,21 +558,41 @@ public struct AgentToolParameters: Sendable, Codable {
     public let type: String
     public let properties: [String: AgentToolParameterProperty]
     public let required: [String]
+    /// The complete source JSON Schema when this tool was adapted from a dynamic provider.
+    ///
+    /// `properties` and `required` remain available for compatibility and local validation. Schema
+    /// serialization prefers this value so composition keywords and provider-specific constraints are
+    /// not lost while crossing the Agent abstraction.
+    public let sourceSchema: AnyAgentToolValue?
 
     public init(properties: [String: AgentToolParameterProperty] = [:], required: [String] = []) {
         self.type = "object"
         self.properties = properties
         self.required = required
+        self.sourceSchema = nil
+    }
+
+    public init(
+        properties: [String: AgentToolParameterProperty],
+        required: [String],
+        sourceSchema: AnyAgentToolValue,
+    ) {
+        self.type = "object"
+        self.properties = properties
+        self.required = required
+        self.sourceSchema = sourceSchema
     }
 
     init(
         type: String,
         properties: [String: AgentToolParameterProperty],
         required: [String],
+        sourceSchema: AnyAgentToolValue? = nil,
     ) {
         self.type = type
         self.properties = properties
         self.required = required
+        self.sourceSchema = sourceSchema
     }
 }
 
@@ -914,6 +934,7 @@ public struct DynamicSchema: Sendable, Codable {
     public let properties: [String: SchemaProperty]?
     public let required: [String]?
     public let items: SchemaItems?
+    public let sourceSchema: AnyAgentToolValue?
 
     public enum SchemaType: String, Sendable, Codable {
         case object
@@ -1080,6 +1101,21 @@ public struct DynamicSchema: Sendable, Codable {
         self.properties = properties
         self.required = required
         self.items = items
+        self.sourceSchema = nil
+    }
+
+    public init(
+        type: SchemaType,
+        properties: [String: SchemaProperty]?,
+        required: [String]?,
+        items: SchemaItems?,
+        sourceSchema: AnyAgentToolValue,
+    ) {
+        self.type = type
+        self.properties = properties
+        self.required = required
+        self.items = items
+        self.sourceSchema = sourceSchema
     }
 
     /// Convert to AgentToolParameters
@@ -1088,6 +1124,7 @@ public struct DynamicSchema: Sendable, Codable {
             type: self.type.rawValue,
             properties: Self.agentProperties(self.properties) ?? [:],
             required: self.required ?? [],
+            sourceSchema: self.sourceSchema,
         )
     }
 
