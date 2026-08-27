@@ -13,8 +13,17 @@ public protocol MCPTool: Sendable {
     /// JSON Schema defining the input parameters
     var inputSchema: Value { get }
 
+    /// Optional JSON Schema defining the structured tool result.
+    var outputSchema: Value? { get }
+
     /// Execute the tool with the given arguments
     func execute(arguments: ToolArguments) async throws -> ToolResponse
+}
+
+extension MCPTool {
+    public var outputSchema: Value? {
+        nil
+    }
 }
 
 /// Wrapper for tool arguments received from MCP
