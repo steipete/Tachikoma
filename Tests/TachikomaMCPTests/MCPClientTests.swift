@@ -406,6 +406,22 @@ private struct MockMCPTool: MCPTool {
 
 struct MockToolTests {
     @Test
+    func `MCP tool output schema defaults to nil and preserves existential overrides`() {
+        let defaultTool: any MCPTool = MockMCPTool()
+        let schema = Value.object([
+            "type": .string("object"),
+            "properties": .object([
+                "status": .object(["type": .string("string")]),
+            ]),
+            "required": .array([.string("status")]),
+        ])
+        let typedTool: any MCPTool = OutputSchemaMCPTool(outputSchema: schema)
+
+        #expect(defaultTool.outputSchema == nil)
+        #expect(typedTool.outputSchema == schema)
+    }
+
+    @Test
     func `Mock tool execution with valid arguments`() async throws {
         let tool = MockMCPTool()
 
@@ -463,5 +479,16 @@ struct MockToolTests {
         } else {
             Issue.record("Expected object schema")
         }
+    }
+}
+
+private struct OutputSchemaMCPTool: MCPTool {
+    let outputSchema: Value?
+    let name = "output_schema"
+    let description = "Advertises a structured result"
+    let inputSchema = Value.object(["type": .string("object")])
+
+    func execute(arguments _: ToolArguments) async throws -> ToolResponse {
+        .text("ok")
     }
 }

@@ -6,6 +6,7 @@ All notable changes to the Tachikoma project will be documented in this file.
 
 ### Added
 - Added first-class Claude Opus 5 support and moved generation-agnostic Claude aliases and defaults to the new flagship.
+- MCP tools can now advertise optional structured-result schemas while existing conformers remain source-compatible.
 
 ### Fixed
 - Cancelling a stdio MCP request now clears its continuation and timeout without closing the child, and cancelled initialization no longer retries legacy protocol variants.
