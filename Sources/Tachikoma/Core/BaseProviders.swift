@@ -1071,22 +1071,11 @@ public final class AnthropicProvider: ModelProvider {
 
     private func convertToolToAnthropic(_ tool: AgentTool) throws -> AnthropicTool {
         let schema = try tool.parameters.jsonSchema(options: [.defaultStringArrayItems])
-        guard
-            let type = schema["type"] as? String,
-            let properties = schema["properties"] as? [String: Any],
-            let required = schema["required"] as? [String] else
-        {
-            throw TachikomaError.invalidInput("Failed to encode tool parameters for '\(tool.name)'")
-        }
 
-        return AnthropicTool(
+        return try AnthropicTool(
             name: tool.name,
             description: tool.description,
-            inputSchema: AnthropicInputSchema(
-                type: type,
-                properties: properties,
-                required: required,
-            ),
+            inputSchema: AnthropicInputSchema(schema),
         )
     }
 }
