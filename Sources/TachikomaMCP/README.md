@@ -192,6 +192,27 @@ let filteredTools = tools.filter { tool in
 }
 ```
 
+### Schema Fidelity
+
+MCP tool adapters retain the original input schema for provider serialization and also expose a typed recursive view
+for Agent runtimes that need to inspect request grammar without flattening it:
+
+```swift
+let parameters = MCPToolSchemaBridge.agentParameters(from: mcpTool.inputSchema)
+let schema = try parameters.typedSchema()
+let defaultValue = schema.keywords?.properties?["max_steps"]?.keywords?.defaultValue
+```
+
+The typed view preserves boolean schemas, lossless integer and floating-point bounds, scalar and collection defaults,
+type unions, modern single-schema and legacy tuple-form array items (including `additionalItems`), nested object/array
+schemas, modern and legacy dependencies, `const` and `enum` values, numeric/string/collection constraints,
+`allOf`/`anyOf`/`oneOf`, `not`, and
+`if`/`then`/`else`. Unknown extension keywords remain available through `unrecognizedKeywords`, while `rawValue`
+retains a semantically complete canonical schema; JSON-equivalent integral floating-point values normalize to integers
+so natural `Codable` round trips are stable. `AgentToolParameters.sourceSchema` remains the exact adapter-owned value.
+References are preserved as `$ref` strings but are not resolved or evaluated; runtime argument validation remains the
+tool owner's responsibility.
+
 ### Error Handling
 
 ```swift
