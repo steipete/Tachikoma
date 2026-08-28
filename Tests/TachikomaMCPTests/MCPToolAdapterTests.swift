@@ -6,6 +6,172 @@ import Testing
 
 struct MCPToolAdapterTests {
     @Test
+    func `Typed schema conversion preserves defaults constraints and composition recursively`() throws {
+        let inputSchema = Value.object([
+            "type": .string("object"),
+            "additionalProperties": .bool(false),
+            "properties": .object([
+                "max_steps": .object([
+                    "type": .string("integer"),
+                    "default": .int(20),
+                    "minimum": .int(1),
+                    "maximum": .int(100),
+                ]),
+                "large_id": .object([
+                    "type": .string("integer"),
+                    "minimum": .int(9_007_199_254_740_993),
+                ]),
+                "integral_ratio": .object([
+                    "type": .string("number"),
+                    "minimum": .double(1.0),
+                ]),
+                "mode": .object([
+                    "type": .array([.string("string"), .string("null")]),
+                    "enum": .array([.string("safe"), .string("fast"), .null]),
+                    "pattern": .string("^[a-z]+$"),
+                ]),
+                "details": .object([
+                    "type": .string("array"),
+                    "default": .array([.string("ids"), .string("bounds")]),
+                    "minItems": .int(1),
+                    "maxItems": .int(3),
+                    "uniqueItems": .bool(true),
+                    "items": .object([
+                        "type": .string("string"),
+                        "minLength": .int(1),
+                    ]),
+                ]),
+                "receipt": .object(["$ref": .string("#/$defs/exactTarget")]),
+                "legacy_tuple": .object([
+                    "type": .string("array"),
+                    "items": .array([
+                        .object(["type": .string("string")]),
+                        .object(["type": .string("integer")]),
+                    ]),
+                    "additionalItems": .bool(false),
+                ]),
+            ]),
+            "required": .array([.string("max_steps")]),
+            "$defs": .object([
+                "exactTarget": .object([
+                    "type": .string("object"),
+                    "required": .array([.string("window_id")]),
+                ]),
+            ]),
+            "allOf": .array([
+                .object(["required": .array([.string("max_steps")])]),
+            ]),
+            "anyOf": .array([
+                .object(["required": .array([.string("mode")])]),
+            ]),
+            "oneOf": .array([
+                .object([
+                    "properties": .object([
+                        "action": .object(["const": .string("launch")]),
+                    ]),
+                    "required": .array([.string("action")]),
+                ]),
+                .bool(false),
+            ]),
+            "if": .object([
+                "properties": .object([
+                    "mode": .object(["const": .string("safe")]),
+                ]),
+            ]),
+            "then": .object(["required": .array([.string("details")])]),
+            "else": .object(["required": .array([.string("max_steps")])]),
+            "not": .object(["required": .array([.string("forbidden")])]),
+            "dependencies": .object([
+                "mode": .array([.string("details")]),
+                "details": .object(["required": .array([.string("mode")])]),
+            ]),
+            "x-peekaboo-receipt": .object(["kind": .string("exact-window")]),
+        ])
+
+        let typed = try MCPToolSchemaBridge.typedSchema(from: inputSchema)
+        let root = try #require(typed.keywords)
+        #expect(root.types == [.object])
+        #expect(root.required == ["max_steps"])
+        #expect(root.additionalProperties?.booleanValue == false)
+
+        let maxSteps = try #require(root.properties?["max_steps"]?.keywords)
+        #expect(maxSteps.types == [.integer])
+        #expect(maxSteps.defaultValue?.intValue == 20)
+        #expect(maxSteps.minimum == .integer(1))
+        #expect(maxSteps.maximum == .integer(100))
+        #expect(root.properties?["large_id"]?.keywords?.minimum == .integer(9_007_199_254_740_993))
+        #expect(root.properties?["integral_ratio"]?.keywords?.minimum == .integer(1))
+
+        let mode = try #require(root.properties?["mode"]?.keywords)
+        #expect(mode.types == [.string, .null])
+        #expect(mode.enumValues == [.init(string: "safe"), .init(string: "fast"), .init(null: ())])
+        #expect(mode.pattern == "^[a-z]+$")
+
+        let details = try #require(root.properties?["details"]?.keywords)
+        #expect(details.defaultValue?.arrayValue?.compactMap(\.stringValue) == ["ids", "bounds"])
+        #expect(details.minItems == 1)
+        #expect(details.maxItems == 3)
+        #expect(details.uniqueItems == true)
+        guard case let .schema(detailItems)? = details.items else {
+            Issue.record("Expected one detail item schema")
+            return
+        }
+        #expect(detailItems.keywords?.types == [.string])
+        #expect(detailItems.keywords?.minLength == 1)
+        #expect(root.properties?["receipt"]?.keywords?.reference == "#/$defs/exactTarget")
+        #expect(root.definitions?["exactTarget"]?.keywords?.required == ["window_id"])
+        guard case let .tuple(legacyTuple)? = root.properties?["legacy_tuple"]?.keywords?.items else {
+            Issue.record("Expected draft-07 tuple items")
+            return
+        }
+        #expect(legacyTuple.map(\.keywords?.types) == [[.string], [.integer]])
+        #expect(root.properties?["legacy_tuple"]?.keywords?.additionalItems?.booleanValue == false)
+        #expect(root.legacyDependencies?["mode"] == .requiredProperties(["details"]))
+        guard case let .schema(detailsDependency)? = root.legacyDependencies?["details"] else {
+            Issue.record("Expected recursive draft-07 dependency schema")
+            return
+        }
+        #expect(detailsDependency.keywords?.required == ["mode"])
+
+        let launchBranch = try #require(root.oneOf?.first?.keywords)
+        #expect(launchBranch.properties?["action"]?.keywords?.constantValue?.stringValue == "launch")
+        #expect(root.oneOf?.last?.booleanValue == false)
+        #expect(root.allOf?.first?.keywords?.required == ["max_steps"])
+        #expect(root.anyOf?.first?.keywords?.required == ["mode"])
+        #expect(root.condition?.keywords?.properties?["mode"]?.keywords?.constantValue?.stringValue == "safe")
+        #expect(root.thenSchema?.keywords?.required == ["details"])
+        #expect(root.elseSchema?.keywords?.required == ["max_steps"])
+        #expect(root.negated?.keywords?.required == ["forbidden"])
+        #expect(root.unrecognizedKeywords["x-peekaboo-receipt"]?.objectValue?["kind"]?.stringValue ==
+            "exact-window")
+
+        let parameters = MCPToolSchemaBridge.agentParameters(from: inputSchema)
+        #expect(try parameters.typedSchema() == typed)
+        let encoded = try JSONEncoder().encode(typed)
+        #expect(try JSONDecoder().decode(AgentToolJSONSchema.self, from: encoded) == typed)
+    }
+
+    @Test
+    func `Typed schema conversion rejects malformed recursive keyword shapes`() {
+        let malformed: [Value] = [
+            .object(["type": .array([.string("string"), .string("string")])]),
+            .object(["properties": .object(["name": .string("not-a-schema")])]),
+            .object(["oneOf": .object([:])]),
+            .object(["minItems": .double(1.5)]),
+        ]
+
+        for schema in malformed {
+            #expect(throws: TachikomaError.self) {
+                _ = try MCPToolSchemaBridge.typedSchema(from: schema)
+            }
+        }
+
+        let fallback = try? MCPToolSchemaBridge.typedSchema(from: .string("not-an-object"))
+        #expect(fallback?.keywords?.types == [.object])
+        #expect(fallback?.keywords?.properties?.isEmpty == true)
+    }
+
+    @Test
     func `Static and dynamic MCP tools share one schema conversion`() throws {
         let inputSchema = Value.object([
             "type": .string("object"),

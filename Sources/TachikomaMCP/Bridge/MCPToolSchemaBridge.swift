@@ -6,6 +6,11 @@ public enum MCPToolSchemaBridge {
         self.dynamicSchema(from: value).toAgentToolParameters()
     }
 
+    /// Converts an MCP input schema into the recursive Agent-facing JSON Schema model.
+    public static func typedSchema(from value: Value?) throws -> AgentToolJSONSchema {
+        try self.agentParameters(from: value).typedSchema()
+    }
+
     static func dynamicSchema(from value: Value?) -> DynamicSchema {
         guard let value, case let .object(schema) = value else {
             return DynamicSchema(type: .object, properties: [:])
