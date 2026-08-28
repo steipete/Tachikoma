@@ -18,6 +18,7 @@ All notable changes to the Tachikoma project will be documented in this file.
 - The root package no longer declares unused Commander products for its hand-parsed CLIs, avoiding local/remote package-identity conflicts in consumers; hermetic macOS/Linux tests now block merges on failure, and live-provider CI uses its documented compile/runtime gates.
 - Concurrent stdio MCP requests now serialize complete JSON-line frames so payloads and delimiters cannot interleave across tool calls.
 - Tool schemas now preserve nested object fields, required arrays, enums, array items, and scalar constraints consistently across static/dynamic MCP discovery and every provider serializer, including LM Studio.
+- Provider schema normalization now reaches draft-07 tuple items, additional-item schemas, and schema-valued legacy dependencies.
 - MCP tool discovery now uses one schema conversion path so static and dynamic tools preserve matching descriptions, enums, array item types, and required fields.
 - Composite dynamic tool providers now recover unchanged bindings after transient discovery failures while keeping real ownership changes fail-closed.
 - Dynamic tool aggregation now binds execution to the provider that supplied each schema, invalidates stale plans, avoids repeated discovery on registry execution, and rejects duplicate names instead of dispatching nondeterministically.
