@@ -417,6 +417,108 @@ struct AgentToolSchemaSerializationTests {
     }
 
     @Test
+    func `Provider normalization reaches draft seven tuple and dependency schemas without mutating source`() throws {
+        func probeSchema(required: [String]) -> AnyAgentToolValue {
+            AnyAgentToolValue(object: [
+                "type": AnyAgentToolValue(string: "object"),
+                "properties": AnyAgentToolValue(object: [
+                    "values": AnyAgentToolValue(object: [
+                        "type": AnyAgentToolValue(string: "array"),
+                    ]),
+                    "empty": AnyAgentToolValue(object: [
+                        "type": AnyAgentToolValue(string: "object"),
+                        "properties": AnyAgentToolValue(object: [:]),
+                        "required": AnyAgentToolValue(array: []),
+                    ]),
+                ]),
+                "required": AnyAgentToolValue(array: required.map(AnyAgentToolValue.init(string:))),
+            ])
+        }
+
+        let tupleProbe = probeSchema(required: ["values", "missing"])
+        let additionalItemsProbe = probeSchema(required: ["values", "missing"])
+        let dependencyProbe = probeSchema(required: ["trigger", "values", "missing"])
+        let sourceSchema = AnyAgentToolValue(object: [
+            "type": AnyAgentToolValue(string: "object"),
+            "properties": AnyAgentToolValue(object: [
+                "tuple": AnyAgentToolValue(object: [
+                    "type": AnyAgentToolValue(string: "array"),
+                    "items": AnyAgentToolValue(array: [
+                        tupleProbe,
+                        AnyAgentToolValue(bool: true),
+                        AnyAgentToolValue(bool: false),
+                    ]),
+                    "additionalItems": additionalItemsProbe,
+                ]),
+                "legacy": AnyAgentToolValue(object: [
+                    "type": AnyAgentToolValue(string: "object"),
+                    "properties": AnyAgentToolValue(object: [
+                        "trigger": AnyAgentToolValue(object: [
+                            "type": AnyAgentToolValue(string: "string"),
+                        ]),
+                    ]),
+                    "dependencies": AnyAgentToolValue(object: [
+                        "trigger": dependencyProbe,
+                        "requiredDependency": AnyAgentToolValue(array: [
+                            AnyAgentToolValue(string: "companion"),
+                            AnyAgentToolValue(string: "backup"),
+                        ]),
+                        "allow": AnyAgentToolValue(bool: true),
+                        "deny": AnyAgentToolValue(bool: false),
+                    ]),
+                ]),
+            ]),
+            "required": AnyAgentToolValue(array: [
+                AnyAgentToolValue(string: "tuple"),
+                AnyAgentToolValue(string: "legacy"),
+            ]),
+        ])
+        let parameters = AgentToolParameters(sourceSchema: sourceSchema)
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.sortedKeys]
+        let sourceBeforeNormalization = try encoder.encode(#require(parameters.sourceSchema))
+
+        let normalized = try parameters.jsonSchema(options: [
+            .defaultStringArrayItems,
+            .omitEmptyRequired,
+            .filterUndeclaredRequired,
+        ])
+
+        func expectNormalizedProbe(_ schema: [String: Any], required: [String]) throws {
+            #expect(schema["required"] as? [String] == required)
+            let properties = try #require(schema["properties"] as? [String: Any])
+            let values = try #require(properties["values"] as? [String: Any])
+            #expect((values["items"] as? [String: Any])?["type"] as? String == "string")
+            let empty = try #require(properties["empty"] as? [String: Any])
+            #expect(empty["required"] == nil)
+        }
+
+        let properties = try #require(normalized["properties"] as? [String: Any])
+        let tuple = try #require(properties["tuple"] as? [String: Any])
+        let tupleItems = try #require(tuple["items"] as? [Any])
+        try expectNormalizedProbe(#require(tupleItems.first as? [String: Any]), required: ["values"])
+        #expect(tupleItems[1] as? Bool == true)
+        #expect(tupleItems[2] as? Bool == false)
+        try expectNormalizedProbe(
+            #require(tuple["additionalItems"] as? [String: Any]),
+            required: ["values"],
+        )
+
+        let legacy = try #require(properties["legacy"] as? [String: Any])
+        let dependencies = try #require(legacy["dependencies"] as? [String: Any])
+        try expectNormalizedProbe(
+            #require(dependencies["trigger"] as? [String: Any]),
+            required: ["trigger", "values"],
+        )
+        #expect(dependencies["requiredDependency"] as? [String] == ["companion", "backup"])
+        #expect(dependencies["allow"] as? Bool == true)
+        #expect(dependencies["deny"] as? Bool == false)
+
+        #expect(parameters.sourceSchema == sourceSchema)
+        #expect(try encoder.encode(#require(parameters.sourceSchema)) == sourceBeforeNormalization)
+    }
+
+    @Test
     func `Provider policies only adjust established required and array fallbacks`() throws {
         let parameters = AgentToolParameters(
             properties: [

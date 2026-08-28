@@ -131,16 +131,30 @@ extension AgentToolParameters {
                 return self.applying(options, to: child, inheritedPropertyNames: visiblePropertyNames)
             }
         }
+        if let dependencies = schema["dependencies"] as? [String: Any] {
+            schema["dependencies"] = dependencies.mapValues { value in
+                guard let child = value as? [String: Any] else { return value }
+                return self.applying(options, to: child, inheritedPropertyNames: visiblePropertyNames)
+            }
+        }
         for key in [
             "additionalProperties",
             "unevaluatedProperties",
             "propertyNames",
-            "items",
+            "additionalItems",
             "unevaluatedItems",
             "contains",
         ] {
             guard let child = schema[key] as? [String: Any] else { continue }
             schema[key] = self.applying(options, to: child)
+        }
+        if let child = schema["items"] as? [String: Any] {
+            schema["items"] = self.applying(options, to: child)
+        } else if let tupleItems = schema["items"] as? [Any] {
+            schema["items"] = tupleItems.map { value in
+                guard let child = value as? [String: Any] else { return value }
+                return self.applying(options, to: child)
+            }
         }
         for key in ["not", "if", "then", "else"] {
             guard let child = schema[key] as? [String: Any] else { continue }
