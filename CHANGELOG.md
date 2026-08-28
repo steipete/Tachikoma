@@ -8,6 +8,9 @@ All notable changes to the Tachikoma project will be documented in this file.
 - Added first-class Claude Opus 5 support and moved generation-agnostic Claude aliases and defaults to the new flagship.
 - MCP tools can now advertise optional structured-result schemas while existing conformers remain source-compatible.
 
+### Changed
+- Refreshed Swift package pins to EventSource 1.5.1, ServiceLifecycle 2.12.0, and System 1.8.1.
+
 ### Fixed
 - Cancelling a stdio MCP request now clears its continuation and timeout without closing the child, and cancelled initialization no longer retries legacy protocol variants.
 - Stdio MCP child exit now atomically closes the connection, clears cached tools, fails pending requests without waiting for their timeout, rejects later sends, and preserves generation-safe reconnects.
