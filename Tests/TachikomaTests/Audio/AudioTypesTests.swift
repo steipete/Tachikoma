@@ -340,14 +340,21 @@ struct AudioTypesTests {
 
         @Test
         func `AbortSignal timeout functionality`() async throws {
+            let clock = ContinuousClock()
+            let started = clock.now
             let signal = AbortSignal.timeout(0.1) // 100ms timeout
 
-            #expect(signal.cancelled == false)
+            // Observe cancellation itself; the timeout task may start after this test resumes.
+            let deadline = started.advanced(by: .seconds(1))
+            while !signal.cancelled, clock.now < deadline {
+                try await Task.sleep(for: .milliseconds(1))
+            }
 
-            // Wait a bit longer than the timeout
-            try await Task.sleep(nanoseconds: 200_000_000) // 200ms
-
-            #expect(signal.cancelled == true)
+            try #require(signal.cancelled, "Timeout task did not cancel the signal")
+            #expect(started.duration(to: clock.now) >= .milliseconds(100))
+            #expect(throws: TachikomaError.self) {
+                try signal.throwIfCancelled()
+            }
         }
 
         @Test(arguments: [0, -1, .infinity, .nan])

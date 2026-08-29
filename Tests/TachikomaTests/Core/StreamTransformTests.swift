@@ -1,3 +1,4 @@
+import Foundation
 import Testing
 @testable import Tachikoma
 
@@ -43,38 +44,73 @@ struct StreamTransformTests {
 
     @Test
     func `BufferTransform with time interval`() async throws {
+        var lastFlushStarted = Date()
         let transform = BufferTransform<Int>(bufferSize: 10, flushInterval: 0.1)
+        var pending: [Int] = []
 
-        // Add elements
-        #expect(try await transform.transform(1) == nil)
-        #expect(try await transform.transform(2) == nil)
+        for value in 1...2 {
+            let callStarted = Date()
+            pending.append(value)
+            if let batch = try await transform.transform(value) {
+                // A delayed call may flush, but never before the interval or with missing values.
+                #expect(Date().timeIntervalSince(lastFlushStarted) >= 0.1)
+                #expect(batch == pending)
+                pending = []
+                lastFlushStarted = callStarted
+            }
+        }
 
-        // Wait for interval
         try await Task.sleep(nanoseconds: 150_000_000) // 150ms
 
-        // Next element should trigger flush due to time
-        let batch = try await transform.transform(3)
-        #expect(batch?.count == 3)
-        #expect(batch?.contains(1) == true)
-        #expect(batch?.contains(2) == true)
-        #expect(batch?.contains(3) == true)
+        pending.append(3)
+        #expect(try await transform.transform(3) == pending)
+        #expect(await transform.flush() == nil)
     }
 
     @Test
     func `ThrottleTransform limits rate`() async throws {
         let transform = ThrottleTransform<String>(interval: 0.1)
+        var previousEmissionStarted: Date?
+        var emitted: [String] = []
+
+        for value in ["first", "second", "third"] {
+            let callStarted = Date()
+            if let output = try await transform.transform(value) {
+                if let previousEmissionStarted {
+                    // These bounds enclose the actual emission times, including actor scheduling.
+                    #expect(Date().timeIntervalSince(previousEmissionStarted) >= 0.1)
+                }
+                #expect(output == value)
+                previousEmissionStarted = callStarted
+                emitted.append(output)
+            }
+        }
+
+        #expect(emitted.first == "first")
+    }
+
+    @Test
+    func `ThrottleTransform suppresses until its window reopens`() async throws {
+        // A window that never reopens proves suppression without a scheduling deadline.
+        let transform = ThrottleTransform<String>(interval: .infinity)
 
         // First element passes through
         #expect(try await transform.transform("first") == "first")
 
-        // Immediate second element is throttled
+        // Later elements are throttled regardless of executor delays.
         #expect(try await transform.transform("second") == nil)
+        #expect(try await transform.transform("third") == nil)
+    }
 
-        // Wait for interval
+    @Test
+    func `ThrottleTransform reopens after its interval`() async throws {
+        let transform = ThrottleTransform<String>(interval: 0.1)
+        #expect(try await transform.transform("first") == "first")
+
+        // Start waiting after the first emission, so the next call cannot be too early.
         try await Task.sleep(nanoseconds: 150_000_000) // 150ms
 
-        // Now element should pass through
-        #expect(try await transform.transform("third") == "third")
+        #expect(try await transform.transform("second") == "second")
     }
 
     @Test
@@ -193,37 +229,37 @@ struct StreamTransformTests {
         #expect(batches[2] == [7]) // Remaining element
     }
 
-    @Test
-    func `Stream throttle extension works`() async throws {
+    @Test(arguments: [0.0, Double.infinity])
+    func `Stream throttle extension works`(interval: Double) async throws {
         let stream = AsyncThrowingStream<Int, Error> { continuation in
-            let producer = Task {
-                do {
-                    for i in 1...5 {
-                        continuation.yield(i)
-                        try await Task.sleep(nanoseconds: 10_000_000) // 10ms
-                    }
-                    continuation.finish()
-                } catch is CancellationError {
-                    continuation.finish()
-                } catch {
-                    continuation.finish(throwing: error)
-                }
+            for i in 1...5 {
+                continuation.yield(i)
             }
-            continuation.onTermination = { _ in
-                producer.cancel()
-            }
+            continuation.finish()
         }
 
-        let throttled = stream.throttle(interval: 0.03) // 30ms
+        let throttled = stream.throttle(interval: interval)
 
         var results: [Int] = []
         for try await value in throttled {
             results.append(value)
         }
 
-        // Should get fewer elements due to throttling
-        #expect(results.count < 5)
-        #expect(results.contains(1)) // First element always passes
+        // Exact outputs for both boundaries, independent of producer/consumer scheduling.
+        #expect(results == (interval == 0 ? [1, 2, 3, 4, 5] : [1]))
+    }
+
+    @Test
+    func `Stream throttle reopens after its interval`() async throws {
+        let source = ThrottleIntervalSource()
+        let stream = AsyncThrowingStream<Int, any Error> { try await source.next() }
+        var results: [Int] = []
+
+        for try await value in stream.throttle(interval: 0.03) {
+            results.append(value)
+        }
+
+        #expect(results == [1, 2, 3, 4, 5])
     }
 
     @Test
@@ -352,5 +388,19 @@ struct StreamTransformTests {
             "Number: 64", // 8^2
             "Number: 100", // 10^2
         ])
+    }
+}
+
+private actor ThrottleIntervalSource {
+    private var value = 0
+
+    func next() async throws -> Int? {
+        guard self.value < 5 else { return nil }
+        if self.value > 0 {
+            // Unfolding is pulled again only after the previous transform has completed.
+            try await Task.sleep(for: .milliseconds(30))
+        }
+        self.value += 1
+        return self.value
     }
 }
