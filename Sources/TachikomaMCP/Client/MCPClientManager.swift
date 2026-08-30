@@ -511,7 +511,13 @@ public final class TachikomaMCPClientManager {
         let path = self.profileConfigPath()
         guard FileManager.default.fileExists(atPath: path) else { return nil }
         do {
-            let raw = try String(contentsOfFile: path)
+            #if canImport(Darwin)
+            // Preserve the legacy reader's malformed UTF-16 handling and read errors.
+            let raw = try NSString(contentsOfFile: path, usedEncoding: nil) as String
+            #else
+            var encoding = String.Encoding.utf8
+            let raw = try String(contentsOfFile: path, usedEncoding: &encoding)
+            #endif
             let cleaned = Self.stripJSONComments(from: raw)
             let expanded = Self.expandEnvironmentVariables(in: cleaned)
             if let data = expanded.data(using: .utf8) {
