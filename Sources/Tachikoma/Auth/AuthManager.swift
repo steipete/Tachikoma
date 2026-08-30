@@ -216,7 +216,13 @@ public struct TKCredentialStore {
         let credentialsPath = self.credentialsPath
         guard FileManager.default.fileExists(atPath: credentialsPath) else { return [:] }
         do {
-            let content = try String(contentsOfFile: credentialsPath)
+            #if canImport(Darwin)
+            // Preserve the legacy reader's malformed UTF-16 handling and read errors.
+            let content = try NSString(contentsOfFile: credentialsPath, usedEncoding: nil) as String
+            #else
+            var encoding = String.Encoding.utf8
+            let content = try String(contentsOfFile: credentialsPath, usedEncoding: &encoding)
+            #endif
             var result: [String: String] = [:]
             for line in content.components(separatedBy: .newlines) {
                 let trimmed = line.trimmingCharacters(in: .whitespaces)
