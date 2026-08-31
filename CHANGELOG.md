@@ -2,18 +2,19 @@
 
 All notable changes to the Tachikoma project will be documented in this file.
 
-## [Unreleased]
+## [0.4.0] - 2026-08-31
 
 ### Added
-- Added first-class Claude Opus 5 support and moved generation-agnostic Claude aliases and defaults to the new flagship.
-- MCP tools can now advertise optional structured-result schemas while existing conformers remain source-compatible.
 - MCP-to-Agent adapters now expose a typed recursive JSON Schema view with defaults, constraints, unions, composition, conditionals, and lossless extension-keyword retention.
-
-### Changed
-- Refreshed Swift package pins to EventSource 1.5.1, ServiceLifecycle 2.12.0, and System 1.8.1.
+- MCP tools can now advertise optional structured-result schemas while existing conformers remain source-compatible.
+- Added first-class Claude Opus 5 support and moved generation-agnostic Claude aliases and defaults to the new flagship.
 
 ### Fixed
 - Realtime sessions now reject empty and unparsable base URLs before connecting instead of crashing or leaving invalid state. Thanks @SebTardif (#71).
+- OpenAI Responses, embeddings, and LM Studio now reject invalid provider base URLs instead of crashing. Thanks @SebTardif (#67).
+- Realtime tool execution now preserves completion order, distinguishes cancellation from timeout, rejects invalid deadlines before dispatch, and bounds cancellation cleanup. Thanks @SebTardif (#68, #69, #70).
+- CLI and generation diagnostics no longer expose credential fragments, and OAuth configuration now requires HTTPS authorization and token endpoints (#72, #73).
+- Profile loading now preserves automatic text decoding, including BOM-encoded files, without deprecated Foundation APIs (#82).
 - Cancelling a stdio MCP request now clears its continuation and timeout without closing the child, and cancelled initialization no longer retries legacy protocol variants.
 - Stdio MCP child exit now atomically closes the connection, clears cached tools, fails pending requests without waiting for their timeout, rejects later sends, and preserves generation-safe reconnects.
 - The root package no longer declares unused Commander products for its hand-parsed CLIs, avoiding local/remote package-identity conflicts in consumers; hermetic macOS/Linux tests now block merges on failure, and live-provider CI uses its documented compile/runtime gates.
@@ -31,6 +32,9 @@ All notable changes to the Tachikoma project will be documented in this file.
 - MCP tool arguments now reject non-finite numbers and lossy or overflowing integer conversions instead of truncating or trapping.
 - OpenAI Responses tools now preserve omission-based optional parameters and emit one canonical flattened function schema instead of duplicating it in a nested `function` object.
 - OpenAI Responses tool errors now keep their diagnostic output without sending an unsupported `failed` status that caused request-level errors.
+
+### Changed
+- Refreshed Swift package pins to EventSource 1.5.1, ServiceLifecycle 2.12.0, and System 1.8.1.
 
 ## [0.3.0] - 2026-08-02
 

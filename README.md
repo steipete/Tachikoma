@@ -24,7 +24,7 @@ platforms: [
     .iOS(.v17),
 ],
 dependencies: [
-    .package(url: "https://github.com/openclaw/Tachikoma.git", from: "0.3.0"),
+    .package(url: "https://github.com/openclaw/Tachikoma.git", from: "0.4.0"),
 ],
 targets: [
     .target(name: "MyApp", dependencies: [
