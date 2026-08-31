@@ -76,17 +76,23 @@ public final class RealtimeSession {
             throw TachikomaError.invalidConfiguration("Already connected or connecting")
         }
 
-        self.state = .connecting
+        let trimmedBaseURL = self.baseURL.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedBaseURL.isEmpty else {
+            throw TachikomaError.invalidConfiguration("Invalid base URL: <empty>")
+        }
 
-        // Build connection URL with model parameter
-        var urlComponents = URLComponents(string: baseURL)!
+        guard var urlComponents = URLComponents(string: trimmedBaseURL) else {
+            throw TachikomaError.invalidConfiguration("Invalid base URL: \(self.baseURL)")
+        }
         urlComponents.queryItems = [
             URLQueryItem(name: "model", value: self.configuration.model),
         ]
 
         guard let url = urlComponents.url else {
-            throw TachikomaError.invalidConfiguration("Invalid URL")
+            throw TachikomaError.invalidConfiguration("Invalid base URL: \(self.baseURL)")
         }
+
+        self.state = .connecting
 
         // Build headers
         let headers = [
