@@ -2,6 +2,8 @@
 
 All notable changes to the Tachikoma project will be documented in this file.
 
+## [0.4.1] - Unreleased
+
 ## [0.4.0] - 2026-08-31
 
 ### Added
