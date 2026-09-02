@@ -89,6 +89,7 @@ await conversation.registerBuiltInTools()
 - Call `end()` to stop event processing, disconnect the WebSocket, and finish the public streams.
 - A non-Realtime model passed to `startRealtimeConversation` throws `unsupportedOperation`.
 - Missing OpenAI credentials throw `authenticationFailed` during construction.
+- `RealtimeSession.connect()` throws `TachikomaError.invalidConfiguration` for empty, whitespace-only, or unparsable base URLs before changing the session state or invoking the transport. This does not introduce a comprehensive scheme or host validation policy.
 - `RealtimeConversation` requires Combine. Platforms without Combine receive `TachikomaError.unavailable`.
 - The Swift package currently requires Swift 6.2 and declares macOS 14, iOS 17, tvOS 17, watchOS 10, and visionOS 1 as its deployment floors.
 
