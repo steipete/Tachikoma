@@ -141,20 +141,26 @@ struct StopConditionsIntegrationTests {
         }
 
         // Stop after 0.3 seconds
-        let stoppedStream = stream.stopWhen(TimeoutStopCondition(timeout: 0.3))
-
+        let timeout: TimeInterval = 0.3
         let startTime = Date()
+        let stoppedStream = stream.stopWhen(TimeoutStopCondition(timeout: timeout))
+
         var chunkCount = 0
+        var finishReason: FinishReason?
         for try await delta in stoppedStream {
             if case .textDelta = delta.type {
                 chunkCount += 1
+            } else if case .done = delta.type {
+                finishReason = delta.finishReason
             }
         }
         let elapsed = Date().timeIntervalSince(startTime)
 
-        // Should have stopped after timeout
-        #expect(elapsed < 0.5) // Should stop around 0.3s
+        // Timeout is checked on text progress; scheduling can delay completion, but must not make it early.
+        #expect(elapsed >= timeout)
+        #expect(chunkCount > 0)
         #expect(chunkCount < 10) // Should not have all chunks
+        #expect(finishReason == .stop)
     }
 
     @Test
