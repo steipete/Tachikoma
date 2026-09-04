@@ -66,9 +66,9 @@ enum AnthropicMessageConversion {
                 let content = message.content.compactMap { contentPart -> AnthropicContent? in
                     switch contentPart {
                     case let .text(text):
-                        return .text(AnthropicContent.TextContent(type: "text", text: text))
+                        .text(AnthropicContent.TextContent(type: "text", text: text))
                     case let .image(imageContent):
-                        return .image(AnthropicContent.ImageContent(
+                        .image(AnthropicContent.ImageContent(
                             type: "image",
                             source: AnthropicContent.ImageSource(
                                 type: "base64",
@@ -77,7 +77,7 @@ enum AnthropicMessageConversion {
                             ),
                         ))
                     case .reasoning, .toolCall, .toolResult:
-                        return nil // Skip tool calls and results in user messages
+                        nil // Skip tool calls and results in user messages
                     }
                 }
                 anthropicMessages.append(AnthropicMessage(role: "user", content: content))

@@ -53,7 +53,7 @@ let package = Package(
         .package(url: "https://github.com/modelcontextprotocol/swift-sdk.git", from: "0.12.1"),
         .package(url: "https://github.com/apple/swift-configuration", from: "1.2.0"),
         .package(url: "https://github.com/apple/swift-algorithms", from: "1.2.1"),
-        .package(url: "https://github.com/apple/swift-crypto.git", from: "4.5.1"),
+        .package(url: "https://github.com/apple/swift-crypto.git", from: "4.5.2"),
     ],
     targets: [
         // Core Tachikoma module (no MCP dependencies)

@@ -324,15 +324,15 @@ struct SettingsView: View {
             }
             .navigationTitle("Settings")
             #if os(iOS)
-                .navigationBarTitleDisplayMode(.inline)
+            .navigationBarTitleDisplayMode(.inline)
             #endif
-                .toolbar {
-                    ToolbarItem(placement: .confirmationAction) {
-                        Button("Done") {
-                            self.dismiss()
-                        }
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Done") {
+                        self.dismiss()
                     }
                 }
+            }
         }
     }
 
