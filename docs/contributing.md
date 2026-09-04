@@ -2,6 +2,8 @@
 
 This repo is a SwiftPM package (Swift 6.x).
 
+The supported source minimum is Swift 6.2. CI uses the Swift 6.2.4 patch toolchain (Xcode 26.3 on macOS) and SwiftFormat 0.63.0.
+
 ## Dev setup
 
 ```bash

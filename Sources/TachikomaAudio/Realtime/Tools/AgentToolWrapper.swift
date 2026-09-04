@@ -38,11 +38,11 @@ public struct AgentToolWrapper: RealtimeExecutableTool {
                 // Convert array elements
                 let converted = arr.compactMap { element -> AnyAgentToolValue? in
                     switch element {
-                    case let .string(s): return AnyAgentToolValue(string: s)
-                    case let .number(n): return AnyAgentToolValue(double: n)
-                    case let .integer(i): return AnyAgentToolValue(int: i)
-                    case let .boolean(b): return AnyAgentToolValue(bool: b)
-                    default: return nil
+                    case let .string(s): AnyAgentToolValue(string: s)
+                    case let .number(n): AnyAgentToolValue(double: n)
+                    case let .integer(i): AnyAgentToolValue(int: i)
+                    case let .boolean(b): AnyAgentToolValue(bool: b)
+                    default: nil
                     }
                 }
                 convertedArgs[key] = AnyAgentToolValue(array: converted)
