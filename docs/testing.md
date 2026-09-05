@@ -45,6 +45,8 @@ Maintainers can run the same credentialed smoke suite from the manual **Live Pro
 
 ## 3. Provider-specific real workflows
 
+Google generation and streaming reject empty, whitespace-only, and malformed configured base URLs with `TachikomaError.invalidConfiguration`. Custom provider base paths retain percent-encoded segments such as `team%2Fblue` when endpoint paths are appended.
+
 Some suites rely on live credentials even without `INTEGRATION_TESTS`, e.g. CLI workflows or manual reproduction of regressions.
 
 - `Tests/TachikomaTests/GrokDebugTest.swift` only runs fully when `TACHIKOMA_TEST_MODE` is not `mock` *and* a Grok key is set.
@@ -63,8 +65,6 @@ Some suites rely on live credentials even without `INTEGRATION_TESTS`, e.g. CLI 
 | `REPLICATE_PREFERRED_OUTPUT=turbo` | Adds `Prefer: wait=false` to Replicate calls during tests. |
 
 ## 5. Troubleshooting tips
-
-Google generation and streaming reject empty, whitespace-only, and malformed configured base URLs with `TachikomaError.invalidConfiguration`. Custom provider base paths retain percent-encoded segments such as `team%2Fblue` when endpoint paths are appended.
 
 - **Missing API key errors**: confirm `source ~/.profile` (or your secrets manager) before launching `swift test`. The helper prints the provider name in the exception message.
 - **Hanging tests**: rerun inside `tmux` and watch `/tmp/tachikoma-swift-test.log` so the log survives a disconnected shell.
