@@ -39,8 +39,8 @@ public struct ServerProbeResult: Sendable {
     }
 }
 
-// UInt64(timeoutMs) * 1_000_000 traps on negative Int and overflows Int.max.
 enum ProbeTimeoutNanoseconds {
+    // UInt64(timeoutMs) * 1_000_000 traps on negative Int and overflows Int.max.
     private static let nanosecondsPerMillisecond: UInt64 = 1_000_000
 
     static func fromMilliseconds(_ timeoutMs: Int) -> UInt64? {
