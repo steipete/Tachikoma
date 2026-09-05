@@ -2,6 +2,8 @@
 
 All notable changes to the Tachikoma project will be documented in this file.
 
+## [0.4.2] - Unreleased
+
 ## [0.4.1] - 2026-09-05
 
 **Highlights:** Prevent timeout crashes and preserve Google proxy routes while rejecting invalid base URLs.
