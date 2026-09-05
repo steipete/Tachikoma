@@ -104,6 +104,68 @@ struct AsyncErgonomicsTests {
     }
 
     @Test
+    func `Timeout nanoseconds converts finite positive seconds`() throws {
+        #expect(try TimeoutNanoseconds.fromSeconds(1) == 1_000_000_000)
+        #expect(try TimeoutNanoseconds.fromSeconds(0.5) == 500_000_000)
+        #expect(try TimeoutNanoseconds.fromSeconds(TimeoutNanoseconds.maximumSeconds) > 0)
+    }
+
+    @Test(arguments: [
+        0,
+        -1,
+        .infinity,
+        -.infinity,
+        .nan,
+        TimeoutNanoseconds.maximumSeconds.nextUp,
+        .greatestFiniteMagnitude,
+    ])
+    func `Timeout nanoseconds rejects values that trap UInt64`(timeout: TimeInterval) {
+        do {
+            _ = try TimeoutNanoseconds.fromSeconds(timeout)
+            Issue.record("Should have rejected timeout \(timeout)")
+        } catch let error as TachikomaError {
+            guard case let .invalidConfiguration(message) = error else {
+                Issue.record("Expected invalidConfiguration, got \(error)")
+                return
+            }
+            #expect(message.contains("Invalid timeout"))
+        } catch {
+            Issue.record("Expected TachikomaError, got \(error)")
+        }
+    }
+
+    @Test(arguments: [
+        0,
+        -1,
+        .infinity,
+        -.infinity,
+        .nan,
+        TimeoutNanoseconds.maximumSeconds.nextUp,
+        .greatestFiniteMagnitude,
+    ])
+    func `With timeout rejects invalid values before starting work`(timeout: TimeInterval) async {
+        let probe = TimeoutStartProbe()
+
+        do {
+            _ = try await withTimeout(timeout) {
+                await probe.markStarted()
+                return "should not run"
+            }
+            Issue.record("Should have rejected timeout \(timeout)")
+        } catch let error as TachikomaError {
+            guard case let .invalidConfiguration(message) = error else {
+                Issue.record("Expected invalidConfiguration, got \(error)")
+                return
+            }
+            #expect(message.contains("Invalid timeout"))
+        } catch {
+            Issue.record("Expected TachikomaError, got \(error)")
+        }
+
+        #expect(await probe.didStart() == false)
+    }
+
+    @Test
     func `Async stream collect basic`() async throws {
         let stream = AsyncThrowingStream<Int, Error> { continuation in
             continuation.yield(1)
@@ -147,5 +209,17 @@ struct AsyncErgonomicsTests {
 
         // The long task should have been cancelled
         #expect(flag.cancelled == true)
+    }
+}
+
+private actor TimeoutStartProbe {
+    private var started = false
+
+    func markStarted() {
+        self.started = true
+    }
+
+    func didStart() -> Bool {
+        self.started
     }
 }

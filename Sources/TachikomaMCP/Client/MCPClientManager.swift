@@ -39,6 +39,20 @@ public struct ServerProbeResult: Sendable {
     }
 }
 
+// UInt64(timeoutMs) * 1_000_000 traps on negative Int and overflows Int.max.
+enum ProbeTimeoutNanoseconds {
+    private static let nanosecondsPerMillisecond: UInt64 = 1_000_000
+
+    static func fromMilliseconds(_ timeoutMs: Int) -> UInt64? {
+        guard timeoutMs > 0 else { return nil }
+        let milliseconds = UInt64(timeoutMs)
+        guard milliseconds <= UInt64.max / self.nanosecondsPerMillisecond else {
+            return nil
+        }
+        return milliseconds * self.nanosecondsPerMillisecond
+    }
+}
+
 private enum AutoConnectPolicy {
     private static let overrideLock = MCPOverrideLock(initialState: nil)
     private static let forceEnable =
@@ -301,6 +315,15 @@ public final class TachikomaMCPClientManager {
             )
         }
 
+        guard let timeoutNanoseconds = ProbeTimeoutNanoseconds.fromMilliseconds(timeoutMs) else {
+            return ServerProbeResult(
+                isConnected: false,
+                toolCount: 0,
+                responseTime: Date().timeIntervalSince(start),
+                error: "invalid timeout: \(timeoutMs)ms",
+            )
+        }
+
         // Try to connect with timeout using withTaskGroup for proper cancellation
         let result: (Bool, String?) = await withTaskGroup(of: (Bool, String?).self) { group in
             group.addTask {
@@ -314,7 +337,7 @@ public final class TachikomaMCPClientManager {
 
             group.addTask {
                 do {
-                    try await Task.sleep(nanoseconds: UInt64(timeoutMs) * 1_000_000)
+                    try await Task.sleep(nanoseconds: timeoutNanoseconds)
                     return (false, "timeout after \(timeoutMs)ms")
                 } catch {
                     // Task was cancelled (connection succeeded)

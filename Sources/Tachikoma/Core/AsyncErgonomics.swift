@@ -61,6 +61,19 @@ public struct CancellableTask<Success: Sendable> {
 
 // MARK: - Timeout Functions
 
+// UInt64(timeout * 1e9) traps on non-finite, non-positive, and overflow values.
+@available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
+enum TimeoutNanoseconds {
+    static let maximumSeconds = Double(UInt64.max / 1_000_000_000)
+
+    static func fromSeconds(_ timeout: TimeInterval) throws -> UInt64 {
+        guard timeout.isFinite, timeout > 0, timeout <= self.maximumSeconds else {
+            throw TachikomaError.invalidConfiguration("Invalid timeout: \(timeout) seconds")
+        }
+        return UInt64(timeout * 1_000_000_000)
+    }
+}
+
 @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 public func withTimeout<T: Sendable>(
     _ timeout: TimeInterval,
@@ -68,13 +81,14 @@ public func withTimeout<T: Sendable>(
 ) async throws
     -> T
 {
-    try await withThrowingTaskGroup(of: T.self) { group in
+    let timeoutNanoseconds = try TimeoutNanoseconds.fromSeconds(timeout)
+    return try await withThrowingTaskGroup(of: T.self) { group in
         group.addTask {
             try await operation()
         }
 
         group.addTask {
-            try await Task<Never, Never>.sleep(nanoseconds: UInt64(timeout * 1_000_000_000))
+            try await Task<Never, Never>.sleep(nanoseconds: timeoutNanoseconds)
             throw TimeoutError(timeout: timeout)
         }
 
