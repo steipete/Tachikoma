@@ -107,6 +107,54 @@ struct InvalidProviderBaseURLTests {
         }
     }
 
+    @Test
+    func `Google generate throws on empty base URL`() async throws {
+        let provider = try self.googleProvider(baseURL: "")
+
+        await self.expectInvalidBaseURL {
+            _ = try await provider.generateText(request: self.sampleRequest)
+        }
+    }
+
+    @Test
+    func `Google stream throws on empty base URL`() async throws {
+        let provider = try self.googleProvider(baseURL: "")
+
+        await self.expectInvalidBaseURL {
+            try await self.consumeGoogleStream(provider)
+        }
+    }
+
+    @Test
+    func `Google stream throws on whitespace-only base URL`() async throws {
+        let provider = try self.googleProvider(baseURL: "   ")
+
+        await self.expectInvalidBaseURL {
+            try await self.consumeGoogleStream(provider)
+        }
+    }
+
+    @Test
+    func `Google stream throws on malformed base URL`() async throws {
+        let provider = try self.googleProvider(baseURL: Self.malformedBaseURL)
+
+        await self.expectInvalidBaseURL {
+            try await self.consumeGoogleStream(provider)
+        }
+    }
+
+    private func googleProvider(baseURL: String) throws -> GoogleProvider {
+        let config = TachikomaConfiguration(loadFromEnvironment: false)
+        config.setAPIKey("test-key", for: .google)
+        config.setBaseURL(baseURL, for: .google)
+        return try GoogleProvider(model: .gemini25Flash, configuration: config)
+    }
+
+    private func consumeGoogleStream(_ provider: GoogleProvider) async throws {
+        let stream = try await provider.streamText(request: self.sampleRequest)
+        for try await _ in stream {}
+    }
+
     private func responsesProvider(baseURL: String) throws -> OpenAIResponsesProvider {
         let config = TachikomaConfiguration(loadFromEnvironment: false)
         config.setAPIKey("sk-test", for: .openai)
