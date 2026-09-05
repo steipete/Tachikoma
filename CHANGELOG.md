@@ -4,6 +4,9 @@ All notable changes to the Tachikoma project will be documented in this file.
 
 ## [0.4.1] - Unreleased
 
+### Fixed
+- Google generation and streaming now reject empty and malformed base URLs; shared endpoint joining preserves percent-encoded proxy paths. Thanks @SebTardif (#85).
+
 ### Changed
 - Updated Swift Crypto to 4.5.2, ASN.1 to 1.7.2, and NIO to 2.102.0; refreshed CI to Swift 6.2.4 and SwiftFormat 0.63.0 while retaining Swift 6.2 support.
 

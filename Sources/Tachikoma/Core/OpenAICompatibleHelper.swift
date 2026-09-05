@@ -887,10 +887,13 @@ struct OpenAICompatibleHelper {
             throw TachikomaError.invalidConfiguration("Invalid base URL: \(baseURL)")
         }
 
-        let basePath = components.path
+        let basePath = components.percentEncodedPath
         let normalizedPath = path.hasPrefix("/") ? path : "/\(path)"
         let trimmedBase = basePath.hasSuffix("/") ? String(basePath.dropLast()) : basePath
-        components.path = trimmedBase + normalizedPath
+        var suffix = URLComponents()
+        suffix.path = normalizedPath
+        // Decoding the base path would turn an encoded slash into a route separator.
+        components.percentEncodedPath = trimmedBase + suffix.percentEncodedPath
 
         var mergedQueryItems = components.queryItems ?? []
         mergedQueryItems.append(contentsOf: queryItems)
