@@ -64,6 +64,8 @@ Some suites rely on live credentials even without `INTEGRATION_TESTS`, e.g. CLI 
 
 ## 5. Troubleshooting tips
 
+Generation timeouts use seconds; MCP health-check timeouts use milliseconds. Zero remains an immediate deadline that races the operation. Negative, non-finite, and overflowing durations are rejected before starting the timed operation. An already-connected MCP server returns its cached health without starting a timer.
+
 - **Missing API key errors**: confirm `source ~/.profile` (or your secrets manager) before launching `swift test`. The helper prints the provider name in the exception message.
 - **Hanging tests**: rerun inside `tmux` and watch `/tmp/tachikoma-swift-test.log` so the log survives a disconnected shell.
 - **Coverage gaps**: run the coverage command above; the report lists the lowest-covered files so you can target new tests.

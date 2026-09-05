@@ -66,7 +66,7 @@ enum TimeoutNanoseconds {
     static let maximumSeconds = Double(UInt64.max / 1_000_000_000)
 
     static func fromSeconds(_ timeout: TimeInterval) throws -> UInt64 {
-        guard timeout.isFinite, timeout > 0, timeout <= self.maximumSeconds else {
+        guard timeout.isFinite, timeout >= 0, timeout <= self.maximumSeconds else {
             throw TachikomaError.invalidConfiguration("Invalid timeout: \(timeout) seconds")
         }
         return UInt64(timeout * 1_000_000_000)

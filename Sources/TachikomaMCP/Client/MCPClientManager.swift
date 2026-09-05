@@ -43,7 +43,7 @@ enum ProbeTimeoutNanoseconds {
     private static let nanosecondsPerMillisecond: UInt64 = 1_000_000
 
     static func fromMilliseconds(_ timeoutMs: Int) -> UInt64? {
-        guard timeoutMs > 0 else { return nil }
+        guard timeoutMs >= 0 else { return nil }
         let milliseconds = UInt64(timeoutMs)
         guard milliseconds <= UInt64.max / self.nanosecondsPerMillisecond else {
             return nil
