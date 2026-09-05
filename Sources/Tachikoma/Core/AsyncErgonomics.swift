@@ -63,7 +63,6 @@ public struct CancellableTask<Success: Sendable> {
 
 @available(macOS 13.0, iOS 16.0, watchOS 9.0, tvOS 16.0, *)
 enum TimeoutNanoseconds {
-    // UInt64(timeout * 1e9) traps on non-finite, non-positive, and overflow values.
     static let maximumSeconds = Double(UInt64.max / 1_000_000_000)
 
     static func fromSeconds(_ timeout: TimeInterval) throws -> UInt64 {
