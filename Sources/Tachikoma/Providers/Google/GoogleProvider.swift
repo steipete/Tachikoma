@@ -330,24 +330,27 @@ extension GoogleProvider {
     }
 
     private func makeStreamRequest(body: Data) throws -> URLRequest {
-        guard let baseURL else {
-            throw TachikomaError.invalidConfiguration("Google base URL is missing")
-        }
         guard let apiKey else {
             throw TachikomaError.authenticationFailed("GEMINI_API_KEY not found")
         }
 
-        var components = URLComponents(string: "\(baseURL)/models/\(apiModelName):streamGenerateContent")
-        var items = components?.queryItems ?? []
+        let url = try OpenAICompatibleHelper.endpointURL(
+            baseURL: self.baseURL,
+            path: "/models/\(self.apiModelName):streamGenerateContent",
+        )
+        guard var components = URLComponents(url: url, resolvingAgainstBaseURL: false) else {
+            throw TachikomaError.invalidConfiguration("Invalid Google streaming URL")
+        }
+        var items = components.queryItems ?? []
         items.append(URLQueryItem(name: "alt", value: "sse"))
         items.append(URLQueryItem(name: "key", value: apiKey))
-        components?.queryItems = items
+        components.queryItems = items
 
-        guard let url = components?.url else {
+        guard let streamURL = components.url else {
             throw TachikomaError.invalidConfiguration("Invalid Google streaming URL")
         }
 
-        var request = URLRequest(url: url)
+        var request = URLRequest(url: streamURL)
         request.httpMethod = "POST"
         request.httpBody = body
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
