@@ -2,13 +2,16 @@
 
 All notable changes to the Tachikoma project will be documented in this file.
 
-## [0.4.1] - Unreleased
+## [0.4.1] - 2026-09-05
+
+**Highlights:** Prevent timeout crashes and preserve Google proxy routes while rejecting invalid base URLs.
 
 ### Fixed
 - Generation and MCP health checks now reject negative, non-finite, and overflowing timeouts before starting work instead of crashing; zero retains its immediate-deadline behavior. Thanks @SebTardif (#84).
+- Google generation and streaming now reject empty and malformed base URLs; shared endpoint joining preserves percent-encoded proxy paths. Thanks @SebTardif (#85).
+- SDK version metadata now reports the current release instead of the stale `4.0.0` value.
 
 ### Changed
-- Google generation and streaming now reject empty and malformed base URLs; shared endpoint joining preserves percent-encoded proxy paths. Thanks @SebTardif (#85).
 - Updated Swift Crypto to 4.5.2, ASN.1 to 1.7.2, and NIO to 2.102.0; refreshed CI to Swift 6.2.4 and SwiftFormat 0.63.0 while retaining Swift 6.2 support.
 
 ## [0.4.0] - 2026-08-31

@@ -59,7 +59,7 @@ public func setDefaultModel(_: Model) {
 // MARK: - Version Information
 
 /// Current version of the Tachikoma SDK
-public let tachikomaVersion = "4.0.0"
+public let tachikomaVersion = "0.4.1"
 
 /// Minimum supported platform versions
 public enum PlatformSupport {
